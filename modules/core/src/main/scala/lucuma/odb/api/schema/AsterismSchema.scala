@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.Asterism
+import lucuma.odb.api.model.AsterismModel
 import lucuma.odb.api.repo.OdbRepo
 
 import cats.effect.Effect
@@ -16,21 +16,21 @@ object AsterismSchema {
   import TargetSchema.{CoordinateType, TargetType}
   import GeneralSchema.{EnumTypeExistence, ArgumentIncludeDeleted}
 
-  implicit val AsterismIdType: ScalarType[Asterism.Id] =
-    ObjectIdSchema.idType[Asterism.Id](name = "AsterismId")
+  implicit val AsterismIdType: ScalarType[AsterismModel.Id] =
+    ObjectIdSchema.idType[AsterismModel.Id](name = "AsterismId")
 
-  val AsterismIdArgument: Argument[Asterism.Id] =
+  val AsterismIdArgument: Argument[AsterismModel.Id] =
     Argument(
       name         = "id",
       argumentType = AsterismIdType,
       description  = "Asterism ID"
     )
 
-  def AsterismType[F[_]: Effect]: InterfaceType[OdbRepo[F], Asterism] =
-    InterfaceType[OdbRepo[F], Asterism](
+  def AsterismType[F[_]: Effect]: InterfaceType[OdbRepo[F], AsterismModel] =
+    InterfaceType[OdbRepo[F], AsterismModel](
       name        = "Asterism",
       description = "Common fields shared by all asterisms",
-      fields[OdbRepo[F], Asterism](
+      fields[OdbRepo[F], AsterismModel](
         Field(
           name        = "id",
           fieldType   = AsterismIdType,

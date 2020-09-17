@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{RightAscensionApi, Target}
+import lucuma.odb.api.model.{RightAscensionModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
 
@@ -23,13 +23,13 @@ trait TargetMutation extends TargetScalars {
 
   import syntax.inputobjecttype._
 
-  val InputObjectTypeTargetCreateNonsidereal: InputObjectType[Target.CreateNonsidereal] =
-    deriveInputObjectType[Target.CreateNonsidereal](
+  val InputObjectTypeTargetCreateNonsidereal: InputObjectType[TargetModel.CreateNonsidereal] =
+    deriveInputObjectType[TargetModel.CreateNonsidereal](
       InputObjectTypeName("CreateNonsiderealInput"),
       InputObjectTypeDescription("Nonsidereal target parameters")
     )
 
-  val ArgumentTargetCreateNonsidereal: Argument[Target.CreateNonsidereal] =
+  val ArgumentTargetCreateNonsidereal: Argument[TargetModel.CreateNonsidereal] =
     InputObjectTypeTargetCreateNonsidereal.argument(
       "input",
       "Nonsidereal target description"
@@ -53,49 +53,49 @@ trait TargetMutation extends TargetScalars {
       InputObjectTypeDescription("RA/Dec Coordinates")
     )
 
-  implicit val EnumTypeRightAscensionUnits: EnumType[RightAscensionApi.Units] =
+  implicit val EnumTypeRightAscensionUnits: EnumType[RightAscensionModel.Units] =
     EnumType.fromEnumerated(
       "RightAscensionUnits",
       "Unit options for RightAscension values"
     )
 
-  implicit val InputObjectRightAscensionLong: InputObjectType[RightAscensionApi.LongInput] =
-    deriveInputObjectType[RightAscensionApi.LongInput](
+  implicit val InputObjectRightAscensionLong: InputObjectType[RightAscensionModel.LongInput] =
+    deriveInputObjectType[RightAscensionModel.LongInput](
       InputObjectTypeName("RightAscensionFromLongInput"),
       InputObjectTypeDescription("Right Ascension integral value in corresponding units")
     )
 
-  implicit val InputObjectRightAscensionDecimal: InputObjectType[RightAscensionApi.DecimalInput] =
-    deriveInputObjectType[RightAscensionApi.DecimalInput](
+  implicit val InputObjectRightAscensionDecimal: InputObjectType[RightAscensionModel.DecimalInput] =
+    deriveInputObjectType[RightAscensionModel.DecimalInput](
       InputObjectTypeName("RightAscensionFromDecimalInput"),
       InputObjectTypeDescription("Right Ascension decimal value in corresponding units")
     )
 
-  implicit val InputObjectRightAscension: InputObjectType[RightAscensionApi.Input] =
-    deriveInputObjectType[RightAscensionApi.Input](
+  implicit val InputObjectRightAscension: InputObjectType[RightAscensionModel.Input] =
+    deriveInputObjectType[RightAscensionModel.Input](
       InputObjectTypeName("RightAscensionInput"),
       InputObjectTypeDescription("Right Ascension, choose one of the available units")
     )
 
-  val InputObjectTypeCreateSidereal: InputObjectType[Target.CreateSidereal] =
-    deriveInputObjectType[Target.CreateSidereal](
+  val InputObjectTypeCreateSidereal: InputObjectType[TargetModel.CreateSidereal] =
+    deriveInputObjectType[TargetModel.CreateSidereal](
       InputObjectTypeName("CreateSiderealInput"),
       InputObjectTypeDescription("Sidereal target parameters")
     )
 
-  val ArgumentTargetCreateSidereal: Argument[Target.CreateSidereal] =
+  val ArgumentTargetCreateSidereal: Argument[TargetModel.CreateSidereal] =
     InputObjectTypeCreateSidereal.argument(
       "input",
       "Sidereal target description"
     )
 
-  val InputObjectTypeTargetEditSidereal: InputObjectType[Target.EditSidereal] =
-    deriveInputObjectType[Target.EditSidereal](
+  val InputObjectTypeTargetEditSidereal: InputObjectType[TargetModel.EditSidereal] =
+    deriveInputObjectType[TargetModel.EditSidereal](
       InputObjectTypeName("EditSiderealInput"),
       InputObjectTypeDescription("Sidereal target edit parameters")
     )
 
-  val ArgumentTargetEditSidereal: Argument[Target.EditSidereal] =
+  val ArgumentTargetEditSidereal: Argument[TargetModel.EditSidereal] =
     InputObjectTypeTargetEditSidereal.argument(
       "input",
       "Sidereal target edit"

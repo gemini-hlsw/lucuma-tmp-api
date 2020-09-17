@@ -7,7 +7,7 @@ import lucuma.odb.api.model.syntax.all._
 import lucuma.odb.api.model.json.targetmath._
 import lucuma.core.`enum`.EphemerisKeyType
 import lucuma.core.math.{Coordinates, Declination, Epoch, ProperMotion, ProperVelocity, RadialVelocity, RightAscension}
-import lucuma.core.model.EphemerisKey
+import lucuma.core.model.{EphemerisKey, Target}
 import lucuma.core.util.Gid
 
 import cats.data._
@@ -21,13 +21,13 @@ import monocle.{Lens, Optional}
 /**
  * A Target combining an ID with a `gem.Target`.
  */
-final case class Target(
-  id:         Target.Id,
+final case class TargetModel(
+  id:         TargetModel.Id,
   existence:  Existence,
-  target:     lucuma.core.model.Target
+  target:     Target
 )
 
-object Target extends TargetOptics {
+object TargetModel extends TargetOptics {
 
   final case class Id(value: PosLong) {
     override def toString: String =
@@ -39,16 +39,16 @@ object Target extends TargetOptics {
       Gid.instance('t', _.value, apply)
   }
 
-  implicit val TopLevelTarget: TopLevel[Id, Target] =
-    TopLevel.instance(_.id, existence)
+  implicit val TopLevelTarget: TopLevelModel[Id, TargetModel] =
+    TopLevelModel.instance(_.id, existence)
 
 
   object parse {
 
     def ephemerisKey(
       fieldName: String,
-      key: EphemerisKeyType,
-      input: String
+      key:       EphemerisKeyType,
+      input:     String
     ): ValidatedInput[EphemerisKey] =
       EphemerisKey
         .fromTypeAndDes
@@ -69,7 +69,7 @@ object Target extends TargetOptics {
    * @param des semi-permanent horizons identifier (relative to key type)
    */
   final case class CreateNonsidereal(
-    pids: List[Program.Id],
+    pids: List[ProgramModel.Id],
     name: String,
     key:  EphemerisKeyType,
     des:  String
@@ -78,8 +78,8 @@ object Target extends TargetOptics {
     val toEphemerisKey: ValidatedInput[EphemerisKey] =
       parse.ephemerisKey("des", key, des)
 
-    val toGemTarget: ValidatedInput[lucuma.core.model.Target] =
-      toEphemerisKey.map { k => lucuma.core.model.Target(name, Left(k)) }
+    val toGemTarget: ValidatedInput[Target] =
+      toEphemerisKey.map { k => Target(name, Left(k)) }
   }
 
   object CreateNonsidereal {
@@ -102,9 +102,9 @@ object Target extends TargetOptics {
    * @param radialVelocity radial velocity
    */
   final case class CreateSidereal(
-    pids:           List[Program.Id],
+    pids:           List[ProgramModel.Id],
     name:           String,
-    raInput:        RightAscensionApi.Input,
+    raInput:        RightAscensionModel.Input,
     dec:            Declination,
     epoch:          Option[Epoch],
     properVelocity: Option[ProperVelocity],
@@ -123,10 +123,8 @@ object Target extends TargetOptics {
         )
       }
 
-    val toGemTarget: ValidatedInput[lucuma.core.model.Target] =
-      toProperMotion.map { pm =>
-        lucuma.core.model.Target(name, Right(pm))
-      }
+    val toGemTarget: ValidatedInput[Target] =
+      toProperMotion.map { pm => Target(name, Right(pm)) }
 
   }
 
@@ -138,23 +136,23 @@ object Target extends TargetOptics {
   }
 
   final case class EditNonsidereal(
-    id:        Target.Id,
+    id:        TargetModel.Id,
     existence: Option[Existence],
     name:      Option[String],
     key:       Option[EphemerisKey],
-  ) extends Editor[Id, Target] {
+  ) extends Editor[Id, TargetModel] {
 
-    override val editor: State[Target, Unit] =
+    override val editor: State[TargetModel, Unit] =
       for {
-        _ <- Target.existence    := existence
-        _ <- Target.name         := name
-        _ <- Target.ephemerisKey := key
+        _ <- TargetModel.existence    := existence
+        _ <- TargetModel.name         := name
+        _ <- TargetModel.ephemerisKey := key
       } yield ()
 
   }
 
   final case class EditSidereal(
-    id:             Target.Id,
+    id:             TargetModel.Id,
     existence:      Option[Existence],
     name:           Option[String],
     ra:             Option[RightAscension],
@@ -162,17 +160,17 @@ object Target extends TargetOptics {
     epoch:          Option[Epoch],
     properVelocity: Option[Option[ProperVelocity]],
     radialVelocity: Option[Option[RadialVelocity]]
-  ) extends Editor[Id, Target] {
+  ) extends Editor[Id, TargetModel] {
 
-    override val editor: State[Target, Unit] =
+    override val editor: State[TargetModel, Unit] =
       for {
-        _ <- Target.existence      := existence
-        _ <- Target.name           := name
-        _ <- Target.ra             := ra
-        _ <- Target.dec            := dec
-        _ <- Target.epoch          := epoch
-        _ <- Target.properVelocity := properVelocity
-        _ <- Target.radialVelocity := radialVelocity
+        _ <- TargetModel.existence      := existence
+        _ <- TargetModel.name           := name
+        _ <- TargetModel.ra             := ra
+        _ <- TargetModel.dec            := dec
+        _ <- TargetModel.epoch          := epoch
+        _ <- TargetModel.properVelocity := properVelocity
+        _ <- TargetModel.radialVelocity := radialVelocity
       } yield ()
 
   }
@@ -185,70 +183,70 @@ object Target extends TargetOptics {
   }
 
   final case class TargetCreatedEvent (
-    id: Long,
-    value: Target,
-  ) extends Event.Created[Target]
+    id:    Long,
+    value: TargetModel,
+  ) extends Event.Created[TargetModel]
 
   object TargetCreatedEvent {
-    def apply(value: Target)(id: Long): TargetCreatedEvent =
+    def apply(value: TargetModel)(id: Long): TargetCreatedEvent =
       TargetCreatedEvent(id, value)
   }
 
   final case class TargetEditedEvent (
-    id: Long,
-    oldValue: Target,
-    newValue: Target
-  ) extends Event.Edited[Target]
+    id:       Long,
+    oldValue: TargetModel,
+    newValue: TargetModel
+  ) extends Event.Edited[TargetModel]
 
   object TargetEditedEvent {
-    def apply(oldValue: Target, newValue: Target)(id: Long): TargetEditedEvent =
+    def apply(oldValue: TargetModel, newValue: TargetModel)(id: Long): TargetEditedEvent =
       TargetEditedEvent(id, oldValue, newValue)
   }
 
 }
 
-trait TargetOptics { self: Target.type =>
+trait TargetOptics { self: TargetModel.type =>
 
-  val id: Lens[Target, Target.Id] =
-    Lens[Target, Target.Id](_.id)(a => b => b.copy(id = a))
+  val id: Lens[TargetModel, TargetModel.Id] =
+    Lens[TargetModel, TargetModel.Id](_.id)(a => b => b.copy(id = a))
 
-  val existence: Lens[Target, Existence] =
-    Lens[Target, Existence](_.existence)(a => b => b.copy(existence = a))
+  val existence: Lens[TargetModel, Existence] =
+    Lens[TargetModel, Existence](_.existence)(a => b => b.copy(existence = a))
 
-  val lucumaTarget: Lens[Target, lucuma.core.model.Target] =
-    Lens[Target, lucuma.core.model.Target](_.target)(a => b => b.copy(target = a))
+  val lucumaTarget: Lens[TargetModel, Target] =
+    Lens[TargetModel, Target](_.target)(a => b => b.copy(target = a))
 
-  val name: Lens[Target, String] =
-    lucumaTarget.composeLens(lucuma.core.model.Target.name)
+  val name: Lens[TargetModel, String] =
+    lucumaTarget.composeLens(Target.name)
 
-  private val gemTargetEphemerisKey: Optional[lucuma.core.model.Target, EphemerisKey] =
-    lucuma.core.model.Target.track.composePrism(monocle.std.either.stdLeft)
+  private val gemTargetEphemerisKey: Optional[Target, EphemerisKey] =
+    Target.track.composePrism(monocle.std.either.stdLeft)
 
-  val ephemerisKey: Optional[Target, lucuma.core.model.EphemerisKey] =
+  val ephemerisKey: Optional[TargetModel, EphemerisKey] =
     lucumaTarget.composeOptional(gemTargetEphemerisKey)
 
-  private val gemTargetProperMotion: Optional[lucuma.core.model.Target, ProperMotion] =
-    lucuma.core.model.Target.track.composePrism(monocle.std.either.stdRight)
+  private val gemTargetProperMotion: Optional[Target, ProperMotion] =
+    Target.track.composePrism(monocle.std.either.stdRight)
 
-  val properMotion: Optional[Target, ProperMotion] =
+  val properMotion: Optional[TargetModel, ProperMotion] =
     lucumaTarget.composeOptional(gemTargetProperMotion)
 
-  val coordinates: Optional[Target, Coordinates] =
+  val coordinates: Optional[TargetModel, Coordinates] =
     properMotion.composeLens(ProperMotion.baseCoordinates)
 
-  val ra: Optional[Target, RightAscension] =
+  val ra: Optional[TargetModel, RightAscension] =
     coordinates.composeLens(Coordinates.rightAscension)
 
-  val dec: Optional[Target, Declination] =
+  val dec: Optional[TargetModel, Declination] =
     coordinates.composeLens(Coordinates.declination)
 
-  val epoch: Optional[Target, Epoch] =
+  val epoch: Optional[TargetModel, Epoch] =
     properMotion.composeLens(ProperMotion.epoch)
 
-  val properVelocity: Optional[Target, Option[ProperVelocity]] =
+  val properVelocity: Optional[TargetModel, Option[ProperVelocity]] =
     properMotion.composeLens(ProperMotion.properVelocity)
 
-  val radialVelocity: Optional[Target, Option[RadialVelocity]] =
+  val radialVelocity: Optional[TargetModel, Option[RadialVelocity]] =
     properMotion.composeLens(ProperMotion.radialVelocity)
 
 }

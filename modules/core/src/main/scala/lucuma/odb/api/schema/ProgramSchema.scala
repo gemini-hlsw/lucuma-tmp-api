@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.Program
+import lucuma.odb.api.model.ProgramModel
 import lucuma.odb.api.repo.OdbRepo
 
 import cats.effect.Effect
@@ -17,17 +17,17 @@ object ProgramSchema {
   import TargetSchema.TargetType
   import context._
 
-  implicit val ProgramIdType: ScalarType[Program.Id] =
-    ObjectIdSchema.idType[Program.Id]("ProgramId")
+  implicit val ProgramIdType: ScalarType[ProgramModel.Id] =
+    ObjectIdSchema.idType[ProgramModel.Id]("ProgramId")
 
-  val ProgramIdArgument: Argument[Program.Id] =
+  val ProgramIdArgument: Argument[ProgramModel.Id] =
     Argument(
       name         = "id",
       argumentType = ProgramIdType,
       description  = "Program ID"
     )
 
-  def ProgramType[F[_]: Effect]: ObjectType[OdbRepo[F], Program] =
+  def ProgramType[F[_]: Effect]: ObjectType[OdbRepo[F], ProgramModel] =
     ObjectType(
       name     = "Program",
       fieldsFn = () => fields(

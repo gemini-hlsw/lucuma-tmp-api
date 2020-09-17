@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{Asterism, Observation, Program, Target}
+import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, TargetModel}
 import lucuma.odb.api.repo.{AsterismRepo, ObservationRepo, OdbRepo, ProgramRepo, TargetRepo}
 import cats.effect.Effect
 import cats.effect.implicits._
@@ -13,16 +13,16 @@ import scala.concurrent.Future
 
 final class RepoContextOps[F[_]: Effect, A](val self: Context[OdbRepo[F], A]) {
 
-  def asterismId: Asterism.Id =
+  def asterismId: AsterismModel.Id =
     self.arg(AsterismSchema.AsterismIdArgument)
 
-  def observationId: Observation.Id =
+  def observationId: ObservationModel.Id =
     self.arg(ObservationSchema.ObservationIdArgument)
 
-  def programId: Program.Id =
+  def programId: ProgramModel.Id =
     self.arg(ProgramSchema.ProgramIdArgument)
 
-  def targetId: Target.Id =
+  def targetId: TargetModel.Id =
     self.arg(TargetSchema.TargetIdArgument)
 
   def includeDeleted: Boolean =

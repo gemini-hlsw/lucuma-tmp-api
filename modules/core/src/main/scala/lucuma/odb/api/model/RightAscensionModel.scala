@@ -12,10 +12,10 @@ import cats.syntax.validated._
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 
-object RightAscensionApi {
+object RightAscensionModel {
 
   sealed abstract class Units(
-    val angleUnit: AngleApi.Units
+    val angleUnit: AngleModel.Units
   ) extends Product with Serializable {
 
     private def angleToRightAscension[A](m: SplitMono[Angle, A]): SplitMono[RightAscension, A] =
@@ -40,9 +40,9 @@ object RightAscensionApi {
 
   object Units {
 
-    case object Microarcseconds extends Units(AngleApi.Units.Milliarcseconds)
-    case object Degrees         extends Units(AngleApi.Units.Degrees)
-    case object Hours           extends Units(AngleApi.Units.Hours)
+    case object Microarcseconds extends Units(AngleModel.Units.Milliarcseconds)
+    case object Degrees         extends Units(AngleModel.Units.Degrees)
+    case object Hours           extends Units(AngleModel.Units.Hours)
 
     implicit val EnumeratedRightAscensionUnits: Enumerated[Units] =
       Enumerated.of(Microarcseconds, Degrees, Hours)
@@ -116,25 +116,14 @@ object RightAscensionApi {
 
   object Input {
 
+    val Empty: Input =
+      Input(None, None, None, None, None, None)
+
     def fromMicroarcseconds(l: Long): Input =
-      Input(
-        microarcseconds = Some(l),
-        degrees         = None,
-        hours           = None,
-        hms             = None,
-        fromLong        = None,
-        fromDecimal     = None
-      )
+      Empty.copy(microarcseconds = Some(l))
 
     def fromHms(s: String): Input =
-      Input(
-        microarcseconds = None,
-        degrees         = None,
-        hours           = None,
-        hms             = Some(s),
-        fromLong        = None,
-        fromDecimal     = None
-      )
+      Empty.copy(hms = Some(s))
 
     implicit val DecoderInput: Decoder[Input] =
       deriveDecoder[Input]

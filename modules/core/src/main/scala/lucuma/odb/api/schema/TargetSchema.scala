@@ -4,7 +4,7 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.schema.syntax.all._
-import lucuma.odb.api.model.Target
+import lucuma.odb.api.model.TargetModel
 import lucuma.odb.api.schema.ProgramSchema.ProgramType
 import lucuma.odb.api.repo.OdbRepo
 
@@ -30,10 +30,10 @@ object TargetSchema extends TargetScalars {
   import GeneralSchema.EnumTypeExistence
   import context._
 
-  implicit val TargetIdType: ScalarType[Target.Id] =
-    ObjectIdSchema.idType[Target.Id]("TargetId")
+  implicit val TargetIdType: ScalarType[TargetModel.Id] =
+    ObjectIdSchema.idType[TargetModel.Id]("TargetId")
 
-  val TargetIdArgument: Argument[Target.Id] =
+  val TargetIdArgument: Argument[TargetModel.Id] =
     Argument(
       name         = "id",
       argumentType = TargetIdType,
@@ -250,7 +250,7 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-  def TargetType[F[_]: Effect]: ObjectType[OdbRepo[F], Target] =
+  def TargetType[F[_]: Effect]: ObjectType[OdbRepo[F], TargetModel] =
     ObjectType(
       name     = "Target",
       fieldsFn = () => fields(

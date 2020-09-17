@@ -4,7 +4,7 @@
 package lucuma.odb.api.repo
 
 import lucuma.odb.api.model.syntax.all._
-import lucuma.odb.api.model.{Editor, Event, Existence, InputError, TopLevel}
+import lucuma.odb.api.model.{Editor, Event, Existence, InputError, TopLevelModel}
 import lucuma.core.util.Gid
 import cats.{FunctorFilter, Monad, MonadError}
 import cats.data.{EitherNec, State}
@@ -41,7 +41,7 @@ trait TopLevelRepo[F[_], I, T] {
 /**
  *
  */
-abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevel[I, ?]](
+abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, ?]](
   tablesRef:    Ref[F, Tables],
   eventService: EventService[F],
   idLens:       Lens[Tables, I],
@@ -121,7 +121,7 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevel[I, ?]](
   }
 
   private def setExistence(id: I, newState: Existence): F[Option[T]] =
-    edit(TopLevel[I, T].existenceEditor(id, newState))
+    edit(TopLevelModel[I, T].existenceEditor(id, newState))
 
   def delete(id: I): F[Option[T]] =
     setExistence(id, Existence.Deleted)

@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{Asterism, Observation, Program, Target}
+import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, TargetModel}
 
 import cats.data.State
 import cats.kernel.BoundedEnumerable
@@ -19,15 +19,15 @@ import scala.collection.immutable.{SortedMap, TreeMap}
  * Simplistic immutable database "tables" of top-level types keyed by Id.
  */
 final case class Tables(
-  ids:              Ids,
+                         ids:              Ids,
 
-  asterisms:        SortedMap[Asterism.Id, Asterism],
-  observations:     SortedMap[Observation.Id, Observation],
-  programs:         SortedMap[Program.Id, Program],
-  targets:          SortedMap[Target.Id, Target],
+                         asterisms:        SortedMap[AsterismModel.Id, AsterismModel],
+                         observations:     SortedMap[ObservationModel.Id, ObservationModel],
+                         programs:         SortedMap[ProgramModel.Id, ProgramModel],
+                         targets:          SortedMap[TargetModel.Id, TargetModel],
 
-  programAsterisms: ManyToMany[Program.Id, Asterism.Id],
-  programTargets:   ManyToMany[Program.Id, Target.Id]
+                         programAsterisms: ManyToMany[ProgramModel.Id, AsterismModel.Id],
+                         programTargets:   ManyToMany[ProgramModel.Id, TargetModel.Id]
 )
 
 object Tables extends TableOptics with TableState {
@@ -36,10 +36,10 @@ object Tables extends TableOptics with TableState {
     Tables(
       ids              = Ids.zero,
 
-      asterisms        = TreeMap.empty[Asterism.Id, Asterism],
-      observations     = TreeMap.empty[Observation.Id, Observation],
-      programs         = TreeMap.empty[Program.Id, Program],
-      targets          = TreeMap.empty[Target.Id, Target],
+      asterisms        = TreeMap.empty[AsterismModel.Id, AsterismModel],
+      observations     = TreeMap.empty[ObservationModel.Id, ObservationModel],
+      programs         = TreeMap.empty[ProgramModel.Id, ProgramModel],
+      targets          = TreeMap.empty[TargetModel.Id, TargetModel],
 
       programAsterisms = ManyToMany.empty,
       programTargets   = ManyToMany.empty
@@ -55,49 +55,49 @@ sealed trait TableOptics { self: Tables.type =>
   val lastEventId: Lens[Tables, Long] =
     ids ^|-> Ids.lastEvent
 
-  val lastAsterismId: Lens[Tables, Asterism.Id] =
+  val lastAsterismId: Lens[Tables, AsterismModel.Id] =
     ids ^|-> Ids.lastAsterism
 
-  val lastObservationId: Lens[Tables, Observation.Id] =
+  val lastObservationId: Lens[Tables, ObservationModel.Id] =
     ids ^|-> Ids.lastObservation
 
-  val lastProgramId: Lens[Tables, Program.Id] =
+  val lastProgramId: Lens[Tables, ProgramModel.Id] =
     ids ^|-> Ids.lastProgram
 
-  val lastTargetId: Lens[Tables, Target.Id] =
+  val lastTargetId: Lens[Tables, TargetModel.Id] =
     ids ^|-> Ids.lastTarget
 
 
-  val asterisms: Lens[Tables, SortedMap[Asterism.Id, Asterism]] =
-    Lens[Tables, SortedMap[Asterism.Id, Asterism]](_.asterisms)(b => a => a.copy(asterisms = b))
+  val asterisms: Lens[Tables, SortedMap[AsterismModel.Id, AsterismModel]] =
+    Lens[Tables, SortedMap[AsterismModel.Id, AsterismModel]](_.asterisms)(b => a => a.copy(asterisms = b))
 
-  def asterism(aid: Asterism.Id): Lens[Tables, Option[Asterism]] =
+  def asterism(aid: AsterismModel.Id): Lens[Tables, Option[AsterismModel]] =
     asterisms ^|-> At.at(aid)
 
-  val observations: Lens[Tables, SortedMap[Observation.Id, Observation]] =
-    Lens[Tables, SortedMap[Observation.Id, Observation]](_.observations)(b => a => a.copy(observations = b))
+  val observations: Lens[Tables, SortedMap[ObservationModel.Id, ObservationModel]] =
+    Lens[Tables, SortedMap[ObservationModel.Id, ObservationModel]](_.observations)(b => a => a.copy(observations = b))
 
-  def observation(oid: Observation.Id): Lens[Tables, Option[Observation]] =
+  def observation(oid: ObservationModel.Id): Lens[Tables, Option[ObservationModel]] =
     observations ^|-> At.at(oid)
 
-  val programs: Lens[Tables, SortedMap[Program.Id, Program]] =
-    Lens[Tables, SortedMap[Program.Id, Program]](_.programs)(b => a => a.copy(programs = b))
+  val programs: Lens[Tables, SortedMap[ProgramModel.Id, ProgramModel]] =
+    Lens[Tables, SortedMap[ProgramModel.Id, ProgramModel]](_.programs)(b => a => a.copy(programs = b))
 
-  def program(pid: Program.Id): Lens[Tables, Option[Program]] =
+  def program(pid: ProgramModel.Id): Lens[Tables, Option[ProgramModel]] =
     programs ^|-> At.at(pid)
 
-  val targets: Lens[Tables, SortedMap[Target.Id, Target]] =
-    Lens[Tables, SortedMap[Target.Id, Target]](_.targets)(b => a => a.copy(targets = b))
+  val targets: Lens[Tables, SortedMap[TargetModel.Id, TargetModel]] =
+    Lens[Tables, SortedMap[TargetModel.Id, TargetModel]](_.targets)(b => a => a.copy(targets = b))
 
-  def target(tid: Target.Id): Lens[Tables, Option[Target]] =
+  def target(tid: TargetModel.Id): Lens[Tables, Option[TargetModel]] =
     targets ^|-> At.at(tid)
 
 
-  val programAsterisms: Lens[Tables, ManyToMany[Program.Id, Asterism.Id]] =
-    Lens[Tables, ManyToMany[Program.Id, Asterism.Id]](_.programAsterisms)(b => a => a.copy(programAsterisms = b))
+  val programAsterisms: Lens[Tables, ManyToMany[ProgramModel.Id, AsterismModel.Id]] =
+    Lens[Tables, ManyToMany[ProgramModel.Id, AsterismModel.Id]](_.programAsterisms)(b => a => a.copy(programAsterisms = b))
 
-  val programTargets: Lens[Tables, ManyToMany[Program.Id, Target.Id]] =
-    Lens[Tables, ManyToMany[Program.Id, Target.Id]](_.programTargets)(b => a => a.copy(programTargets = b))
+  val programTargets: Lens[Tables, ManyToMany[ProgramModel.Id, TargetModel.Id]] =
+    Lens[Tables, ManyToMany[ProgramModel.Id, TargetModel.Id]](_.programTargets)(b => a => a.copy(programTargets = b))
 
 
 }
@@ -107,29 +107,29 @@ sealed trait TableState { self: Tables.type =>
   val nextEventId: State[Tables, Long] =
     lastEventId.mod(_ + 1L)
 
-  val nextAsterismId: State[Tables, Asterism.Id] =
-    lastAsterismId.mod(BoundedEnumerable[Asterism.Id].cycleNext)
+  val nextAsterismId: State[Tables, AsterismModel.Id] =
+    lastAsterismId.mod(BoundedEnumerable[AsterismModel.Id].cycleNext)
 
-  val nextObservationId: State[Tables, Observation.Id] =
-    lastObservationId.mod(BoundedEnumerable[Observation.Id].cycleNext)
+  val nextObservationId: State[Tables, ObservationModel.Id] =
+    lastObservationId.mod(BoundedEnumerable[ObservationModel.Id].cycleNext)
 
-  val nextProgramId: State[Tables, Program.Id] =
-    lastProgramId.mod(BoundedEnumerable[Program.Id].cycleNext)
+  val nextProgramId: State[Tables, ProgramModel.Id] =
+    lastProgramId.mod(BoundedEnumerable[ProgramModel.Id].cycleNext)
 
-  val nextTargetId: State[Tables, Target.Id] =
-    lastTargetId.mod(BoundedEnumerable[Target.Id].cycleNext)
+  val nextTargetId: State[Tables, TargetModel.Id] =
+    lastTargetId.mod(BoundedEnumerable[TargetModel.Id].cycleNext)
 
 
-  def shareAsterism(a: Asterism, pids: Set[Program.Id]): State[Tables, Unit] =
+  def shareAsterism(a: AsterismModel, pids: Set[ProgramModel.Id]): State[Tables, Unit] =
     programAsterisms.mod_(_ ++ pids.toList.tupleRight(a.id))
 
-  def unshareAsterismAll(aid: Asterism.Id): State[Tables, Unit] =
+  def unshareAsterismAll(aid: AsterismModel.Id): State[Tables, Unit] =
     programAsterisms.mod_(_.removeRight(aid))
 
-  def shareTarget(t: Target, pids: Set[Program.Id]): State[Tables, Unit] =
+  def shareTarget(t: TargetModel, pids: Set[ProgramModel.Id]): State[Tables, Unit] =
     programTargets.mod_(_ ++ pids.toList.tupleRight(t.id))
 
-  def unshareTargetAll(tid: Target.Id): State[Tables, Unit] =
+  def unshareTargetAll(tid: TargetModel.Id): State[Tables, Unit] =
     programTargets.mod_(_.removeRight(tid))
 
 }

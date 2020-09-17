@@ -12,7 +12,7 @@ import monocle.Lens
 /**
  * A trait for top-level objects.
  */
-trait TopLevel[I, T] {
+trait TopLevelModel[I, T] {
 
   def id(t: T): I
 
@@ -28,12 +28,12 @@ trait TopLevel[I, T] {
     }
 }
 
-object TopLevel {
+object TopLevelModel {
 
-  def apply[I, T](implicit ev: TopLevel[I, T]): ev.type = ev
+  def apply[I, T](implicit ev: TopLevelModel[I, T]): ev.type = ev
 
-  def instance[I, T](getId: T => I, existenceLens: Lens[T, Existence]): TopLevel[I, T] =
-    new TopLevel[I, T] {
+  def instance[I, T](getId: T => I, existenceLens: Lens[T, Existence]): TopLevelModel[I, T] =
+    new TopLevelModel[I, T] {
       def id(t: T): I = getId(t)
       def existence: Lens[T, Existence] = existenceLens
     }

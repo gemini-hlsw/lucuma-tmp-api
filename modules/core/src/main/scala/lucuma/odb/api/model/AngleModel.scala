@@ -12,7 +12,7 @@ import cats.syntax.validated._
 import java.math.RoundingMode.HALF_UP
 
 
-object AngleApi {
+object AngleModel {
 
   sealed abstract class Units(
     val symbol:       Option[String],

@@ -3,17 +3,17 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{Observation, Program}
-import lucuma.odb.api.model.Observation.{ObservationCreatedEvent, ObservationEditedEvent}
+import lucuma.odb.api.model.{ObservationModel, ProgramModel}
+import lucuma.odb.api.model.ObservationModel.{ObservationCreatedEvent, ObservationEditedEvent}
 import cats.{Monad, MonadError}
 import cats.effect.concurrent.Ref
 import cats.implicits._
 
-sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Observation] {
+sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, ObservationModel.Id, ObservationModel] {
 
-  def selectAllForProgram(pid: Program.Id, includeDeleted: Boolean = false): F[List[Observation]]
+  def selectAllForProgram(pid: ProgramModel.Id, includeDeleted: Boolean = false): F[List[ObservationModel]]
 
-  def insert(input: Observation.Create): F[Observation]
+  def insert(input: ObservationModel.Create): F[ObservationModel]
 
 }
 
@@ -24,7 +24,7 @@ object ObservationRepo {
     eventService: EventService[F]
   )(implicit M: MonadError[F, Throwable]): ObservationRepo[F] =
 
-    new TopLevelRepoBase[F, Observation.Id, Observation](
+    new TopLevelRepoBase[F, ObservationModel.Id, ObservationModel](
       tablesRef,
       eventService,
       Tables.lastObservationId,
@@ -34,16 +34,16 @@ object ObservationRepo {
     ) with ObservationRepo[F]
       with LookupSupport[F] {
 
-      override def selectAllForProgram(pid: Program.Id, includeDeleted: Boolean = false): F[List[Observation]] =
+      override def selectAllForProgram(pid: ProgramModel.Id, includeDeleted: Boolean = false): F[List[ObservationModel]] =
         tablesRef
           .get
           .map(_.observations.values.filter(_.pid === pid).toList)
           .map(deletionFilter(includeDeleted))
 
-      override def insert(newObs: Observation.Create): F[Observation] =
+      override def insert(newObs: ObservationModel.Create): F[ObservationModel] =
         modify { t =>
           lookupProgram(t, newObs.pid).fold(
-            err => (t, err.asLeft[Observation]),
+            err => (t, err.asLeft[ObservationModel]),
             _   => createAndInsert(newObs.withId).run(t).value.map(_.asRight)
           )
         }

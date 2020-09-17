@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{Asterism, Observation, Program, Target, ValidatedInput}
+import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, TargetModel, ValidatedInput}
 import lucuma.odb.api.model.InputError
 import lucuma.core.util.Gid
 import cats._
@@ -13,31 +13,31 @@ import scala.collection.immutable.SortedMap
 
 trait LookupSupport[F[_]] {
 
-  def missingAsterism(aid: Asterism.Id)(implicit M: MonadError[F, Throwable]): F[Asterism] =
-    ExecutionException.missingReference[F, Asterism.Id, Asterism](aid)
+  def missingAsterism(aid: AsterismModel.Id)(implicit M: MonadError[F, Throwable]): F[AsterismModel] =
+    ExecutionException.missingReference[F, AsterismModel.Id, AsterismModel](aid)
 
-  def missingObservation(oid: Observation.Id)(implicit M: MonadError[F, Throwable]): F[Observation] =
-    ExecutionException.missingReference[F, Observation.Id, Observation](oid)
+  def missingObservation(oid: ObservationModel.Id)(implicit M: MonadError[F, Throwable]): F[ObservationModel] =
+    ExecutionException.missingReference[F, ObservationModel.Id, ObservationModel](oid)
 
-  def missingProgram(pid: Program.Id)(implicit M: MonadError[F, Throwable]): F[Program] =
-    ExecutionException.missingReference[F, Program.Id, Program](pid)
+  def missingProgram(pid: ProgramModel.Id)(implicit M: MonadError[F, Throwable]): F[ProgramModel] =
+    ExecutionException.missingReference[F, ProgramModel.Id, ProgramModel](pid)
 
-  def missingTarget(tid: Target.Id)(implicit M: MonadError[F, Throwable]): F[Target] =
-    ExecutionException.missingReference[F, Target.Id, Target](tid)
+  def missingTarget(tid: TargetModel.Id)(implicit M: MonadError[F, Throwable]): F[TargetModel] =
+    ExecutionException.missingReference[F, TargetModel.Id, TargetModel](tid)
 
   def lookup[I: Gid, T](m: SortedMap[I, T], id: I, name: String): ValidatedInput[T] =
     m.get(id).toValidNec(InputError.missingReference(name, Gid[I].show(id)))
 
-  def lookupAsterism(t: Tables, aid: Asterism.Id): ValidatedInput[Asterism] =
+  def lookupAsterism(t: Tables, aid: AsterismModel.Id): ValidatedInput[AsterismModel] =
     lookup(t.asterisms, aid, "aid")
 
-  def lookupObservation(t: Tables, oid: Observation.Id): ValidatedInput[Observation] =
+  def lookupObservation(t: Tables, oid: ObservationModel.Id): ValidatedInput[ObservationModel] =
     lookup(t.observations, oid, "oid")
 
-  def lookupProgram(t: Tables, pid: Program.Id): ValidatedInput[Program] =
+  def lookupProgram(t: Tables, pid: ProgramModel.Id): ValidatedInput[ProgramModel] =
     lookup(t.programs, pid, "pid")
 
-  def lookupTarget(t: Tables, tid: Target.Id): ValidatedInput[Target] =
+  def lookupTarget(t: Tables, tid: TargetModel.Id): ValidatedInput[TargetModel] =
     lookup(t.targets, tid, "tid")
 
 }

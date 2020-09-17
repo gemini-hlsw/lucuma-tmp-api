@@ -3,8 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.Asterism
-import lucuma.odb.api.model.json.AsterismJson
+import lucuma.odb.api.model.AsterismModel
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
 import sangria.macros.derive._
@@ -12,7 +11,7 @@ import sangria.marshalling.circe._
 import sangria.schema._
 
 
-trait AsterismMutation extends AsterismJson with TargetScalars {
+trait AsterismMutation extends TargetScalars {
 
   import AsterismSchema.{AsterismIdType, AsterismIdArgument, AsterismType}
   import GeneralSchema.EnumTypeExistence
@@ -23,25 +22,25 @@ trait AsterismMutation extends AsterismJson with TargetScalars {
   import context._
   import syntax.inputobjecttype._
 
-  val InputObjectTypeAsterismCreateDefault: InputObjectType[Asterism.CreateDefault] =
-    deriveInputObjectType[Asterism.CreateDefault](
+  val InputObjectTypeAsterismCreateDefault: InputObjectType[AsterismModel.CreateDefault] =
+    deriveInputObjectType[AsterismModel.CreateDefault](
       InputObjectTypeName("CreateDefaultAsterismInput"),
       InputObjectTypeDescription("Default asterism parameters")
     )
 
-  val ArgumentAsterismCreateDefault: Argument[Asterism.CreateDefault] =
+  val ArgumentAsterismCreateDefault: Argument[AsterismModel.CreateDefault] =
     InputObjectTypeAsterismCreateDefault.argument(
       "input",
       "Default Asterism description"
     )
 
-  val InputObjectTypeAsterismEditDefault: InputObjectType[Asterism.EditDefault] =
-    deriveInputObjectType[Asterism.EditDefault](
+  val InputObjectTypeAsterismEditDefault: InputObjectType[AsterismModel.EditDefault] =
+    deriveInputObjectType[AsterismModel.EditDefault](
       InputObjectTypeName("EditDefaultAsterismInput"),
       InputObjectTypeDescription("Default asterism edit")
     )
 
-  val ArgumentAsterismEditDefault: Argument[Asterism.EditDefault] =
+  val ArgumentAsterismEditDefault: Argument[AsterismModel.EditDefault] =
     InputObjectTypeAsterismEditDefault.argument(
       "input",
       "Edit default asterism"

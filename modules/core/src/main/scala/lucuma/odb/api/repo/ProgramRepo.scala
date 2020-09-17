@@ -3,8 +3,8 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{Program, Target}
-import lucuma.odb.api.model.Program.{ProgramCreatedEvent, ProgramEditedEvent}
+import lucuma.odb.api.model.{ProgramModel, TargetModel}
+import lucuma.odb.api.model.ProgramModel.{ProgramCreatedEvent, ProgramEditedEvent}
 import lucuma.odb.api.model.Existence._
 import cats.Monad
 import cats.implicits._
@@ -12,11 +12,11 @@ import cats.MonadError
 import cats.effect.concurrent.Ref
 
 
-trait ProgramRepo[F[_]] extends TopLevelRepo[F, Program.Id, Program] {
+trait ProgramRepo[F[_]] extends TopLevelRepo[F, ProgramModel.Id, ProgramModel] {
 
-  def selectAllForTarget(tid: Target.Id, includeDeleted: Boolean = false): F[List[Program]]
+  def selectAllForTarget(tid: TargetModel.Id, includeDeleted: Boolean = false): F[List[ProgramModel]]
 
-  def insert(input: Program.Create): F[Program]
+  def insert(input: ProgramModel.Create): F[ProgramModel]
 
 }
 
@@ -27,7 +27,7 @@ object ProgramRepo {
     eventService: EventService[F]
   )(implicit M: MonadError[F, Throwable]): ProgramRepo[F] =
 
-    new TopLevelRepoBase[F, Program.Id, Program](
+    new TopLevelRepoBase[F, ProgramModel.Id, ProgramModel](
       tablesRef,
       eventService,
       Tables.lastProgramId,
@@ -37,15 +37,15 @@ object ProgramRepo {
     ) with ProgramRepo[F]
       with LookupSupport[F] {
 
-      override def selectAllForTarget(tid: Target.Id, includeDeleted: Boolean = false): F[List[Program]] =
+      override def selectAllForTarget(tid: TargetModel.Id, includeDeleted: Boolean = false): F[List[ProgramModel]] =
         tablesRef.get.flatMap { tables =>
           tables.programTargets.selectLeft(tid).toList.traverse { pid =>
             tables.programs.get(pid).fold(missingProgram(pid))(M.pure)
           }
         }.map(deletionFilter(includeDeleted))
 
-      override def insert(input: Program.Create): F[Program] =
-        tablesRef.modifyState(createAndInsert(pid => Program(pid, Present, input.name)))
+      override def insert(input: ProgramModel.Create): F[ProgramModel] =
+        tablesRef.modifyState(createAndInsert(pid => ProgramModel(pid, Present, input.name)))
 
     }
 
