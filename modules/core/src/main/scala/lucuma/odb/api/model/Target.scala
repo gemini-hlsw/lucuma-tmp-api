@@ -4,26 +4,19 @@
 package lucuma.odb.api.model
 
 import lucuma.odb.api.model.syntax.all._
-
+import lucuma.odb.api.model.json.targetmath._
 import lucuma.core.`enum`.EphemerisKeyType
-import lucuma.core.math.{
-  Declination,
-  Coordinates,
-  Epoch,
-  ProperMotion,
-  ProperVelocity,
-  RadialVelocity,
-  RightAscension
-}
+import lucuma.core.math.{Coordinates, Declination, Epoch, ProperMotion, ProperVelocity, RadialVelocity, RightAscension}
 import lucuma.core.model.EphemerisKey
 import lucuma.core.util.Gid
 
-import cats.data.State
+import cats.data._
 import cats.implicits._
 import eu.timepit.refined.auto._
 import eu.timepit.refined.types.numeric.PosLong
+import io.circe.Decoder
+import io.circe.generic.semiauto._
 import monocle.{Lens, Optional}
-
 
 /**
  * A Target combining an ID with a `gem.Target`.
@@ -61,7 +54,7 @@ object Target extends TargetOptics {
         .fromTypeAndDes
         .getOption((key, input))
         .toValidNec(
-          InputError.InvalidField(fieldName, input, s"Invalid description for ephemeris key type `${key.shortName}`")
+          InputError.invalidField(fieldName, input, s"Invalid description for ephemeris key type `${key.shortName}`")
         )
 
   }
@@ -89,40 +82,58 @@ object Target extends TargetOptics {
       toEphemerisKey.map { k => lucuma.core.model.Target(name, Left(k)) }
   }
 
+  object CreateNonsidereal {
+
+    implicit val DecoderCreateNonsidereal: Decoder[CreateNonsidereal] =
+      deriveDecoder[CreateNonsidereal]
+
+  }
+
   /**
    * Describes input used to create a sidereal target.
    *
    * @param pids associated program(s), if any (which either exist or results
    *             in an error)
    * @param name target name
-   * @param ra right ascension at epoch
-   * @param dec declination at epoch
+   * @param raInput right ascension coordinate at epoch
+   * @param dec declination coordinate at epoch
    * @param epoch time of the base observation
    * @param properVelocity proper velocity per year in right ascension and declination
    * @param radialVelocity radial velocity
    */
   final case class CreateSidereal(
-    pids:  List[Program.Id],
-    name:  String,
-    ra:    RightAscension,
-    dec:   Declination,
-    epoch: Option[Epoch],
+    pids:           List[Program.Id],
+    name:           String,
+    raInput:        RightAscensionApi.Input,
+    dec:            Declination,
+    epoch:          Option[Epoch],
     properVelocity: Option[ProperVelocity],
     radialVelocity: Option[RadialVelocity]
     // TODO: more proper motion
   ) {
 
-    val toProperMotion: ProperMotion =
-      ProperMotion(
-        Coordinates(ra, dec),
-        epoch.getOrElse(Epoch.J2000),
-        properVelocity,
-        radialVelocity,
-        None
-      )
+    val toProperMotion: ValidatedInput[ProperMotion] =
+      raInput.toRightAscension.map { r =>
+        ProperMotion(
+          Coordinates(r, dec),
+          epoch.getOrElse(Epoch.J2000),
+          properVelocity,
+          radialVelocity,
+          None
+        )
+      }
 
-    val toGemTarget: lucuma.core.model.Target =
-      lucuma.core.model.Target(name, Right(toProperMotion))
+    val toGemTarget: ValidatedInput[lucuma.core.model.Target] =
+      toProperMotion.map { pm =>
+        lucuma.core.model.Target(name, Right(pm))
+      }
+
+  }
+
+  object CreateSidereal {
+
+    implicit val DecoderCreateSidereal: Decoder[CreateSidereal] =
+      deriveDecoder[CreateSidereal]
 
   }
 
@@ -163,6 +174,13 @@ object Target extends TargetOptics {
         _ <- Target.properVelocity := properVelocity
         _ <- Target.radialVelocity := radialVelocity
       } yield ()
+
+  }
+
+  object EditSidereal {
+
+    implicit val DecoderEditSidereal: Decoder[EditSidereal] =
+      deriveDecoder[EditSidereal]
 
   }
 

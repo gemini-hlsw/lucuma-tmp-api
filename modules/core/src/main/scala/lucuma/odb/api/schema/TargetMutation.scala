@@ -3,18 +3,17 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.Target
-import lucuma.odb.api.model.json.TargetJson
+import lucuma.odb.api.model.{RightAscensionApi, Target}
 import lucuma.odb.api.repo.OdbRepo
+import lucuma.odb.api.schema.syntax.`enum`._
 
 import lucuma.core.math.{Coordinates, Offset, ProperVelocity}
-
 import cats.effect.Effect
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
 
-trait TargetMutation extends TargetJson with TargetScalars {
+trait TargetMutation extends TargetScalars {
 
   import GeneralSchema.EnumTypeExistence
   import ProgramSchema.ProgramIdType
@@ -52,6 +51,30 @@ trait TargetMutation extends TargetJson with TargetScalars {
     deriveInputObjectType[Coordinates](
       InputObjectTypeName("CoordinatesInput"),
       InputObjectTypeDescription("RA/Dec Coordinates")
+    )
+
+  implicit val EnumTypeRightAscensionUnits: EnumType[RightAscensionApi.Units] =
+    EnumType.fromEnumerated(
+      "RightAscensionUnits",
+      "Unit options for RightAscension values"
+    )
+
+  implicit val InputObjectRightAscensionLong: InputObjectType[RightAscensionApi.LongInput] =
+    deriveInputObjectType[RightAscensionApi.LongInput](
+      InputObjectTypeName("RightAscensionFromLongInput"),
+      InputObjectTypeDescription("Right Ascension integral value in corresponding units")
+    )
+
+  implicit val InputObjectRightAscensionDecimal: InputObjectType[RightAscensionApi.DecimalInput] =
+    deriveInputObjectType[RightAscensionApi.DecimalInput](
+      InputObjectTypeName("RightAscensionFromDecimalInput"),
+      InputObjectTypeDescription("Right Ascension decimal value in corresponding units")
+    )
+
+  implicit val InputObjectRightAscension: InputObjectType[RightAscensionApi.Input] =
+    deriveInputObjectType[RightAscensionApi.Input](
+      InputObjectTypeName("RightAscensionInput"),
+      InputObjectTypeDescription("Right Ascension, choose one of the available units")
     )
 
   val InputObjectTypeCreateSidereal: InputObjectType[Target.CreateSidereal] =

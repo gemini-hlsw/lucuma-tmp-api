@@ -5,7 +5,6 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.schema.syntax.all._
 import lucuma.odb.api.model.Target
-import lucuma.odb.api.model.json.TargetJson
 import lucuma.odb.api.schema.ProgramSchema.ProgramType
 import lucuma.odb.api.repo.OdbRepo
 
@@ -26,7 +25,7 @@ import lucuma.core.model.EphemerisKey
 import cats.effect.Effect
 import sangria.schema._
 
-object TargetSchema extends TargetJson with TargetScalars {
+object TargetSchema extends TargetScalars {
 
   import GeneralSchema.EnumTypeExistence
   import context._

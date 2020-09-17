@@ -3,9 +3,9 @@
 
 package lucuma.odb.api.service
 
-import lucuma.odb.api.model.{Asterism, Observation, Program, Target}
+import lucuma.odb.api.model.{Asterism, Observation, Program, RightAscensionApi, Target}
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.core.math.{Declination, Epoch, ProperVelocity, RadialVelocity, RightAscension}
+import lucuma.core.math.{Declination, Epoch, ProperVelocity, RadialVelocity}
 import cats.effect.Sync
 import cats.implicits._
 
@@ -25,7 +25,7 @@ object Init {
               Target.CreateSidereal(
                 List(p.id),
                 "Betelgeuse",
-                RightAscension.fromStringHMS.unsafeGet("05:55:10.305"),
+                RightAscensionApi.Input.fromHms("05:55:10.305"),
                 Declination.fromStringSignedDMS.unsafeGet("07:24:25.43"),
                 Some(Epoch.J2000),
                 Some(ProperVelocity.milliarcsecondsPerYear.reverseGet((BigDecimal("27.54"), BigDecimal("11.3")))),
@@ -36,7 +36,7 @@ object Init {
               Target.CreateSidereal(
                 List(p.id),
                 "Rigel",
-                RightAscension.fromStringHMS.unsafeGet("05:14:32.272"),
+                RightAscensionApi.Input.fromHms("05:14:32.272"),
                 Declination.fromStringSignedDMS.unsafeGet("-08:12:05.90"),
                 Some(Epoch.J2000),
                 Some(ProperVelocity.milliarcsecondsPerYear.reverseGet((BigDecimal("1.31"), BigDecimal("0.5")))),

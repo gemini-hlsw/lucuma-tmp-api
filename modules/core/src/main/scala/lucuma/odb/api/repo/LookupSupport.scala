@@ -4,7 +4,7 @@
 package lucuma.odb.api.repo
 
 import lucuma.odb.api.model.{Asterism, Observation, Program, Target, ValidatedInput}
-import lucuma.odb.api.model.InputError.MissingReference
+import lucuma.odb.api.model.InputError
 import lucuma.core.util.Gid
 import cats._
 import cats.implicits._
@@ -26,7 +26,7 @@ trait LookupSupport[F[_]] {
     ExecutionException.missingReference[F, Target.Id, Target](tid)
 
   def lookup[I: Gid, T](m: SortedMap[I, T], id: I, name: String): ValidatedInput[T] =
-    m.get(id).toValidNec(MissingReference(name, Gid[I].show(id)))
+    m.get(id).toValidNec(InputError.missingReference(name, Gid[I].show(id)))
 
   def lookupAsterism(t: Tables, aid: Asterism.Id): ValidatedInput[Asterism] =
     lookup(t.asterisms, aid, "aid")

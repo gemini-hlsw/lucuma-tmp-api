@@ -6,11 +6,6 @@ package lucuma.odb.api.model
 import cats.data.NonEmptyChain
 import cats.implicits._
 
-// QUESTION: Not sure about this at all.  For most low-level types we can create
-// custom scalars and do the corresponding formatting and parsing / validating
-// there. However some combinations of values in input types may not be valid
-// and will need to be flagged as issues.
-//
 // I'm guessing Sangria offers a better way to handle this but I couldn't
 // divine it.
 
@@ -18,11 +13,11 @@ import cats.implicits._
  * Possible errors that are found in input types (arguments to mutations). These
  * are client-fixable issues, not execution errors.
  */
-sealed trait InputError {
-  def message: String
+final case class InputError(message: String) {
 
   def toException: InputError.Exception =
     InputError.Exception(NonEmptyChain(this))
+
 }
 
 object InputError {
@@ -37,32 +32,24 @@ object InputError {
       nec.map(_.message).intercalate("\n")
   }
 
+  def fromMessage(m: String): InputError =
+    InputError(m)
+
   /**
    * Indicates that an input value does not conform to expectations.  For
    * example, an RA field that cannot be parsed.
    */
-  final case class InvalidField(
-    name:    String,
-    input:   String,
-    failure: String
-  ) extends InputError {
+  def invalidField[A](name: String, input: String, failure: String): InputError =
+    fromMessage(s"Could not validate $name field value `$input`: $failure")
 
-    override def message: String =
-      s"Could not validate $name field value `$input`: $failure"
-
-  }
+  def missingInput[A](what: String): InputError =
+    fromMessage(s"No $what definition provided")
 
   /**
    * Indicates that an input contains an id whose referent could not be found.
    */
-  final case class MissingReference(
-    name:  String,
-    value: String
-  ) extends InputError {
+  def missingReference[A](name: String, value: String): InputError =
+    fromMessage(s"Could not find $name '$value''")
 
-    override def message: String =
-      s"Could not find $name '$value''"
-
-  }
 
 }

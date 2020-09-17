@@ -71,7 +71,7 @@ object TargetRepo {
         insertTarget(input.pids, input.toGemTarget)
 
       override def insertSidereal(input: Target.CreateSidereal): F[Target] =
-        insertTarget(input.pids, input.toGemTarget.validNec)
+        insertTarget(input.pids, input.toGemTarget)
 
     }
 

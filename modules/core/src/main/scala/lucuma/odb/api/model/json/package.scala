@@ -11,7 +11,6 @@ package object json {
   object all
     extends AsterismJson
        with ObservationJson
-       with TargetJson
        with TargetMathJson
 
 }

@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{Asterism, ManyToMany, Observation, Program, Target}
+import lucuma.odb.api.model.{Asterism, Observation, Program, Target}
 
 import cats.data.State
 import cats.kernel.BoundedEnumerable
