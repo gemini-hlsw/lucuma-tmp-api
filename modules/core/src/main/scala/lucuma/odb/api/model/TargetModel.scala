@@ -143,12 +143,12 @@ object TargetModel extends TargetOptics {
     key:       Option[EphemerisKey],
   ) extends Editor[Id, TargetModel] {
 
-    override val editor: State[TargetModel, Unit] =
-      for {
+    override val editor: ValidatedInput[State[TargetModel, Unit]] =
+      (for {
         _ <- TargetModel.existence    := existence
         _ <- TargetModel.name         := name
         _ <- TargetModel.ephemerisKey := key
-      } yield ()
+      } yield ()).validNec
 
   }
 
@@ -156,23 +156,27 @@ object TargetModel extends TargetOptics {
     id:             TargetModel.Id,
     existence:      Option[Existence],
     name:           Option[String],
-    ra:             Option[RightAscension],
-    dec:            Option[Declination],
+    ra:             Option[RightAscensionModel.Input],
+    dec:            Option[DeclinationModel.Input],
     epoch:          Option[Epoch],
     properVelocity: Option[Option[ProperVelocity]],
     radialVelocity: Option[Option[RadialVelocity]]
   ) extends Editor[Id, TargetModel] {
 
-    override val editor: State[TargetModel, Unit] =
-      for {
-        _ <- TargetModel.existence      := existence
-        _ <- TargetModel.name           := name
-        _ <- TargetModel.ra             := ra
-        _ <- TargetModel.dec            := dec
-        _ <- TargetModel.epoch          := epoch
-        _ <- TargetModel.properVelocity := properVelocity
-        _ <- TargetModel.radialVelocity := radialVelocity
-      } yield ()
+    override val editor: ValidatedInput[State[TargetModel, Unit]] =
+      (ra.traverse(_.toRightAscension),
+       dec.traverse(_.toDeclination)
+      ).mapN { (ra, dec) =>
+        for {
+          _ <- TargetModel.existence      := existence
+          _ <- TargetModel.name           := name
+          _ <- TargetModel.ra             := ra
+          _ <- TargetModel.dec            := dec
+          _ <- TargetModel.epoch          := epoch
+          _ <- TargetModel.properVelocity := properVelocity
+          _ <- TargetModel.radialVelocity := radialVelocity
+        } yield ()
+      }
 
   }
 

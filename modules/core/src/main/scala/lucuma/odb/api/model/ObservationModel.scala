@@ -8,6 +8,7 @@ import lucuma.odb.api.model.syntax.all._
 import lucuma.core.util.Gid
 
 import cats.data.State
+import cats.syntax.validated._
 import eu.timepit.refined.auto._
 import eu.timepit.refined.types.numeric.PosLong
 import io.circe.Decoder
@@ -63,12 +64,12 @@ object ObservationModel extends ObservationOptics {
     asterism:  Option[Option[AsterismModel.Id]]
   ) extends Editor[Id, ObservationModel] {
 
-    override def editor: State[ObservationModel, Unit] =
-      for {
+    override def editor: ValidatedInput[State[ObservationModel, Unit]] =
+      (for {
         _ <- ObservationModel.existence := existence
         _ <- ObservationModel.name      := name
         _ <- ObservationModel.asterism  := asterism
-      } yield ()
+      } yield ()).validNec
 
   }
 

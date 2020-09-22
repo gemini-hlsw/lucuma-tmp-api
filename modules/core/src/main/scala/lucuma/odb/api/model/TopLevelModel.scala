@@ -23,8 +23,8 @@ trait TopLevelModel[I, T] {
       override def id: I =
         i
 
-      override def editor: State[T, Unit] =
-        (existence := Some(s)).void
+      override def editor: ValidatedInput[State[T, Unit]] =
+        ((existence := Some(s)).void).validNec
     }
 }
 

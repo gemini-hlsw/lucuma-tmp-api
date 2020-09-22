@@ -168,12 +168,12 @@ object AsterismModel extends AsterismOptics {
     targets:      Option[List[TargetModel.Id]]
   ) extends Editor[Id, AsterismModel] {
 
-    override def editor: State[AsterismModel, Unit] =
-      for {
+    override def editor: ValidatedInput[State[AsterismModel, Unit]] =
+      (for {
         _ <- Default.asterismExistence    := existence
         _ <- Default.asterismExplicitBase := explicitBase
         _ <- Default.asterismTargets      := targets
-      } yield ()
+      } yield ()).validNec
   }
 
   object EditDefault {
