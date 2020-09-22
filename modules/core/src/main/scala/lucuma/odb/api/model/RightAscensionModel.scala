@@ -40,7 +40,7 @@ object RightAscensionModel {
 
   object Units {
 
-    case object Microarcseconds extends Units(AngleModel.Units.Milliarcseconds)
+    case object Microarcseconds extends Units(AngleModel.Units.Microarcseconds)
     case object Degrees         extends Units(AngleModel.Units.Degrees)
     case object Hours           extends Units(AngleModel.Units.Hours)
 
@@ -86,11 +86,17 @@ object RightAscensionModel {
   }
 
   def readHms(s: String): ValidatedInput[RightAscension] =
-    RightAscension.fromStringHMS
+    RightAscension
+      .fromStringHMS
       .getOption(s)
       .toValidNec(
         InputError.fromMessage(s"Could not parse $s as an HMS string.")
       )
+
+  def writeHms(r: RightAscension): String =
+    RightAscension
+      .fromStringHMS
+      .reverseGet(r)
 
   final case class Input(
     microarcseconds: Option[Long],

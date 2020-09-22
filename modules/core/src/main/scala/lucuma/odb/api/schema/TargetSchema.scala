@@ -4,24 +4,12 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.schema.syntax.all._
-import lucuma.odb.api.model.TargetModel
+import lucuma.odb.api.model.{DeclinationModel, RightAscensionModel, TargetModel}
 import lucuma.odb.api.schema.ProgramSchema.ProgramType
 import lucuma.odb.api.repo.OdbRepo
-
 import lucuma.core.`enum`.EphemerisKeyType
-import lucuma.core.optics.SplitMono
-import lucuma.core.math.{
-  Angle,
-  Coordinates,
-  Declination,
-  HourAngle,
-  Offset,
-  ProperMotion,
-  ProperVelocity,
-  RightAscension
-}
+import lucuma.core.math.{Coordinates, Declination, Offset, ProperMotion, ProperVelocity, RightAscension}
 import lucuma.core.model.EphemerisKey
-
 import cats.effect.Effect
 import sangria.schema._
 
@@ -116,39 +104,39 @@ object TargetSchema extends TargetScalars {
 
         Field(
           name        = "hms",
-          fieldType   = HmsStringType,
+          fieldType   = StringType,
           description = Some("Right Ascension (RA) in HH:MM:SS.SSS format"),
-          resolve     = _.value
+          resolve     = v => RightAscensionModel.writeHms(v.value)
         ),
 
         Field(
           name        = "hours",
-          fieldType   = FloatType,
+          fieldType   = BigDecimalType,// FloatType,
           description = Some("Right Ascension (RA) in hours"),
-          resolve     = v => RightAscension.fromHourAngle.reverseGet(v.value).toDoubleHours
+          resolve     = v => RightAscensionModel.Units.Hours.decimal.get(v.value)// RightAscension.fromHourAngle.reverseGet(v.value).toDoubleHours
         ),
 
         Field(
           name        = "degrees",
-          fieldType   = FloatType,
+          fieldType   = BigDecimalType,
           description = Some("Right Ascension (RA) in degrees"),
-          resolve     = v =>
-            SplitMono
-              .fromIso(RightAscension.fromHourAngle.reverse)
-              .composeSplitMono(HourAngle.angle)
-              .get(v.value)
-              .toDoubleDegrees
+          resolve     = v => RightAscensionModel.Units.Degrees.decimal.get(v.value)
+//            SplitMono
+//              .fromIso(RightAscension.fromHourAngle.reverse)
+//              .composeSplitMono(HourAngle.angle)
+//              .get(v.value)
+//              .toDoubleDegrees
         ),
 
         Field(
           name        = "microarcsecs",
           fieldType   = LongType,
           description = Some("Right Ascension (RA) in µas"),
-          resolve     = v =>
-            RightAscension
-              .fromHourAngle
-              .reverseGet(v.value)
-              .toMicroarcseconds
+          resolve     = v => RightAscensionModel.Units.Microarcseconds.long.get(v.value)
+//            RightAscension
+//              .fromHourAngle
+//              .reverseGet(v.value)
+//              .toMicroarcseconds
         )
       )
     )
@@ -160,23 +148,23 @@ object TargetSchema extends TargetScalars {
 
         Field(
           name        = "dms",
-          fieldType   = DmsStringType,
+          fieldType   = StringType,
           description = Some("Declination in DD:MM:SS.SS format"),
-          resolve     = _.value
+          resolve     = v => DeclinationModel.writeDms(v.value)
         ),
 
         Field(
           name        = "degrees",
-          fieldType   = FloatType,
+          fieldType   = BigDecimalType,
           description = Some("Declination in signed degrees"),
-          resolve     = _.value.toAngle.toSignedDoubleDegrees
+          resolve     = v => DeclinationModel.Units.Degrees.decimal.reverseGet(v.value)//.value.toAngle.toSignedDoubleDegrees
         ),
 
         Field(
           name        = "microarcsecs",
           fieldType   = LongType,
           description = Some("Declination in signed µas"),
-          resolve     = v => Angle.signedMicroarcseconds.get(v.value.toAngle)
+          resolve     = v => DeclinationModel.Units.Microarcseconds.long.reverseGet(v.value)//.signedMicroarcseconds.get(v.value.toAngle)
         )
       )
     )

@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{RightAscensionModel, TargetModel}
+import lucuma.odb.api.model.{DeclinationModel, RightAscensionModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
 
@@ -53,10 +53,34 @@ trait TargetMutation extends TargetScalars {
       InputObjectTypeDescription("RA/Dec Coordinates")
     )
 
+  implicit val EnumTypeDeclinationUnits: EnumType[DeclinationModel.Units] =
+    EnumType.fromEnumerated(
+      "DeclinationUnits",
+      "Unit options for Declination values"
+    )
+
   implicit val EnumTypeRightAscensionUnits: EnumType[RightAscensionModel.Units] =
     EnumType.fromEnumerated(
       "RightAscensionUnits",
       "Unit options for RightAscension values"
+    )
+
+  implicit val InputObjectDeclinationLong: InputObjectType[DeclinationModel.LongInput] =
+    deriveInputObjectType[DeclinationModel.LongInput](
+      InputObjectTypeName("DeclinationFromLongInput"),
+      InputObjectTypeDescription("Declination integral value in corresponding units")
+    )
+
+  implicit val InputObjectDeclinationDecimal: InputObjectType[DeclinationModel.DecimalInput] =
+    deriveInputObjectType[DeclinationModel.DecimalInput](
+      InputObjectTypeName("DeclinationFromDecimalInput"),
+      InputObjectTypeDescription("Declination decimal value in corresponding units")
+    )
+
+  implicit val InputObjectDeclination: InputObjectType[DeclinationModel.Input] =
+    deriveInputObjectType[DeclinationModel.Input](
+      InputObjectTypeName("DeclinationInput"),
+      InputObjectTypeDescription("Declination, choose one of the available units")
     )
 
   implicit val InputObjectRightAscensionLong: InputObjectType[RightAscensionModel.LongInput] =

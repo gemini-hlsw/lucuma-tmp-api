@@ -9,7 +9,8 @@ import lucuma.core.util.{Display, Enumerated}
 
 import cats.syntax.validated._
 
-import java.math.RoundingMode.HALF_UP
+import scala.math.BigDecimal.RoundingMode.HALF_UP
+
 
 
 object AngleModel {
@@ -44,8 +45,8 @@ object AngleModel {
 
     private def decimalFromMicroarcseconds(m: SplitMono[Angle, Long]): SplitMono[Angle, BigDecimal] =
       m.imapB(
-        bd => ((bd * µas) % Units.µas360).underlying.setScale(0, HALF_UP).longValue,
-        n  => BigDecimal(n) / µas
+        b => ((b * µas).setScale(0, HALF_UP).toBigInt % Units.µas360).longValue,
+        n => BigDecimal(n) / µas
       )
 
     val signedDecimal: SplitMono[Angle, BigDecimal] =

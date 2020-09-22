@@ -95,7 +95,7 @@ object TargetModel extends TargetOptics {
    * @param pids associated program(s), if any (which either exist or results
    *             in an error)
    * @param name target name
-   * @param raInput right ascension coordinate at epoch
+   * @param ra right ascension coordinate at epoch
    * @param dec declination coordinate at epoch
    * @param epoch time of the base observation
    * @param properVelocity proper velocity per year in right ascension and declination
@@ -104,8 +104,8 @@ object TargetModel extends TargetOptics {
   final case class CreateSidereal(
     pids:           List[ProgramModel.Id],
     name:           String,
-    raInput:        RightAscensionModel.Input,
-    dec:            Declination,
+    ra:             RightAscensionModel.Input,
+    dec:            DeclinationModel.Input,
     epoch:          Option[Epoch],
     properVelocity: Option[ProperVelocity],
     radialVelocity: Option[RadialVelocity]
@@ -113,15 +113,16 @@ object TargetModel extends TargetOptics {
   ) {
 
     val toProperMotion: ValidatedInput[ProperMotion] =
-      raInput.toRightAscension.map { r =>
-        ProperMotion(
-          Coordinates(r, dec),
-          epoch.getOrElse(Epoch.J2000),
-          properVelocity,
-          radialVelocity,
-          None
-        )
-      }
+      (ra.toRightAscension, dec.toDeclination)
+        .mapN { (ra, dec) =>
+          ProperMotion(
+            Coordinates(ra, dec),
+            epoch.getOrElse(Epoch.J2000),
+            properVelocity,
+            radialVelocity,
+            None
+          )
+        }
 
     val toGemTarget: ValidatedInput[Target] =
       toProperMotion.map { pm => Target(name, Right(pm)) }
