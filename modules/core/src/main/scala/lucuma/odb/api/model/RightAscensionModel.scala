@@ -52,38 +52,14 @@ object RightAscensionModel {
 
   }
 
-  final case class LongInput(
-    value: Long,
-    units: Units
-  ) {
+  implicit val NumericUnitsRightAscension: NumericUnits[RightAscension, Units] =
+    new NumericUnits[RightAscension, Units] {
+      override def readLong(value: Long, units: Units): ValidatedInput[RightAscension] =
+        units.readLong(value)
 
-    val read: ValidatedInput[RightAscension] =
-      units.readLong(value)
-
-  }
-
-  object LongInput {
-
-    implicit val DecoderLongInput: Decoder[LongInput] =
-      deriveDecoder[LongInput]
-
-  }
-
-  final case class DecimalInput(
-    value: BigDecimal,
-    units: Units
-  ) {
-
-    val read: ValidatedInput[RightAscension] =
-      units.readDecimal(value)
-
-  }
-
-  object DecimalInput {
-
-    implicit val DecoderDecimalInput: Decoder[DecimalInput] =
-      deriveDecoder[DecimalInput]
-  }
+      override def readDecimal(value: BigDecimal, units: Units): ValidatedInput[RightAscension] =
+        units.readDecimal(value)
+    }
 
   def readHms(s: String): ValidatedInput[RightAscension] =
     RightAscension
@@ -103,8 +79,8 @@ object RightAscensionModel {
     degrees:         Option[BigDecimal],
     hours:           Option[BigDecimal],
     hms:             Option[String],
-    fromLong:        Option[LongInput],
-    fromDecimal:     Option[DecimalInput]
+    fromLong:        Option[NumericUnits.LongInput[RightAscension, Units]],
+    fromDecimal:     Option[NumericUnits.DecimalInput[RightAscension, Units]]
   ) {
 
     import Units._

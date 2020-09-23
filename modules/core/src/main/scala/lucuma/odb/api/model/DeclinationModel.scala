@@ -61,39 +61,14 @@ object DeclinationModel {
 
   }
 
-  final case class LongInput(
-    value: Long,
-    units: Units
-  ) {
+  implicit val NumericUnitsDeclination: NumericUnits[Declination, Units] =
+    new NumericUnits[Declination, Units] {
+      override def readLong(value: Long, units: Units): ValidatedInput[Declination] =
+        units.readLong(value)
 
-    val read: ValidatedInput[Declination] =
-      units.readLong(value)
-
-  }
-
-  object LongInput {
-
-    implicit val DecoderLongInput: Decoder[LongInput] =
-      deriveDecoder[LongInput]
-
-  }
-
-  final case class DecimalInput(
-    value: BigDecimal,
-    units: Units
-  ) {
-
-    val read: ValidatedInput[Declination] =
-      units.readDecimal(value)
-
-  }
-
-  object DecimalInput {
-
-    implicit val DecoderDecimalInput: Decoder[DecimalInput] =
-      deriveDecoder[DecimalInput]
-
-  }
+      override def readDecimal(value: BigDecimal, units: Units): ValidatedInput[Declination] =
+        units.readDecimal(value)
+    }
 
   def readDms(s: String): ValidatedInput[Declination] =
     Declination
@@ -112,8 +87,8 @@ object DeclinationModel {
     microarcseconds: Option[Long],
     degrees:         Option[BigDecimal],
     dms:             Option[String],
-    fromLong:        Option[LongInput],
-    fromDecimal:     Option[DecimalInput]
+    fromLong:        Option[NumericUnits.LongInput[Declination, Units]],
+    fromDecimal:     Option[NumericUnits.DecimalInput[Declination, Units]]
   ) {
 
     import Units._

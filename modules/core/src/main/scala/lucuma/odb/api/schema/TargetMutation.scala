@@ -6,7 +6,6 @@ package lucuma.odb.api.schema
 import lucuma.odb.api.model.{DeclinationModel, RightAscensionModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
-
 import lucuma.core.math.{Coordinates, Offset, ProperVelocity}
 import cats.effect.Effect
 import sangria.macros.derive._
@@ -16,6 +15,7 @@ import sangria.schema._
 trait TargetMutation extends TargetScalars {
 
   import GeneralSchema.EnumTypeExistence
+  import NumericUnitsSchema._
   import ProgramSchema.ProgramIdType
   import TargetSchema.{EphemerisKeyType, TargetIdArgument, TargetIdType, TargetType}
 
@@ -65,34 +65,10 @@ trait TargetMutation extends TargetScalars {
       "Unit options for RightAscension values"
     )
 
-  implicit val InputObjectDeclinationLong: InputObjectType[DeclinationModel.LongInput] =
-    deriveInputObjectType[DeclinationModel.LongInput](
-      InputObjectTypeName("DeclinationFromLongInput"),
-      InputObjectTypeDescription("Declination integral value in corresponding units")
-    )
-
-  implicit val InputObjectDeclinationDecimal: InputObjectType[DeclinationModel.DecimalInput] =
-    deriveInputObjectType[DeclinationModel.DecimalInput](
-      InputObjectTypeName("DeclinationFromDecimalInput"),
-      InputObjectTypeDescription("Declination decimal value in corresponding units")
-    )
-
   implicit val InputObjectDeclination: InputObjectType[DeclinationModel.Input] =
     deriveInputObjectType[DeclinationModel.Input](
       InputObjectTypeName("DeclinationInput"),
       InputObjectTypeDescription("Declination, choose one of the available units")
-    )
-
-  implicit val InputObjectRightAscensionLong: InputObjectType[RightAscensionModel.LongInput] =
-    deriveInputObjectType[RightAscensionModel.LongInput](
-      InputObjectTypeName("RightAscensionFromLongInput"),
-      InputObjectTypeDescription("Right Ascension integral value in corresponding units")
-    )
-
-  implicit val InputObjectRightAscensionDecimal: InputObjectType[RightAscensionModel.DecimalInput] =
-    deriveInputObjectType[RightAscensionModel.DecimalInput](
-      InputObjectTypeName("RightAscensionFromDecimalInput"),
-      InputObjectTypeDescription("Right Ascension decimal value in corresponding units")
     )
 
   implicit val InputObjectRightAscension: InputObjectType[RightAscensionModel.Input] =
