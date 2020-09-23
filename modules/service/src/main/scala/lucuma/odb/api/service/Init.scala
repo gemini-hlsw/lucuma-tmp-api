@@ -3,9 +3,9 @@
 
 package lucuma.odb.api.service
 
-import lucuma.odb.api.model.{AsterismModel, DeclinationModel, ObservationModel, ProgramModel, RightAscensionModel, TargetModel}
+import lucuma.odb.api.model.{AsterismModel, DeclinationModel, ObservationModel, ProgramModel, ProperVelocityModel, RightAscensionModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.core.math.{Epoch, ProperVelocity, RadialVelocity}
+import lucuma.core.math.{Epoch, RadialVelocity}
 import cats.effect.Sync
 import cats.implicits._
 
@@ -28,7 +28,7 @@ object Init {
                 RightAscensionModel.Input.fromHms("05:55:10.305"),
                 DeclinationModel.Input.fromDms("07:24:25.43"),
                 Some(Epoch.J2000),
-                Some(ProperVelocity.milliarcsecondsPerYear.reverseGet((BigDecimal("27.54"), BigDecimal("11.3")))),
+                Some(ProperVelocityModel.Input.fromMilliarcsecondsPerYear(BigDecimal("27.54"), BigDecimal("11.3"))),
                 RadialVelocity.fromMetersPerSecond.getOption(21884)
               )
             )
@@ -39,7 +39,7 @@ object Init {
                 RightAscensionModel.Input.fromHms("05:14:32.272"),
                 DeclinationModel.Input.fromDms("-08:12:05.90"),
                 Some(Epoch.J2000),
-                Some(ProperVelocity.milliarcsecondsPerYear.reverseGet((BigDecimal("1.31"), BigDecimal("0.5")))),
+                Some(ProperVelocityModel.Input.fromMilliarcsecondsPerYear(BigDecimal("1.31"), BigDecimal("0.5"))),
                 RadialVelocity.fromMetersPerSecond.getOption(17687)
               )
             )

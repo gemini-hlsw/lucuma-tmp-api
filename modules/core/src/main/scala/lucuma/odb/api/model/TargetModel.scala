@@ -107,18 +107,18 @@ object TargetModel extends TargetOptics {
     ra:             RightAscensionModel.Input,
     dec:            DeclinationModel.Input,
     epoch:          Option[Epoch],
-    properVelocity: Option[ProperVelocity],
+    properVelocity: Option[ProperVelocityModel.Input],
     radialVelocity: Option[RadialVelocity]
     // TODO: more proper motion
   ) {
 
     val toProperMotion: ValidatedInput[ProperMotion] =
-      (ra.toRightAscension, dec.toDeclination)
-        .mapN { (ra, dec) =>
+      (ra.toRightAscension, dec.toDeclination, properVelocity.traverse(_.toProperVelocity))
+        .mapN { (ra, dec, pv) =>
           ProperMotion(
             Coordinates(ra, dec),
             epoch.getOrElse(Epoch.J2000),
-            properVelocity,
+            pv,
             radialVelocity,
             None
           )
@@ -159,21 +159,22 @@ object TargetModel extends TargetOptics {
     ra:             Option[RightAscensionModel.Input],
     dec:            Option[DeclinationModel.Input],
     epoch:          Option[Epoch],
-    properVelocity: Option[Option[ProperVelocity]],
+    properVelocity: Option[Option[ProperVelocityModel.Input]],
     radialVelocity: Option[Option[RadialVelocity]]
   ) extends Editor[Id, TargetModel] {
 
     override val editor: ValidatedInput[State[TargetModel, Unit]] =
       (ra.traverse(_.toRightAscension),
-       dec.traverse(_.toDeclination)
-      ).mapN { (ra, dec) =>
+       dec.traverse(_.toDeclination),
+       properVelocity.traverse(_.traverse(_.toProperVelocity))
+      ).mapN { (ra, dec, pv) =>
         for {
           _ <- TargetModel.existence      := existence
           _ <- TargetModel.name           := name
           _ <- TargetModel.ra             := ra
           _ <- TargetModel.dec            := dec
           _ <- TargetModel.epoch          := epoch
-          _ <- TargetModel.properVelocity := properVelocity
+          _ <- TargetModel.properVelocity := pv
           _ <- TargetModel.radialVelocity := radialVelocity
         } yield ()
       }

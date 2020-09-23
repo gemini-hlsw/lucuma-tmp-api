@@ -108,8 +108,8 @@ object DeclinationModel {
     val Empty: Input =
       Input(None, None, None, None, None)
 
-    def fromMicroarcseconds(l: Long): Input =
-      Empty.copy(microarcseconds = Some(l))
+    def fromMicroarcseconds(value: Long): Input =
+      Empty.copy(microarcseconds = Some(value))
 
     def fromDms(s: String): Input =
       Empty.copy(dms = Some(s))

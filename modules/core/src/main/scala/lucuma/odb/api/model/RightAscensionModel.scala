@@ -101,8 +101,8 @@ object RightAscensionModel {
     val Empty: Input =
       Input(None, None, None, None, None, None)
 
-    def fromMicroarcseconds(l: Long): Input =
-      Empty.copy(microarcseconds = Some(l))
+    def fromMicroarcseconds(value: Long): Input =
+      Empty.copy(microarcseconds = Some(value))
 
     def fromHms(s: String): Input =
       Empty.copy(hms = Some(s))

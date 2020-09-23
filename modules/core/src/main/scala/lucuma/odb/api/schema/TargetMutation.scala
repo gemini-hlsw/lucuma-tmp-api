@@ -3,10 +3,10 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{DeclinationModel, RightAscensionModel, TargetModel}
+import lucuma.odb.api.model.{DeclinationModel, ProperVelocityModel, RightAscensionModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
-import lucuma.core.math.{Coordinates, Offset, ProperVelocity}
+import lucuma.core.math.{Coordinates, Offset, ProperVelocity, VelocityAxis}
 import cats.effect.Effect
 import sangria.macros.derive._
 import sangria.marshalling.circe._
@@ -75,6 +75,32 @@ trait TargetMutation extends TargetScalars {
     deriveInputObjectType[RightAscensionModel.Input](
       InputObjectTypeName("RightAscensionInput"),
       InputObjectTypeDescription("Right Ascension, choose one of the available units")
+    )
+
+  implicit val EnumTypeProperVelocityUnits: EnumType[ProperVelocityModel.Units] =
+    EnumType.fromEnumerated(
+      "ProperVelocityComponentUnits",
+      "Unit options for proper velocity components (RA and Dec)"
+    )
+
+  private def InputObjectProperVelocityComponent[A](
+    name: String
+  ): InputObjectType[ProperVelocityModel.ComponentInput[A]] =
+    deriveInputObjectType[ProperVelocityModel.ComponentInput[A]](
+      InputObjectTypeName(s"${name}Input"),
+      InputObjectTypeDescription(s"$name, choose one of the available units")
+    )
+
+  implicit val InputObjectProperVelocityRa: InputObjectType[ProperVelocityModel.ComponentInput[VelocityAxis.RA]] =
+    InputObjectProperVelocityComponent("ProperVelocityRa")
+
+  implicit val InputObjectProperVelocityDec: InputObjectType[ProperVelocityModel.ComponentInput[VelocityAxis.Dec]] =
+    InputObjectProperVelocityComponent("ProperVelocityDec")
+
+  implicit val InputObjectProperVelocity: InputObjectType[ProperVelocityModel.Input] =
+    deriveInputObjectType[ProperVelocityModel.Input](
+      InputObjectTypeName("ProperVelocityInput"),
+      InputObjectTypeDescription("Proper velocity")
     )
 
   val InputObjectTypeCreateSidereal: InputObjectType[TargetModel.CreateSidereal] =
