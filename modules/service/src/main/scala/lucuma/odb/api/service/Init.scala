@@ -29,7 +29,8 @@ object Init {
                 DeclinationModel.Input.fromDms("07:24:25.43"),
                 Some(Epoch.J2000),
                 Some(ProperVelocityModel.Input.fromMilliarcsecondsPerYear(BigDecimal("27.54"), BigDecimal("11.3"))),
-                Some(RadialVelocityModel.Input.fromMetersPerSecond(21884))
+                Some(RadialVelocityModel.Input.fromMetersPerSecond(21884)),
+                Some(ParallaxModel.Input.fromMilliarcseconds(BigDecimal("6.55")))
               )
             )
       t1 <- repo.target.insertSidereal(
@@ -40,7 +41,8 @@ object Init {
                 DeclinationModel.Input.fromDms("-08:12:05.90"),
                 Some(Epoch.J2000),
                 Some(ProperVelocityModel.Input.fromMilliarcsecondsPerYear(BigDecimal("1.31"), BigDecimal("0.5"))),
-                Some(RadialVelocityModel.Input.fromMetersPerSecond(17687))
+                Some(RadialVelocityModel.Input.fromMetersPerSecond(17687)),
+                Some(ParallaxModel.Input.fromMilliarcseconds(BigDecimal("3.78")))
               )
             )
       a0 <- repo.asterism.insert(

@@ -30,8 +30,8 @@ object RadialVelocityModel {
     )
 
   sealed abstract class Units(
-    val abbr:  String,
-    powerOf10: Int     // relative to m/s: 2 for cm, -3 for km
+    val abbreviation: String,
+    powerOf10:        Int     // relative to m/s: 2 for cm, -3 for km
   ) extends Product with Serializable {
 
     val decimal: Prism[BigDecimal, RadialVelocity] =
@@ -42,12 +42,12 @@ object RadialVelocityModel {
 
     def readLong(value: Long): ValidatedInput[RadialVelocity] =
       long.getOption(value).toValidNec(
-        InputError.fromMessage(s"Invalid radial velocity $value $abbr")
+        InputError.fromMessage(s"Invalid radial velocity $value $abbreviation")
       )
 
     def readDecimal(value: BigDecimal): ValidatedInput[RadialVelocity] =
       decimal.getOption(value).toValidNec(
-        InputError.fromMessage(s"Invalid radial velocity $value $abbr")
+        InputError.fromMessage(s"Invalid radial velocity $value $abbreviation")
       )
   }
 
@@ -61,7 +61,7 @@ object RadialVelocityModel {
       Enumerated.of(CentimetersPerSecond, MetersPerSecond, KilometersPerSecond)
 
     implicit val DisplayRadialVelocityUnits: Display[Units] =
-      Display.by(_.abbr, _.abbr)
+      Display.by(_.abbreviation, _.abbreviation)
 
   }
 

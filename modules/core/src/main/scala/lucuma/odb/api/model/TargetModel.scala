@@ -6,10 +6,9 @@ package lucuma.odb.api.model
 import lucuma.odb.api.model.syntax.all._
 import lucuma.odb.api.model.json.targetmath._
 import lucuma.core.`enum`.EphemerisKeyType
-import lucuma.core.math.{Coordinates, Declination, Epoch, ProperMotion, ProperVelocity, RadialVelocity, RightAscension}
+import lucuma.core.math.{Coordinates, Declination, Epoch, Parallax, ProperMotion, ProperVelocity, RadialVelocity, RightAscension}
 import lucuma.core.model.{EphemerisKey, Target}
 import lucuma.core.util.Gid
-
 import cats.data._
 import cats.implicits._
 import eu.timepit.refined.auto._
@@ -100,6 +99,7 @@ object TargetModel extends TargetOptics {
    * @param epoch time of the base observation
    * @param properVelocity proper velocity per year in right ascension and declination
    * @param radialVelocity radial velocity
+   * @param parallax parallax
    */
   final case class CreateSidereal(
     pids:           List[ProgramModel.Id],
@@ -108,22 +108,23 @@ object TargetModel extends TargetOptics {
     dec:            DeclinationModel.Input,
     epoch:          Option[Epoch],
     properVelocity: Option[ProperVelocityModel.Input],
-    radialVelocity: Option[RadialVelocityModel.Input]
-    // TODO: more proper motion
+    radialVelocity: Option[RadialVelocityModel.Input],
+    parallax:       Option[ParallaxModel.Input]
   ) {
 
     val toProperMotion: ValidatedInput[ProperMotion] =
       (ra.toRightAscension,
        dec.toDeclination,
        properVelocity.traverse(_.toProperVelocity),
-       radialVelocity.traverse(_.toRadialVelocity)
-      ).mapN { (ra, dec, pv, rv) =>
+       radialVelocity.traverse(_.toRadialVelocity),
+       parallax.traverse(_.toParallax)
+      ).mapN { (ra, dec, pv, rv, px) =>
         ProperMotion(
           Coordinates(ra, dec),
           epoch.getOrElse(Epoch.J2000),
           pv,
           rv,
-          None
+          px
         )
       }
 
@@ -163,15 +164,17 @@ object TargetModel extends TargetOptics {
     dec:            Option[DeclinationModel.Input],
     epoch:          Option[Epoch],
     properVelocity: Option[Option[ProperVelocityModel.Input]],
-    radialVelocity: Option[Option[RadialVelocityModel.Input]]
+    radialVelocity: Option[Option[RadialVelocityModel.Input]],
+    parallax:       Option[Option[ParallaxModel.Input]]
   ) extends Editor[Id, TargetModel] {
 
     override val editor: ValidatedInput[State[TargetModel, Unit]] =
       (ra.traverse(_.toRightAscension),
        dec.traverse(_.toDeclination),
        Nested(properVelocity).traverse(_.toProperVelocity).map(_.value),
-       Nested(radialVelocity).traverse(_.toRadialVelocity).map(_.value)
-      ).mapN { (ra, dec, pv, rv) =>
+       Nested(radialVelocity).traverse(_.toRadialVelocity).map(_.value),
+       Nested(parallax).traverse(_.toParallax).map(_.value)
+      ).mapN { (ra, dec, pv, rv, px) =>
         for {
           _ <- TargetModel.existence      := existence
           _ <- TargetModel.name           := name
@@ -180,6 +183,7 @@ object TargetModel extends TargetOptics {
           _ <- TargetModel.epoch          := epoch
           _ <- TargetModel.properVelocity := pv
           _ <- TargetModel.radialVelocity := rv
+          _ <- TargetModel.parallax       := px
         } yield ()
       }
 
@@ -259,4 +263,6 @@ trait TargetOptics { self: TargetModel.type =>
   val radialVelocity: Optional[TargetModel, Option[RadialVelocity]] =
     properMotion.composeLens(ProperMotion.radialVelocity)
 
+  val parallax: Optional[TargetModel, Option[Parallax]] =
+    properMotion.composeLens(ProperMotion.parallax)
 }

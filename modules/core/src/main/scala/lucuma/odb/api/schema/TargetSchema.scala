@@ -4,11 +4,11 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.schema.syntax.all._
-import lucuma.odb.api.model.{DeclinationModel, ProperVelocityModel, RadialVelocityModel, RightAscensionModel, TargetModel}
+import lucuma.odb.api.model.{DeclinationModel, ParallaxModel, ProperVelocityModel, RadialVelocityModel, RightAscensionModel, TargetModel}
 import lucuma.odb.api.schema.ProgramSchema.ProgramType
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.`enum`.EphemerisKeyType
-import lucuma.core.math.{Coordinates, Declination, ProperMotion, ProperVelocity, RadialVelocity, RightAscension, VelocityAxis}
+import lucuma.core.math.{Coordinates, Declination, Parallax, ProperMotion, ProperVelocity, RadialVelocity, RightAscension, VelocityAxis}
 import lucuma.core.model.EphemerisKey
 import cats.effect.Effect
 import sangria.schema._
@@ -213,6 +213,29 @@ object TargetSchema extends TargetScalars {
       )
     )
 
+  def ParallaxType[F[_]: Effect]: ObjectType[OdbRepo[F], Parallax] =
+    ObjectType(
+      name     = "Parallax",
+      fieldsFn = () => fields(
+
+        Field(
+          name        = "microarcseconds",
+          fieldType   = LongType,
+          description = Some("Parallax in microarcseconds"),
+          resolve     = v => ParallaxModel.Units.Microarcseconds.long.get(v.value)
+        ),
+
+        Field(
+          name        = "milliarcseconds",
+          fieldType   = BigDecimalType,
+          description = Some("Parallax in milliarcseconds"),
+          resolve     = v => ParallaxModel.Units.Milliarcseconds.decimal.get(v.value)
+        )
+
+      )
+    )
+
+
   def SiderealType[F[_]: Effect]: ObjectType[OdbRepo[F], ProperMotion] =
     ObjectType(
       name     = "Sidereal",
@@ -241,9 +264,16 @@ object TargetSchema extends TargetScalars {
 
         Field(
           name        = "radialVelocity",
-          fieldType   = OptionType(RadialVelocityType),
-          description = Some("Radial velocity in m/s"),
+          fieldType   = OptionType(RadialVelocityType[F]),
+          description = Some("Radial velocity"),
           resolve     = _.value.radialVelocity
+        ),
+
+        Field(
+          name        = "parallax",
+          fieldType   = OptionType(ParallaxType[F]),
+          description = Some("Parallax"),
+          resolve     = _.value.parallax
         )
       )
     )

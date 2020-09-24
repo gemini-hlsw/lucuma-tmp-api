@@ -3,7 +3,15 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{CoordinatesModel, DeclinationModel, ProperVelocityModel, RadialVelocityModel, RightAscensionModel, TargetModel}
+import lucuma.odb.api.model.{
+  CoordinatesModel,
+  DeclinationModel,
+  ParallaxModel,
+  ProperVelocityModel,
+  RadialVelocityModel,
+  RightAscensionModel,
+  TargetModel
+}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
 import lucuma.core.math.VelocityAxis
@@ -45,6 +53,12 @@ trait TargetMutation extends TargetScalars {
     EnumType.fromEnumerated(
       "RadialVelocityUnits",
       "Unit options for radial velocity values"
+    )
+
+  implicit val EnumTypeParallaxUnits: EnumType[ParallaxModel.Units] =
+    EnumType.fromEnumerated(
+      "ParallaxUnits",
+      "Unit options for parallax values"
     )
 
   val InputObjectTypeTargetCreateNonsidereal: InputObjectType[TargetModel.CreateNonsidereal] =
@@ -101,6 +115,12 @@ trait TargetMutation extends TargetScalars {
     deriveInputObjectType[RadialVelocityModel.Input](
       InputObjectTypeName("RadialVelocityInput"),
       InputObjectTypeDescription("Radial velocity, choose one of the available units")
+    )
+
+  implicit val InputObjectParallax: InputObjectType[ParallaxModel.Input] =
+    deriveInputObjectType[ParallaxModel.Input](
+      InputObjectTypeName("ParallaxModelInput"),
+      InputObjectTypeDescription("Parallax, choose one of the available units")
     )
 
   val InputObjectTypeCreateSidereal: InputObjectType[TargetModel.CreateSidereal] =
