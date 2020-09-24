@@ -3,6 +3,7 @@
 
 package lucuma.odb.api.model
 
+import lucuma.odb.api.model.json.targetmath._
 import lucuma.core.math.{Angle, HourAngle, RightAscension}
 import lucuma.core.optics.SplitMono
 import lucuma.core.util.{Display, Enumerated}
@@ -72,7 +73,7 @@ object RightAscensionModel {
     microarcseconds: Option[Long],
     degrees:         Option[BigDecimal],
     hours:           Option[BigDecimal],
-    hms:             Option[String],
+    hms:             Option[RightAscension],
     fromLong:        Option[NumericUnits.LongInput[RightAscension, Units]],
     fromDecimal:     Option[NumericUnits.DecimalInput[RightAscension, Units]]
   ) {
@@ -84,7 +85,7 @@ object RightAscensionModel {
         microarcseconds.map(Microarcseconds.readLong),
         degrees        .map(Degrees.readDecimal),
         hours          .map(Hours.readDecimal),
-        hms            .map(readHms),
+        hms            .map(_.validNec),
         fromLong       .map(_.read),
         fromDecimal    .map(_.read)
       )
@@ -98,8 +99,11 @@ object RightAscensionModel {
     def fromMicroarcseconds(value: Long): Input =
       Empty.copy(microarcseconds = Some(value))
 
-    def fromHms(s: String): Input =
-      Empty.copy(hms = Some(s))
+    def fromHms(s: String): ValidatedInput[Input] =
+      readHms(s).map(hms => Empty.copy(hms = Some(hms)))
+
+    def unsafeFromHms(s: String): Input =
+      fromHms(s).valueOr(err => throw InputError.Exception(err))
 
     implicit val DecoderInput: Decoder[Input] =
       deriveDecoder[Input]

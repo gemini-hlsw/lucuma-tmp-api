@@ -3,10 +3,13 @@
 
 package lucuma.odb.api.model
 
+import lucuma.odb.api.model.json.targetmath._
 import lucuma.core.math.{Angle, Declination}
 import lucuma.core.optics.SplitMono
 import lucuma.core.util.{Display, Enumerated}
+
 import cats.syntax.option._
+import cats.syntax.validated._
 
 import io.circe.Decoder
 import io.circe.generic.semiauto._
@@ -80,7 +83,7 @@ object DeclinationModel {
   final case class Input(
     microarcseconds: Option[Long],
     degrees:         Option[BigDecimal],
-    dms:             Option[String],
+    dms:             Option[Declination],
     fromLong:        Option[NumericUnits.LongInput[Declination, Units]],
     fromDecimal:     Option[NumericUnits.DecimalInput[Declination, Units]]
   ) {
@@ -91,7 +94,7 @@ object DeclinationModel {
       ValidatedInput.requireOne("declination",
         microarcseconds.map(Microarcseconds.readLong),
         degrees        .map(Degrees.readDecimal),
-        dms            .map(readDms),
+        dms            .map(_.validNec),
         fromLong       .map(_.read),
         fromDecimal    .map(_.read)
       )
@@ -105,8 +108,11 @@ object DeclinationModel {
     def fromMicroarcseconds(value: Long): Input =
       Empty.copy(microarcseconds = Some(value))
 
-    def fromDms(s: String): Input =
-      Empty.copy(dms = Some(s))
+    def fromDms(s: String): ValidatedInput[Input] =
+      readDms(s).map(dms => Empty.copy(dms = Some(dms)))
+
+    def unsafeFromDms(s: String): Input =
+      fromDms(s).valueOr(err => throw InputError.Exception(err))
 
     implicit val DecoderInput: Decoder[Input] =
       deriveDecoder[Input]

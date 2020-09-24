@@ -25,8 +25,8 @@ object Init {
               TargetModel.CreateSidereal(
                 List(p.id),
                 "Betelgeuse",
-                RightAscensionModel.Input.fromHms("05:55:10.305"),
-                DeclinationModel.Input.fromDms("07:24:25.43"),
+                RightAscensionModel.Input.unsafeFromHms("05:55:10.305"),
+                DeclinationModel.Input.unsafeFromDms("07:24:25.43"),
                 Some(Epoch.J2000),
                 Some(ProperVelocityModel.Input.fromMilliarcsecondsPerYear(BigDecimal("27.54"), BigDecimal("11.3"))),
                 Some(RadialVelocityModel.Input.fromMetersPerSecond(21884)),
@@ -37,8 +37,8 @@ object Init {
               TargetModel.CreateSidereal(
                 List(p.id),
                 "Rigel",
-                RightAscensionModel.Input.fromHms("05:14:32.272"),
-                DeclinationModel.Input.fromDms("-08:12:05.90"),
+                RightAscensionModel.Input.unsafeFromHms("05:14:32.272"),
+                DeclinationModel.Input.unsafeFromDms("-08:12:05.90"),
                 Some(Epoch.J2000),
                 Some(ProperVelocityModel.Input.fromMilliarcsecondsPerYear(BigDecimal("1.31"), BigDecimal("0.5"))),
                 Some(RadialVelocityModel.Input.fromMetersPerSecond(17687)),

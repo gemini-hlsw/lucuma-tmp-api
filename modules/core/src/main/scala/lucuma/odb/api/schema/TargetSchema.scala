@@ -107,9 +107,9 @@ object TargetSchema extends TargetScalars {
 
         Field(
           name        = "hms",
-          fieldType   = StringType,
+          fieldType   = HmsStringType,
           description = Some("Right Ascension (RA) in HH:MM:SS.SSS format"),
-          resolve     = v => RightAscensionModel.writeHms(v.value)
+          resolve     = _.value
         ),
 
         Field(
@@ -142,9 +142,9 @@ object TargetSchema extends TargetScalars {
 
         Field(
           name        = "dms",
-          fieldType   = StringType,
+          fieldType   = DmsStringType,
           description = Some("Declination in DD:MM:SS.SS format"),
-          resolve     = v => DeclinationModel.writeDms(v.value)
+          resolve     = _.value
         ),
 
         Field(
