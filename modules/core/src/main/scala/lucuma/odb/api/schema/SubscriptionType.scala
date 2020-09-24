@@ -4,14 +4,14 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.Event
-import lucuma.odb.api.model.{Asterism, Observation, Program, Target}
+import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.{ConcurrentEffect, Effect}
 import _root_.fs2.Stream
-import lucuma.odb.api.model.Asterism.{AsterismCreatedEvent, AsterismEditedEvent}
-import lucuma.odb.api.model.Observation.{ObservationCreatedEvent, ObservationEditedEvent}
-import lucuma.odb.api.model.Program.{ProgramCreatedEvent, ProgramEditedEvent}
-import lucuma.odb.api.model.Target.{TargetCreatedEvent, TargetEditedEvent}
+import lucuma.odb.api.model.AsterismModel.{AsterismCreatedEvent, AsterismEditedEvent}
+import lucuma.odb.api.model.ObservationModel.{ObservationCreatedEvent, ObservationEditedEvent}
+import lucuma.odb.api.model.ProgramModel.{ProgramCreatedEvent, ProgramEditedEvent}
+import lucuma.odb.api.model.TargetModel.{TargetCreatedEvent, TargetEditedEvent}
 import sangria.schema._
 import sangria.streaming.SubscriptionStream
 import sangria.streaming.SubscriptionStreamLike._
@@ -21,16 +21,16 @@ import scala.reflect.ClassTag
 
 object SubscriptionType {
 
-  implicit def asterismType[F[_]: Effect]: InterfaceType[OdbRepo[F], Asterism] =
+  implicit def asterismType[F[_]: Effect]: InterfaceType[OdbRepo[F], AsterismModel] =
     AsterismSchema.AsterismType[F]
 
-  implicit def observationType[F[_]: Effect]: ObjectType[OdbRepo[F], Observation] =
+  implicit def observationType[F[_]: Effect]: ObjectType[OdbRepo[F], ObservationModel] =
     ObservationSchema.ObservationType[F]
 
-  implicit def programType[F[_]: Effect]: ObjectType[OdbRepo[F], Program] =
+  implicit def programType[F[_]: Effect]: ObjectType[OdbRepo[F], ProgramModel] =
     ProgramSchema.ProgramType[F]
 
-  implicit def targetType[F[_]: Effect]: ObjectType[OdbRepo[F], Target] =
+  implicit def targetType[F[_]: Effect]: ObjectType[OdbRepo[F], TargetModel] =
     TargetSchema.TargetType[F]
 
   def EventType[F[_]: Effect]: InterfaceType[OdbRepo[F], Event]  =
@@ -119,14 +119,14 @@ object SubscriptionType {
     ObjectType(
       name   = "Subscription",
       fields = fields(
-        createdField[F, Asterism, AsterismCreatedEvent]("asterism"),
-        editedField[F, Asterism, AsterismEditedEvent]("asterism"),
-        createdField[F, Observation, ObservationCreatedEvent]("observation"),
-        editedField[F, Observation, ObservationEditedEvent]("observation"),
-        createdField[F, Program, ProgramCreatedEvent]("program"),
-        editedField[F, Program, ProgramEditedEvent]("program"),
-        createdField[F, Target, TargetCreatedEvent]("target"),
-        editedField[F, Target, TargetEditedEvent]("target")
+        createdField[F, AsterismModel, AsterismCreatedEvent]("asterism"),
+        editedField[F, AsterismModel, AsterismEditedEvent]("asterism"),
+        createdField[F, ObservationModel, ObservationCreatedEvent]("observation"),
+        editedField[F, ObservationModel, ObservationEditedEvent]("observation"),
+        createdField[F, ProgramModel, ProgramCreatedEvent]("program"),
+        editedField[F, ProgramModel, ProgramEditedEvent]("program"),
+        createdField[F, TargetModel, TargetCreatedEvent]("target"),
+        editedField[F, TargetModel, TargetEditedEvent]("target")
       )
     )
 }

@@ -8,10 +8,6 @@ package lucuma.odb.api.model
  */
 package object json {
 
-  object all
-    extends AsterismJson
-       with ObservationJson
-       with TargetJson
-       with TargetMathJson
+  object all extends TargetMathJson
 
 }

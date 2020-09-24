@@ -4,7 +4,7 @@
 package lucuma.odb.api.model.arb
 
 import cats.Order
-import lucuma.odb.api.model.ManyToMany
+import lucuma.odb.api.repo.ManyToMany
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen._
 import org.scalacheck._

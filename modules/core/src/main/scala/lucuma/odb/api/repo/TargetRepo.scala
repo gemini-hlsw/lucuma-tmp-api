@@ -3,8 +3,8 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{Program, Target, ValidatedInput}
-import lucuma.odb.api.model.Target.{TargetCreatedEvent, TargetEditedEvent}
+import lucuma.odb.api.model.{ProgramModel, TargetModel, ValidatedInput}
+import lucuma.odb.api.model.TargetModel.{TargetCreatedEvent, TargetEditedEvent}
 import lucuma.odb.api.model.Existence._
 import cats._
 import cats.data.State
@@ -12,13 +12,13 @@ import cats.implicits._
 import cats.effect.concurrent.Ref
 
 
-sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, Target] {
+sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, TargetModel.Id, TargetModel] {
 
-  def selectAllForProgram(pid: Program.Id, includeDeleted: Boolean = false): F[List[Target]]
+  def selectAllForProgram(pid: ProgramModel.Id, includeDeleted: Boolean = false): F[List[TargetModel]]
 
-  def insertNonsidereal(input: Target.CreateNonsidereal): F[Target]
+  def insertNonsidereal(input: TargetModel.CreateNonsidereal): F[TargetModel]
 
-  def insertSidereal(input: Target.CreateSidereal): F[Target]
+  def insertSidereal(input: TargetModel.CreateSidereal): F[TargetModel]
 
 }
 
@@ -29,7 +29,7 @@ object TargetRepo {
     eventService: EventService[F]
   )(implicit M: MonadError[F, Throwable]): TargetRepo[F] =
 
-    new TopLevelRepoBase[F, Target.Id, Target](
+    new TopLevelRepoBase[F, TargetModel.Id, TargetModel](
       tablesRef,
       eventService,
       Tables.lastTargetId,
@@ -40,38 +40,38 @@ object TargetRepo {
       with LookupSupport[F] {
 
       override def selectAllForProgram(
-        pid:            Program.Id,
-        includeDeleted: Boolean = false
-      ): F[List[Target]] =
+                                        pid:            ProgramModel.Id,
+                                        includeDeleted: Boolean = false
+      ): F[List[TargetModel]] =
         tablesRef.get.flatMap { tables =>
           tables.programTargets.selectRight(pid).toList.traverse { tid =>
             tables.targets.get(tid).fold(missingTarget(tid))(M.pure)
           }
         }.map(deletionFilter(includeDeleted))
 
-      def addAndShare(g: lucuma.core.model.Target, pids: Set[Program.Id]): State[Tables, Target] =
+      def addAndShare(g: lucuma.core.model.Target, pids: Set[ProgramModel.Id]): State[Tables, TargetModel] =
         for {
-          t   <- createAndInsert(tid => Target(tid, Present, g))
+          t   <- createAndInsert(tid => TargetModel(tid, Present, g))
           _   <- Tables.shareTarget(t, pids)
         } yield t
 
-      private def insertTarget(pids: List[Program.Id], vt: ValidatedInput[lucuma.core.model.Target]): F[Target] =
+      private def insertTarget(pids: List[ProgramModel.Id], vt: ValidatedInput[lucuma.core.model.Target]): F[TargetModel] =
         modify { t =>
           // NOTE: look up all the supplied program ids to make sure they
           // correspond to real programs.  We ignore a successful result though.
           (vt, pids.traverse(lookupProgram(t, _)))
             .mapN((g, _) => addAndShare(g, pids.toSet).run(t).value)
             .fold(
-              err => (t, err.asLeft[Target]),
+              err => (t, err.asLeft[TargetModel]),
               tup => tup.map(_.asRight)
             )
         }
 
-      override def insertNonsidereal(input: Target.CreateNonsidereal): F[Target] =
+      override def insertNonsidereal(input: TargetModel.CreateNonsidereal): F[TargetModel] =
         insertTarget(input.pids, input.toGemTarget)
 
-      override def insertSidereal(input: Target.CreateSidereal): F[Target] =
-        insertTarget(input.pids, input.toGemTarget.validNec)
+      override def insertSidereal(input: TargetModel.CreateSidereal): F[TargetModel] =
+        insertTarget(input.pids, input.toGemTarget)
 
     }
 

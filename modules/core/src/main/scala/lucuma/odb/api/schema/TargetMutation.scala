@@ -3,20 +3,27 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.Target
-import lucuma.odb.api.model.json.TargetJson
+import lucuma.odb.api.model.{
+  CoordinatesModel,
+  DeclinationModel,
+  ParallaxModel,
+  ProperVelocityModel,
+  RadialVelocityModel,
+  RightAscensionModel,
+  TargetModel
+}
 import lucuma.odb.api.repo.OdbRepo
-
-import lucuma.core.math.{Coordinates, Offset, ProperVelocity}
-
+import lucuma.odb.api.schema.syntax.`enum`._
+import lucuma.core.math.VelocityAxis
 import cats.effect.Effect
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
 
-trait TargetMutation extends TargetJson with TargetScalars {
+trait TargetMutation extends TargetScalars {
 
   import GeneralSchema.EnumTypeExistence
+  import NumericUnitsSchema._
   import ProgramSchema.ProgramIdType
   import TargetSchema.{EphemerisKeyType, TargetIdArgument, TargetIdType, TargetType}
 
@@ -24,55 +31,117 @@ trait TargetMutation extends TargetJson with TargetScalars {
 
   import syntax.inputobjecttype._
 
-  val InputObjectTypeTargetCreateNonsidereal: InputObjectType[Target.CreateNonsidereal] =
-    deriveInputObjectType[Target.CreateNonsidereal](
+  implicit val EnumTypeDeclinationUnits: EnumType[DeclinationModel.Units] =
+    EnumType.fromEnumerated(
+      "DeclinationUnits",
+      "Unit options for Declination values"
+    )
+
+  implicit val EnumTypeRightAscensionUnits: EnumType[RightAscensionModel.Units] =
+    EnumType.fromEnumerated(
+      "RightAscensionUnits",
+      "Unit options for RightAscension values"
+    )
+
+  implicit val EnumTypeProperVelocityUnits: EnumType[ProperVelocityModel.Units] =
+    EnumType.fromEnumerated(
+      "ProperVelocityComponentUnits",
+      "Unit options for proper velocity components (RA and Dec)"
+    )
+
+  implicit val EnumTypeRadialVelocityUnits: EnumType[RadialVelocityModel.Units] =
+    EnumType.fromEnumerated(
+      "RadialVelocityUnits",
+      "Unit options for radial velocity values"
+    )
+
+  implicit val EnumTypeParallaxUnits: EnumType[ParallaxModel.Units] =
+    EnumType.fromEnumerated(
+      "ParallaxUnits",
+      "Unit options for parallax values"
+    )
+
+  val InputObjectTypeTargetCreateNonsidereal: InputObjectType[TargetModel.CreateNonsidereal] =
+    deriveInputObjectType[TargetModel.CreateNonsidereal](
       InputObjectTypeName("CreateNonsiderealInput"),
       InputObjectTypeDescription("Nonsidereal target parameters")
     )
 
-  val ArgumentTargetCreateNonsidereal: Argument[Target.CreateNonsidereal] =
+  val ArgumentTargetCreateNonsidereal: Argument[TargetModel.CreateNonsidereal] =
     InputObjectTypeTargetCreateNonsidereal.argument(
       "input",
       "Nonsidereal target description"
     )
 
-  implicit val InputObjectTypeOffset: InputObjectType[Offset] =
-    deriveInputObjectType[Offset](
-      InputObjectTypeName("OffsetInput"),
-      InputObjectTypeDescription("Offset in p and q")
-    )
-
-  implicit val InputObjectTypeProperVelocity: InputObjectType[ProperVelocity] =
-    deriveInputObjectType[ProperVelocity](
-      InputObjectTypeName("ProperVelocityInput"),
-      InputObjectTypeDescription("ProperVelocity in RA and dec")
-    )
-
-  implicit val InputObjectTypeCoordinates: InputObjectType[Coordinates] =
-    deriveInputObjectType[Coordinates](
+  implicit val InputObjectTypeCoordinates: InputObjectType[CoordinatesModel.Input] =
+    deriveInputObjectType[CoordinatesModel.Input](
       InputObjectTypeName("CoordinatesInput"),
-      InputObjectTypeDescription("RA/Dec Coordinates")
+      InputObjectTypeDescription("Absolute coordinates relative base epoch")
     )
 
-  val InputObjectTypeCreateSidereal: InputObjectType[Target.CreateSidereal] =
-    deriveInputObjectType[Target.CreateSidereal](
+  implicit val InputObjectDeclination: InputObjectType[DeclinationModel.Input] =
+    deriveInputObjectType[DeclinationModel.Input](
+      InputObjectTypeName("DeclinationInput"),
+      InputObjectTypeDescription("Declination, choose one of the available units")
+    )
+
+  implicit val InputObjectRightAscension: InputObjectType[RightAscensionModel.Input] =
+    deriveInputObjectType[RightAscensionModel.Input](
+      InputObjectTypeName("RightAscensionInput"),
+      InputObjectTypeDescription("Right Ascension, choose one of the available units")
+    )
+
+  private def InputObjectProperVelocityComponent[A](
+    name: String
+  ): InputObjectType[ProperVelocityModel.ComponentInput[A]] =
+    deriveInputObjectType[ProperVelocityModel.ComponentInput[A]](
+      InputObjectTypeName(s"${name}Input"),
+      InputObjectTypeDescription(s"$name, choose one of the available units")
+    )
+
+  implicit val InputObjectProperVelocityRa: InputObjectType[ProperVelocityModel.ComponentInput[VelocityAxis.RA]] =
+    InputObjectProperVelocityComponent("ProperVelocityRa")
+
+  implicit val InputObjectProperVelocityDec: InputObjectType[ProperVelocityModel.ComponentInput[VelocityAxis.Dec]] =
+    InputObjectProperVelocityComponent("ProperVelocityDec")
+
+  implicit val InputObjectProperVelocity: InputObjectType[ProperVelocityModel.Input] =
+    deriveInputObjectType[ProperVelocityModel.Input](
+      InputObjectTypeName("ProperVelocityInput"),
+      InputObjectTypeDescription("Proper velocity, choose one of the available units")
+    )
+
+  implicit val InputObjectRadialVelocity: InputObjectType[RadialVelocityModel.Input] =
+    deriveInputObjectType[RadialVelocityModel.Input](
+      InputObjectTypeName("RadialVelocityInput"),
+      InputObjectTypeDescription("Radial velocity, choose one of the available units")
+    )
+
+  implicit val InputObjectParallax: InputObjectType[ParallaxModel.Input] =
+    deriveInputObjectType[ParallaxModel.Input](
+      InputObjectTypeName("ParallaxModelInput"),
+      InputObjectTypeDescription("Parallax, choose one of the available units")
+    )
+
+  val InputObjectTypeCreateSidereal: InputObjectType[TargetModel.CreateSidereal] =
+    deriveInputObjectType[TargetModel.CreateSidereal](
       InputObjectTypeName("CreateSiderealInput"),
       InputObjectTypeDescription("Sidereal target parameters")
     )
 
-  val ArgumentTargetCreateSidereal: Argument[Target.CreateSidereal] =
+  val ArgumentTargetCreateSidereal: Argument[TargetModel.CreateSidereal] =
     InputObjectTypeCreateSidereal.argument(
       "input",
       "Sidereal target description"
     )
 
-  val InputObjectTypeTargetEditSidereal: InputObjectType[Target.EditSidereal] =
-    deriveInputObjectType[Target.EditSidereal](
+  val InputObjectTypeTargetEditSidereal: InputObjectType[TargetModel.EditSidereal] =
+    deriveInputObjectType[TargetModel.EditSidereal](
       InputObjectTypeName("EditSiderealInput"),
       InputObjectTypeDescription("Sidereal target edit parameters")
     )
 
-  val ArgumentTargetEditSidereal: Argument[Target.EditSidereal] =
+  val ArgumentTargetEditSidereal: Argument[TargetModel.EditSidereal] =
     InputObjectTypeTargetEditSidereal.argument(
       "input",
       "Sidereal target edit"

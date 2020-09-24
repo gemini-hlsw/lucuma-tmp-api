@@ -4,37 +4,24 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.schema.syntax.all._
-import lucuma.odb.api.model.Target
-import lucuma.odb.api.model.json.TargetJson
+import lucuma.odb.api.model.{DeclinationModel, ParallaxModel, ProperVelocityModel, RadialVelocityModel, RightAscensionModel, TargetModel}
 import lucuma.odb.api.schema.ProgramSchema.ProgramType
 import lucuma.odb.api.repo.OdbRepo
-
 import lucuma.core.`enum`.EphemerisKeyType
-import lucuma.core.optics.SplitMono
-import lucuma.core.math.{
-  Angle,
-  Coordinates,
-  Declination,
-  HourAngle,
-  Offset,
-  ProperMotion,
-  ProperVelocity,
-  RightAscension
-}
+import lucuma.core.math.{Coordinates, Declination, Parallax, ProperMotion, ProperVelocity, RadialVelocity, RightAscension, VelocityAxis}
 import lucuma.core.model.EphemerisKey
-
 import cats.effect.Effect
 import sangria.schema._
 
-object TargetSchema extends TargetJson with TargetScalars {
+object TargetSchema extends TargetScalars {
 
   import GeneralSchema.EnumTypeExistence
   import context._
 
-  implicit val TargetIdType: ScalarType[Target.Id] =
-    ObjectIdSchema.idType[Target.Id]("TargetId")
+  implicit val TargetIdType: ScalarType[TargetModel.Id] =
+    ObjectIdSchema.idType[TargetModel.Id]("TargetId")
 
-  val TargetIdArgument: Argument[Target.Id] =
+  val TargetIdArgument: Argument[TargetModel.Id] =
     Argument(
       name         = "id",
       argumentType = TargetIdType,
@@ -68,24 +55,27 @@ object TargetSchema extends TargetJson with TargetScalars {
       )
     )
 
-  def OffsetType[F[_]: Effect]: ObjectType[OdbRepo[F], Offset] =
+  def ProperVelocityComponentType[A, F[_]: Effect](
+    name: String
+  ): ObjectType[OdbRepo[F], ProperVelocity.AngularVelocityComponent[A]] =
     ObjectType(
-      name     = "Offset",
+      name     = s"ProperVelocity$name",
       fieldsFn = () => fields(
 
         Field(
-          name        = "p",
-          fieldType   = OffsetPStringType,
-          description = Some("Offset in p expressed as signed decimal arcseconds"),
-          resolve     = _.value.p
+          name        = "microarcsecondsPerYear",
+          fieldType   = LongType,
+          description = Some(s"Proper velocity in $name μas/year"),
+          resolve     = v => ProperVelocityModel.Units.MicroarcsecondsPerYear.long.get(v.value)
         ),
 
         Field(
-          name        = "q",
-          fieldType   = OffsetQStringType,
-          description = Some("Offset in q expressed as signed decimal arcseconds"),
-          resolve     = _.value.q
+          name        = "milliarcsecondsPerYear",
+          fieldType   = BigDecimalType,
+          description = Some(s"Proper velocity in $name mas/year"),
+          resolve     = v => ProperVelocityModel.Units.MilliarcsecondsPerYear.decimal.get(v.value)
         )
+
       )
     )
 
@@ -96,15 +86,15 @@ object TargetSchema extends TargetJson with TargetScalars {
 
         Field(
           name        = "ra",
-          fieldType   = ProperVelocityRaStringType,
-          description = Some("Proper velocity in RA, signed decimal milliarcseconds per year (mas/y)"),
+          fieldType   = ProperVelocityComponentType[VelocityAxis.RA, F]("RA"),
+          description = Some("Proper velocity in RA"),
           resolve     = _.value.ra
         ),
 
         Field(
           name        = "dec",
-          fieldType   = ProperVelocityDecStringType,
-          description = Some("Proper velocity in dec, signed decimal milliarcseconds per year (mas/y)"),
+          fieldType   = ProperVelocityComponentType[VelocityAxis.Dec, F]("declination"),
+          description = Some("Proper velocity in declination"),
           resolve     = _.value.dec
         )
       )
@@ -124,32 +114,23 @@ object TargetSchema extends TargetJson with TargetScalars {
 
         Field(
           name        = "hours",
-          fieldType   = FloatType,
+          fieldType   = BigDecimalType,// FloatType,
           description = Some("Right Ascension (RA) in hours"),
-          resolve     = v => RightAscension.fromHourAngle.reverseGet(v.value).toDoubleHours
+          resolve     = v => RightAscensionModel.Units.Hours.decimal.get(v.value)// RightAscension.fromHourAngle.reverseGet(v.value).toDoubleHours
         ),
 
         Field(
           name        = "degrees",
-          fieldType   = FloatType,
+          fieldType   = BigDecimalType,
           description = Some("Right Ascension (RA) in degrees"),
-          resolve     = v =>
-            SplitMono
-              .fromIso(RightAscension.fromHourAngle.reverse)
-              .composeSplitMono(HourAngle.angle)
-              .get(v.value)
-              .toDoubleDegrees
+          resolve     = v => RightAscensionModel.Units.Degrees.decimal.get(v.value)
         ),
 
         Field(
           name        = "microarcsecs",
           fieldType   = LongType,
           description = Some("Right Ascension (RA) in µas"),
-          resolve     = v =>
-            RightAscension
-              .fromHourAngle
-              .reverseGet(v.value)
-              .toMicroarcseconds
+          resolve     = v => RightAscensionModel.Units.Microarcseconds.long.get(v.value)
         )
       )
     )
@@ -168,16 +149,16 @@ object TargetSchema extends TargetJson with TargetScalars {
 
         Field(
           name        = "degrees",
-          fieldType   = FloatType,
+          fieldType   = BigDecimalType,
           description = Some("Declination in signed degrees"),
-          resolve     = _.value.toAngle.toSignedDoubleDegrees
+          resolve     = v => DeclinationModel.Units.Degrees.decimal.reverseGet(v.value)//.value.toAngle.toSignedDoubleDegrees
         ),
 
         Field(
           name        = "microarcsecs",
           fieldType   = LongType,
           description = Some("Declination in signed µas"),
-          resolve     = v => Angle.signedMicroarcseconds.get(v.value.toAngle)
+          resolve     = v => DeclinationModel.Units.Microarcseconds.long.reverseGet(v.value)//.signedMicroarcseconds.get(v.value.toAngle)
         )
       )
     )
@@ -202,6 +183,58 @@ object TargetSchema extends TargetJson with TargetScalars {
         )
       )
     )
+
+  def RadialVelocityType[F[_]: Effect]: ObjectType[OdbRepo[F], RadialVelocity] =
+    ObjectType(
+      name     = "RadialVelocity",
+      fieldsFn = () => fields(
+
+        Field(
+          name        = "centimetersPerSecond",
+          fieldType   = LongType,
+          description = Some("Radial velocity in cm/s"),
+          resolve     = v => RadialVelocityModel.Units.CentimetersPerSecond.long.reverseGet(v.value)
+        ),
+
+        Field(
+          name        = "metersPerSecond",
+          fieldType   = BigDecimalType,
+          description = Some("Radial velocity in m/s"),
+          resolve     = v => RadialVelocityModel.Units.MetersPerSecond.decimal.reverseGet(v.value)
+        ),
+
+        Field(
+          name        = "kilometersPerSecond",
+          fieldType   = BigDecimalType,
+          description = Some("Radial velocity in km/s"),
+          resolve     = v => RadialVelocityModel.Units.KilometersPerSecond.decimal.reverseGet(v.value)
+        )
+
+      )
+    )
+
+  def ParallaxType[F[_]: Effect]: ObjectType[OdbRepo[F], Parallax] =
+    ObjectType(
+      name     = "Parallax",
+      fieldsFn = () => fields(
+
+        Field(
+          name        = "microarcseconds",
+          fieldType   = LongType,
+          description = Some("Parallax in microarcseconds"),
+          resolve     = v => ParallaxModel.Units.Microarcseconds.long.get(v.value)
+        ),
+
+        Field(
+          name        = "milliarcseconds",
+          fieldType   = BigDecimalType,
+          description = Some("Parallax in milliarcseconds"),
+          resolve     = v => ParallaxModel.Units.Milliarcseconds.decimal.get(v.value)
+        )
+
+      )
+    )
+
 
   def SiderealType[F[_]: Effect]: ObjectType[OdbRepo[F], ProperMotion] =
     ObjectType(
@@ -231,9 +264,16 @@ object TargetSchema extends TargetJson with TargetScalars {
 
         Field(
           name        = "radialVelocity",
-          fieldType   = OptionType(RadialVelocityType),
-          description = Some("Radial velocity in m/s"),
+          fieldType   = OptionType(RadialVelocityType[F]),
+          description = Some("Radial velocity"),
           resolve     = _.value.radialVelocity
+        ),
+
+        Field(
+          name        = "parallax",
+          fieldType   = OptionType(ParallaxType[F]),
+          description = Some("Parallax"),
+          resolve     = _.value.parallax
         )
       )
     )
@@ -251,7 +291,7 @@ object TargetSchema extends TargetJson with TargetScalars {
       )
     )
 
-  def TargetType[F[_]: Effect]: ObjectType[OdbRepo[F], Target] =
+  def TargetType[F[_]: Effect]: ObjectType[OdbRepo[F], TargetModel] =
     ObjectType(
       name     = "Target",
       fieldsFn = () => fields(

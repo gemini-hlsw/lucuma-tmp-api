@@ -3,8 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.Observation
-import lucuma.odb.api.model.json.ObservationJson
+import lucuma.odb.api.model.ObservationModel
 import lucuma.odb.api.repo.OdbRepo
 
 import cats.effect.Effect
@@ -12,7 +11,7 @@ import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
 
-trait ObservationMutation extends ObservationJson {
+trait ObservationMutation {
 
   import AsterismSchema.AsterismIdType
   import GeneralSchema.EnumTypeExistence
@@ -21,25 +20,25 @@ trait ObservationMutation extends ObservationJson {
   import context._
   import syntax.inputobjecttype._
 
-  val InputObjectTypeObservationCreate: InputObjectType[Observation.Create] =
-    deriveInputObjectType[Observation.Create](
+  val InputObjectTypeObservationCreate: InputObjectType[ObservationModel.Create] =
+    deriveInputObjectType[ObservationModel.Create](
       InputObjectTypeName("CreateObservationInput"),
       InputObjectTypeDescription("Observation creation parameters")
     )
 
-  val ArgumentObservationCreate: Argument[Observation.Create] =
+  val ArgumentObservationCreate: Argument[ObservationModel.Create] =
     InputObjectTypeObservationCreate.argument(
       "input",
       "Observation description"
     )
 
-  val InputObjectTypeObservationEdit: InputObjectType[Observation.Edit] =
-    deriveInputObjectType[Observation.Edit](
+  val InputObjectTypeObservationEdit: InputObjectType[ObservationModel.Edit] =
+    deriveInputObjectType[ObservationModel.Edit](
       InputObjectTypeName("EditObservationInput"),
       InputObjectTypeDescription("Edit observation")
     )
 
-  val ArgumentObservationEdit: Argument[Observation.Edit] =
+  val ArgumentObservationEdit: Argument[ObservationModel.Edit] =
     InputObjectTypeObservationEdit.argument(
       "input",
       "Edit observation"

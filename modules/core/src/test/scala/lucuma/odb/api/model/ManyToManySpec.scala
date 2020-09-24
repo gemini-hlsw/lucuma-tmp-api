@@ -5,6 +5,7 @@ package lucuma.odb.api.model
 
 import cats.tests.CatsSuite
 import lucuma.odb.api.model.arb.ArbManyToMany
+import lucuma.odb.api.repo.ManyToMany
 
 final class ManyToManySpec extends CatsSuite {
 

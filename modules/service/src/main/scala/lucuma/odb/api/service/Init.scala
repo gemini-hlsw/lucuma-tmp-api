@@ -3,9 +3,9 @@
 
 package lucuma.odb.api.service
 
-import lucuma.odb.api.model.{Asterism, Observation, Program, Target}
+import lucuma.odb.api.model._
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.core.math.{Declination, Epoch, ProperVelocity, RadialVelocity, RightAscension}
+import lucuma.core.math.Epoch
 import cats.effect.Sync
 import cats.implicits._
 
@@ -17,41 +17,43 @@ object Init {
   def initialize[F[_]: Sync](repo: OdbRepo[F]): F[Unit] =
     for {
       p  <- repo.program.insert(
-              Program.Create(
+              ProgramModel.Create(
                 Some("Observing Stars in Constellation Orion for No Particular Reason")
               )
             )
       t0 <- repo.target.insertSidereal(
-              Target.CreateSidereal(
+              TargetModel.CreateSidereal(
                 List(p.id),
                 "Betelgeuse",
-                RightAscension.fromStringHMS.unsafeGet("05:55:10.305"),
-                Declination.fromStringSignedDMS.unsafeGet("07:24:25.43"),
+                RightAscensionModel.Input.unsafeFromHms("05:55:10.305"),
+                DeclinationModel.Input.unsafeFromDms("07:24:25.43"),
                 Some(Epoch.J2000),
-                Some(ProperVelocity.milliarcsecondsPerYear.reverseGet((BigDecimal("27.54"), BigDecimal("11.3")))),
-                RadialVelocity.fromMetersPerSecond.getOption(21884)
+                Some(ProperVelocityModel.Input.fromMilliarcsecondsPerYear(BigDecimal("27.54"), BigDecimal("11.3"))),
+                Some(RadialVelocityModel.Input.fromMetersPerSecond(21884)),
+                Some(ParallaxModel.Input.fromMilliarcseconds(BigDecimal("6.55")))
               )
             )
       t1 <- repo.target.insertSidereal(
-              Target.CreateSidereal(
+              TargetModel.CreateSidereal(
                 List(p.id),
                 "Rigel",
-                RightAscension.fromStringHMS.unsafeGet("05:14:32.272"),
-                Declination.fromStringSignedDMS.unsafeGet("-08:12:05.90"),
+                RightAscensionModel.Input.unsafeFromHms("05:14:32.272"),
+                DeclinationModel.Input.unsafeFromDms("-08:12:05.90"),
                 Some(Epoch.J2000),
-                Some(ProperVelocity.milliarcsecondsPerYear.reverseGet((BigDecimal("1.31"), BigDecimal("0.5")))),
-                RadialVelocity.fromMetersPerSecond.getOption(17687)
+                Some(ProperVelocityModel.Input.fromMilliarcsecondsPerYear(BigDecimal("1.31"), BigDecimal("0.5"))),
+                Some(RadialVelocityModel.Input.fromMetersPerSecond(17687)),
+                Some(ParallaxModel.Input.fromMilliarcseconds(BigDecimal("3.78")))
               )
             )
       a0 <- repo.asterism.insert(
-              Asterism.CreateDefault(
+              AsterismModel.CreateDefault(
                 List(p.id),
                 None,
                 List(t0.id, t1.id)
               )
             )
       _  <- repo.observation.insert(
-              Observation.Create(
+              ObservationModel.Create(
                 p.id,
                 Some("First Observation"),
                 Some(a0.id)
