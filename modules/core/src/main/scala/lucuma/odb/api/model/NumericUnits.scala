@@ -19,6 +19,18 @@ object NumericUnits {
 
   def apply[A, U](implicit ev: NumericUnits[A, U]): ev.type = ev
 
+  def fromRead[A, U](
+    longToA:    (U, Long) => ValidatedInput[A],
+    decimalToA: (U, BigDecimal) => ValidatedInput[A]
+  ): NumericUnits[A, U] =
+    new NumericUnits[A, U] {
+      override def readLong(value: Long, units: U): ValidatedInput[A] =
+        longToA(units, value)
+
+      override def readDecimal(value: BigDecimal, units: U): ValidatedInput[A] =
+        decimalToA(units, value)
+    }
+
   final case class LongInput[A, U](
     value: Long,
     units: U

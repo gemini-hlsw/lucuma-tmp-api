@@ -3,10 +3,10 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{DeclinationModel, ProperVelocityModel, RightAscensionModel, TargetModel}
+import lucuma.odb.api.model.{CoordinatesModel, DeclinationModel, ProperVelocityModel, RadialVelocityModel, RightAscensionModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
-import lucuma.core.math.{Coordinates, Offset, ProperVelocity, VelocityAxis}
+import lucuma.core.math.VelocityAxis
 import cats.effect.Effect
 import sangria.macros.derive._
 import sangria.marshalling.circe._
@@ -23,36 +23,6 @@ trait TargetMutation extends TargetScalars {
 
   import syntax.inputobjecttype._
 
-  val InputObjectTypeTargetCreateNonsidereal: InputObjectType[TargetModel.CreateNonsidereal] =
-    deriveInputObjectType[TargetModel.CreateNonsidereal](
-      InputObjectTypeName("CreateNonsiderealInput"),
-      InputObjectTypeDescription("Nonsidereal target parameters")
-    )
-
-  val ArgumentTargetCreateNonsidereal: Argument[TargetModel.CreateNonsidereal] =
-    InputObjectTypeTargetCreateNonsidereal.argument(
-      "input",
-      "Nonsidereal target description"
-    )
-
-  implicit val InputObjectTypeOffset: InputObjectType[Offset] =
-    deriveInputObjectType[Offset](
-      InputObjectTypeName("OffsetInput"),
-      InputObjectTypeDescription("Offset in p and q")
-    )
-
-  implicit val InputObjectTypeProperVelocity: InputObjectType[ProperVelocity] =
-    deriveInputObjectType[ProperVelocity](
-      InputObjectTypeName("ProperVelocityInput"),
-      InputObjectTypeDescription("ProperVelocity in RA and dec")
-    )
-
-  implicit val InputObjectTypeCoordinates: InputObjectType[Coordinates] =
-    deriveInputObjectType[Coordinates](
-      InputObjectTypeName("CoordinatesInput"),
-      InputObjectTypeDescription("RA/Dec Coordinates")
-    )
-
   implicit val EnumTypeDeclinationUnits: EnumType[DeclinationModel.Units] =
     EnumType.fromEnumerated(
       "DeclinationUnits",
@@ -65,6 +35,36 @@ trait TargetMutation extends TargetScalars {
       "Unit options for RightAscension values"
     )
 
+  implicit val EnumTypeProperVelocityUnits: EnumType[ProperVelocityModel.Units] =
+    EnumType.fromEnumerated(
+      "ProperVelocityComponentUnits",
+      "Unit options for proper velocity components (RA and Dec)"
+    )
+
+  implicit val EnumTypeRadialVelocityUnits: EnumType[RadialVelocityModel.Units] =
+    EnumType.fromEnumerated(
+      "RadialVelocityUnits",
+      "Unit options for radial velocity values"
+    )
+
+  val InputObjectTypeTargetCreateNonsidereal: InputObjectType[TargetModel.CreateNonsidereal] =
+    deriveInputObjectType[TargetModel.CreateNonsidereal](
+      InputObjectTypeName("CreateNonsiderealInput"),
+      InputObjectTypeDescription("Nonsidereal target parameters")
+    )
+
+  val ArgumentTargetCreateNonsidereal: Argument[TargetModel.CreateNonsidereal] =
+    InputObjectTypeTargetCreateNonsidereal.argument(
+      "input",
+      "Nonsidereal target description"
+    )
+
+  implicit val InputObjectTypeCoordinates: InputObjectType[CoordinatesModel.Input] =
+    deriveInputObjectType[CoordinatesModel.Input](
+      InputObjectTypeName("CoordinatesInput"),
+      InputObjectTypeDescription("Absolute coordinates relative base epoch")
+    )
+
   implicit val InputObjectDeclination: InputObjectType[DeclinationModel.Input] =
     deriveInputObjectType[DeclinationModel.Input](
       InputObjectTypeName("DeclinationInput"),
@@ -75,12 +75,6 @@ trait TargetMutation extends TargetScalars {
     deriveInputObjectType[RightAscensionModel.Input](
       InputObjectTypeName("RightAscensionInput"),
       InputObjectTypeDescription("Right Ascension, choose one of the available units")
-    )
-
-  implicit val EnumTypeProperVelocityUnits: EnumType[ProperVelocityModel.Units] =
-    EnumType.fromEnumerated(
-      "ProperVelocityComponentUnits",
-      "Unit options for proper velocity components (RA and Dec)"
     )
 
   private def InputObjectProperVelocityComponent[A](
@@ -100,7 +94,13 @@ trait TargetMutation extends TargetScalars {
   implicit val InputObjectProperVelocity: InputObjectType[ProperVelocityModel.Input] =
     deriveInputObjectType[ProperVelocityModel.Input](
       InputObjectTypeName("ProperVelocityInput"),
-      InputObjectTypeDescription("Proper velocity")
+      InputObjectTypeDescription("Proper velocity, choose one of the available units")
+    )
+
+  implicit val InputObjectRadialVelocity: InputObjectType[RadialVelocityModel.Input] =
+    deriveInputObjectType[RadialVelocityModel.Input](
+      InputObjectTypeName("RadialVelocityInput"),
+      InputObjectTypeDescription("Radial velocity, choose one of the available units")
     )
 
   val InputObjectTypeCreateSidereal: InputObjectType[TargetModel.CreateSidereal] =

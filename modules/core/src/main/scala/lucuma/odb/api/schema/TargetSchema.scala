@@ -4,11 +4,11 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.schema.syntax.all._
-import lucuma.odb.api.model.{DeclinationModel, RightAscensionModel, TargetModel}
+import lucuma.odb.api.model.{DeclinationModel, ProperVelocityModel, RadialVelocityModel, RightAscensionModel, TargetModel}
 import lucuma.odb.api.schema.ProgramSchema.ProgramType
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.`enum`.EphemerisKeyType
-import lucuma.core.math.{Coordinates, Declination, Offset, ProperMotion, ProperVelocity, RightAscension}
+import lucuma.core.math.{Coordinates, Declination, ProperMotion, ProperVelocity, RadialVelocity, RightAscension, VelocityAxis}
 import lucuma.core.model.EphemerisKey
 import cats.effect.Effect
 import sangria.schema._
@@ -55,24 +55,27 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-  def OffsetType[F[_]: Effect]: ObjectType[OdbRepo[F], Offset] =
+  def ProperVelocityComponentType[A, F[_]: Effect](
+    name: String
+  ): ObjectType[OdbRepo[F], ProperVelocity.AngularVelocityComponent[A]] =
     ObjectType(
-      name     = "Offset",
+      name     = s"ProperVelocity$name",
       fieldsFn = () => fields(
 
         Field(
-          name        = "p",
-          fieldType   = OffsetPStringType,
-          description = Some("Offset in p expressed as signed decimal arcseconds"),
-          resolve     = _.value.p
+          name        = "microarcsecondsPerYear",
+          fieldType   = LongType,
+          description = Some(s"Proper velocity in $name μas/year"),
+          resolve     = v => ProperVelocityModel.Units.MicroarcsecondsPerYear.long.get(v.value)
         ),
 
         Field(
-          name        = "q",
-          fieldType   = OffsetQStringType,
-          description = Some("Offset in q expressed as signed decimal arcseconds"),
-          resolve     = _.value.q
+          name        = "milliarcsecondsPerYear",
+          fieldType   = BigDecimalType,
+          description = Some(s"Proper velocity in $name mas/year"),
+          resolve     = v => ProperVelocityModel.Units.MilliarcsecondsPerYear.decimal.get(v.value)
         )
+
       )
     )
 
@@ -83,15 +86,15 @@ object TargetSchema extends TargetScalars {
 
         Field(
           name        = "ra",
-          fieldType   = ProperVelocityRaStringType,
-          description = Some("Proper velocity in RA, signed decimal milliarcseconds per year (mas/y)"),
+          fieldType   = ProperVelocityComponentType[VelocityAxis.RA, F]("RA"),
+          description = Some("Proper velocity in RA"),
           resolve     = _.value.ra
         ),
 
         Field(
           name        = "dec",
-          fieldType   = ProperVelocityDecStringType,
-          description = Some("Proper velocity in dec, signed decimal milliarcseconds per year (mas/y)"),
+          fieldType   = ProperVelocityComponentType[VelocityAxis.Dec, F]("declination"),
+          description = Some("Proper velocity in declination"),
           resolve     = _.value.dec
         )
       )
@@ -121,11 +124,6 @@ object TargetSchema extends TargetScalars {
           fieldType   = BigDecimalType,
           description = Some("Right Ascension (RA) in degrees"),
           resolve     = v => RightAscensionModel.Units.Degrees.decimal.get(v.value)
-//            SplitMono
-//              .fromIso(RightAscension.fromHourAngle.reverse)
-//              .composeSplitMono(HourAngle.angle)
-//              .get(v.value)
-//              .toDoubleDegrees
         ),
 
         Field(
@@ -133,10 +131,6 @@ object TargetSchema extends TargetScalars {
           fieldType   = LongType,
           description = Some("Right Ascension (RA) in µas"),
           resolve     = v => RightAscensionModel.Units.Microarcseconds.long.get(v.value)
-//            RightAscension
-//              .fromHourAngle
-//              .reverseGet(v.value)
-//              .toMicroarcseconds
         )
       )
     )
@@ -187,6 +181,35 @@ object TargetSchema extends TargetScalars {
           description = Some("Declination"),
           resolve     = _.value.dec
         )
+      )
+    )
+
+  def RadialVelocityType[F[_]: Effect]: ObjectType[OdbRepo[F], RadialVelocity] =
+    ObjectType(
+      name     = "RadialVelocity",
+      fieldsFn = () => fields(
+
+        Field(
+          name        = "centimetersPerSecond",
+          fieldType   = LongType,
+          description = Some("Radial velocity in cm/s"),
+          resolve     = v => RadialVelocityModel.Units.CentimetersPerSecond.long.reverseGet(v.value)
+        ),
+
+        Field(
+          name        = "metersPerSecond",
+          fieldType   = BigDecimalType,
+          description = Some("Radial velocity in m/s"),
+          resolve     = v => RadialVelocityModel.Units.MetersPerSecond.decimal.reverseGet(v.value)
+        ),
+
+        Field(
+          name        = "kilometersPerSecond",
+          fieldType   = BigDecimalType,
+          description = Some("Radial velocity in km/s"),
+          resolve     = v => RadialVelocityModel.Units.KilometersPerSecond.decimal.reverseGet(v.value)
+        )
+
       )
     )
 

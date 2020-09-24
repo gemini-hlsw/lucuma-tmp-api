@@ -44,18 +44,22 @@ object AsterismRepo {
           }
         }.map(deletionFilter(includeDeleted))
 
-      private def addAsterism(ac: AsterismModel.Create): State[Tables, AsterismModel] =
+      private def addAsterism(
+        programs: Set[ProgramModel.Id],
+        factory:  AsterismModel.Id => AsterismModel
+      ): State[Tables, AsterismModel] =
         for {
-          a   <- createAndInsert(ac.withId)
-          _   <- Tables.shareAsterism(a, ac.programs.toSet)
+          a   <- createAndInsert(factory)
+          _   <- Tables.shareAsterism(a, programs)
         } yield a
 
       override def insert(input: AsterismModel.Create): F[AsterismModel] =
         modify { t =>
           val targets  = input.targets.traverse(lookupTarget(t, _))
           val programs = input.programs.traverse(lookupProgram(t, _))
-          (targets, programs)
-            .mapN((_, _) => addAsterism(input).run(t).value)
+          val asterism = input.withId
+          (targets, programs, asterism)
+            .mapN((_, _, f) => addAsterism(input.programs.toSet, f).run(t).value)
             .fold(
               err => (t, err.asLeft[AsterismModel]),
               tup => tup.map(_.asRight)

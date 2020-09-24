@@ -5,12 +5,10 @@ package lucuma.odb.api.model
 
 import lucuma.odb.api.model.Existence._
 import lucuma.odb.api.model.syntax.all._
-import lucuma.odb.api.model.json.targetmath._
 import lucuma.core.util.{Enumerated, Gid}
 import lucuma.core.math.Coordinates
-
 import cats.Eq
-import cats.data.State
+import cats.data.{Nested, State}
 import cats.implicits._
 import eu.timepit.refined.auto._
 import eu.timepit.refined.types.numeric.PosLong
@@ -116,17 +114,17 @@ object AsterismModel extends AsterismOptics {
   trait Create {
     def programs: List[ProgramModel.Id]  // to share immediately with the indicated programs
     def targets:  List[TargetModel.Id]
-    def withId(aid: AsterismModel.Id): AsterismModel
+    def withId: ValidatedInput[AsterismModel.Id => AsterismModel]
   }
 
   final case class CreateDefault(
     programs:     List[ProgramModel.Id],
-    explicitBase: Option[Coordinates],
+    explicitBase: Option[CoordinatesModel.Input],
     targets:      List[TargetModel.Id]
   ) extends Create {
 
-    override def withId(aid: AsterismModel.Id): AsterismModel =
-      Default(aid, Present, explicitBase, targets)
+    override def withId: ValidatedInput[AsterismModel.Id => AsterismModel] =
+      explicitBase.traverse(_.toCoordinates).map(c => aid => Default(aid, Present, c, targets))
 
   }
 
@@ -164,16 +162,18 @@ object AsterismModel extends AsterismOptics {
   final case class EditDefault(
     id:           AsterismModel.Id,
     existence:    Option[Existence],
-    explicitBase: Option[Option[Coordinates]],
+    explicitBase: Option[Option[CoordinatesModel.Input]],
     targets:      Option[List[TargetModel.Id]]
   ) extends Editor[Id, AsterismModel] {
 
     override def editor: ValidatedInput[State[AsterismModel, Unit]] =
-      (for {
-        _ <- Default.asterismExistence    := existence
-        _ <- Default.asterismExplicitBase := explicitBase
-        _ <- Default.asterismTargets      := targets
-      } yield ()).validNec
+      Nested(explicitBase).traverse(_.toCoordinates).map { b =>
+        for {
+          _ <- Default.asterismExistence    := existence
+          _ <- Default.asterismExplicitBase := b.value
+          _ <- Default.asterismTargets      := targets
+        } yield ()
+      }
   }
 
   object EditDefault {

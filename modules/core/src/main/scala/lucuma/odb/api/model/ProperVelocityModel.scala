@@ -12,9 +12,9 @@ import lucuma.core.util.{Display, Enumerated}
 import cats.syntax.apply._
 import cats.syntax.validated._
 
-
 import io.circe.Decoder
 import io.circe.generic.semiauto._
+
 
 object ProperVelocityModel {
 
@@ -57,13 +57,7 @@ object ProperVelocityModel {
   }
 
   implicit def NumericUnitsProperVelocityComponent[A]: NumericUnits[AngularVelocityComponent[A], Units] =
-    new NumericUnits[AngularVelocityComponent[A], Units] {
-      override def readLong(value: Long, units: Units): ValidatedInput[AngularVelocityComponent[A]] =
-        units.readLong[A](value)
-
-      override def readDecimal(value: BigDecimal, units: Units): ValidatedInput[AngularVelocityComponent[A]] =
-        units.readDecimal[A](value)
-    }
+    NumericUnits.fromRead(_.readLong(_), _.readDecimal(_))
 
   final case class ComponentInput[A](
     microarcsecondsPerYear: Option[Long],

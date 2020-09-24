@@ -62,13 +62,7 @@ object DeclinationModel {
   }
 
   implicit val NumericUnitsDeclination: NumericUnits[Declination, Units] =
-    new NumericUnits[Declination, Units] {
-      override def readLong(value: Long, units: Units): ValidatedInput[Declination] =
-        units.readLong(value)
-
-      override def readDecimal(value: BigDecimal, units: Units): ValidatedInput[Declination] =
-        units.readDecimal(value)
-    }
+    NumericUnits.fromRead(_.readLong(_), _.readDecimal(_))
 
   def readDms(s: String): ValidatedInput[Declination] =
     Declination

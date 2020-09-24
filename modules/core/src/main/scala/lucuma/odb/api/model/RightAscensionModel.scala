@@ -27,14 +27,14 @@ object RightAscensionModel {
     val long: SplitMono[RightAscension, Long] =
       angleToRightAscension(angleUnit.unsignedLong)
 
-    def readLong(l: Long): ValidatedInput[RightAscension] =
-      long.reverseGet(l).validNec[InputError]
+    def readLong(value: Long): ValidatedInput[RightAscension] =
+      long.reverseGet(value).validNec[InputError]
 
     val decimal: SplitMono[RightAscension, BigDecimal] =
       angleToRightAscension(angleUnit.unsignedDecimal)
 
-    def readDecimal(b: BigDecimal): ValidatedInput[RightAscension] =
-      decimal.reverseGet(b).validNec[InputError]
+    def readDecimal(value: BigDecimal): ValidatedInput[RightAscension] =
+      decimal.reverseGet(value).validNec[InputError]
 
   }
 
@@ -53,13 +53,7 @@ object RightAscensionModel {
   }
 
   implicit val NumericUnitsRightAscension: NumericUnits[RightAscension, Units] =
-    new NumericUnits[RightAscension, Units] {
-      override def readLong(value: Long, units: Units): ValidatedInput[RightAscension] =
-        units.readLong(value)
-
-      override def readDecimal(value: BigDecimal, units: Units): ValidatedInput[RightAscension] =
-        units.readDecimal(value)
-    }
+    NumericUnits.fromRead(_.readLong(_), _.readDecimal(_))
 
   def readHms(s: String): ValidatedInput[RightAscension] =
     RightAscension

@@ -3,9 +3,9 @@
 
 package lucuma.odb.api.service
 
-import lucuma.odb.api.model.{AsterismModel, DeclinationModel, ObservationModel, ProgramModel, ProperVelocityModel, RightAscensionModel, TargetModel}
+import lucuma.odb.api.model._
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.core.math.{Epoch, RadialVelocity}
+import lucuma.core.math.Epoch
 import cats.effect.Sync
 import cats.implicits._
 
@@ -29,7 +29,7 @@ object Init {
                 DeclinationModel.Input.fromDms("07:24:25.43"),
                 Some(Epoch.J2000),
                 Some(ProperVelocityModel.Input.fromMilliarcsecondsPerYear(BigDecimal("27.54"), BigDecimal("11.3"))),
-                RadialVelocity.fromMetersPerSecond.getOption(21884)
+                Some(RadialVelocityModel.Input.fromMetersPerSecond(21884))
               )
             )
       t1 <- repo.target.insertSidereal(
@@ -40,7 +40,7 @@ object Init {
                 DeclinationModel.Input.fromDms("-08:12:05.90"),
                 Some(Epoch.J2000),
                 Some(ProperVelocityModel.Input.fromMilliarcsecondsPerYear(BigDecimal("1.31"), BigDecimal("0.5"))),
-                RadialVelocity.fromMetersPerSecond.getOption(17687)
+                Some(RadialVelocityModel.Input.fromMetersPerSecond(17687))
               )
             )
       a0 <- repo.asterism.insert(

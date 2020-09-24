@@ -108,21 +108,24 @@ object TargetModel extends TargetOptics {
     dec:            DeclinationModel.Input,
     epoch:          Option[Epoch],
     properVelocity: Option[ProperVelocityModel.Input],
-    radialVelocity: Option[RadialVelocity]
+    radialVelocity: Option[RadialVelocityModel.Input]
     // TODO: more proper motion
   ) {
 
     val toProperMotion: ValidatedInput[ProperMotion] =
-      (ra.toRightAscension, dec.toDeclination, properVelocity.traverse(_.toProperVelocity))
-        .mapN { (ra, dec, pv) =>
-          ProperMotion(
-            Coordinates(ra, dec),
-            epoch.getOrElse(Epoch.J2000),
-            pv,
-            radialVelocity,
-            None
-          )
-        }
+      (ra.toRightAscension,
+       dec.toDeclination,
+       properVelocity.traverse(_.toProperVelocity),
+       radialVelocity.traverse(_.toRadialVelocity)
+      ).mapN { (ra, dec, pv, rv) =>
+        ProperMotion(
+          Coordinates(ra, dec),
+          epoch.getOrElse(Epoch.J2000),
+          pv,
+          rv,
+          None
+        )
+      }
 
     val toGemTarget: ValidatedInput[Target] =
       toProperMotion.map { pm => Target(name, Right(pm)) }
@@ -160,14 +163,15 @@ object TargetModel extends TargetOptics {
     dec:            Option[DeclinationModel.Input],
     epoch:          Option[Epoch],
     properVelocity: Option[Option[ProperVelocityModel.Input]],
-    radialVelocity: Option[Option[RadialVelocity]]
+    radialVelocity: Option[Option[RadialVelocityModel.Input]]
   ) extends Editor[Id, TargetModel] {
 
     override val editor: ValidatedInput[State[TargetModel, Unit]] =
       (ra.traverse(_.toRightAscension),
        dec.traverse(_.toDeclination),
-       properVelocity.traverse(_.traverse(_.toProperVelocity))
-      ).mapN { (ra, dec, pv) =>
+       Nested(properVelocity).traverse(_.toProperVelocity).map(_.value),
+       Nested(radialVelocity).traverse(_.toRadialVelocity).map(_.value)
+      ).mapN { (ra, dec, pv, rv) =>
         for {
           _ <- TargetModel.existence      := existence
           _ <- TargetModel.name           := name
@@ -175,7 +179,7 @@ object TargetModel extends TargetOptics {
           _ <- TargetModel.dec            := dec
           _ <- TargetModel.epoch          := epoch
           _ <- TargetModel.properVelocity := pv
-          _ <- TargetModel.radialVelocity := radialVelocity
+          _ <- TargetModel.radialVelocity := rv
         } yield ()
       }
 
