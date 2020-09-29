@@ -18,7 +18,7 @@ import org.http4s.server.staticcontent._
 // #server
 object Main extends IOApp {
 
-  def stream[F[_]: ConcurrentEffect : ContextShift](odb: OdbRepo[F])(implicit T: Timer[F]): Stream[F, Nothing] = {
+  def stream[F[_]: ConcurrentEffect : ContextShift](odb: OdbRepo[F], port: Int)(implicit T: Timer[F]): Stream[F, Nothing] = {
     val blockingPool = Executors.newFixedThreadPool(4)
     val blocker      = Blocker.liftExecutorService(blockingPool)
     val odbService   = OdbService.apply[F](odb)
@@ -35,7 +35,7 @@ object Main extends IOApp {
     // Spin up the server ...
     for {
       exitCode <- BlazeServerBuilder[F](global)
-        .bindHttp(8080, "0.0.0.0")
+        .bindHttp(port, "0.0.0.0")
         .withHttpApp(httpApp)
         .withWebSockets(true)
         .serve
@@ -44,9 +44,10 @@ object Main extends IOApp {
 
   def run(args: List[String]): IO[ExitCode] =
     for {
-      odb <- OdbRepo.create[IO]
-      _   <- Init.initialize(odb)
-      _   <- stream(odb).compile.drain
+      odb  <- OdbRepo.create[IO]
+      port <- IO(sys.env.getOrElse("PORT", "8080").toInt) // Heroku provides binding port in PORT env variable.
+      _    <- Init.initialize(odb)
+      _    <- stream(odb, port).compile.drain
     } yield ExitCode.Success
 }
 
