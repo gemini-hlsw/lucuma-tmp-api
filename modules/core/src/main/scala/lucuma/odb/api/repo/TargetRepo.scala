@@ -4,21 +4,31 @@
 package lucuma.odb.api.repo
 
 import lucuma.odb.api.model.{ProgramModel, TargetModel, ValidatedInput}
-import lucuma.odb.api.model.TargetModel.{TargetCreatedEvent, TargetEditedEvent}
+import lucuma.odb.api.model.TargetModel.{CreateNonsidereal, CreateSidereal, TargetCreatedEvent, TargetEditedEvent, TargetProgramLinks}
 import lucuma.odb.api.model.Existence._
+import lucuma.odb.api.model.syntax.validatedinput._
+import lucuma.core.model.Target
 import cats._
 import cats.data.State
-import cats.implicits._
 import cats.effect.concurrent.Ref
+import cats.syntax.apply._
+import cats.syntax.either._
+import cats.syntax.flatMap._
+import cats.syntax.functor._
+import cats.syntax.traverse._
 
 
 sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, TargetModel.Id, TargetModel] {
 
   def selectAllForProgram(pid: ProgramModel.Id, includeDeleted: Boolean = false): F[List[TargetModel]]
 
-  def insertNonsidereal(input: TargetModel.CreateNonsidereal): F[TargetModel]
+  def insertNonsidereal(input: CreateNonsidereal): F[TargetModel]
 
-  def insertSidereal(input: TargetModel.CreateSidereal): F[TargetModel]
+  def insertSidereal(input: CreateSidereal): F[TargetModel]
+
+  def shareWithPrograms(input: TargetProgramLinks): F[TargetModel]
+
+  def unshareWithPrograms(input: TargetProgramLinks): F[TargetModel]
 
 }
 
@@ -40,22 +50,24 @@ object TargetRepo {
       with LookupSupport[F] {
 
       override def selectAllForProgram(
-                                        pid:            ProgramModel.Id,
-                                        includeDeleted: Boolean = false
+        pid:            ProgramModel.Id,
+        includeDeleted: Boolean = false
       ): F[List[TargetModel]] =
         tablesRef.get.flatMap { tables =>
           tables.programTargets.selectRight(pid).toList.traverse { tid =>
-            tables.targets.get(tid).fold(missingTarget(tid))(M.pure)
+            tables.targets.get(tid).fold(
+              missingReference[TargetModel.Id, TargetModel](tid)
+            )(M.pure)
           }
         }.map(deletionFilter(includeDeleted))
 
-      def addAndShare(g: lucuma.core.model.Target, pids: Set[ProgramModel.Id]): State[Tables, TargetModel] =
+      def addAndShare(g: Target, pids: Set[ProgramModel.Id]): State[Tables, TargetModel] =
         for {
           t   <- createAndInsert(tid => TargetModel(tid, Present, g))
-          _   <- Tables.shareTarget(t, pids)
+          _   <- Tables.shareTargetWithPrograms(t, pids)
         } yield t
 
-      private def insertTarget(pids: List[ProgramModel.Id], vt: ValidatedInput[lucuma.core.model.Target]): F[TargetModel] =
+      private def insertTarget(pids: List[ProgramModel.Id], vt: ValidatedInput[Target]): F[TargetModel] =
         modify { t =>
           // NOTE: look up all the supplied program ids to make sure they
           // correspond to real programs.  We ignore a successful result though.
@@ -67,11 +79,29 @@ object TargetRepo {
             )
         }
 
-      override def insertNonsidereal(input: TargetModel.CreateNonsidereal): F[TargetModel] =
+      override def insertNonsidereal(input: CreateNonsidereal): F[TargetModel] =
         insertTarget(input.pids, input.toGemTarget)
 
-      override def insertSidereal(input: TargetModel.CreateSidereal): F[TargetModel] =
+      override def insertSidereal(input: CreateSidereal): F[TargetModel] =
         insertTarget(input.pids, input.toGemTarget)
+
+      private def programSharing(
+        input: TargetProgramLinks,
+        f:     (TargetModel, Set[ProgramModel.Id]) => State[Tables, Unit]
+      ): F[TargetModel] =
+        tablesRef.modifyState {
+          for {
+            t  <- inspectTargetId(input.id)
+            ps <- input.programs.traverse(inspectProgramId).map(_.sequence)
+            r  <- (t, ps).traverseN { (tm, _) => f(tm, input.programs.toSet).as(tm) }
+          } yield r
+        }.flatMap(_.liftTo[F])
+
+      override def shareWithPrograms(input: TargetProgramLinks): F[TargetModel] =
+        programSharing(input, Tables.shareTargetWithPrograms)
+
+      override def unshareWithPrograms(input: TargetProgramLinks): F[TargetModel] =
+        programSharing(input, Tables.unshareTargetWithPrograms)
 
     }
 

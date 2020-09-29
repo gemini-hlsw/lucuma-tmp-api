@@ -84,6 +84,8 @@ object ObservationSchema {
             asterism[F](c).flatMap {
               _.fold(F.pure(List.empty[TargetModel])) {
                 _.targets
+                 .iterator
+                 .toList
                  .traverse(c.ctx.target.select(_, c.arg(ArgumentIncludeDeleted)))
                  .map(_.flatMap(_.toList))
               }
