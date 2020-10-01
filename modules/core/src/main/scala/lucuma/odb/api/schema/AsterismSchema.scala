@@ -60,12 +60,22 @@ object AsterismSchema {
           resolve     = c =>
             c.value
              .targets
+             .iterator
+             .toList
              .traverse(c.ctx.target.select(_, c.arg(ArgumentIncludeDeleted)))
              .map(_.flatMap(_.toList))
              .toIO
              .unsafeToFuture()
         )
       )
+    )
+
+  def DefaultAsterismType[F[_]: Effect]: ObjectType[OdbRepo[F], AsterismModel.Default] =
+    ObjectType[OdbRepo[F], AsterismModel.Default](
+      name        = "DefaultAsterism",
+      description = "Default asterism",
+      interfaces  = List(PossibleInterface.apply[OdbRepo[F], AsterismModel.Default](AsterismType[F])),
+      fields      = Nil
     )
 
 

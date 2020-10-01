@@ -40,7 +40,7 @@ object ProgramRepo {
       override def selectAllForTarget(tid: TargetModel.Id, includeDeleted: Boolean = false): F[List[ProgramModel]] =
         tablesRef.get.flatMap { tables =>
           tables.programTargets.selectLeft(tid).toList.traverse { pid =>
-            tables.programs.get(pid).fold(missingProgram(pid))(M.pure)
+            tables.programs.get(pid).fold(missingReference[ProgramModel.Id, ProgramModel](pid))(M.pure)
           }
         }.map(deletionFilter(includeDeleted))
 

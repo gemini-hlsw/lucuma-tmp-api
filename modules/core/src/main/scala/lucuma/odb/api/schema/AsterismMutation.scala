@@ -13,7 +13,7 @@ import sangria.schema._
 
 trait AsterismMutation extends TargetScalars {
 
-  import AsterismSchema.{AsterismIdType, AsterismIdArgument, AsterismType}
+  import AsterismSchema.{AsterismIdType, AsterismIdArgument, AsterismType, DefaultAsterismType}
   import GeneralSchema.EnumTypeExistence
   import ProgramSchema.ProgramIdType
   import TargetSchema.TargetIdType
@@ -25,7 +25,14 @@ trait AsterismMutation extends TargetScalars {
   val InputObjectTypeAsterismCreateDefault: InputObjectType[AsterismModel.CreateDefault] =
     deriveInputObjectType[AsterismModel.CreateDefault](
       InputObjectTypeName("CreateDefaultAsterismInput"),
-      InputObjectTypeDescription("Default asterism parameters")
+      InputObjectTypeDescription("Default asterism parameters"),
+      ReplaceInputField("targets",
+        InputField(
+          name        = "targets",
+          fieldType   = ListInputType(TargetIdType),
+          description = "Targets to include in default asterism"
+        )
+      )
     )
 
   val ArgumentAsterismCreateDefault: Argument[AsterismModel.CreateDefault] =
@@ -37,7 +44,14 @@ trait AsterismMutation extends TargetScalars {
   val InputObjectTypeAsterismEditDefault: InputObjectType[AsterismModel.EditDefault] =
     deriveInputObjectType[AsterismModel.EditDefault](
       InputObjectTypeName("EditDefaultAsterismInput"),
-      InputObjectTypeDescription("Default asterism edit")
+      InputObjectTypeDescription("Default asterism edit"),
+        ReplaceInputField("targets",
+          InputField(
+            name        = "targets",
+            fieldType   = OptionInputType(ListInputType(TargetIdType)),
+            description = "Targets to include in the default asterism"
+          )
+        )
     )
 
   val ArgumentAsterismEditDefault: Argument[AsterismModel.EditDefault] =
@@ -46,20 +60,34 @@ trait AsterismMutation extends TargetScalars {
       "Edit default asterism"
     )
 
+  val InputObjectAsterismProgramLinks: InputObjectType[AsterismModel.AsterismProgramLinks] =
+    deriveInputObjectType[AsterismModel.AsterismProgramLinks](
+      InputObjectTypeName("AsterismProgramLinks"),
+      InputObjectTypeDescription("Asterism and the programs with which they are associated")
+    )
+
+  val ArgumentAsterismProgramLinks: Argument[AsterismModel.AsterismProgramLinks] =
+    InputObjectAsterismProgramLinks.argument(
+      "input",
+      "Asterism/program links"
+    )
+
   def createDefault[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
       name      = "createDefaultAsterism",
-      fieldType = OptionType(AsterismType[F]),
+      fieldType = OptionType(DefaultAsterismType[F]),
       arguments = List(ArgumentAsterismCreateDefault),
-      resolve   = c => c.asterism(_.insert(c.arg(ArgumentAsterismCreateDefault)))
+      resolve   = c => c.asterism[AsterismModel.Default](_.insert(c.arg(ArgumentAsterismCreateDefault)))
     )
 
   def updateDefault[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
       name      = "updateDefaultAsterism",
-      fieldType = OptionType(AsterismType[F]),
+      fieldType = OptionType(DefaultAsterismType[F]),
       arguments = List(ArgumentAsterismEditDefault),
-      resolve   = c => c.asterism(_.edit(c.arg(ArgumentAsterismEditDefault)))
+      resolve   = c => c.asterism[Option[AsterismModel.Default]] {
+        _.editSub(c.arg(ArgumentAsterismEditDefault)){ case d: AsterismModel.Default => d }
+      }
     )
 
   def delete[F[_]: Effect]: Field[OdbRepo[F], Unit] =
@@ -78,12 +106,30 @@ trait AsterismMutation extends TargetScalars {
       resolve   = c => c.asterism(_.undelete(c.asterismId))
     )
 
+  def shareAsterismWithPrograms[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+    Field(
+      name      = "shareAsterismWithPrograms",
+      fieldType = OptionType(AsterismType[F]),
+      arguments = List(ArgumentAsterismProgramLinks),
+      resolve   = c => c.asterism(_.shareWithPrograms(c.arg(ArgumentAsterismProgramLinks)))
+    )
+
+  def unshareAsterismWithPrograms[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+    Field(
+      name      = "unshareAsterismWithPrograms",
+      fieldType = OptionType(AsterismType[F]),
+      arguments = List(ArgumentAsterismProgramLinks),
+      resolve   = c => c.asterism(_.unshareWithPrograms(c.arg(ArgumentAsterismProgramLinks)))
+    )
+
   def allFields[F[_]: Effect]: List[Field[OdbRepo[F], Unit]] =
     List(
       createDefault,
       updateDefault,
       delete,
-      undelete
+      undelete,
+      shareAsterismWithPrograms,
+      unshareAsterismWithPrograms
     )
 }
 

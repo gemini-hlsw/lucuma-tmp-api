@@ -141,7 +141,7 @@ object TargetModel extends TargetOptics {
   }
 
   final case class EditNonsidereal(
-    id:        TargetModel.Id,
+    id:        Id,
     existence: Option[Existence],
     name:      Option[String],
     key:       Option[EphemerisKey],
@@ -157,7 +157,7 @@ object TargetModel extends TargetOptics {
   }
 
   final case class EditSidereal(
-    id:             TargetModel.Id,
+    id:             Id,
     existence:      Option[Existence],
     name:           Option[String],
     ra:             Option[RightAscensionModel.Input],
@@ -193,6 +193,18 @@ object TargetModel extends TargetOptics {
 
     implicit val DecoderEditSidereal: Decoder[EditSidereal] =
       deriveDecoder[EditSidereal]
+
+  }
+
+  final case class TargetProgramLinks(
+    id:        Id,
+    programs:  List[ProgramModel.Id]
+  )
+
+  object TargetProgramLinks {
+
+    implicit val DecoderTargetProgramLinks: Decoder[TargetProgramLinks] =
+      deriveDecoder[TargetProgramLinks]
 
   }
 

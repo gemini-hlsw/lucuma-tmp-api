@@ -8,5 +8,6 @@ package object syntax {
   object all extends ToLensEditorOps
                 with ToOptionalEditorOps
                 with ToTopLevelOps
+                with ToValidatedInputOps
 
 }

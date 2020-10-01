@@ -3,8 +3,8 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.syntax.all._
 import lucuma.odb.api.model.{Editor, Event, Existence, InputError, TopLevelModel}
+import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.core.util.Gid
 import cats.{FunctorFilter, Monad, MonadError}
 import cats.data.{EitherNec, State}
@@ -14,11 +14,13 @@ import cats.syntax.applicative._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.functorFilter._
+import cats.syntax.option._
 import cats.kernel.BoundedEnumerable
 import monocle.Lens
 import monocle.function.At
 import monocle.state.all._
 
+import Function.unlift
 import scala.Function.const
 import scala.collection.immutable.SortedMap
 
@@ -35,6 +37,8 @@ trait TopLevelRepo[F[_], I, T] {
   def selectAllWhere(f: Tables => T => Boolean, includeDeleted: Boolean = false): F[List[T]]
 
   def edit(editor: Editor[I, T]): F[Option[T]]
+
+  def editSub[U <: T](editor: Editor[I, U])(f: PartialFunction[T, U]): F[Option[U]]
 
   def delete(id: I): F[Option[T]]
 
@@ -86,34 +90,39 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, ?]](
       mapLens.get(tables).values.toList.filter(f(tables))
     }
 
-  def createAndInsert(f: I => T): State[Tables, T] =
+  def createAndInsert[U <: T](f: I => U): State[Tables, U] =
     for {
       i <- idLens.mod(BoundedEnumerable[I].cycleNext)
       t  = f(i)
       _ <- mapLens.mod(_ + (i -> t))
     } yield t
 
-  def modify(f: Tables => (Tables, EitherNec[InputError, T])): F[T] = {
-    val ft: F[T] = tablesRef.modify(f).flatMap {
+  def modify[U <: T](f: Tables => (Tables, EitherNec[InputError, U])): F[U] = {
+    val fu: F[U] = tablesRef.modify(f).flatMap {
       case Left(err) => M.raiseError(InputError.Exception(err))
-      case Right(t)  => M.pure(t)
+      case Right(u)  => M.pure(u)
     }
 
     for {
-      t <- ft
-      _ <- eventService.publish(created(t))
-    } yield t
+      u <- fu
+      _ <- eventService.publish(created(u))
+    } yield u
   }
 
-  def edit(editor: Editor[I, T]): F[Option[T]] = {
+  override def editSub[U <: T](editor: Editor[I, U])(f: PartialFunction[T, U]): F[Option[U]] = {
 
-    def doUpdate(s: State[T, Unit]): F[Option[(T, T)]] =
+    def doUpdate(s: State[U, Unit]): F[Option[(U, U)]] =
       tablesRef.modify { oldTables =>
-        val lens      = focusOn(editor.id)
-        val oldT      = lens.get(oldTables)
-        val newTables = lens.modify(_.map(t => s.runS(t).value))(oldTables)
-        val newT      = lens.get(newTables)
-        (newTables, (oldT, newT).mapN((o, n) => (o, n)))
+        val lensT = focusOn(editor.id)
+
+        val lens: Lens[Tables, Option[U]] =
+          Lens[Tables, Option[U]](lensT.get(_).flatMap(f.unapply))(ou => lensT.set(ou))
+
+        val oldU      = lens.get(oldTables)
+        val newTables = lens.modify(_.map(u => s.runS(u).value))(oldTables)
+        val newU      = lens.get(newTables)
+
+        (newTables, (oldU, newU).mapN((o, n) => (o, n)))
       }
 
     for {
@@ -125,6 +134,9 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, ?]](
     } yield u.map(_._2)
 
   }
+
+  override def edit(editor: Editor[I, T]): F[Option[T]] =
+    editSub[T](editor)(unlift(_.some))
 
   private def setExistence(id: I, newState: Existence): F[Option[T]] =
     edit(TopLevelModel[I, T].existenceEditor(id, newState))

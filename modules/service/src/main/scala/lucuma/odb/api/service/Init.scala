@@ -7,7 +7,8 @@ import lucuma.odb.api.model._
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.math.Epoch
 import cats.effect.Sync
-import cats.implicits._
+import cats.syntax.flatMap._
+import cats.syntax.functor._
 
 object Init {
 
@@ -19,6 +20,11 @@ object Init {
       p  <- repo.program.insert(
               ProgramModel.Create(
                 Some("Observing Stars in Constellation Orion for No Particular Reason")
+              )
+            )
+      _  <- repo.program.insert(
+              ProgramModel.Create(
+                Some("An Empty Placeholder Program")
               )
             )
       t0 <- repo.target.insertSidereal(
@@ -49,7 +55,7 @@ object Init {
               AsterismModel.CreateDefault(
                 List(p.id),
                 None,
-                List(t0.id, t1.id)
+                Set(t0.id, t1.id)
               )
             )
       _  <- repo.observation.insert(

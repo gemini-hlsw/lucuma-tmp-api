@@ -147,6 +147,18 @@ trait TargetMutation extends TargetScalars {
       "Sidereal target edit"
     )
 
+  val InputObjectTargetProgramLinks: InputObjectType[TargetModel.TargetProgramLinks] =
+    deriveInputObjectType[TargetModel.TargetProgramLinks](
+      InputObjectTypeName("TargetProgramLinks"),
+      InputObjectTypeDescription("Target and the programs with which they are associated")
+    )
+
+  val ArgumentTargetProgramLinks: Argument[TargetModel.TargetProgramLinks] =
+    InputObjectTargetProgramLinks.argument(
+      "input",
+      "Target/program links"
+    )
+
   def createNonsidereal[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
       name      = "createNonsiderealTarget",
@@ -188,13 +200,31 @@ trait TargetMutation extends TargetScalars {
       resolve   = c => c.target(_.undelete(c.targetId))
     )
 
+  def shareTargetWithPrograms[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+    Field(
+      name      = "shareTargetWithPrograms",
+      fieldType = OptionType(TargetType[F]),
+      arguments = List(ArgumentTargetProgramLinks),
+      resolve   = c => c.target(_.shareWithPrograms(c.arg(ArgumentTargetProgramLinks)))
+    )
+
+  def unshareTargetWithPrograms[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+    Field(
+      name      = "unshareTargetWithPrograms",
+      fieldType = OptionType(TargetType[F]),
+      arguments = List(ArgumentTargetProgramLinks),
+      resolve   = c => c.target(_.unshareWithPrograms(c.arg(ArgumentTargetProgramLinks)))
+    )
+
   def allFields[F[_]: Effect]: List[Field[OdbRepo[F], Unit]] =
     List(
       createNonsidereal,
       createSidereal,
       updateSidereal,
       delete,
-      undelete
+      undelete,
+      shareTargetWithPrograms,
+      unshareTargetWithPrograms
     )
 
 }
