@@ -8,8 +8,8 @@ import lucuma.odb.api.model.{DeclinationModel, ParallaxModel, ProperVelocityMode
 import lucuma.odb.api.schema.ProgramSchema.ProgramType
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.`enum`.EphemerisKeyType
-import lucuma.core.math.{Coordinates, Declination, Parallax, ProperMotion, ProperVelocity, RadialVelocity, RightAscension, VelocityAxis}
-import lucuma.core.model.EphemerisKey
+import lucuma.core.math.{Coordinates, Declination, Parallax, ProperVelocity, RadialVelocity, RightAscension, VelocityAxis}
+import lucuma.core.model.{ EphemerisKey, SiderealTracking }
 import cats.effect.Effect
 import sangria.schema._
 
@@ -236,7 +236,7 @@ object TargetSchema extends TargetScalars {
     )
 
 
-  def SiderealType[F[_]: Effect]: ObjectType[OdbRepo[F], ProperMotion] =
+  def SiderealType[F[_]: Effect]: ObjectType[OdbRepo[F], SiderealTracking] =
     ObjectType(
       name     = "Sidereal",
       fieldsFn = () => fields(
@@ -279,15 +279,15 @@ object TargetSchema extends TargetScalars {
     )
 
 
-  def TrackingType[F[_]: Effect]: OutputType[Either[EphemerisKey, ProperMotion]] =
+  def TrackingType[F[_]: Effect]: OutputType[Either[EphemerisKey, SiderealTracking]] =
     UnionType(
       name        = "Tracking",
       description = Some("Either Nonsidereal ephemeris lookup key or Sidereal proper motion."),
       types       = List(NonsiderealType[F], SiderealType[F])
-    ).mapValue[Either[EphemerisKey, ProperMotion]](
+    ).mapValue[Either[EphemerisKey, SiderealTracking]](
       _.fold(
         key => key: Any,
-        pm  => pm: Any
+        st  => st: Any
       )
     )
 
@@ -320,7 +320,7 @@ object TargetSchema extends TargetScalars {
           name        = "name",
           fieldType   = StringType,
           description = Some("Target name."),
-          resolve     = _.value.target.name
+          resolve     = _.value.target.name.value
         ),
 
         Field(
