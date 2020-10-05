@@ -4,8 +4,11 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.AsterismModel
+import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
+import cats.syntax.flatMap._
+import cats.syntax.functor._
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -85,8 +88,12 @@ trait AsterismMutation extends TargetScalars {
       name      = "updateDefaultAsterism",
       fieldType = OptionType(DefaultAsterismType[F]),
       arguments = List(ArgumentAsterismEditDefault),
-      resolve   = c => c.asterism[Option[AsterismModel.Default]] {
-        _.editSub(c.arg(ArgumentAsterismEditDefault)){ case d: AsterismModel.Default => d }
+      resolve   = c => c.asterism[Option[AsterismModel.Default]] { r =>
+        val ed = c.arg(ArgumentAsterismEditDefault)
+        for {
+          s <- ed.editor.liftTo[F]
+          a <- r.editSub(ed.id, s) { case d: AsterismModel.Default => d}
+        } yield a
       }
     )
 

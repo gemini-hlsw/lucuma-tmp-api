@@ -4,9 +4,12 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.ObservationModel
+import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.odb.api.repo.OdbRepo
 
 import cats.effect.Effect
+import cats.syntax.functor._
+import cats.syntax.flatMap._
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -57,7 +60,13 @@ trait ObservationMutation {
       name      = "updateObservation",
       fieldType = OptionType(ObservationType[F]),
       arguments = List(ArgumentObservationEdit),
-      resolve   = c => c.observation(_.edit(c.arg(ArgumentObservationEdit)))
+      resolve   = c => c.observation { r =>
+        val ed = c.arg(ArgumentObservationEdit)
+        for {
+          s <- ed.editor.liftTo[F]
+          o <- r.edit(ed.id, s)
+        } yield o
+      }
     )
 
   def delete[F[_]: Effect]: Field[OdbRepo[F], Unit] =

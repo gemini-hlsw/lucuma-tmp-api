@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{Editor, Event, Existence, InputError, TopLevelModel}
+import lucuma.odb.api.model.{Event, Existence, InputError, TopLevelModel}
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.core.util.Gid
 import cats.{FunctorFilter, Monad, MonadError}
@@ -36,9 +36,9 @@ trait TopLevelRepo[F[_], I, T] {
 
   def selectAllWhere(f: Tables => T => Boolean, includeDeleted: Boolean = false): F[List[T]]
 
-  def edit(editor: Editor[I, T]): F[Option[T]]
+  def edit(id: I, s: State[T, Unit]): F[Option[T]]
 
-  def editSub[U <: T](editor: Editor[I, U])(f: PartialFunction[T, U]): F[Option[U]]
+  def editSub[U <: T](id: I, s: State[U, Unit])(f: PartialFunction[T, U]): F[Option[U]]
 
   def delete(id: I): F[Option[T]]
 
@@ -109,11 +109,11 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, ?]](
     } yield u
   }
 
-  override def editSub[U <: T](editor: Editor[I, U])(f: PartialFunction[T, U]): F[Option[U]] = {
+  override def editSub[U <: T](id: I, s: State[U, Unit])(f: PartialFunction[T, U]): F[Option[U]] = {
 
-    def doUpdate(s: State[U, Unit]): F[Option[(U, U)]] =
+    val doUpdate: F[Option[(U, U)]] =
       tablesRef.modify { oldTables =>
-        val lensT = focusOn(editor.id)
+        val lensT = focusOn(id)
 
         val lens: Lens[Tables, Option[U]] =
           Lens[Tables, Option[U]](lensT.get(_).flatMap(f.unapply))(ou => lensT.set(ou))
@@ -126,20 +126,17 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, ?]](
       }
 
     for {
-      s <- editor.validateOrError
-      u <- doUpdate(s)
-      _ <- u.fold(F.unit) { case (o, n) =>
-             eventService.publish(edited(o, n))
-           }
+      u <- doUpdate
+      _ <- u.fold(F.unit) { case (o, n) => eventService.publish(edited(o, n)) }
     } yield u.map(_._2)
 
   }
 
-  override def edit(editor: Editor[I, T]): F[Option[T]] =
-    editSub[T](editor)(unlift(_.some))
+  override def edit(id: I, s: State[T, Unit]): F[Option[T]] =
+    editSub[T](id, s)(unlift(_.some))
 
   private def setExistence(id: I, newState: Existence): F[Option[T]] =
-    edit(TopLevelModel[I, T].existenceEditor(id, newState))
+    edit(id, TopLevelModel[I, T].existenceEditor(newState))
 
   def delete(id: I): F[Option[T]] =
     setExistence(id, Existence.Deleted)

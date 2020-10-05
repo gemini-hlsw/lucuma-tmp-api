@@ -12,10 +12,13 @@ import lucuma.odb.api.model.{
   RightAscensionModel,
   TargetModel
 }
+import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
 import lucuma.core.math.VelocityAxis
 import cats.effect.Effect
+import cats.syntax.flatMap._
+import cats.syntax.functor._
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -181,7 +184,13 @@ trait TargetMutation extends TargetScalars {
       name      = "updateSiderealTarget",
       fieldType = OptionType(TargetType[F]),
       arguments = List(ArgumentTargetEditSidereal),
-      resolve   = c => c.target(_.edit(c.arg(ArgumentTargetEditSidereal)))
+      resolve   = c => c.target { r =>
+        val ed = c.arg(ArgumentTargetEditSidereal)
+        for {
+          s <- ed.editor.liftTo[F]
+          t <- r.edit(ed.id, s)
+        } yield t
+      }
     )
 
   def delete[F[_]: Effect]: Field[OdbRepo[F], Unit] =

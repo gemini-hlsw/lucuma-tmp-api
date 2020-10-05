@@ -18,14 +18,17 @@ trait TopLevelModel[I, T] {
 
   def existence: Lens[T, Existence]
 
-  def existenceEditor(i: I, s: Existence): Editor[I, T] =
-    new Editor[I, T] {
-      override def id: I =
-        i
+  def existenceEditor(s: Existence): State[T, Unit] =
+    (existence := Some(s)).void
 
-      override def editor: ValidatedInput[State[T, Unit]] =
-        ((existence := Some(s)).void).validNec
-    }
+//  def existenceEditor(i: I, s: Existence): Editor[I, T] =
+//    new Editor[I, T] {
+//      override def id: I =
+//        i
+//
+//      override def editor: ValidatedInput[State[T, Unit]] =
+//        ((existence := Some(s)).void).validNec
+//    }
 }
 
 object TopLevelModel {
