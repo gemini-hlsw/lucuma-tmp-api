@@ -3,12 +3,12 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.AsterismModel
-import lucuma.odb.api.model.syntax.validatedinput._
-import lucuma.odb.api.repo.OdbRepo
+import lucuma.odb.api.model.{AsterismModel, InputError, TargetModel}
+import lucuma.odb.api.repo.{OdbRepo, Tables}
 import cats.effect.Effect
-import cats.syntax.flatMap._
-import cats.syntax.functor._
+import cats.syntax.option._
+import cats.syntax.traverse._
+import lucuma.core.util.Gid
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -86,21 +86,29 @@ trait AsterismMutation extends TargetScalars {
   def updateDefault[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
       name      = "updateDefaultAsterism",
-      fieldType = OptionType(DefaultAsterismType[F]),
+      fieldType = DefaultAsterismType[F],
       arguments = List(ArgumentAsterismEditDefault),
-      resolve   = c => c.asterism[Option[AsterismModel.Default]] { r =>
-        val ed = c.arg(ArgumentAsterismEditDefault)
-        for {
-          s <- ed.editor.liftTo[F]
-          a <- r.editSub(ed.id, s) { case d: AsterismModel.Default => d}
-        } yield a
+      resolve   = c => c.asterism[AsterismModel.Default] { r =>
+        val ed     = c.arg(ArgumentAsterismEditDefault)
+
+        // Lookup all of the targets, producing a list of input errors for those
+        // that are not found.
+        val checks = (tables: Tables) => {
+          ed.targets.toList.flatMap(_.toList).traverse { id =>
+            tables.targets.get(id).toValidNec(
+              InputError.missingReference("target", Gid[TargetModel.Id].show(id))
+            )
+          }.swap.toList.flatMap(_.toNonEmptyList.toList)
+        }
+
+        r.editSub(ed.id, ed.editor, checks) { case d: AsterismModel.Default => d }
       }
     )
 
   def delete[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
       name      = "deleteAsterism",
-      fieldType = OptionType(AsterismType[F]),
+      fieldType = AsterismType[F],
       arguments = List(AsterismIdArgument),
       resolve   = c => c.asterism(_.delete(c.asterismId))
     )
@@ -108,7 +116,7 @@ trait AsterismMutation extends TargetScalars {
   def undelete[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
       name      = "undeleteAsterism",
-      fieldType = OptionType(AsterismType[F]),
+      fieldType = AsterismType[F],
       arguments = List(AsterismIdArgument),
       resolve   = c => c.asterism(_.undelete(c.asterismId))
     )
