@@ -179,7 +179,7 @@ trait TargetMutation extends TargetScalars {
   def updateSidereal[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
       name      = "updateSiderealTarget",
-      fieldType = OptionType(TargetType[F]),
+      fieldType = TargetType[F],
       arguments = List(ArgumentTargetEditSidereal),
       resolve   = c => c.target(_.edit(c.arg(ArgumentTargetEditSidereal)))
     )
@@ -187,7 +187,7 @@ trait TargetMutation extends TargetScalars {
   def delete[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
       name      = "deleteTarget",
-      fieldType = OptionType(TargetType[F]),
+      fieldType = TargetType[F],
       arguments = List(TargetIdArgument),
       resolve   = c => c.target(_.delete(c.targetId))
     )
@@ -195,7 +195,7 @@ trait TargetMutation extends TargetScalars {
   def undelete[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
       name      = "undeleteTarget",
-      fieldType = OptionType(TargetType[F]),
+      fieldType = TargetType[F],
       arguments = List(TargetIdArgument),
       resolve   = c => c.target(_.undelete(c.targetId))
     )

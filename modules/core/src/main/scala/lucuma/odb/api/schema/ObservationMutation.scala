@@ -55,7 +55,7 @@ trait ObservationMutation {
   def update[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
       name      = "updateObservation",
-      fieldType = OptionType(ObservationType[F]),
+      fieldType = ObservationType[F],
       arguments = List(ArgumentObservationEdit),
       resolve   = c => c.observation(_.edit(c.arg(ArgumentObservationEdit)))
     )
@@ -63,7 +63,7 @@ trait ObservationMutation {
   def delete[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
       name      = "deleteObservation",
-      fieldType = OptionType(ObservationType[F]),
+      fieldType = ObservationType[F],
       arguments = List(ObservationIdArgument),
       resolve   = c => c.observation(_.delete(c.observationId))
     )
@@ -71,7 +71,7 @@ trait ObservationMutation {
   def undelete[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
       name      = "undeleteObservation",
-      fieldType = OptionType(ObservationType[F]),
+      fieldType = ObservationType[F],
       arguments = List(ObservationIdArgument),
       resolve   = c => c.observation(_.undelete(c.observationId))
     )
