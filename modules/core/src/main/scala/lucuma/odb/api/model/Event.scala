@@ -22,22 +22,9 @@ object Event {
     def value: T
   }
 
-//  object Created {
-//
-//    def apply[T](value: T)(id: Long): Created[T] =
-//      Created(id, value)
-//
-//  }
-
   trait Edited[T] extends Event {
     def oldValue: T
     def newValue: T
   }
 
-//  object Edited {
-//
-//    def apply[T](oldValue: T, newValue: T)(id: Long): Edited[T] =
-//      Edited(id, oldValue, newValue)
-//
-//  }
 }

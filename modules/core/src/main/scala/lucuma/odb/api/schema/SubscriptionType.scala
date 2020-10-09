@@ -6,6 +6,8 @@ package lucuma.odb.api.schema
 import lucuma.odb.api.model.Event
 import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
+import cats.Eq
+import cats.syntax.eq._
 import cats.effect.{ConcurrentEffect, Effect}
 import _root_.fs2.Stream
 import lucuma.odb.api.model.AsterismModel.{AsterismCreatedEvent, AsterismEditedEvent}
@@ -20,6 +22,11 @@ import sangria.streaming.fs2._
 import scala.reflect.ClassTag
 
 object SubscriptionType {
+
+  import AsterismSchema.AsterismIdArgument
+  import ObservationSchema.ObservationIdArgument
+  import ProgramSchema.ProgramIdArgument
+  import TargetSchema.TargetIdArgument
 
   implicit def asterismType[F[_]: Effect]: InterfaceType[OdbRepo[F], AsterismModel] =
     AsterismSchema.AsterismType[F]
@@ -83,50 +90,69 @@ object SubscriptionType {
       )
     )
 
-
-  def subscriptionField[F[_]: ConcurrentEffect, T <: Event](
+  def subscriptionField[F[_]: ConcurrentEffect, E <: Event](
     fieldName: String,
-    tpe:       ObjectType[OdbRepo[F], T]
+    tpe:       ObjectType[OdbRepo[F], E],
+    arguments: List[Argument[_]]
+  )(
+    predicate: (Context[OdbRepo[F], Unit], E) => Boolean
   ): Field[OdbRepo[F], Unit] = {
 
     implicit val subStream: SubscriptionStream[Stream[F, *]] =
       fs2SubscriptionStream[F](ConcurrentEffect[F], scala.concurrent.ExecutionContext.global)
 
-    Field.subs(fieldName, tpe,
-      resolve = (c: Context[OdbRepo[F], Unit]) => {
+    Field.subs(
+      name      = fieldName,
+      fieldType = tpe,
+      arguments = arguments,
+      resolve   = (c: Context[OdbRepo[F], Unit]) => {
         c.ctx
           .eventService
           .subscribe
-          .filter(event => tpe.valClass.isAssignableFrom(event.getClass))
-          .map(event => Action[OdbRepo[F], T](event.asInstanceOf[T]))
+          .collect {
+            case event if tpe.valClass.isAssignableFrom(event.getClass) =>
+              event.asInstanceOf[E]
+          }
+          .filter(e => predicate(c, e))
+          .map(event => Action[OdbRepo[F], E](event))
       }
     )
   }
 
-  def createdField[F[_]: ConcurrentEffect, T: OutputType, E <: Event.Created[T]: ClassTag](name: String): Field[OdbRepo[F], Unit] =
+  def createdField[F[_]: ConcurrentEffect, T: OutputType, E <: Event.Created[T]: ClassTag](
+    name: String
+  ): Field[OdbRepo[F], Unit] =
     subscriptionField[F, E](
       s"${name}Created",
-      CreatedEventType[F, T, E](s"${name.capitalize}Created")
-    )
+      CreatedEventType[F, T, E](s"${name.capitalize}Created"),
+      Nil
+    )((_, _) => true)
 
-  def editedField[F[_]: ConcurrentEffect, T: OutputType, E <: Event.Edited[T]: ClassTag](name: String): Field[OdbRepo[F], Unit] =
+  def editedField[F[_]: ConcurrentEffect, I: Eq, T: OutputType, E <: Event.Edited[T]: ClassTag](
+    name: String,
+    arg:  Argument[I]
+  )(
+    id: E => I  // extracts the top-level id from the event
+  ): Field[OdbRepo[F], Unit] =
     subscriptionField[F, E](
       s"${name}Edited",
-      EditedEventType[F, T, E](s"${name.capitalize}Edited")
-    )
+      EditedEventType[F, T, E](s"${name.capitalize}Edited"),
+      List(arg)
+    )((c, e) => c.arg(arg) === id(e))
 
   def apply[F[_]: ConcurrentEffect]: ObjectType[OdbRepo[F], Unit] =
     ObjectType(
       name   = "Subscription",
       fields = fields(
         createdField[F, AsterismModel, AsterismCreatedEvent]("asterism"),
-        editedField[F, AsterismModel, AsterismEditedEvent]("asterism"),
         createdField[F, ObservationModel, ObservationCreatedEvent]("observation"),
-        editedField[F, ObservationModel, ObservationEditedEvent]("observation"),
         createdField[F, ProgramModel, ProgramCreatedEvent]("program"),
-        editedField[F, ProgramModel, ProgramEditedEvent]("program"),
         createdField[F, TargetModel, TargetCreatedEvent]("target"),
-        editedField[F, TargetModel, TargetEditedEvent]("target")
+
+        editedField[F, AsterismModel.Id, AsterismModel, AsterismEditedEvent]("asterism", AsterismIdArgument)(_.newValue.id),
+        editedField[F, ObservationModel.Id, ObservationModel, ObservationEditedEvent]("observation", ObservationIdArgument)(_.newValue.id),
+        editedField[F, ProgramModel.Id, ProgramModel, ProgramEditedEvent]("program", ProgramIdArgument)(_.newValue.id),
+        editedField[F, TargetModel.Id, TargetModel, TargetEditedEvent]("target", TargetIdArgument)(_.newValue.id)
       )
     )
 }
