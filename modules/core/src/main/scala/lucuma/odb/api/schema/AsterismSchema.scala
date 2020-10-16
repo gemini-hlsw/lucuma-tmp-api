@@ -15,6 +15,7 @@ object AsterismSchema {
 
   import TargetSchema.{CoordinateType, TargetType}
   import GeneralSchema.{EnumTypeExistence, ArgumentIncludeDeleted}
+  import context._
 
   implicit val AsterismIdType: ScalarType[AsterismModel.Id] =
     ObjectIdSchema.idType[AsterismModel.Id](name = "AsterismId")
@@ -62,7 +63,7 @@ object AsterismSchema {
              .targets
              .iterator
              .toList
-             .traverse(c.ctx.target.select(_, c.arg(ArgumentIncludeDeleted)))
+             .traverse(c.ctx.target.select(_, c.includeDeleted))
              .map(_.flatMap(_.toList))
              .toIO
              .unsafeToFuture()

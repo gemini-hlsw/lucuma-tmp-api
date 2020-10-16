@@ -5,7 +5,6 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.schema.syntax.all._
 import lucuma.odb.api.model.{DeclinationModel, ParallaxModel, ProperVelocityModel, RadialVelocityModel, RightAscensionModel, TargetModel}
-import lucuma.odb.api.schema.ProgramSchema.ProgramType
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.`enum`.EphemerisKeyType
 import lucuma.core.math.{Coordinates, Declination, Parallax, ProperVelocity, RadialVelocity, RightAscension, VelocityAxis}
@@ -15,7 +14,9 @@ import sangria.schema._
 
 object TargetSchema extends TargetScalars {
 
-  import GeneralSchema.EnumTypeExistence
+  import GeneralSchema.{EnumTypeExistence, ArgumentIncludeDeleted}
+  import ObservationSchema.ObservationType
+  import ProgramSchema.ProgramType
   import context._
 
   implicit val TargetIdType: ScalarType[TargetModel.Id] =
@@ -312,8 +313,17 @@ object TargetSchema extends TargetScalars {
         Field(
           name        = "programs",
           fieldType   = ListType(ProgramType[F]),
+          arguments   = List(ArgumentIncludeDeleted),
           description = Some("The program associated with the target."),
-          resolve     = c => c.program(_.selectAllForTarget(c.value.id))
+          resolve     = c => c.program(_.selectAllForTarget(c.value.id, c.includeDeleted))
+        ),
+
+        Field(
+          name        = "observations",
+          fieldType   = ListType(ObservationType[F]),
+          arguments   = List(ArgumentIncludeDeleted),
+          description = Some("The observations associated with the target."),
+          resolve     = c => c.observation(_.selectAllForTarget(c.value.id, c.includeDeleted))
         ),
 
         Field(
