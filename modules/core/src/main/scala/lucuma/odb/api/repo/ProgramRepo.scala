@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{ProgramModel, TargetModel}
+import lucuma.odb.api.model.{AsterismModel, ProgramModel, TargetModel}
 import lucuma.odb.api.model.ProgramModel.{ProgramCreatedEvent, ProgramEditedEvent}
 import lucuma.odb.api.model.Existence._
 import cats.Monad
@@ -13,6 +13,8 @@ import cats.effect.concurrent.Ref
 
 
 trait ProgramRepo[F[_]] extends TopLevelRepo[F, ProgramModel.Id, ProgramModel] {
+
+  def selectAllForAsterism(aid: AsterismModel.Id, includeDeleted: Boolean = false): F[List[ProgramModel]]
 
   def selectAllForTarget(tid: TargetModel.Id, includeDeleted: Boolean = false): F[List[ProgramModel]]
 
@@ -37,12 +39,22 @@ object ProgramRepo {
     ) with ProgramRepo[F]
       with LookupSupport[F] {
 
-      override def selectAllForTarget(tid: TargetModel.Id, includeDeleted: Boolean = false): F[List[ProgramModel]] =
+      private def selectAllFor[I](
+        id:             I,
+        f:              Tables => ManyToMany[ProgramModel.Id, I],
+        includeDeleted: Boolean
+      ): F[List[ProgramModel]] =
         tablesRef.get.flatMap { tables =>
-          tables.programTargets.selectLeft(tid).toList.traverse { pid =>
+          f(tables).selectLeft(id).toList.traverse { pid =>
             tables.programs.get(pid).fold(missingReference[ProgramModel.Id, ProgramModel](pid))(M.pure)
           }
         }.map(deletionFilter(includeDeleted))
+
+      override def selectAllForAsterism(aid: AsterismModel.Id, includeDeleted: Boolean = false): F[List[ProgramModel]] =
+        selectAllFor(aid, _.programAsterisms, includeDeleted)
+
+      override def selectAllForTarget(tid: TargetModel.Id, includeDeleted: Boolean = false): F[List[ProgramModel]] =
+        selectAllFor(tid, _.programTargets, includeDeleted)
 
       override def insert(input: ProgramModel.Create): F[ProgramModel] =
         tablesRef.modifyState(createAndInsert(pid => ProgramModel(pid, Present, input.name)))
