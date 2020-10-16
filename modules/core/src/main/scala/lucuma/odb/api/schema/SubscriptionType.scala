@@ -88,9 +88,10 @@ object SubscriptionType {
     )
 
   def subscriptionField[F[_]: ConcurrentEffect, E <: Event](
-    fieldName: String,
-    tpe:       ObjectType[OdbRepo[F], E],
-    arguments: List[Argument[_]]
+    fieldName:   String,
+    description: String,
+    tpe:         ObjectType[OdbRepo[F], E],
+    arguments:   List[Argument[_]]
   )(
     predicate: (Context[OdbRepo[F], Unit], E) => F[Boolean]
   ): Field[OdbRepo[F], Unit] = {
@@ -99,10 +100,11 @@ object SubscriptionType {
       fs2SubscriptionStream[F](ConcurrentEffect[F], scala.concurrent.ExecutionContext.global)
 
     Field.subs(
-      name      = fieldName,
-      fieldType = tpe,
-      arguments = arguments,
-      resolve   = (c: Context[OdbRepo[F], Unit]) => {
+      name        = fieldName,
+      description = Some(description),
+      fieldType   = tpe,
+      arguments   = arguments,
+      resolve     = (c: Context[OdbRepo[F], Unit]) => {
         c.ctx
           .eventService
           .subscribe
@@ -131,6 +133,7 @@ object SubscriptionType {
   ): Field[OdbRepo[F], Unit] =
     subscriptionField[F, E](
       s"${name}Created",
+      s"Subscribes to an event that is generated whenever a(n) $name associated with the provided program id is created",
       CreatedEventType[F, T, E](s"${name.capitalize}Created"),
       List(ProgramIdArgument)
     )(pidMatcher(pids))
@@ -142,6 +145,7 @@ object SubscriptionType {
   ): Field[OdbRepo[F], Unit] =
     subscriptionField[F, E](
       s"${name}Edited",
+      s"Subscribes to an event that is generated whenever a(n) $name associated with the provided program id is edited",
       EditedEventType[F, T, E](s"${name.capitalize}Edited"),
       List(ProgramIdArgument)
     )(pidMatcher(pids))
@@ -170,6 +174,7 @@ object SubscriptionType {
         // know the program id ahead of time.
         subscriptionField[F, ProgramCreatedEvent](
           "programCreated",
+          "Subscribes to an event that is generated whenever a program is created",
           CreatedEventType[F, ProgramModel, ProgramCreatedEvent]("ProgramCreated"),
           Nil
         )((_,_) => true.pure[F]),
