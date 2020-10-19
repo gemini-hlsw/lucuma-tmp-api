@@ -27,8 +27,15 @@ object TargetSchema extends TargetScalars {
 
   val TargetIdArgument: Argument[TargetModel.Id] =
     Argument(
-      name         = "id",
+      name         = "tid",
       argumentType = TargetIdType,
+      description  = "Target ID"
+    )
+
+  val OptionalTargetIdArgument: Argument[Option[TargetModel.Id]] =
+    Argument(
+      name         = "tid",
+      argumentType = OptionInputType(TargetIdType),
       description  = "Target ID"
     )
 
@@ -300,7 +307,7 @@ object TargetSchema extends TargetScalars {
       name     = "Target",
       fieldsFn = () => fields(
         Field(
-          name        = "id",
+          name        = "tid",
           fieldType   = TargetIdType,
           description = Some("Target id."),
           resolve     = _.value.id

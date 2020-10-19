@@ -22,14 +22,14 @@ object ProgramSchema {
 
   val ProgramIdArgument: Argument[ProgramModel.Id] =
     Argument(
-      name         = "id",
+      name         = "pid",
       argumentType = ProgramIdType,
       description  = "Program ID"
     )
 
   val OptionalProgramIdArgument: Argument[Option[ProgramModel.Id]] =
     Argument(
-      name         = "id",
+      name         = "pid",
       argumentType = OptionInputType(ProgramIdType),
       description  = "Program ID"
     )
@@ -40,7 +40,7 @@ object ProgramSchema {
       fieldsFn = () => fields(
 
         Field(
-          name        = "id",
+          name        = "pid",
           fieldType   = ProgramIdType,
           description = Some("Program ID"),
           resolve     = _.value.id

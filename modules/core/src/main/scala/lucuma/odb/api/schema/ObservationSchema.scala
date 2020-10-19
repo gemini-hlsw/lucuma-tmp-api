@@ -24,8 +24,15 @@ object ObservationSchema {
 
   val ObservationIdArgument: Argument[ObservationModel.Id] =
     Argument(
-      name         = "id",
+      name         = "oid",
       argumentType = ObservationIdType,
+      description  = "Observation ID"
+    )
+
+  val OptionalObservationIdArgument: Argument[Option[ObservationModel.Id]] =
+    Argument(
+      name         = "oid",
+      argumentType = OptionInputType(ObservationIdType),
       description  = "Observation ID"
     )
 
@@ -35,7 +42,7 @@ object ObservationSchema {
       fieldsFn = () => fields(
 
         Field(
-          name        = "id",
+          name        = "oid",
           fieldType   = ObservationIdType,
           description = Some("Observation ID"),
           resolve     = _.value.id

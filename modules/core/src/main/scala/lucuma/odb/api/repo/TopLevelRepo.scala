@@ -168,7 +168,7 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, ?]](
     val doUpdate: F[(U, U)] =
       tablesRef.modify { oldTables =>
 
-        val item   = lens.get(oldTables).toValidNec(InputError.missingReference("id", Gid[I].show(id)))
+        val item   = lens.get(oldTables).toValidNec(InputError.missingReference(s"${Gid[I].tag.value}id", Gid[I].show(id)))
         val errors = NonEmptyChain.fromSeq(checks(oldTables))
         val result = (item, editor, errors.toInvalid(())).mapN { (oldU, state, _) =>
           (oldU, state.runS(oldU).value)

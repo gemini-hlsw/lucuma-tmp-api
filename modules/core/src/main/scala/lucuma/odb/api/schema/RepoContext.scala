@@ -16,17 +16,26 @@ final class RepoContextOps[F[_]: Effect, A](val self: Context[OdbRepo[F], A]) {
   def asterismId: AsterismModel.Id =
     self.arg(AsterismSchema.AsterismIdArgument)
 
+  def optionalAsterismId: Option[AsterismModel.Id] =
+    self.arg(AsterismSchema.OptionalAsterismIdArgument)
+
   def observationId: ObservationModel.Id =
     self.arg(ObservationSchema.ObservationIdArgument)
 
-  def optionalProgramId: Option[ProgramModel.Id] =
-    self.arg(ProgramSchema.OptionalProgramIdArgument)
+  def optionalObservationId: Option[ObservationModel.Id] =
+    self.arg(ObservationSchema.OptionalObservationIdArgument)
 
   def programId: ProgramModel.Id =
     self.arg(ProgramSchema.ProgramIdArgument)
 
+  def optionalProgramId: Option[ProgramModel.Id] =
+    self.arg(ProgramSchema.OptionalProgramIdArgument)
+
   def targetId: TargetModel.Id =
     self.arg(TargetSchema.TargetIdArgument)
+
+  def optionalTargetId: Option[TargetModel.Id] =
+    self.arg(TargetSchema.OptionalTargetIdArgument)
 
   def includeDeleted: Boolean =
     self.arg(GeneralSchema.ArgumentIncludeDeleted)

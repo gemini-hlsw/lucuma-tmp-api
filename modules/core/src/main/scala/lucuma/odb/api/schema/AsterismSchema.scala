@@ -23,8 +23,15 @@ object AsterismSchema {
 
   val AsterismIdArgument: Argument[AsterismModel.Id] =
     Argument(
-      name         = "id",
+      name         = "aid",
       argumentType = AsterismIdType,
+      description  = "Asterism ID"
+    )
+
+  val OptionalAsterismIdArgument: Argument[Option[AsterismModel.Id]] =
+    Argument(
+      name         = "aid",
+      argumentType = OptionInputType(AsterismIdType),
       description  = "Asterism ID"
     )
 
@@ -34,7 +41,7 @@ object AsterismSchema {
       description = "Common fields shared by all asterisms",
       fields[OdbRepo[F], AsterismModel](
         Field(
-          name        = "id",
+          name        = "aid",
           fieldType   = AsterismIdType,
           description = Some("Asterism ID"),
           resolve     = _.value.id

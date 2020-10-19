@@ -6,7 +6,10 @@ package lucuma.odb.api.schema
 import lucuma.odb.api.model.Event
 import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
+import cats.Eq
 import cats.syntax.applicative._
+import cats.syntax.apply._
+import cats.syntax.eq._
 import cats.syntax.functor._
 import cats.effect.{ConcurrentEffect, Effect}
 import _root_.fs2.Stream
@@ -23,7 +26,11 @@ import scala.reflect.ClassTag
 
 object SubscriptionType {
 
-  import ProgramSchema.ProgramIdArgument
+  import AsterismSchema.OptionalAsterismIdArgument
+  import ObservationSchema.OptionalObservationIdArgument
+  import ProgramSchema.OptionalProgramIdArgument
+  import TargetSchema.OptionalTargetIdArgument
+  import context._
 
   implicit def asterismType[F[_]: Effect]: InterfaceType[OdbRepo[F], AsterismModel] =
     AsterismSchema.AsterismType[F]
@@ -123,8 +130,10 @@ object SubscriptionType {
   // subscription field.
   private def pidMatcher[F[_]: ConcurrentEffect, E](
     pidsExtractor: (Context[OdbRepo[F], Unit], E) => F[Set[ProgramModel.Id]]
-  ): (Context[OdbRepo[F], Unit], E) => F[Boolean] =
-    (c, e) => pidsExtractor(c, e).map(_.contains(c.arg(ProgramIdArgument)))
+  ): (Context[OdbRepo[F], Unit], E) => F[Boolean] = (c, e) =>
+    c.optionalProgramId.fold(true.pure[F]) { pid =>
+      pidsExtractor(c, e).map(_.contains(pid))
+    }
 
   private def createdField[F[_]: ConcurrentEffect, T: OutputType, E <: Event.Created[T]: ClassTag](
     name: String
@@ -135,11 +144,13 @@ object SubscriptionType {
       s"${name}Created",
       s"Subscribes to an event that is generated whenever a(n) $name associated with the provided program id is created",
       CreatedEventType[F, T, E](s"${name.capitalize}Created"),
-      List(ProgramIdArgument)
+      List(OptionalProgramIdArgument)
     )(pidMatcher(pids))
 
-  private def editedField[F[_]: ConcurrentEffect, T: OutputType, E <: Event.Edited[T]: ClassTag](
-    name: String
+  private def editedField[F[_]: ConcurrentEffect, I: Eq, T: OutputType, E <: Event.Edited[T]: ClassTag](
+    name:  String,
+    idArg: Argument[Option[I]],
+    id:    E => I
   )(
     pids: (Context[OdbRepo[F], Unit], E) => F[Set[ProgramModel.Id]]
   ): Field[OdbRepo[F], Unit] =
@@ -147,8 +158,11 @@ object SubscriptionType {
       s"${name}Edited",
       s"Subscribes to an event that is generated whenever a(n) $name associated with the provided program id is edited",
       EditedEventType[F, T, E](s"${name.capitalize}Edited"),
-      List(ProgramIdArgument)
-    )(pidMatcher(pids))
+      List(idArg, OptionalProgramIdArgument)
+    ) { (c, e) =>
+      (c.arg(idArg).forall(_ === id(e)).pure[F], pidMatcher(pids).apply(c, e)).mapN(_ && _)
+    }
+//    )((c, e) => pidMatcher(pids).apply(c, e).map(_ && c.arg(idArg).forall(_ === id(e))))
 
   def apply[F[_]: ConcurrentEffect]: ObjectType[OdbRepo[F], Unit] = {
     def programsForAsterism(c: Context[OdbRepo[F], Unit], aid: AsterismModel.Id): F[Set[ProgramModel.Id]] =
@@ -183,21 +197,36 @@ object SubscriptionType {
           programsForTarget(c, e.value.id)
         },
 
-        editedField[F, AsterismModel, AsterismEditedEvent]("asterism") { (c, e) =>
-          programsForAsterism(c, e.newValue.id)
+        editedField[F, AsterismModel.Id, AsterismModel, AsterismEditedEvent](
+          "asterism",
+          OptionalAsterismIdArgument,
+          _.newValue.id
+        ) { (c, e) => programsForAsterism(c, e.newValue.id) },
+
+        editedField[F, ObservationModel.Id, ObservationModel, ObservationEditedEvent](
+          "observation",
+          OptionalObservationIdArgument,
+          _.newValue.id
+        ) { (_, e) => Set(e.newValue.pid).pure[F] },
+
+        // ProgramEditedEvent handled differently.  It would not make sense to
+        // filter on program id twice.
+        subscriptionField[F, ProgramEditedEvent](
+          "programEdited",
+          "",
+          EditedEventType[F, ProgramModel, ProgramEditedEvent]("program"),
+          List(OptionalProgramIdArgument)
+        ) { (c, e) =>
+          c.optionalProgramId.fold(true) { pid =>
+            Set(e.newValue.id).contains(pid)
+          }.pure[F]
         },
 
-        editedField[F, ObservationModel, ObservationEditedEvent]("observation") { (_, e) =>
-          Set(e.newValue.pid).pure[F]
-        },
-
-        editedField[F, ProgramModel, ProgramEditedEvent]("program") { (_, e) =>
-          Set(e.newValue.id).pure[F]
-        },
-
-        editedField[F, TargetModel, TargetEditedEvent]("target") { (c, e) =>
-          programsForTarget(c, e.newValue.id)
-        }
+        editedField[F, TargetModel.Id, TargetModel, TargetEditedEvent](
+          "target",
+          OptionalTargetIdArgument,
+          _.newValue.id
+        ) { (c, e) => programsForTarget(c, e.newValue.id) }
       )
     )
   }
