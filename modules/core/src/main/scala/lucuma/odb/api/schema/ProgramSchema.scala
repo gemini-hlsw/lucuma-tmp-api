@@ -27,6 +27,13 @@ object ProgramSchema {
       description  = "Program ID"
     )
 
+  val OptionalProgramIdArgument: Argument[Option[ProgramModel.Id]] =
+    Argument(
+      name         = "id",
+      argumentType = OptionInputType(ProgramIdType),
+      description  = "Program ID"
+    )
+
   def ProgramType[F[_]: Effect]: ObjectType[OdbRepo[F], ProgramModel] =
     ObjectType(
       name     = "Program",

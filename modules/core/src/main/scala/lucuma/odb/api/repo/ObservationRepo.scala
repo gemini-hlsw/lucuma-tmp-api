@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{ObservationModel, ProgramModel}
+import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, TargetModel}
 import lucuma.odb.api.model.ObservationModel.{ObservationCreatedEvent, ObservationEditedEvent}
 import cats.{Monad, MonadError}
 import cats.effect.concurrent.Ref
@@ -11,7 +11,11 @@ import cats.implicits._
 
 sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, ObservationModel.Id, ObservationModel] {
 
+  def selectAllForAsterism(aid: AsterismModel.Id, includeDeleted: Boolean = false): F[List[ObservationModel]]
+
   def selectAllForProgram(pid: ProgramModel.Id, includeDeleted: Boolean = false): F[List[ObservationModel]]
+
+  def selectAllForTarget(tid: TargetModel.Id, includeDeleted: Boolean = false): F[List[ObservationModel]]
 
   def insert(input: ObservationModel.Create): F[ObservationModel]
 
@@ -34,10 +38,28 @@ object ObservationRepo {
     ) with ObservationRepo[F]
       with LookupSupport[F] {
 
-      override def selectAllForProgram(pid: ProgramModel.Id, includeDeleted: Boolean = false): F[List[ObservationModel]] =
+      override def selectAllForAsterism(aid: AsterismModel.Id, includeDeleted: Boolean): F[List[ObservationModel]] =
+        tablesRef
+          .get
+          .map(_.observations.values.filter(_.asterism.contains(aid)).toList)
+          .map(deletionFilter(includeDeleted))
+
+      override def selectAllForProgram(pid: ProgramModel.Id, includeDeleted: Boolean): F[List[ObservationModel]] =
         tablesRef
           .get
           .map(_.observations.values.filter(_.pid === pid).toList)
+          .map(deletionFilter(includeDeleted))
+
+      override def selectAllForTarget(tid: TargetModel.Id, includeDeleted: Boolean): F[List[ObservationModel]] =
+        tablesRef
+          .get
+          .map { tables =>
+            tables.observations.values.filter { obs =>
+              obs.asterism.exists { aid =>
+                tables.asterisms.get(aid).exists(_.targets(tid))
+              }
+            }.toList
+          }
           .map(deletionFilter(includeDeleted))
 
       override def insert(newObs: ObservationModel.Create): F[ObservationModel] =

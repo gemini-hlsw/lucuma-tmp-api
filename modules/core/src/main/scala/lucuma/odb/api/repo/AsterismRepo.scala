@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{AsterismModel, ProgramModel}
+import lucuma.odb.api.model.{AsterismModel, ProgramModel, TargetModel}
 import lucuma.odb.api.model.AsterismModel.{AsterismCreatedEvent, AsterismEditedEvent, AsterismProgramLinks, Create}
 import lucuma.odb.api.model.syntax.validatedinput._
 import cats._
@@ -19,6 +19,8 @@ import cats.syntax.traverse._
 sealed trait AsterismRepo[F[_]] extends TopLevelRepo[F, AsterismModel.Id, AsterismModel] {
 
   def selectAllForProgram(pid: ProgramModel.Id, includeDeleted: Boolean = false): F[List[AsterismModel]]
+
+  def selectAllForTarget(tid: TargetModel.Id, includeDeleted: Boolean = false): F[List[AsterismModel]]
 
   def insert[T <: AsterismModel](input: AsterismModel.Create[T]): F[T]
 
@@ -45,12 +47,17 @@ object AsterismRepo {
     ) with AsterismRepo[F]
       with LookupSupport[F] {
 
-      override def selectAllForProgram(pid: ProgramModel.Id, includeDeleted: Boolean = false): F[List[AsterismModel]] =
+      override def selectAllForProgram(pid: ProgramModel.Id, includeDeleted: Boolean): F[List[AsterismModel]] =
         tablesRef.get.map { t =>
           val ids = t.observations.values.filter(_.pid === pid).flatMap(_.asterism.toList).toSet
           ids.foldLeft(List.empty[AsterismModel]) { (l, i) =>
             t.asterisms.get(i).fold(l)(_ :: l)
           }
+        }.map(deletionFilter(includeDeleted))
+
+      override def selectAllForTarget(tid: TargetModel.Id, includeDeleted: Boolean): F[List[AsterismModel]] =
+        tablesRef.get.map { t =>
+          t.asterisms.values.filter(_.targets(tid)).toList
         }.map(deletionFilter(includeDeleted))
 
       private def addAsterism[T <: AsterismModel](

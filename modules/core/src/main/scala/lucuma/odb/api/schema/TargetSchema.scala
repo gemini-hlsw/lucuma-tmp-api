@@ -5,17 +5,21 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.schema.syntax.all._
 import lucuma.odb.api.model.{DeclinationModel, ParallaxModel, ProperVelocityModel, RadialVelocityModel, RightAscensionModel, TargetModel}
-import lucuma.odb.api.schema.ProgramSchema.ProgramType
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.`enum`.EphemerisKeyType
 import lucuma.core.math.{Coordinates, Declination, Parallax, ProperVelocity, RadialVelocity, RightAscension, VelocityAxis}
 import lucuma.core.model.{ EphemerisKey, SiderealTracking }
 import cats.effect.Effect
+import cats.syntax.eq._
+import cats.syntax.functor._
 import sangria.schema._
 
 object TargetSchema extends TargetScalars {
 
-  import GeneralSchema.EnumTypeExistence
+  import AsterismSchema.AsterismType
+  import GeneralSchema.{EnumTypeExistence, ArgumentIncludeDeleted}
+  import ObservationSchema.ObservationType
+  import ProgramSchema.{OptionalProgramIdArgument, ProgramType}
   import context._
 
   implicit val TargetIdType: ScalarType[TargetModel.Id] =
@@ -310,10 +314,41 @@ object TargetSchema extends TargetScalars {
         ),
 
         Field(
+          name        = "asterisms",
+          fieldType   = ListType(AsterismType[F]),
+          arguments   = List(OptionalProgramIdArgument, ArgumentIncludeDeleted),
+          description = Some("The asterisms associated with the target."),
+          resolve     = c =>
+            c.asterism { repo =>
+              c.optionalProgramId.fold(
+                repo.selectAllForTarget(c.value.id, c.includeDeleted)
+              ) { pid =>
+                repo.selectAllForProgram(pid, c.includeDeleted).map(_.filter(_.targets(c.value.id)))
+              }
+            }
+        ),
+
+        Field(
+          name        = "observations",
+          fieldType   = ListType(ObservationType[F]),
+          arguments   = List(OptionalProgramIdArgument, ArgumentIncludeDeleted),
+          description = Some("The observations associated with the target."),
+          resolve     = c => c.observation(
+            _.selectAllForTarget(c.value.id, c.includeDeleted)
+             .map { obsList =>
+               c.optionalProgramId.fold(obsList) { pid =>
+                 obsList.filter(_.pid === pid)
+               }
+             }
+          )
+        ),
+
+        Field(
           name        = "programs",
           fieldType   = ListType(ProgramType[F]),
-          description = Some("The program associated with the target."),
-          resolve     = c => c.program(_.selectAllForTarget(c.value.id))
+          arguments   = List(ArgumentIncludeDeleted),
+          description = Some("The programs associated with the target."),
+          resolve     = c => c.program(_.selectAllForTarget(c.value.id, c.includeDeleted))
         ),
 
         Field(

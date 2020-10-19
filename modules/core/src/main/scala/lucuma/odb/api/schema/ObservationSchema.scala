@@ -86,7 +86,7 @@ object ObservationSchema {
                 _.targets
                  .iterator
                  .toList
-                 .traverse(c.ctx.target.select(_, c.arg(ArgumentIncludeDeleted)))
+                 .traverse(c.ctx.target.select(_, c.includeDeleted))
                  .map(_.flatMap(_.toList))
               }
             }
@@ -103,7 +103,7 @@ object ObservationSchema {
     c.value.asterism.fold(F.pure(Option.empty[AsterismModel])) { aid =>
       c.ctx
        .asterism
-       .select(aid, c.arg(ArgumentIncludeDeleted))
+       .select(aid, c.includeDeleted)
     }
 
 }
