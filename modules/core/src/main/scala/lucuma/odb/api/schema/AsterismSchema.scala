@@ -44,7 +44,7 @@ object AsterismSchema {
           name        = "aid",
           fieldType   = AsterismIdType,
           description = Some("Asterism ID"),
-          resolve     = _.value.id
+          resolve     = _.value.aid
         ),
 
         Field(
@@ -67,7 +67,7 @@ object AsterismSchema {
           arguments   = List(OptionalProgramIdArgument, ArgumentIncludeDeleted),
           description = Some("All observations associated with the asterism."),
           resolve     = c => c.observation(
-            _.selectAllForAsterism(c.value.id, c.includeDeleted)
+            _.selectAllForAsterism(c.value.aid, c.includeDeleted)
              .map { obsList =>
                c.optionalProgramId.fold(obsList) { pid => obsList.filter(_.pid === pid) }
              }
@@ -95,7 +95,7 @@ object AsterismSchema {
           fieldType   = ListType(ProgramType[F]),
           arguments   = List(ArgumentIncludeDeleted),
           description = Some("The programs associated with the asterism."),
-          resolve     = c => c.program(_.selectAllForAsterism(c.value.id, c.includeDeleted))
+          resolve     = c => c.program(_.selectAllForAsterism(c.value.aid, c.includeDeleted))
         )
       )
     )

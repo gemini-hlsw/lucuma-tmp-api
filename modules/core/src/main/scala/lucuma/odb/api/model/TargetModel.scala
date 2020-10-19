@@ -24,7 +24,7 @@ import scala.collection.immutable.SortedMap
  * A Target combining an ID with a `gem.Target`.
  */
 final case class TargetModel(
-  id:         TargetModel.Id,
+  tid:        TargetModel.Id,
   existence:  Existence,
   target:     Target
 )
@@ -42,7 +42,7 @@ object TargetModel extends TargetOptics {
   }
 
   implicit val TopLevelTarget: TopLevelModel[Id, TargetModel] =
-    TopLevelModel.instance(_.id, existence)
+    TopLevelModel.instance(_.tid, existence)
 
 
   object parse {
@@ -156,11 +156,14 @@ object TargetModel extends TargetOptics {
   }
 
   final case class EditNonsidereal(
-    id:        Id,
+    tid:       Id,
     existence: Option[Existence],
     name:      Option[String],
     key:       Option[EphemerisKey],
   ) extends Editor[Id, TargetModel] {
+
+    override def id: Id =
+      tid
 
     override val editor: ValidatedInput[State[TargetModel, Unit]] =
       (for {
@@ -172,7 +175,7 @@ object TargetModel extends TargetOptics {
   }
 
   final case class EditSidereal(
-    id:             Id,
+    tid:            Id,
     existence:      Option[Existence],
     name:           Option[String],
     ra:             Option[RightAscensionModel.Input],
@@ -182,6 +185,9 @@ object TargetModel extends TargetOptics {
     radialVelocity: Option[Option[RadialVelocityModel.Input]],
     parallax:       Option[Option[ParallaxModel.Input]]
   ) extends Editor[Id, TargetModel] {
+
+    override def id: Id =
+      tid
 
     override val editor: ValidatedInput[State[TargetModel, Unit]] =
       (ra.traverse(_.toRightAscension),
@@ -212,7 +218,7 @@ object TargetModel extends TargetOptics {
   }
 
   final case class TargetProgramLinks(
-    id:        Id,
+    tid:       Id,
     programs:  List[ProgramModel.Id]
   )
 
@@ -248,8 +254,8 @@ object TargetModel extends TargetOptics {
 
 trait TargetOptics { self: TargetModel.type =>
 
-  val id: Lens[TargetModel, TargetModel.Id] =
-    Lens[TargetModel, TargetModel.Id](_.id)(a => b => b.copy(id = a))
+  val tid: Lens[TargetModel, TargetModel.Id] =
+    Lens[TargetModel, TargetModel.Id](_.tid)(a => b => b.copy(tid = a))
 
   val existence: Lens[TargetModel, Existence] =
     Lens[TargetModel, Existence](_.existence)(a => b => b.copy(existence = a))

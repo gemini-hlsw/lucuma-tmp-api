@@ -18,7 +18,7 @@ import monocle.{Lens, Optional, Prism}
 
 sealed trait AsterismModel {
 
-  def id:           AsterismModel.Id
+  def aid:          AsterismModel.Id
   def existence:    Existence
 
   def explicitBase: Option[Coordinates]
@@ -59,10 +59,10 @@ object AsterismModel extends AsterismOptics {
   }
 
   implicit val TopLevelAsterism: TopLevelModel[Id, AsterismModel] =
-    TopLevelModel.instance(_.id, AsterismModel.existence)
+    TopLevelModel.instance(_.aid, AsterismModel.existence)
 
   final case class Default(
-    id:           AsterismModel.Id,
+    aid:          AsterismModel.Id,
     existence:    Existence,
     explicitBase: Option[Coordinates],
     targets:      Set[TargetModel.Id]
@@ -76,7 +76,7 @@ object AsterismModel extends AsterismOptics {
   object Default extends DefaultOptics {
 
     implicit val EqDefault: Eq[Default] =
-      Eq.by(d => (d.id, d.existence, d.explicitBase, d.targets))
+      Eq.by(d => (d.aid, d.existence, d.explicitBase, d.targets))
 
   }
 
@@ -85,11 +85,11 @@ object AsterismModel extends AsterismOptics {
     val select: Prism[AsterismModel, Default] =
       Prism.partial[AsterismModel, Default]{case d: Default => d}(identity)
 
-    val id: Lens[Default, AsterismModel.Id] =
-      Lens[Default, AsterismModel.Id](_.id)(a => b => b.copy(id = a))
+    val aid: Lens[Default, AsterismModel.Id] =
+      Lens[Default, AsterismModel.Id](_.aid)(a => b => b.copy(aid = a))
 
     val asterismId: Optional[AsterismModel, AsterismModel.Id] =
-      select ^|-> id
+      select ^|-> aid
 
     val existence: Lens[Default, Existence] =
       Lens[Default, Existence](_.existence)(a => b => b.copy(existence = a))
@@ -137,7 +137,7 @@ object AsterismModel extends AsterismOptics {
 
   // not meant to be realistic yet
   final case class Ghost(
-    id:           AsterismModel.Id,
+    aid:          AsterismModel.Id,
     existence:    Existence,
     explicitBase: Option[Coordinates],
     ifu1:         TargetModel.Id,
@@ -155,16 +155,19 @@ object AsterismModel extends AsterismOptics {
   object Ghost {
 
     implicit val EqGhost: Eq[Ghost] =
-      Eq.by(g => (g.id, g.existence, g.explicitBase, g.ifu1, g.ifu2))
+      Eq.by(g => (g.aid, g.existence, g.explicitBase, g.ifu1, g.ifu2))
 
   }
 
   final case class EditDefault(
-    id:           AsterismModel.Id,
+    aid:          Id,
     existence:    Option[Existence],
     explicitBase: Option[Option[CoordinatesModel.Input]],
     targets:      Option[Set[TargetModel.Id]]
   ) extends Editor[Id, AsterismModel.Default] {
+
+    override def id: Id =
+      aid
 
     override def editor: ValidatedInput[State[AsterismModel.Default, Unit]] =
       Nested(explicitBase).traverse(_.toCoordinates).map { b =>
@@ -184,7 +187,7 @@ object AsterismModel extends AsterismOptics {
   }
 
   final case class AsterismProgramLinks(
-    id:       Id,
+    aid:      Id,
     programs: List[ProgramModel.Id]
   )
 

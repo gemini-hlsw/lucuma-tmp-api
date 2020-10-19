@@ -91,7 +91,7 @@ object TargetRepo {
       ): F[TargetModel] =
         tablesRef.modifyState {
           for {
-            t  <- inspectTargetId(input.id)
+            t  <- inspectTargetId(input.tid)
             ps <- input.programs.traverse(inspectProgramId).map(_.sequence)
             r  <- (t, ps).traverseN { (tm, _) => f(tm, input.programs.toSet).as(tm) }
           } yield r

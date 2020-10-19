@@ -310,7 +310,7 @@ object TargetSchema extends TargetScalars {
           name        = "tid",
           fieldType   = TargetIdType,
           description = Some("Target id."),
-          resolve     = _.value.id
+          resolve     = _.value.tid
         ),
 
         Field(
@@ -328,9 +328,9 @@ object TargetSchema extends TargetScalars {
           resolve     = c =>
             c.asterism { repo =>
               c.optionalProgramId.fold(
-                repo.selectAllForTarget(c.value.id, c.includeDeleted)
+                repo.selectAllForTarget(c.value.tid, c.includeDeleted)
               ) { pid =>
-                repo.selectAllForProgram(pid, c.includeDeleted).map(_.filter(_.targets(c.value.id)))
+                repo.selectAllForProgram(pid, c.includeDeleted).map(_.filter(_.targets(c.value.tid)))
               }
             }
         ),
@@ -341,7 +341,7 @@ object TargetSchema extends TargetScalars {
           arguments   = List(OptionalProgramIdArgument, ArgumentIncludeDeleted),
           description = Some("The observations associated with the target."),
           resolve     = c => c.observation(
-            _.selectAllForTarget(c.value.id, c.includeDeleted)
+            _.selectAllForTarget(c.value.tid, c.includeDeleted)
              .map { obsList =>
                c.optionalProgramId.fold(obsList) { pid =>
                  obsList.filter(_.pid === pid)
@@ -355,7 +355,7 @@ object TargetSchema extends TargetScalars {
           fieldType   = ListType(ProgramType[F]),
           arguments   = List(ArgumentIncludeDeleted),
           description = Some("The programs associated with the target."),
-          resolve     = c => c.program(_.selectAllForTarget(c.value.id, c.includeDeleted))
+          resolve     = c => c.program(_.selectAllForTarget(c.value.tid, c.includeDeleted))
         ),
 
         Field(

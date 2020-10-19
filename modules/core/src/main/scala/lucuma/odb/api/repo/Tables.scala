@@ -118,19 +118,19 @@ sealed trait TableState { self: Tables.type =>
     lastTargetId.mod(BoundedEnumerable[TargetModel.Id].cycleNext)
 
   def shareAsterismWithPrograms(a: AsterismModel, pids: Set[ProgramModel.Id]): State[Tables, Unit] =
-    programAsterisms.mod_(_ ++ pids.toList.tupleRight(a.id))
+    programAsterisms.mod_(_ ++ pids.toList.tupleRight(a.aid))
 
   def unshareAsterismWithPrograms(a: AsterismModel, pids: Set[ProgramModel.Id]): State[Tables, Unit] =
-    programAsterisms.mod_(_ -- pids.toList.tupleRight(a.id))
+    programAsterisms.mod_(_ -- pids.toList.tupleRight(a.aid))
 
   def unshareAsterismAll(aid: AsterismModel.Id): State[Tables, Unit] =
     programAsterisms.mod_(_.removeRight(aid))
 
   def shareTargetWithPrograms(t: TargetModel, pids: Set[ProgramModel.Id]): State[Tables, Unit] =
-    programTargets.mod_(_ ++ pids.toList.tupleRight(t.id))
+    programTargets.mod_(_ ++ pids.toList.tupleRight(t.tid))
 
   def unshareTargetWithPrograms(t: TargetModel, pids: Set[ProgramModel.Id]): State[Tables, Unit] =
-    programTargets.mod_(_ -- pids.toList.tupleRight(t.id))
+    programTargets.mod_(_ -- pids.toList.tupleRight(t.tid))
 
   def unshareTargetAll(tid: TargetModel.Id): State[Tables, Unit] =
     programTargets.mod_(_.removeRight(tid))

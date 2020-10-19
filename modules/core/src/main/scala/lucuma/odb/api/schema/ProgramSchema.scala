@@ -43,7 +43,7 @@ object ProgramSchema {
           name        = "pid",
           fieldType   = ProgramIdType,
           description = Some("Program ID"),
-          resolve     = _.value.id
+          resolve     = _.value.pid
         ),
 
         Field(
@@ -72,7 +72,7 @@ object ProgramSchema {
           fieldType   = ListType(AsterismType[F]),
           description = Some("All asterisms associated with the program (needs pagination)."),
           arguments   = List(ArgumentIncludeDeleted),
-          resolve     = c => c.asterism(_.selectAllForProgram(c.value.id, c.includeDeleted))
+          resolve     = c => c.asterism(_.selectAllForProgram(c.value.pid, c.includeDeleted))
         ),
 
         Field(
@@ -80,7 +80,7 @@ object ProgramSchema {
           fieldType   = ListType(ObservationType[F]),
           description = Some("All observations associated with the program (needs pagination)."),
           arguments   = List(ArgumentIncludeDeleted),
-          resolve     = c => c.observation(_.selectAllForProgram(c.value.id, c.includeDeleted))
+          resolve     = c => c.observation(_.selectAllForProgram(c.value.pid, c.includeDeleted))
         ),
 
         Field(
@@ -88,7 +88,7 @@ object ProgramSchema {
           fieldType   = ListType(TargetType[F]),
           description = Some("All targets associated with the program (needs pagination)."),
           arguments   = List(ArgumentIncludeDeleted),
-          resolve     = c => c.target(_.selectAllForProgram(c.value.id, c.includeDeleted))
+          resolve     = c => c.target(_.selectAllForProgram(c.value.pid, c.includeDeleted))
         )
 
       )

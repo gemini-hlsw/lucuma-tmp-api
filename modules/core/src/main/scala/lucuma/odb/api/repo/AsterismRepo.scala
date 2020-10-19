@@ -88,7 +88,7 @@ object AsterismRepo {
       ): F[AsterismModel] =
         tablesRef.modifyState {
           for {
-            a  <- inspectAsterismId(input.id)
+            a  <- inspectAsterismId(input.aid)
             ps <- input.programs.traverse(inspectProgramId).map(_.sequence)
             r  <- (a, ps).traverseN { (am, _) => f(am, input.programs.toSet).as(am) }
           } yield r

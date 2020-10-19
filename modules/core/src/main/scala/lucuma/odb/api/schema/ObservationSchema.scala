@@ -45,7 +45,7 @@ object ObservationSchema {
           name        = "oid",
           fieldType   = ObservationIdType,
           description = Some("Observation ID"),
-          resolve     = _.value.id
+          resolve     = _.value.oid
         ),
 
         Field(

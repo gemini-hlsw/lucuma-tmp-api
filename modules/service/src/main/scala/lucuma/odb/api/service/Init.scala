@@ -29,7 +29,7 @@ object Init {
             )
       t0 <- repo.target.insertSidereal(
               TargetModel.CreateSidereal(
-                List(p.id),
+                List(p.pid),
                 "Betelgeuse",
                 RightAscensionModel.Input.unsafeFromHms("05:55:10.305"),
                 DeclinationModel.Input.unsafeFromDms("07:24:25.43"),
@@ -41,7 +41,7 @@ object Init {
             )
       t1 <- repo.target.insertSidereal(
               TargetModel.CreateSidereal(
-                List(p.id),
+                List(p.pid),
                 "Rigel",
                 RightAscensionModel.Input.unsafeFromHms("05:14:32.272"),
                 DeclinationModel.Input.unsafeFromDms("-08:12:05.90"),
@@ -53,16 +53,16 @@ object Init {
             )
       a0 <- repo.asterism.insert(
               AsterismModel.CreateDefault(
-                List(p.id),
+                List(p.pid),
                 None,
-                Set(t0.id, t1.id)
+                Set(t0.tid, t1.tid)
               )
             )
       _  <- repo.observation.insert(
               ObservationModel.Create(
-                p.id,
+                p.pid,
                 Some("First Observation"),
-                Some(a0.id)
+                Some(a0.aid)
               )
             )
     } yield ()

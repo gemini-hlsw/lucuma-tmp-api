@@ -17,7 +17,7 @@ import monocle.Lens
 
 
 final case class ObservationModel(
-  id:        ObservationModel.Id,
+  oid:       ObservationModel.Id,
   existence: Existence,
   pid:       ProgramModel.Id,
   name:      Option[String],
@@ -37,7 +37,7 @@ object ObservationModel extends ObservationOptics {
   }
 
   implicit val TopLevelObservation: TopLevelModel[Id, ObservationModel] =
-    TopLevelModel.instance(_.id, ObservationModel.existence)
+    TopLevelModel.instance(_.oid, ObservationModel.existence)
 
   final case class Create(
     pid:      ProgramModel.Id,
@@ -58,11 +58,14 @@ object ObservationModel extends ObservationOptics {
   }
 
   final case class Edit(
-    id:        ObservationModel.Id,
+    oid:       ObservationModel.Id,
     existence: Option[Existence],
     name:      Option[Option[String]],
     asterism:  Option[Option[AsterismModel.Id]]
   ) extends Editor[Id, ObservationModel] {
+
+    override def id: Id =
+      oid
 
     override def editor: ValidatedInput[State[ObservationModel, Unit]] =
       (for {
@@ -106,8 +109,8 @@ object ObservationModel extends ObservationOptics {
 
 trait ObservationOptics { self: ObservationModel.type =>
 
-  val id: Lens[ObservationModel, ObservationModel.Id] =
-    Lens[ObservationModel, ObservationModel.Id](_.id)(a => b => b.copy(id = a))
+  val oid: Lens[ObservationModel, ObservationModel.Id] =
+    Lens[ObservationModel, ObservationModel.Id](_.oid)(a => b => b.copy(oid = a))
 
   val existence: Lens[ObservationModel, Existence] =
     Lens[ObservationModel, Existence](_.existence)(a => b => b.copy(existence = a))
