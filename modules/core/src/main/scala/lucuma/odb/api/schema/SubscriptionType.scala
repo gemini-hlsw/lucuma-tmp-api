@@ -156,13 +156,19 @@ object SubscriptionType {
   ): Field[OdbRepo[F], Unit] =
     subscriptionField[F, E](
       s"${name}Edited",
-      s"Subscribes to an event that is generated whenever a(n) $name associated with the provided ids (if any) is edited",
+      s"""
+         |Subscribes to an event that is generated whenever a(n) $name is
+         |edited.  If a(n) $name id is provided, the even is only generated
+         |for edits to that particular $name.  If a program id is provided
+         |then the event must correspond to a(n) $name referenced by that
+         |program.
+         |""".stripMargin,
       EditedEventType[F, T, E](s"${name.capitalize}Edited"),
       List(idArg, OptionalProgramIdArgument)
     ) { (c, e) =>
-      (c.arg(idArg).forall(_ === id(e)).pure[F], pidMatcher(pids).apply(c, e)).mapN(_ && _)
+      (c.arg(idArg).forall(_ === id(e)).pure[F], pidMatcher(pids).apply(c, e))
+        .mapN(_ && _)
     }
-//    )((c, e) => pidMatcher(pids).apply(c, e).map(_ && c.arg(idArg).forall(_ === id(e))))
 
   def apply[F[_]: ConcurrentEffect]: ObjectType[OdbRepo[F], Unit] = {
     def programsForAsterism(c: Context[OdbRepo[F], Unit], aid: AsterismModel.Id): F[Set[ProgramModel.Id]] =
@@ -213,7 +219,10 @@ object SubscriptionType {
         // filter on program id twice.
         subscriptionField[F, ProgramEditedEvent](
           "programEdited",
-          "",
+          """
+            |Subscribes to an event that is generated whenever a program |is edited.
+            |A particular program id may be provided to limit events to that program.
+            |""".stripMargin,
           EditedEventType[F, ProgramModel, ProgramEditedEvent]("program"),
           List(OptionalProgramIdArgument)
         ) { (c, e) =>
