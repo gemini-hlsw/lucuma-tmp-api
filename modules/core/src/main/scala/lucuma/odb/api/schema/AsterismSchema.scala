@@ -5,7 +5,6 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.AsterismModel
 import lucuma.odb.api.repo.OdbRepo
-
 import cats.effect.Effect
 import cats.implicits._
 import cats.effect.implicits._
@@ -13,8 +12,10 @@ import sangria.schema._
 
 object AsterismSchema {
 
-  import TargetSchema.{CoordinateType, TargetType}
   import GeneralSchema.{EnumTypeExistence, ArgumentIncludeDeleted}
+  import ObservationSchema.ObservationType
+  import ProgramSchema.{OptionalProgramIdArgument, ProgramType}
+  import TargetSchema.{CoordinateType, TargetType}
   import context._
 
   implicit val AsterismIdType: ScalarType[AsterismModel.Id] =
@@ -54,6 +55,19 @@ object AsterismSchema {
         ),
 
         Field(
+          name        = "observations",
+          fieldType   = ListType(ObservationType[F]),
+          arguments   = List(OptionalProgramIdArgument, ArgumentIncludeDeleted),
+          description = Some("All observations associated with the asterism."),
+          resolve     = c => c.observation(
+            _.selectAllForAsterism(c.value.id, c.includeDeleted)
+             .map { obsList =>
+               c.optionalProgramId.fold(obsList) { pid => obsList.filter(_.pid === pid) }
+             }
+          )
+        ),
+
+        Field(
           name        = "targets",
           fieldType   = ListType(TargetType[F]),
           arguments   = List(ArgumentIncludeDeleted),
@@ -67,6 +81,14 @@ object AsterismSchema {
              .map(_.flatMap(_.toList))
              .toIO
              .unsafeToFuture()
+        ),
+
+        Field(
+          name        = "programs",
+          fieldType   = ListType(ProgramType[F]),
+          arguments   = List(ArgumentIncludeDeleted),
+          description = Some("The programs associated with the asterism."),
+          resolve     = c => c.program(_.selectAllForAsterism(c.value.id, c.includeDeleted))
         )
       )
     )

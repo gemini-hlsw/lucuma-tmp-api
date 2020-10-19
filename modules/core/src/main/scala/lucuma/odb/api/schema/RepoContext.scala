@@ -19,6 +19,9 @@ final class RepoContextOps[F[_]: Effect, A](val self: Context[OdbRepo[F], A]) {
   def observationId: ObservationModel.Id =
     self.arg(ObservationSchema.ObservationIdArgument)
 
+  def optionalProgramId: Option[ProgramModel.Id] =
+    self.arg(ProgramSchema.OptionalProgramIdArgument)
+
   def programId: ProgramModel.Id =
     self.arg(ProgramSchema.ProgramIdArgument)
 
