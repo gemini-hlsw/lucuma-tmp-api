@@ -7,7 +7,7 @@ import lucuma.odb.api.schema.OdbSchema
 import lucuma.odb.api.repo.OdbRepo
 import cats.implicits._
 import cats.effect.{Async, ConcurrentEffect, ContextShift, IO}
-import _root_.fs2.Stream
+import fs2.Stream
 import io.circe._
 import org.log4s.getLogger
 import sangria.execution._
