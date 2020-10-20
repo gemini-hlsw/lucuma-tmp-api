@@ -157,14 +157,14 @@ ra {
   hms
   hours
   degrees
-  microarcsecs
+  microarcseconds
 }
 ⤹
 "ra": {
   "hms": "05:55:10.305000",
   "hours": 5.919529166666667,
   "degrees": 88.7929375,
-  "microarcsecs": 319654575000
+  "microarcseconds": 319654575000
 }
 ```
 
