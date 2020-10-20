@@ -78,9 +78,9 @@ object TargetModel extends TargetOptics {
    */
   final case class CreateNonsidereal(
     programIds: List[ProgramModel.Id],
-    name      : String,
-    key       :  EphemerisKeyType,
-    des       :  String
+    name:       String,
+    key:        EphemerisKeyType,
+    des:        String
   ) {
 
     val toEphemerisKey: ValidatedInput[EphemerisKey] =
