@@ -24,8 +24,15 @@ object ObservationSchema {
 
   val ObservationIdArgument: Argument[ObservationModel.Id] =
     Argument(
-      name         = "id",
+      name         = "observationId",
       argumentType = ObservationIdType,
+      description  = "Observation ID"
+    )
+
+  val OptionalObservationIdArgument: Argument[Option[ObservationModel.Id]] =
+    Argument(
+      name         = "observationId",
+      argumentType = OptionInputType(ObservationIdType),
       description  = "Observation ID"
     )
 
@@ -60,7 +67,7 @@ object ObservationSchema {
           fieldType   = ProgramType[F],
           description = Some("The program that contains this observation"),
           arguments   = List(ArgumentIncludeDeleted),
-          resolve     = c => c.program(_.unsafeSelect(c.value.pid, c.includeDeleted))
+          resolve     = c => c.program(_.unsafeSelect(c.value.programId, c.includeDeleted))
         ),
 
         Field(
@@ -83,7 +90,7 @@ object ObservationSchema {
           resolve     = c =>
             asterism[F](c).flatMap {
               _.fold(F.pure(List.empty[TargetModel])) {
-                _.targets
+                _.targetIds
                  .iterator
                  .toList
                  .traverse(c.ctx.target.select(_, c.includeDeleted))
@@ -100,7 +107,7 @@ object ObservationSchema {
   private def asterism[F[_]](
     c: Context[OdbRepo[F], ObservationModel]
   )(implicit F: Effect[F]): F[Option[AsterismModel]] =
-    c.value.asterism.fold(F.pure(Option.empty[AsterismModel])) { aid =>
+    c.value.asterismId.fold(F.pure(Option.empty[AsterismModel])) { aid =>
       c.ctx
        .asterism
        .select(aid, c.includeDeleted)

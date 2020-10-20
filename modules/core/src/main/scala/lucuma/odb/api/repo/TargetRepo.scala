@@ -80,10 +80,10 @@ object TargetRepo {
         }
 
       override def insertNonsidereal(input: CreateNonsidereal): F[TargetModel] =
-        insertTarget(input.pids, input.toGemTarget)
+        insertTarget(input.programIds, input.toGemTarget)
 
       override def insertSidereal(input: CreateSidereal): F[TargetModel] =
-        insertTarget(input.pids, input.toGemTarget)
+        insertTarget(input.programIds, input.toGemTarget)
 
       private def programSharing(
         input: TargetProgramLinks,
@@ -91,9 +91,9 @@ object TargetRepo {
       ): F[TargetModel] =
         tablesRef.modifyState {
           for {
-            t  <- inspectTargetId(input.id)
-            ps <- input.programs.traverse(inspectProgramId).map(_.sequence)
-            r  <- (t, ps).traverseN { (tm, _) => f(tm, input.programs.toSet).as(tm) }
+            t  <- inspectTargetId(input.targetId)
+            ps <- input.programIds.traverse(inspectProgramId).map(_.sequence)
+            r  <- (t, ps).traverseN { (tm, _) => f(tm, input.programIds.toSet).as(tm) }
           } yield r
         }.flatMap(_.liftTo[F])
 

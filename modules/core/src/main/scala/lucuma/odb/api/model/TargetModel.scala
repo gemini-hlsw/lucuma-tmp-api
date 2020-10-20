@@ -70,17 +70,17 @@ object TargetModel extends TargetOptics {
   /**
    * Describes input used to create a nonsidereal target.
    *
-   * @param pids associated program(s), if any (which either exist or results
-   *             in an error)
+   * @param programIds associated program(s), if any (which either exist or
+   *                   results in an error)
    * @param name target name
    * @param key ephemeris key type
    * @param des semi-permanent horizons identifier (relative to key type)
    */
   final case class CreateNonsidereal(
-    pids: List[ProgramModel.Id],
-    name: String,
-    key:  EphemerisKeyType,
-    des:  String
+    programIds: List[ProgramModel.Id],
+    name:       String,
+    key:        EphemerisKeyType,
+    des:        String
   ) {
 
     val toEphemerisKey: ValidatedInput[EphemerisKey] =
@@ -103,7 +103,7 @@ object TargetModel extends TargetOptics {
   /**
    * Describes input used to create a sidereal target.
    *
-   * @param pids associated program(s), if any (which either exist or results
+   * @param programIds associated program(s), if any (which either exist or results
    *             in an error)
    * @param name target name
    * @param ra right ascension coordinate at epoch
@@ -114,7 +114,7 @@ object TargetModel extends TargetOptics {
    * @param parallax parallax
    */
   final case class CreateSidereal(
-    pids:           List[ProgramModel.Id],
+    programIds:     List[ProgramModel.Id],
     name:           String,
     ra:             RightAscensionModel.Input,
     dec:            DeclinationModel.Input,
@@ -156,11 +156,14 @@ object TargetModel extends TargetOptics {
   }
 
   final case class EditNonsidereal(
-    id:        Id,
+    targetId:  Id,
     existence: Option[Existence],
     name:      Option[String],
     key:       Option[EphemerisKey],
   ) extends Editor[Id, TargetModel] {
+
+    override def id: Id =
+      targetId
 
     override val editor: ValidatedInput[State[TargetModel, Unit]] =
       (for {
@@ -172,7 +175,7 @@ object TargetModel extends TargetOptics {
   }
 
   final case class EditSidereal(
-    id:             Id,
+    targetId:       Id,
     existence:      Option[Existence],
     name:           Option[String],
     ra:             Option[RightAscensionModel.Input],
@@ -182,6 +185,9 @@ object TargetModel extends TargetOptics {
     radialVelocity: Option[Option[RadialVelocityModel.Input]],
     parallax:       Option[Option[ParallaxModel.Input]]
   ) extends Editor[Id, TargetModel] {
+
+    override def id: Id =
+      targetId
 
     override val editor: ValidatedInput[State[TargetModel, Unit]] =
       (ra.traverse(_.toRightAscension),
@@ -212,8 +218,8 @@ object TargetModel extends TargetOptics {
   }
 
   final case class TargetProgramLinks(
-    id:        Id,
-    programs:  List[ProgramModel.Id]
+    targetId:   Id,
+    programIds: List[ProgramModel.Id]
   )
 
   object TargetProgramLinks {

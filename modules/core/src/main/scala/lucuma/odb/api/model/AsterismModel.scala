@@ -23,7 +23,7 @@ sealed trait AsterismModel {
 
   def explicitBase: Option[Coordinates]
   def tpe:          AsterismModel.Type
-  def targets:      Set[TargetModel.Id]
+  def targetIds:    Set[TargetModel.Id]
 
   def fold[B](
     default: AsterismModel.Default => B,
@@ -65,7 +65,7 @@ object AsterismModel extends AsterismOptics {
     id:           AsterismModel.Id,
     existence:    Existence,
     explicitBase: Option[Coordinates],
-    targets:      Set[TargetModel.Id]
+    targetIds:    Set[TargetModel.Id]
   ) extends AsterismModel {
 
     def tpe: Type =
@@ -76,7 +76,7 @@ object AsterismModel extends AsterismOptics {
   object Default extends DefaultOptics {
 
     implicit val EqDefault: Eq[Default] =
-      Eq.by(d => (d.id, d.existence, d.explicitBase, d.targets))
+      Eq.by(d => (d.id, d.existence, d.explicitBase, d.targetIds))
 
   }
 
@@ -103,28 +103,28 @@ object AsterismModel extends AsterismOptics {
     val asterismExplicitBase: Optional[AsterismModel, Option[Coordinates]] =
       select ^|-> explicitBase
 
-    val targets: Lens[Default, Set[TargetModel.Id]] =
-      Lens[Default, Set[TargetModel.Id]](_.targets)(a => b => b.copy(targets = a))
+    val targetIds: Lens[Default, Set[TargetModel.Id]] =
+      Lens[Default, Set[TargetModel.Id]](_.targetIds)(a => b => b.copy(targetIds = a))
 
-    val asterismTargets: Optional[AsterismModel, Set[TargetModel.Id]] =
-      select ^|-> targets
+    val asterismTargetIds: Optional[AsterismModel, Set[TargetModel.Id]] =
+      select ^|-> targetIds
 
   }
 
   trait Create[T] {
-    def programs: List[ProgramModel.Id]  // to share immediately with the indicated programs
-    def targets:  Set[TargetModel.Id]
-    def withId: ValidatedInput[AsterismModel.Id => T]
+    def programIds: List[ProgramModel.Id]  // to share immediately with the indicated programs
+    def targetIds:  Set[TargetModel.Id]
+    def withId:     ValidatedInput[AsterismModel.Id => T]
   }
 
   final case class CreateDefault(
-    programs:     List[ProgramModel.Id],
+    programIds:   List[ProgramModel.Id],
     explicitBase: Option[CoordinatesModel.Input],
-    targets:      Set[TargetModel.Id]
+    targetIds:    Set[TargetModel.Id]
   ) extends Create[AsterismModel.Default] {
 
     override def withId: ValidatedInput[AsterismModel.Id => AsterismModel.Default] =
-      explicitBase.traverse(_.toCoordinates).map(c => aid => Default(aid, Present, c, targets))
+      explicitBase.traverse(_.toCoordinates).map(c => aid => Default(aid, Present, c, targetIds))
 
   }
 
@@ -147,7 +147,7 @@ object AsterismModel extends AsterismOptics {
     def tpe: Type =
       Type.Ghost
 
-    def targets: Set[TargetModel.Id] =
+    def targetIds: Set[TargetModel.Id] =
       ifu2.foldLeft(Set(ifu1))(_ + _)
 
   }
@@ -160,18 +160,21 @@ object AsterismModel extends AsterismOptics {
   }
 
   final case class EditDefault(
-    id:           AsterismModel.Id,
+    asterismId:   Id,
     existence:    Option[Existence],
     explicitBase: Option[Option[CoordinatesModel.Input]],
-    targets:      Option[Set[TargetModel.Id]]
+    targetIds:    Option[Set[TargetModel.Id]]
   ) extends Editor[Id, AsterismModel.Default] {
+
+    override def id: Id =
+      asterismId
 
     override def editor: ValidatedInput[State[AsterismModel.Default, Unit]] =
       Nested(explicitBase).traverse(_.toCoordinates).map { b =>
         for {
           _ <- Default.existence    := existence
           _ <- Default.explicitBase := b.value
-          _ <- Default.targets      := targets
+          _ <- Default.targetIds    := targetIds
         } yield ()
       }
   }
@@ -184,8 +187,8 @@ object AsterismModel extends AsterismOptics {
   }
 
   final case class AsterismProgramLinks(
-    id:       Id,
-    programs: List[ProgramModel.Id]
+    asterismId: Id,
+    programIds: List[ProgramModel.Id]
   )
 
   object AsterismProgramLinks {

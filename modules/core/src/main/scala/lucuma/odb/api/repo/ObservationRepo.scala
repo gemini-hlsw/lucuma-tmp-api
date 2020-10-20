@@ -41,13 +41,13 @@ object ObservationRepo {
       override def selectAllForAsterism(aid: AsterismModel.Id, includeDeleted: Boolean): F[List[ObservationModel]] =
         tablesRef
           .get
-          .map(_.observations.values.filter(_.asterism.contains(aid)).toList)
+          .map(_.observations.values.filter(_.asterismId.contains(aid)).toList)
           .map(deletionFilter(includeDeleted))
 
       override def selectAllForProgram(pid: ProgramModel.Id, includeDeleted: Boolean): F[List[ObservationModel]] =
         tablesRef
           .get
-          .map(_.observations.values.filter(_.pid === pid).toList)
+          .map(_.observations.values.filter(_.programId === pid).toList)
           .map(deletionFilter(includeDeleted))
 
       override def selectAllForTarget(tid: TargetModel.Id, includeDeleted: Boolean): F[List[ObservationModel]] =
@@ -55,8 +55,8 @@ object ObservationRepo {
           .get
           .map { tables =>
             tables.observations.values.filter { obs =>
-              obs.asterism.exists { aid =>
-                tables.asterisms.get(aid).exists(_.targets(tid))
+              obs.asterismId.exists { aid =>
+                tables.asterisms.get(aid).exists(_.targetIds(tid))
               }
             }.toList
           }
@@ -64,7 +64,7 @@ object ObservationRepo {
 
       override def insert(newObs: ObservationModel.Create): F[ObservationModel] =
         modify { t =>
-          lookupProgram(t, newObs.pid).fold(
+          lookupProgram(t, newObs.programId).fold(
             err => (t, err.asLeft[ObservationModel]),
             _   => createAndInsert(newObs.withId).run(t).value.map(_.asRight)
           )

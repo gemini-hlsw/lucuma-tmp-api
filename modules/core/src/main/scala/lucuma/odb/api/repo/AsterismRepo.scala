@@ -49,7 +49,7 @@ object AsterismRepo {
 
       override def selectAllForProgram(pid: ProgramModel.Id, includeDeleted: Boolean): F[List[AsterismModel]] =
         tablesRef.get.map { t =>
-          val ids = t.observations.values.filter(_.pid === pid).flatMap(_.asterism.toList).toSet
+          val ids = t.observations.values.filter(_.programId === pid).flatMap(_.asterismId.toList).toSet
           ids.foldLeft(List.empty[AsterismModel]) { (l, i) =>
             t.asterisms.get(i).fold(l)(_ :: l)
           }
@@ -57,7 +57,7 @@ object AsterismRepo {
 
       override def selectAllForTarget(tid: TargetModel.Id, includeDeleted: Boolean): F[List[AsterismModel]] =
         tablesRef.get.map { t =>
-          t.asterisms.values.filter(_.targets(tid)).toList
+          t.asterisms.values.filter(_.targetIds(tid)).toList
         }.map(deletionFilter(includeDeleted))
 
       private def addAsterism[T <: AsterismModel](
@@ -71,11 +71,11 @@ object AsterismRepo {
 
       override def insert[T <: AsterismModel](input: Create[T]): F[T] =
         modify { t =>
-          val targets  = input.targets.iterator.toList.traverse(lookupTarget(t, _))
-          val programs = input.programs.traverse(lookupProgram(t, _))
+          val targets  = input.targetIds.iterator.toList.traverse(lookupTarget(t, _))
+          val programs = input.programIds.traverse(lookupProgram(t, _))
           val asterism = input.withId
           (targets, programs, asterism)
-            .mapN((_, _, f) => addAsterism(input.programs.toSet, f).run(t).value)
+            .mapN((_, _, f) => addAsterism(input.programIds.toSet, f).run(t).value)
             .fold(
               err => (t, err.asLeft[T]),
               tup => tup.map(_.asRight)
@@ -88,9 +88,9 @@ object AsterismRepo {
       ): F[AsterismModel] =
         tablesRef.modifyState {
           for {
-            a  <- inspectAsterismId(input.id)
-            ps <- input.programs.traverse(inspectProgramId).map(_.sequence)
-            r  <- (a, ps).traverseN { (am, _) => f(am, input.programs.toSet).as(am) }
+            a  <- inspectAsterismId(input.asterismId)
+            ps <- input.programIds.traverse(inspectProgramId).map(_.sequence)
+            r  <- (a, ps).traverseN { (am, _) => f(am, input.programIds.toSet).as(am) }
           } yield r
         }.flatMap(_.liftTo[F])
 

@@ -27,8 +27,15 @@ object TargetSchema extends TargetScalars {
 
   val TargetIdArgument: Argument[TargetModel.Id] =
     Argument(
-      name         = "id",
+      name         = "targetId",
       argumentType = TargetIdType,
+      description  = "Target ID"
+    )
+
+  val OptionalTargetIdArgument: Argument[Option[TargetModel.Id]] =
+    Argument(
+      name         = "targetId",
+      argumentType = OptionInputType(TargetIdType),
       description  = "Target ID"
     )
 
@@ -323,7 +330,7 @@ object TargetSchema extends TargetScalars {
               c.optionalProgramId.fold(
                 repo.selectAllForTarget(c.value.id, c.includeDeleted)
               ) { pid =>
-                repo.selectAllForProgram(pid, c.includeDeleted).map(_.filter(_.targets(c.value.id)))
+                repo.selectAllForProgram(pid, c.includeDeleted).map(_.filter(_.targetIds(c.value.id)))
               }
             }
         ),
@@ -337,7 +344,7 @@ object TargetSchema extends TargetScalars {
             _.selectAllForTarget(c.value.id, c.includeDeleted)
              .map { obsList =>
                c.optionalProgramId.fold(obsList) { pid =>
-                 obsList.filter(_.pid === pid)
+                 obsList.filter(_.programId === pid)
                }
              }
           )

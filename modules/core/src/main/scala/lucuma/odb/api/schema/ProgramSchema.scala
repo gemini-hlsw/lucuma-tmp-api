@@ -22,14 +22,14 @@ object ProgramSchema {
 
   val ProgramIdArgument: Argument[ProgramModel.Id] =
     Argument(
-      name         = "id",
+      name         = "programId",
       argumentType = ProgramIdType,
       description  = "Program ID"
     )
 
   val OptionalProgramIdArgument: Argument[Option[ProgramModel.Id]] =
     Argument(
-      name         = "id",
+      name         = "programId",
       argumentType = OptionInputType(ProgramIdType),
       description  = "Program ID"
     )

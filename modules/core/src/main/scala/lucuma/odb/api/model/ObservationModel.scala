@@ -17,11 +17,11 @@ import monocle.Lens
 
 
 final case class ObservationModel(
-  id:        ObservationModel.Id,
-  existence: Existence,
-  pid:       ProgramModel.Id,
-  name:      Option[String],
-  asterism:  Option[AsterismModel.Id]
+  id:         ObservationModel.Id,
+  existence:  Existence,
+  programId:  ProgramModel.Id,
+  name:       Option[String],
+  asterismId: Option[AsterismModel.Id]
 )
 
 object ObservationModel extends ObservationOptics {
@@ -40,13 +40,13 @@ object ObservationModel extends ObservationOptics {
     TopLevelModel.instance(_.id, ObservationModel.existence)
 
   final case class Create(
-    pid:      ProgramModel.Id,
-    name:     Option[String],
-    asterism: Option[AsterismModel.Id]
+    programId:  ProgramModel.Id,
+    name:       Option[String],
+    asterismId: Option[AsterismModel.Id]
   ) {
 
-    def withId(oid: ObservationModel.Id): ObservationModel =
-      ObservationModel(oid, Present, pid, name, asterism)
+    def withId(id: ObservationModel.Id): ObservationModel =
+      ObservationModel(id, Present, programId, name, asterismId)
 
   }
 
@@ -58,17 +58,20 @@ object ObservationModel extends ObservationOptics {
   }
 
   final case class Edit(
-    id:        ObservationModel.Id,
-    existence: Option[Existence],
-    name:      Option[Option[String]],
-    asterism:  Option[Option[AsterismModel.Id]]
+    observationId: ObservationModel.Id,
+    existence:     Option[Existence],
+    name:          Option[Option[String]],
+    asterismId:    Option[Option[AsterismModel.Id]]
   ) extends Editor[Id, ObservationModel] {
+
+    override def id: Id =
+      observationId
 
     override def editor: ValidatedInput[State[ObservationModel, Unit]] =
       (for {
-        _ <- ObservationModel.existence := existence
-        _ <- ObservationModel.name      := name
-        _ <- ObservationModel.asterism  := asterism
+        _ <- ObservationModel.existence  := existence
+        _ <- ObservationModel.name       := name
+        _ <- ObservationModel.asterismId := asterismId
       } yield ()).validNec
 
   }
@@ -115,7 +118,7 @@ trait ObservationOptics { self: ObservationModel.type =>
   val name: Lens[ObservationModel, Option[String]] =
     Lens[ObservationModel, Option[String]](_.name)(a => b => b.copy(name = a))
 
-  val asterism: Lens[ObservationModel, Option[AsterismModel.Id]] =
-    Lens[ObservationModel, Option[AsterismModel.Id]](_.asterism)(a => b => b.copy(asterism = a))
+  val asterismId: Lens[ObservationModel, Option[AsterismModel.Id]] =
+    Lens[ObservationModel, Option[AsterismModel.Id]](_.asterismId)(a => b => b.copy(asterismId = a))
 
 }
