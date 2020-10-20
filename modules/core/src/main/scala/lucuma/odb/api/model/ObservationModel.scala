@@ -58,11 +58,14 @@ object ObservationModel extends ObservationOptics {
   }
 
   final case class Edit(
-    id:          ObservationModel.Id,
-    existence:   Option[Existence],
-    name:        Option[Option[String]],
-    asterismId:  Option[Option[AsterismModel.Id]]
+    observationId: ObservationModel.Id,
+    existence:     Option[Existence],
+    name:          Option[Option[String]],
+    asterismId:    Option[Option[AsterismModel.Id]]
   ) extends Editor[Id, ObservationModel] {
+
+    override def id: Id =
+      observationId
 
     override def editor: ValidatedInput[State[ObservationModel, Unit]] =
       (for {

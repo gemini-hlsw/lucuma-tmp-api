@@ -156,11 +156,14 @@ object TargetModel extends TargetOptics {
   }
 
   final case class EditNonsidereal(
-    id:        Id,
+    targetId:  Id,
     existence: Option[Existence],
     name:      Option[String],
     key:       Option[EphemerisKey],
   ) extends Editor[Id, TargetModel] {
+
+    override def id: Id =
+      targetId
 
     override val editor: ValidatedInput[State[TargetModel, Unit]] =
       (for {
@@ -172,7 +175,7 @@ object TargetModel extends TargetOptics {
   }
 
   final case class EditSidereal(
-    id:             Id,
+    targetId:       Id,
     existence:      Option[Existence],
     name:           Option[String],
     ra:             Option[RightAscensionModel.Input],
@@ -182,6 +185,9 @@ object TargetModel extends TargetOptics {
     radialVelocity: Option[Option[RadialVelocityModel.Input]],
     parallax:       Option[Option[ParallaxModel.Input]]
   ) extends Editor[Id, TargetModel] {
+
+    override def id: Id =
+      targetId
 
     override val editor: ValidatedInput[State[TargetModel, Unit]] =
       (ra.traverse(_.toRightAscension),

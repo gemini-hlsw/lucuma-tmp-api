@@ -160,11 +160,14 @@ object AsterismModel extends AsterismOptics {
   }
 
   final case class EditDefault(
-    id:           Id,
+    asterismId:   Id,
     existence:    Option[Existence],
     explicitBase: Option[Option[CoordinatesModel.Input]],
     targetIds:    Option[Set[TargetModel.Id]]
   ) extends Editor[Id, AsterismModel.Default] {
+
+    override def id: Id =
+      asterismId
 
     override def editor: ValidatedInput[State[AsterismModel.Default, Unit]] =
       Nested(explicitBase).traverse(_.toCoordinates).map { b =>
