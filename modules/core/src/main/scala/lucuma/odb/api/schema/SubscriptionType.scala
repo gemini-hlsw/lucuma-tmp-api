@@ -172,20 +172,20 @@ object SubscriptionType {
 
   def apply[F[_]: ConcurrentEffect]: ObjectType[OdbRepo[F], Unit] = {
     def programsForAsterism(c: Context[OdbRepo[F], Unit], aid: AsterismModel.Id): F[Set[ProgramModel.Id]] =
-      c.ctx.program.selectAllForAsterism(aid).map(_.map(_.pid).toSet)
+      c.ctx.program.selectAllForAsterism(aid).map(_.map(_.id).toSet)
 
     def programsForTarget(c: Context[OdbRepo[F], Unit], tid: TargetModel.Id): F[Set[ProgramModel.Id]] =
-      c.ctx.program.selectAllForTarget(tid).map(_.map(_.pid).toSet)
+      c.ctx.program.selectAllForTarget(tid).map(_.map(_.id).toSet)
 
     ObjectType(
       name   = "Subscription",
       fields = fields(
         createdField[F, AsterismModel, AsterismCreatedEvent]("asterism") { (c, e) =>
-          programsForAsterism(c, e.value.aid)
+          programsForAsterism(c, e.value.id)
         },
 
         createdField[F, ObservationModel, ObservationCreatedEvent]("observation") { (_, e) =>
-          Set(e.value.pid).pure[F]
+          Set(e.value.programId).pure[F]
         },
 
         // ProgramCreatedEvent handled differently for now.  If we reserve
@@ -200,20 +200,20 @@ object SubscriptionType {
         )((_,_) => true.pure[F]),
 
         createdField[F, TargetModel, TargetCreatedEvent]("target") { (c, e) =>
-          programsForTarget(c, e.value.tid)
+          programsForTarget(c, e.value.id)
         },
 
         editedField[F, AsterismModel.Id, AsterismModel, AsterismEditedEvent](
           "asterism",
           OptionalAsterismIdArgument,
-          _.newValue.aid
-        ) { (c, e) => programsForAsterism(c, e.newValue.aid) },
+          _.newValue.id
+        ) { (c, e) => programsForAsterism(c, e.newValue.id) },
 
         editedField[F, ObservationModel.Id, ObservationModel, ObservationEditedEvent](
           "observation",
           OptionalObservationIdArgument,
-          _.newValue.oid
-        ) { (_, e) => Set(e.newValue.pid).pure[F] },
+          _.newValue.id
+        ) { (_, e) => Set(e.newValue.programId).pure[F] },
 
         // ProgramEditedEvent handled differently.  It would not make sense to
         // filter on program id twice.
@@ -227,15 +227,15 @@ object SubscriptionType {
           List(OptionalProgramIdArgument)
         ) { (c, e) =>
           c.optionalProgramId.fold(true) { pid =>
-            Set(e.newValue.pid).contains(pid)
+            Set(e.newValue.id).contains(pid)
           }.pure[F]
         },
 
         editedField[F, TargetModel.Id, TargetModel, TargetEditedEvent](
           "target",
           OptionalTargetIdArgument,
-          _.newValue.tid
-        ) { (c, e) => programsForTarget(c, e.newValue.tid) }
+          _.newValue.id
+        ) { (c, e) => programsForTarget(c, e.newValue.id) }
       )
     )
   }

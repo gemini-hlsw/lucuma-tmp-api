@@ -16,7 +16,7 @@ import monocle.Lens
  * A placeholder Program for now.
  */
 final case class ProgramModel(
-  pid:       ProgramModel.Id,
+  id:        ProgramModel.Id,
   existence: Existence,
   name:      Option[String]
 )
@@ -35,7 +35,7 @@ object ProgramModel extends ProgramOptics {
   }
 
   implicit val TopLevelProgram: TopLevelModel[Id, ProgramModel] =
-    TopLevelModel.instance(_.pid, ProgramModel.existence)
+    TopLevelModel.instance(_.id, ProgramModel.existence)
 
   /**
    * Program creation input class.
@@ -77,8 +77,8 @@ object ProgramModel extends ProgramOptics {
 
 trait ProgramOptics { self: ProgramModel.type =>
 
-  val pid: Lens[ProgramModel, ProgramModel.Id] =
-    Lens[ProgramModel, ProgramModel.Id](_.pid)(a => b => b.copy(pid = a))
+  val id: Lens[ProgramModel, ProgramModel.Id] =
+    Lens[ProgramModel, ProgramModel.Id](_.id)(a => b => b.copy(id = a))
 
   val existence: Lens[ProgramModel, Existence] =
     Lens[ProgramModel, Existence](_.existence)(a => b => b.copy(existence = a))

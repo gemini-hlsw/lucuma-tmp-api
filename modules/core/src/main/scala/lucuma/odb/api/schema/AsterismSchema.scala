@@ -23,14 +23,14 @@ object AsterismSchema {
 
   val AsterismIdArgument: Argument[AsterismModel.Id] =
     Argument(
-      name         = "aid",
+      name         = "asterismId",
       argumentType = AsterismIdType,
       description  = "Asterism ID"
     )
 
   val OptionalAsterismIdArgument: Argument[Option[AsterismModel.Id]] =
     Argument(
-      name         = "aid",
+      name         = "asterismId",
       argumentType = OptionInputType(AsterismIdType),
       description  = "Asterism ID"
     )
@@ -41,10 +41,10 @@ object AsterismSchema {
       description = "Common fields shared by all asterisms",
       fields[OdbRepo[F], AsterismModel](
         Field(
-          name        = "aid",
+          name        = "id",
           fieldType   = AsterismIdType,
           description = Some("Asterism ID"),
-          resolve     = _.value.aid
+          resolve     = _.value.id
         ),
 
         Field(
@@ -67,9 +67,9 @@ object AsterismSchema {
           arguments   = List(OptionalProgramIdArgument, ArgumentIncludeDeleted),
           description = Some("All observations associated with the asterism."),
           resolve     = c => c.observation(
-            _.selectAllForAsterism(c.value.aid, c.includeDeleted)
+            _.selectAllForAsterism(c.value.id, c.includeDeleted)
              .map { obsList =>
-               c.optionalProgramId.fold(obsList) { pid => obsList.filter(_.pid === pid) }
+               c.optionalProgramId.fold(obsList) { pid => obsList.filter(_.programId === pid) }
              }
           )
         ),
@@ -81,7 +81,7 @@ object AsterismSchema {
           description = Some("All asterism targets"),
           resolve     = c =>
             c.value
-             .targets
+             .targetIds
              .iterator
              .toList
              .traverse(c.ctx.target.select(_, c.includeDeleted))
@@ -95,7 +95,7 @@ object AsterismSchema {
           fieldType   = ListType(ProgramType[F]),
           arguments   = List(ArgumentIncludeDeleted),
           description = Some("The programs associated with the asterism."),
-          resolve     = c => c.program(_.selectAllForAsterism(c.value.aid, c.includeDeleted))
+          resolve     = c => c.program(_.selectAllForAsterism(c.value.id, c.includeDeleted))
         )
       )
     )

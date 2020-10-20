@@ -17,11 +17,11 @@ import monocle.Lens
 
 
 final case class ObservationModel(
-  oid:       ObservationModel.Id,
-  existence: Existence,
-  pid:       ProgramModel.Id,
-  name:      Option[String],
-  asterism:  Option[AsterismModel.Id]
+  id:         ObservationModel.Id,
+  existence:  Existence,
+  programId:  ProgramModel.Id,
+  name:       Option[String],
+  asterismId: Option[AsterismModel.Id]
 )
 
 object ObservationModel extends ObservationOptics {
@@ -37,16 +37,16 @@ object ObservationModel extends ObservationOptics {
   }
 
   implicit val TopLevelObservation: TopLevelModel[Id, ObservationModel] =
-    TopLevelModel.instance(_.oid, ObservationModel.existence)
+    TopLevelModel.instance(_.id, ObservationModel.existence)
 
   final case class Create(
-    pid:      ProgramModel.Id,
-    name:     Option[String],
-    asterism: Option[AsterismModel.Id]
+    programId:  ProgramModel.Id,
+    name:       Option[String],
+    asterismId: Option[AsterismModel.Id]
   ) {
 
-    def withId(oid: ObservationModel.Id): ObservationModel =
-      ObservationModel(oid, Present, pid, name, asterism)
+    def withId(id: ObservationModel.Id): ObservationModel =
+      ObservationModel(id, Present, programId, name, asterismId)
 
   }
 
@@ -58,20 +58,17 @@ object ObservationModel extends ObservationOptics {
   }
 
   final case class Edit(
-    oid:       ObservationModel.Id,
-    existence: Option[Existence],
-    name:      Option[Option[String]],
-    asterism:  Option[Option[AsterismModel.Id]]
+    id:          ObservationModel.Id,
+    existence:   Option[Existence],
+    name:        Option[Option[String]],
+    asterismId:  Option[Option[AsterismModel.Id]]
   ) extends Editor[Id, ObservationModel] {
-
-    override def id: Id =
-      oid
 
     override def editor: ValidatedInput[State[ObservationModel, Unit]] =
       (for {
-        _ <- ObservationModel.existence := existence
-        _ <- ObservationModel.name      := name
-        _ <- ObservationModel.asterism  := asterism
+        _ <- ObservationModel.existence  := existence
+        _ <- ObservationModel.name       := name
+        _ <- ObservationModel.asterismId := asterismId
       } yield ()).validNec
 
   }
@@ -109,8 +106,8 @@ object ObservationModel extends ObservationOptics {
 
 trait ObservationOptics { self: ObservationModel.type =>
 
-  val oid: Lens[ObservationModel, ObservationModel.Id] =
-    Lens[ObservationModel, ObservationModel.Id](_.oid)(a => b => b.copy(oid = a))
+  val id: Lens[ObservationModel, ObservationModel.Id] =
+    Lens[ObservationModel, ObservationModel.Id](_.id)(a => b => b.copy(id = a))
 
   val existence: Lens[ObservationModel, Existence] =
     Lens[ObservationModel, Existence](_.existence)(a => b => b.copy(existence = a))
@@ -118,7 +115,7 @@ trait ObservationOptics { self: ObservationModel.type =>
   val name: Lens[ObservationModel, Option[String]] =
     Lens[ObservationModel, Option[String]](_.name)(a => b => b.copy(name = a))
 
-  val asterism: Lens[ObservationModel, Option[AsterismModel.Id]] =
-    Lens[ObservationModel, Option[AsterismModel.Id]](_.asterism)(a => b => b.copy(asterism = a))
+  val asterismId: Lens[ObservationModel, Option[AsterismModel.Id]] =
+    Lens[ObservationModel, Option[AsterismModel.Id]](_.asterismId)(a => b => b.copy(asterismId = a))
 
 }

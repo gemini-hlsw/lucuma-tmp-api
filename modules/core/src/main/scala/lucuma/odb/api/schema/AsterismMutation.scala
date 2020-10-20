@@ -29,9 +29,9 @@ trait AsterismMutation extends TargetScalars {
     deriveInputObjectType[AsterismModel.CreateDefault](
       InputObjectTypeName("CreateDefaultAsterismInput"),
       InputObjectTypeDescription("Default asterism parameters"),
-      ReplaceInputField("targets",
+      ReplaceInputField("targetIds",
         InputField(
-          name        = "targets",
+          name        = "targetIds",
           fieldType   = ListInputType(TargetIdType),
           description = "Targets to include in default asterism"
         )
@@ -48,9 +48,9 @@ trait AsterismMutation extends TargetScalars {
     deriveInputObjectType[AsterismModel.EditDefault](
       InputObjectTypeName("EditDefaultAsterismInput"),
       InputObjectTypeDescription("Default asterism edit"),
-        ReplaceInputField("targets",
+        ReplaceInputField("targetIds",
           InputField(
-            name        = "targets",
+            name        = "targetIds",
             fieldType   = OptionInputType(ListInputType(TargetIdType)),
             description = "Targets to include in the default asterism"
           )
@@ -94,7 +94,7 @@ trait AsterismMutation extends TargetScalars {
         // Lookup all of the targets, producing a list of input errors for those
         // that are not found.
         val checks = (tables: Tables) => {
-          ed.targets.toList.flatMap(_.toList).traverse { id =>
+          ed.targetIds.toList.flatMap(_.toList).traverse { id =>
             tables.targets.get(id).toValidNec(
               InputError.missingReference("target", Gid[TargetModel.Id].show(id))
             )

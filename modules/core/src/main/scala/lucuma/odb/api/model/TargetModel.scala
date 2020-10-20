@@ -24,7 +24,7 @@ import scala.collection.immutable.SortedMap
  * A Target combining an ID with a `gem.Target`.
  */
 final case class TargetModel(
-  tid:        TargetModel.Id,
+  id:         TargetModel.Id,
   existence:  Existence,
   target:     Target
 )
@@ -42,7 +42,7 @@ object TargetModel extends TargetOptics {
   }
 
   implicit val TopLevelTarget: TopLevelModel[Id, TargetModel] =
-    TopLevelModel.instance(_.tid, existence)
+    TopLevelModel.instance(_.id, existence)
 
 
   object parse {
@@ -70,17 +70,17 @@ object TargetModel extends TargetOptics {
   /**
    * Describes input used to create a nonsidereal target.
    *
-   * @param pids associated program(s), if any (which either exist or results
-   *             in an error)
+   * @param programIds associated program(s), if any (which either exist or
+   *                   results in an error)
    * @param name target name
    * @param key ephemeris key type
    * @param des semi-permanent horizons identifier (relative to key type)
    */
   final case class CreateNonsidereal(
-    pids: List[ProgramModel.Id],
-    name: String,
-    key:  EphemerisKeyType,
-    des:  String
+    programIds: List[ProgramModel.Id],
+    name      : String,
+    key       :  EphemerisKeyType,
+    des       :  String
   ) {
 
     val toEphemerisKey: ValidatedInput[EphemerisKey] =
@@ -103,7 +103,7 @@ object TargetModel extends TargetOptics {
   /**
    * Describes input used to create a sidereal target.
    *
-   * @param pids associated program(s), if any (which either exist or results
+   * @param programIds associated program(s), if any (which either exist or results
    *             in an error)
    * @param name target name
    * @param ra right ascension coordinate at epoch
@@ -114,7 +114,7 @@ object TargetModel extends TargetOptics {
    * @param parallax parallax
    */
   final case class CreateSidereal(
-    pids:           List[ProgramModel.Id],
+    programIds:     List[ProgramModel.Id],
     name:           String,
     ra:             RightAscensionModel.Input,
     dec:            DeclinationModel.Input,
@@ -156,14 +156,11 @@ object TargetModel extends TargetOptics {
   }
 
   final case class EditNonsidereal(
-    tid:       Id,
+    id:        Id,
     existence: Option[Existence],
     name:      Option[String],
     key:       Option[EphemerisKey],
   ) extends Editor[Id, TargetModel] {
-
-    override def id: Id =
-      tid
 
     override val editor: ValidatedInput[State[TargetModel, Unit]] =
       (for {
@@ -175,7 +172,7 @@ object TargetModel extends TargetOptics {
   }
 
   final case class EditSidereal(
-    tid:            Id,
+    id:             Id,
     existence:      Option[Existence],
     name:           Option[String],
     ra:             Option[RightAscensionModel.Input],
@@ -185,9 +182,6 @@ object TargetModel extends TargetOptics {
     radialVelocity: Option[Option[RadialVelocityModel.Input]],
     parallax:       Option[Option[ParallaxModel.Input]]
   ) extends Editor[Id, TargetModel] {
-
-    override def id: Id =
-      tid
 
     override val editor: ValidatedInput[State[TargetModel, Unit]] =
       (ra.traverse(_.toRightAscension),
@@ -218,8 +212,8 @@ object TargetModel extends TargetOptics {
   }
 
   final case class TargetProgramLinks(
-    tid:       Id,
-    programs:  List[ProgramModel.Id]
+    targetId:   Id,
+    programIds: List[ProgramModel.Id]
   )
 
   object TargetProgramLinks {
@@ -254,8 +248,8 @@ object TargetModel extends TargetOptics {
 
 trait TargetOptics { self: TargetModel.type =>
 
-  val tid: Lens[TargetModel, TargetModel.Id] =
-    Lens[TargetModel, TargetModel.Id](_.tid)(a => b => b.copy(tid = a))
+  val id: Lens[TargetModel, TargetModel.Id] =
+    Lens[TargetModel, TargetModel.Id](_.id)(a => b => b.copy(id = a))
 
   val existence: Lens[TargetModel, Existence] =
     Lens[TargetModel, Existence](_.existence)(a => b => b.copy(existence = a))

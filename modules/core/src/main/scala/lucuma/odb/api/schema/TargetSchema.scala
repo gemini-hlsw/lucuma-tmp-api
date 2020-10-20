@@ -27,14 +27,14 @@ object TargetSchema extends TargetScalars {
 
   val TargetIdArgument: Argument[TargetModel.Id] =
     Argument(
-      name         = "tid",
+      name         = "targetId",
       argumentType = TargetIdType,
       description  = "Target ID"
     )
 
   val OptionalTargetIdArgument: Argument[Option[TargetModel.Id]] =
     Argument(
-      name         = "tid",
+      name         = "targetId",
       argumentType = OptionInputType(TargetIdType),
       description  = "Target ID"
     )
@@ -307,10 +307,10 @@ object TargetSchema extends TargetScalars {
       name     = "Target",
       fieldsFn = () => fields(
         Field(
-          name        = "tid",
+          name        = "id",
           fieldType   = TargetIdType,
           description = Some("Target id."),
-          resolve     = _.value.tid
+          resolve     = _.value.id
         ),
 
         Field(
@@ -328,9 +328,9 @@ object TargetSchema extends TargetScalars {
           resolve     = c =>
             c.asterism { repo =>
               c.optionalProgramId.fold(
-                repo.selectAllForTarget(c.value.tid, c.includeDeleted)
+                repo.selectAllForTarget(c.value.id, c.includeDeleted)
               ) { pid =>
-                repo.selectAllForProgram(pid, c.includeDeleted).map(_.filter(_.targets(c.value.tid)))
+                repo.selectAllForProgram(pid, c.includeDeleted).map(_.filter(_.targetIds(c.value.id)))
               }
             }
         ),
@@ -341,10 +341,10 @@ object TargetSchema extends TargetScalars {
           arguments   = List(OptionalProgramIdArgument, ArgumentIncludeDeleted),
           description = Some("The observations associated with the target."),
           resolve     = c => c.observation(
-            _.selectAllForTarget(c.value.tid, c.includeDeleted)
+            _.selectAllForTarget(c.value.id, c.includeDeleted)
              .map { obsList =>
                c.optionalProgramId.fold(obsList) { pid =>
-                 obsList.filter(_.pid === pid)
+                 obsList.filter(_.programId === pid)
                }
              }
           )
@@ -355,7 +355,7 @@ object TargetSchema extends TargetScalars {
           fieldType   = ListType(ProgramType[F]),
           arguments   = List(ArgumentIncludeDeleted),
           description = Some("The programs associated with the target."),
-          resolve     = c => c.program(_.selectAllForTarget(c.value.tid, c.includeDeleted))
+          resolve     = c => c.program(_.selectAllForTarget(c.value.id, c.includeDeleted))
         ),
 
         Field(
