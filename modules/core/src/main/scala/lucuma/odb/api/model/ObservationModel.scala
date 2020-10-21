@@ -6,7 +6,6 @@ package lucuma.odb.api.model
 import lucuma.odb.api.model.Existence._
 import lucuma.odb.api.model.syntax.all._
 import lucuma.core.util.Gid
-
 import cats.data.State
 import cats.syntax.validated._
 import eu.timepit.refined.auto._
@@ -17,11 +16,12 @@ import monocle.Lens
 
 
 final case class ObservationModel(
-  id:         ObservationModel.Id,
-  existence:  Existence,
-  programId:  ProgramModel.Id,
-  name:       Option[String],
-  asterismId: Option[AsterismModel.Id]
+  id:                 ObservationModel.Id,
+  existence:          Existence,
+  programId:          ProgramModel.Id,
+  name:               Option[String],
+  asterismId:         Option[AsterismModel.Id],
+  plannedTimeSummary: PlannedTimeSummaryModel
 )
 
 object ObservationModel extends ObservationOptics {
@@ -45,8 +45,8 @@ object ObservationModel extends ObservationOptics {
     asterismId: Option[AsterismModel.Id]
   ) {
 
-    def withId(id: ObservationModel.Id): ObservationModel =
-      ObservationModel(id, Present, programId, name, asterismId)
+    def withId(id: ObservationModel.Id, s: PlannedTimeSummaryModel): ObservationModel =
+      ObservationModel(id, Present, programId, name, asterismId, s)
 
   }
 

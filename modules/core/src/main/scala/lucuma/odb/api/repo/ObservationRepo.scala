@@ -3,9 +3,9 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, TargetModel}
+import lucuma.odb.api.model.{AsterismModel, ObservationModel, PlannedTimeSummaryModel, ProgramModel, TargetModel}
 import lucuma.odb.api.model.ObservationModel.{ObservationCreatedEvent, ObservationEditedEvent}
-import cats.{Monad, MonadError}
+import cats.effect.Sync
 import cats.effect.concurrent.Ref
 import cats.implicits._
 
@@ -23,10 +23,10 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, ObservationModel.Id, 
 
 object ObservationRepo {
 
-  def create[F[_]: Monad](
+  def create[F[_]: Sync](
     tablesRef:    Ref[F, Tables],
     eventService: EventService[F]
-  )(implicit M: MonadError[F, Throwable]): ObservationRepo[F] =
+  ): ObservationRepo[F] =
 
     new TopLevelRepoBase[F, ObservationModel.Id, ObservationModel](
       tablesRef,
@@ -62,13 +62,21 @@ object ObservationRepo {
           }
           .map(deletionFilter(includeDeleted))
 
-      override def insert(newObs: ObservationModel.Create): F[ObservationModel] =
-        modify { t =>
-          lookupProgram(t, newObs.programId).fold(
-            err => (t, err.asLeft[ObservationModel]),
-            _   => createAndInsert(newObs.withId).run(t).value.map(_.asRight)
-          )
-        }
+      override def insert(newObs: ObservationModel.Create): F[ObservationModel] = {
+
+        def construct(s: PlannedTimeSummaryModel): F[ObservationModel] =
+          modify { t =>
+            lookupProgram(t, newObs.programId).fold(
+              err => (t, err.asLeft[ObservationModel]),
+              _   => createAndInsert(newObs.withId(_, s)).run(t).value.map(_.asRight)
+            )
+          }
+
+        for {
+          s <- PlannedTimeSummaryModel.random[F]
+          o <- construct(s)
+        } yield o
+      }
 
     }
 }

@@ -5,8 +5,10 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.ProgramModel
 import lucuma.odb.api.repo.OdbRepo
-
 import cats.effect.Effect
+import cats.syntax.foldable._
+import cats.syntax.functor._
+import lucuma.odb.api.schema.GeneralSchema.PlannedTimeSummaryType
 import sangria.schema._
 
 object ProgramSchema {
@@ -89,7 +91,19 @@ object ProgramSchema {
           description = Some("All targets associated with the program (needs pagination)."),
           arguments   = List(ArgumentIncludeDeleted),
           resolve     = c => c.target(_.selectAllForProgram(c.value.id, c.includeDeleted))
+        ),
+
+        Field(
+          name        = "plannedTime",
+          fieldType   = PlannedTimeSummaryType[F],
+          description = Some("Program planned time calculation."),
+          arguments   = List(ArgumentIncludeDeleted),
+          resolve     = c => c.observation {
+            _.selectAllForProgram(c.value.id, c.includeDeleted)
+              .map(_.foldMap(_.plannedTimeSummary))
+          }
         )
+
 
       )
     )
