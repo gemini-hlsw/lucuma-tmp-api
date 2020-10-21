@@ -138,7 +138,7 @@ object TargetSchema extends TargetScalars {
         ),
 
         Field(
-          name        = "microarcsecs",
+          name        = "microarcseconds",
           fieldType   = LongType,
           description = Some("Right Ascension (RA) in µas"),
           resolve     = v => RightAscensionModel.Units.Microarcseconds.long.get(v.value)
@@ -166,7 +166,7 @@ object TargetSchema extends TargetScalars {
         ),
 
         Field(
-          name        = "microarcsecs",
+          name        = "microarcseconds",
           fieldType   = LongType,
           description = Some("Declination in signed µas"),
           resolve     = v => DeclinationModel.Units.Microarcseconds.long.reverseGet(v.value)//.signedMicroarcseconds.get(v.value.toAngle)
