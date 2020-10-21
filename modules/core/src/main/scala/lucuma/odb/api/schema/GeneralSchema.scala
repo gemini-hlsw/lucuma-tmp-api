@@ -4,7 +4,7 @@
 package lucuma.odb.api.schema
 
 import cats.effect.Effect
-import lucuma.odb.api.model.Existence
+import lucuma.odb.api.model.{Existence, PlannedTimeSummaryModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
 import sangria.schema._
@@ -68,4 +68,34 @@ object GeneralSchema {
         )
       )
     )
+
+  def PlannedTimeSummaryType[F[_]](implicit F: Effect[F]): ObjectType[OdbRepo[F], PlannedTimeSummaryModel] =
+    ObjectType(
+      name = "PlannedTimeSummary",
+      fieldsFn = () => fields(
+
+        Field(
+          name        = "pi",
+          fieldType   = DurationType[F],
+          description = Some("The portion of planned time that will be charged"),
+          resolve     = _.value.piTime
+        ),
+
+        Field(
+          name        = "uncharged",
+          fieldType   = DurationType[F],
+          description = Some("The portion of planned time that will not be charged"),
+          resolve     = _.value.unchargedTime
+        ),
+
+        Field(
+          name        = "execution",
+          fieldType   = DurationType[F],
+          description = Some("The total estimated execution time"),
+          resolve     = _.value.executionTime
+        )
+
+      )
+    )
+
 }

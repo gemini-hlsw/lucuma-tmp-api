@@ -14,7 +14,7 @@ import sangria.schema._
 object ObservationSchema {
 
   import AsterismSchema.AsterismType
-  import GeneralSchema.{EnumTypeExistence, ArgumentIncludeDeleted, DurationType}
+  import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, PlannedTimeSummaryType}
   import ProgramSchema.ProgramType
   import TargetSchema.TargetType
   import context._
@@ -102,10 +102,10 @@ object ObservationSchema {
         ),
 
         Field(
-          name        = "duration",
-          fieldType   = DurationType[F],
+          name        = "plannedTime",
+          fieldType   = PlannedTimeSummaryType[F],
           description = Some("Observation planned time calculation."),
-          resolve     = _.value.duration
+          resolve     = _.value.plannedTimeSummary
         )
 
       )

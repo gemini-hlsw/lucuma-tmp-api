@@ -14,16 +14,14 @@ import io.circe.Decoder
 import io.circe.generic.semiauto._
 import monocle.Lens
 
-import scala.concurrent.duration.FiniteDuration
-
 
 final case class ObservationModel(
-  id:         ObservationModel.Id,
-  existence:  Existence,
-  programId:  ProgramModel.Id,
-  name:       Option[String],
-  asterismId: Option[AsterismModel.Id],
-  duration:   FiniteDuration
+  id:                 ObservationModel.Id,
+  existence:          Existence,
+  programId:          ProgramModel.Id,
+  name:               Option[String],
+  asterismId:         Option[AsterismModel.Id],
+  plannedTimeSummary: PlannedTimeSummaryModel
 )
 
 object ObservationModel extends ObservationOptics {
@@ -47,8 +45,8 @@ object ObservationModel extends ObservationOptics {
     asterismId: Option[AsterismModel.Id]
   ) {
 
-    def withId(id: ObservationModel.Id, d: FiniteDuration): ObservationModel =
-      ObservationModel(id, Present, programId, name, asterismId, d)
+    def withId(id: ObservationModel.Id, s: PlannedTimeSummaryModel): ObservationModel =
+      ObservationModel(id, Present, programId, name, asterismId, s)
 
   }
 
