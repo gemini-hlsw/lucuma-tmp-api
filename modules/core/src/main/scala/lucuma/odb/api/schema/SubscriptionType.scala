@@ -12,7 +12,7 @@ import cats.syntax.apply._
 import cats.syntax.eq._
 import cats.syntax.functor._
 import cats.effect.{ConcurrentEffect, Effect}
-import _root_.fs2.Stream
+import fs2.Stream
 import lucuma.odb.api.model.AsterismModel.{AsterismCreatedEvent, AsterismEditedEvent}
 import lucuma.odb.api.model.ObservationModel.{ObservationCreatedEvent, ObservationEditedEvent}
 import lucuma.odb.api.model.ProgramModel.{ProgramCreatedEvent, ProgramEditedEvent}
