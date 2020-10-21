@@ -3,9 +3,13 @@
 
 package lucuma.odb.api.schema
 
+import cats.effect.Effect
 import lucuma.odb.api.model.Existence
+import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
 import sangria.schema._
+
+import scala.concurrent.duration.FiniteDuration
 
 object GeneralSchema {
 
@@ -23,4 +27,45 @@ object GeneralSchema {
       defaultValue = false
     )
 
+  def DurationType[F[_]: Effect]: ObjectType[OdbRepo[F], FiniteDuration] =
+    ObjectType(
+      name     = "Duration",
+      fieldsFn = () => fields(
+
+        Field(
+          name        = "microseconds",
+          fieldType   = LongType,
+          description = Some("Duration in µs"),
+          resolve     = v => v.value.toMicros
+        ),
+
+        Field(
+          name        = "milliseconds",
+          fieldType   = BigDecimalType,
+          description = Some("Duration in ms"),
+          resolve     = v => BigDecimal(v.value.toMicros, 3)
+        ),
+
+        Field(
+          name        = "seconds",
+          fieldType   = BigDecimalType,
+          description = Some("Duration in seconds"),
+          resolve     = v => BigDecimal(v.value.toMicros, 6)
+        ),
+
+        Field(
+          name        = "minutes",
+          fieldType   = BigDecimalType,
+          description = Some("Duration in minutes"),
+          resolve     = v => BigDecimal(v.value.toMicros, 6) / 60
+        ),
+
+        Field(
+          name        = "hours",
+          fieldType   = BigDecimalType,
+          description = Some("Duration in hours"),
+          resolve     = v => BigDecimal(v.value.toMicros, 6) / 3600
+        )
+      )
+    )
 }

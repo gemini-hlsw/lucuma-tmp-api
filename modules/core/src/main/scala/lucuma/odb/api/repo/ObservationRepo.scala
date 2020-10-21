@@ -5,9 +5,12 @@ package lucuma.odb.api.repo
 
 import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, TargetModel}
 import lucuma.odb.api.model.ObservationModel.{ObservationCreatedEvent, ObservationEditedEvent}
-import cats.{Monad, MonadError}
+import cats.effect.Sync
 import cats.effect.concurrent.Ref
 import cats.implicits._
+
+import scala.util.Random
+import scala.concurrent.duration._
 
 sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, ObservationModel.Id, ObservationModel] {
 
@@ -23,10 +26,10 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, ObservationModel.Id, 
 
 object ObservationRepo {
 
-  def create[F[_]: Monad](
+  def create[F[_]](
     tablesRef:    Ref[F, Tables],
     eventService: EventService[F]
-  )(implicit M: MonadError[F, Throwable]): ObservationRepo[F] =
+  )(implicit F: Sync[F]): ObservationRepo[F] =
 
     new TopLevelRepoBase[F, ObservationModel.Id, ObservationModel](
       tablesRef,
@@ -62,13 +65,21 @@ object ObservationRepo {
           }
           .map(deletionFilter(includeDeleted))
 
-      override def insert(newObs: ObservationModel.Create): F[ObservationModel] =
-        modify { t =>
-          lookupProgram(t, newObs.programId).fold(
-            err => (t, err.asLeft[ObservationModel]),
-            _   => createAndInsert(newObs.withId).run(t).value.map(_.asRight)
-          )
-        }
+      override def insert(newObs: ObservationModel.Create): F[ObservationModel] = {
+
+        def construct(d: FiniteDuration): F[ObservationModel] =
+          modify { t =>
+            lookupProgram(t, newObs.programId).fold(
+              err => (t, err.asLeft[ObservationModel]),
+              _   => createAndInsert(newObs.withId(_, d)).run(t).value.map(_.asRight)
+            )
+          }
+
+        for {
+          d <- F.delay(Random.between(5L, 120L)).map(_.minutes)
+          o <- construct(d)
+        } yield o
+      }
 
     }
 }
