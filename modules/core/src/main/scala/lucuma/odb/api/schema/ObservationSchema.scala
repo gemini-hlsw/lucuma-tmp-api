@@ -5,6 +5,7 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.{AsterismModel, ObservationModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
+import lucuma.core.`enum`.ObsStatus
 import cats.implicits._
 import cats.effect.Effect
 import cats.effect.implicits._
@@ -17,10 +18,18 @@ object ObservationSchema {
   import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, PlannedTimeSummaryType}
   import ProgramSchema.ProgramType
   import TargetSchema.TargetType
+
   import context._
+  import syntax.`enum`._
 
   implicit val ObservationIdType: ScalarType[ObservationModel.Id] =
     ObjectIdSchema.idType[ObservationModel.Id](name = "ObservationId")
+
+  implicit val ObsStatusType: EnumType[ObsStatus] =
+    EnumType.fromEnumerated(
+      "ObsStatus",
+      "Observation status options"
+    )
 
   val ObservationIdArgument: Argument[ObservationModel.Id] =
     Argument(
@@ -63,6 +72,20 @@ object ObservationSchema {
         ),
 
         Field(
+          name        = "status",
+          fieldType   = ObsStatusType,
+          description = Some("Observation status"),
+          resolve     = _.value.status
+        ),
+
+        Field(
+          name        = "plannedTime",
+          fieldType   = PlannedTimeSummaryType[F],
+          description = Some("Observation planned time calculation."),
+          resolve     = _.value.plannedTimeSummary
+        ),
+
+        Field(
           name        = "program",
           fieldType   = ProgramType[F],
           description = Some("The program that contains this observation"),
@@ -99,13 +122,6 @@ object ObservationSchema {
             }
             .toIO
             .unsafeToFuture()
-        ),
-
-        Field(
-          name        = "plannedTime",
-          fieldType   = PlannedTimeSummaryType[F],
-          description = Some("Observation planned time calculation."),
-          resolve     = _.value.plannedTimeSummary
         )
 
       )
