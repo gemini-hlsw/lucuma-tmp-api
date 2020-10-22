@@ -49,7 +49,12 @@ object InputError {
    * Indicates that an input contains an id whose referent could not be found.
    */
   def missingReference[A](name: String, value: String): InputError =
-    fromMessage(s"Could not find $name '$value''")
+    fromMessage(s"Could not find $name '$value'")
 
+  /**
+   * Attempt to reuse an id in the creation of a new object.
+   */
+  def idClash[A](name: String, value: String): InputError =
+    fromMessage(s"$name id '$value' is already in use")
 
 }

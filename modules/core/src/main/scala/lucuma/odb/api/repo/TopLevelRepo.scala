@@ -133,9 +133,9 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, ?]](
       mapLens.get(tables).values.toList.filter(f(tables))
     }
 
-  def createAndInsert[U <: T](f: I => U): State[Tables, U] =
+  def createAndInsert[U <: T](id: Option[I], f: I => U): State[Tables, U] =
     for {
-      i <- idLens.mod(BoundedEnumerable[I].cycleNext)
+      i <- id.fold(idLens.mod(BoundedEnumerable[I].cycleNext))(State.pure[Tables, I])
       t  = f(i)
       _ <- mapLens.mod(_ + (i -> t))
     } yield t

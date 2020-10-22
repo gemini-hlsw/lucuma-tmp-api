@@ -61,18 +61,18 @@ object TargetRepo {
           }
         }.map(deletionFilter(includeDeleted))
 
-      def addAndShare(g: Target, pids: Set[ProgramModel.Id]): State[Tables, TargetModel] =
+      def addAndShare(id: Option[TargetModel.Id], g: Target, pids: Set[ProgramModel.Id]): State[Tables, TargetModel] =
         for {
-          t   <- createAndInsert(tid => TargetModel(tid, Present, g))
+          t   <- createAndInsert(id, tid => TargetModel(tid, Present, g))
           _   <- Tables.shareTargetWithPrograms(t, pids)
         } yield t
 
-      private def insertTarget(pids: List[ProgramModel.Id], vt: ValidatedInput[Target]): F[TargetModel] =
+      private def insertTarget(id: Option[TargetModel.Id], pids: List[ProgramModel.Id], vt: ValidatedInput[Target]): F[TargetModel] =
         modify { t =>
           // NOTE: look up all the supplied program ids to make sure they
           // correspond to real programs.  We ignore a successful result though.
-          (vt, pids.traverse(lookupProgram(t, _)))
-            .mapN((g, _) => addAndShare(g, pids.toSet).run(t).value)
+          (vt, dontFindTarget(t, id), pids.traverse(lookupProgram(t, _)))
+            .mapN((g, _, _) => addAndShare(id, g, pids.toSet).run(t).value)
             .fold(
               err => (t, err.asLeft[TargetModel]),
               tup => tup.map(_.asRight)
@@ -80,10 +80,10 @@ object TargetRepo {
         }
 
       override def insertNonsidereal(input: CreateNonsidereal): F[TargetModel] =
-        insertTarget(input.programIds, input.toGemTarget)
+        insertTarget(input.targetId, input.programIds, input.toGemTarget)
 
       override def insertSidereal(input: CreateSidereal): F[TargetModel] =
-        insertTarget(input.programIds, input.toGemTarget)
+        insertTarget(input.targetId, input.programIds, input.toGemTarget)
 
       private def programSharing(
         input: TargetProgramLinks,

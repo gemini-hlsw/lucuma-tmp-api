@@ -57,7 +57,13 @@ object ProgramRepo {
         selectAllFor(tid, _.programTargets, includeDeleted)
 
       override def insert(input: ProgramModel.Create): F[ProgramModel] =
-        tablesRef.modifyState(createAndInsert(pid => ProgramModel(pid, Present, input.name)))
+        modify { t =>
+          dontFindProgram(t, input.programId)
+           .fold(
+             err => (t, err.asLeft[ProgramModel]),
+             _   => createAndInsert(input.programId, pid => ProgramModel(pid, Present, input.name)).run(t).value.map(_.asRight)
+           )
+        }
 
     }
 

@@ -19,16 +19,19 @@ object Init {
     for {
       p  <- repo.program.insert(
               ProgramModel.Create(
+                None,
                 Some("Observing Stars in Constellation Orion for No Particular Reason")
               )
             )
       _  <- repo.program.insert(
               ProgramModel.Create(
+                None,
                 Some("An Empty Placeholder Program")
               )
             )
       t0 <- repo.target.insertSidereal(
               TargetModel.CreateSidereal(
+                None,
                 List(p.id),
                 "Betelgeuse",
                 RightAscensionModel.Input.unsafeFromHms("05:55:10.305"),
@@ -41,6 +44,7 @@ object Init {
             )
       t1 <- repo.target.insertSidereal(
               TargetModel.CreateSidereal(
+                None,
                 List(p.id),
                 "Rigel",
                 RightAscensionModel.Input.unsafeFromHms("05:14:32.272"),
@@ -53,6 +57,7 @@ object Init {
             )
       a0 <- repo.asterism.insert(
               AsterismModel.CreateDefault(
+                None,
                 List(p.id),
                 None,
                 Set(t0.id, t1.id)
@@ -60,6 +65,7 @@ object Init {
             )
       _  <- repo.observation.insert(
               ObservationModel.Create(
+                None,
                 p.id,
                 Some("First Observation"),
                 Some(a0.id)

@@ -70,6 +70,8 @@ object TargetModel extends TargetOptics {
   /**
    * Describes input used to create a nonsidereal target.
    *
+   * @param targetId optional client-provided target id (if not specified one
+   *                 will be created)
    * @param programIds associated program(s), if any (which either exist or
    *                   results in an error)
    * @param name target name
@@ -77,6 +79,7 @@ object TargetModel extends TargetOptics {
    * @param des semi-permanent horizons identifier (relative to key type)
    */
   final case class CreateNonsidereal(
+    targetId:   Option[TargetModel.Id],
     programIds: List[ProgramModel.Id],
     name:       String,
     key:        EphemerisKeyType,
@@ -103,6 +106,8 @@ object TargetModel extends TargetOptics {
   /**
    * Describes input used to create a sidereal target.
    *
+   * @param targetId optional client-provided target id (if not specified one
+   *                 will be created)
    * @param programIds associated program(s), if any (which either exist or results
    *             in an error)
    * @param name target name
@@ -114,6 +119,7 @@ object TargetModel extends TargetOptics {
    * @param parallax parallax
    */
   final case class CreateSidereal(
+    targetId:       Option[TargetModel.Id],
     programIds:     List[ProgramModel.Id],
     name:           String,
     ra:             RightAscensionModel.Input,

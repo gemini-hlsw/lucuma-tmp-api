@@ -41,7 +41,8 @@ object ProgramModel extends ProgramOptics {
    * Program creation input class.
    */
   final case class Create(
-    name: Option[String]
+    programId: Option[ProgramModel.Id],
+    name:      Option[String]
   )
 
   object Create {

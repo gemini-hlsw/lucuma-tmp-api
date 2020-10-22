@@ -40,9 +40,10 @@ object ObservationModel extends ObservationOptics {
     TopLevelModel.instance(_.id, ObservationModel.existence)
 
   final case class Create(
-    programId:  ProgramModel.Id,
-    name:       Option[String],
-    asterismId: Option[AsterismModel.Id]
+    observationId: Option[ObservationModel.Id],
+    programId:     ProgramModel.Id,
+    name:          Option[String],
+    asterismId:    Option[AsterismModel.Id]
   ) {
 
     def withId(id: ObservationModel.Id, s: PlannedTimeSummaryModel): ObservationModel =
