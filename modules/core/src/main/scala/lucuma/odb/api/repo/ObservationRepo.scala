@@ -66,8 +66,9 @@ object ObservationRepo {
 
         def construct(s: PlannedTimeSummaryModel): F[ObservationModel] =
           modify { t =>
-            val existing = dontLookup(t.observations, newObs.observationId, "observation")
-            (existing, lookupProgram(t, newObs.programId))
+            (dontFindObservation(t, newObs.observationId),
+             lookupProgram(t, newObs.programId)
+            )
               .mapN((_, _) => ())
               .fold(
                 err => (t, err.asLeft[ObservationModel]),

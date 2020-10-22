@@ -72,7 +72,7 @@ object AsterismRepo {
 
       override def insert[T <: AsterismModel](input: Create[T]): F[T] =
         modify { t =>
-          val existing = dontLookup(t.asterisms, input.asterismId, "asterism")
+          val existing = dontFindAsterism(t, input.asterismId)
           val targets  = input.targetIds.iterator.toList.traverse(lookupTarget(t, _))
           val programs = input.programIds.traverse(lookupProgram(t, _))
           val asterism = input.withId

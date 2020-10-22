@@ -69,11 +69,9 @@ object TargetRepo {
 
       private def insertTarget(id: Option[TargetModel.Id], pids: List[ProgramModel.Id], vt: ValidatedInput[Target]): F[TargetModel] =
         modify { t =>
-          val existing = dontLookup(t.targets, id, "target")
-
           // NOTE: look up all the supplied program ids to make sure they
           // correspond to real programs.  We ignore a successful result though.
-          (vt, existing, pids.traverse(lookupProgram(t, _)))
+          (vt, dontFindTarget(t, id), pids.traverse(lookupProgram(t, _)))
             .mapN((g, _, _) => addAndShare(id, g, pids.toSet).run(t).value)
             .fold(
               err => (t, err.asLeft[TargetModel]),
