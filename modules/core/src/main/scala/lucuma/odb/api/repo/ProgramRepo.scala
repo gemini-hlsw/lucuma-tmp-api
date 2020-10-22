@@ -57,7 +57,7 @@ object ProgramRepo {
         selectAllFor(tid, _.programTargets, includeDeleted)
 
       override def insert(input: ProgramModel.Create): F[ProgramModel] =
-        tablesRef.modifyState(createAndInsert(pid => ProgramModel(pid, Present, input.name)))
+        tablesRef.modifyState(createAndInsert(input.programId, pid => ProgramModel(pid, Present, input.name)))
 
     }
 

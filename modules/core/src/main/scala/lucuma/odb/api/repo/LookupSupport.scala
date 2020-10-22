@@ -17,6 +17,14 @@ trait LookupSupport[F[_]] {
   def missingReference[I: Gid, T](id: I)(implicit M: MonadError[F, Throwable]): F[T] =
     ExecutionException.missingReference[F, I, T](id)
 
+  /**
+   * Verify that the given id, if defined, does not exist in the map.
+   */
+  def dontLookup[I: Gid, T](m: SortedMap[I, T], id: Option[I], name: String): ValidatedInput[Unit] =
+    id.fold(().validNec[InputError]) { i =>
+      m.get(i).as(InputError.idClash(name, Gid[I].show(i))).toInvalidNec(())
+    }
+
   def lookup[I: Gid, T](m: SortedMap[I, T], id: I, name: String): ValidatedInput[T] =
     m.get(id).toValidNec(InputError.missingReference(name, Gid[I].show(id)))
 

@@ -112,12 +112,14 @@ object AsterismModel extends AsterismOptics {
   }
 
   trait Create[T] {
+    def asterismId: Option[AsterismModel.Id]
     def programIds: List[ProgramModel.Id]  // to share immediately with the indicated programs
     def targetIds:  Set[TargetModel.Id]
     def withId:     ValidatedInput[AsterismModel.Id => T]
   }
 
   final case class CreateDefault(
+    asterismId:   Option[AsterismModel.Id],
     programIds:   List[ProgramModel.Id],
     explicitBase: Option[CoordinatesModel.Input],
     targetIds:    Set[TargetModel.Id]
