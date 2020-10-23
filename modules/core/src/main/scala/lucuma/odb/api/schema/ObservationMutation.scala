@@ -15,7 +15,7 @@ trait ObservationMutation {
 
   import AsterismSchema.AsterismIdType
   import GeneralSchema.EnumTypeExistence
-  import ObservationSchema.{ObservationIdType, ObservationIdArgument, ObservationType}
+  import ObservationSchema.{ObservationIdType, ObservationIdArgument, ObsStatusType, ObservationType}
   import ProgramSchema.ProgramIdType
   import context._
   import syntax.inputobjecttype._

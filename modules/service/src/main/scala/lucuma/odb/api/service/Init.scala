@@ -5,6 +5,7 @@ package lucuma.odb.api.service
 
 import lucuma.odb.api.model._
 import lucuma.odb.api.repo.OdbRepo
+import lucuma.core.`enum`.ObsStatus
 import lucuma.core.math.Epoch
 import cats.effect.Sync
 import cats.syntax.flatMap._
@@ -68,7 +69,8 @@ object Init {
                 None,
                 p.id,
                 Some("First Observation"),
-                Some(a0.id)
+                Some(a0.id),
+                Some(ObsStatus.New)
               )
             )
     } yield ()

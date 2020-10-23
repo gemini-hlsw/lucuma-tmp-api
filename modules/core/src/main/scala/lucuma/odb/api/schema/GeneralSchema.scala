@@ -6,12 +6,13 @@ package lucuma.odb.api.schema
 import cats.effect.Effect
 import lucuma.odb.api.model.{Existence, PlannedTimeSummaryModel}
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.odb.api.schema.syntax.`enum`._
 import sangria.schema._
 
 import scala.concurrent.duration.FiniteDuration
 
 object GeneralSchema {
+
+  import syntax.`enum`._
 
   implicit val EnumTypeExistence: EnumType[Existence] =
     EnumType.fromEnumerated(
