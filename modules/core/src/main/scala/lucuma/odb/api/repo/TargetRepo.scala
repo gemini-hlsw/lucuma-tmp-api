@@ -4,7 +4,7 @@
 package lucuma.odb.api.repo
 
 import lucuma.odb.api.model.{ProgramModel, TargetModel, ValidatedInput}
-import lucuma.odb.api.model.TargetModel.{CreateNonsidereal, CreateSidereal, TargetCreatedEvent, TargetEditedEvent, TargetProgramLinks}
+import lucuma.odb.api.model.TargetModel.{CreateNonsidereal, CreateSidereal, TargetEvent, TargetProgramLinks}
 import lucuma.odb.api.model.Existence._
 import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.core.model.Target
@@ -44,8 +44,7 @@ object TargetRepo {
       eventService,
       Tables.lastTargetId,
       Tables.targets,
-      TargetCreatedEvent.apply,
-      TargetEditedEvent.apply
+      TargetEvent.apply
     ) with TargetRepo[F]
       with LookupSupport[F] {
 

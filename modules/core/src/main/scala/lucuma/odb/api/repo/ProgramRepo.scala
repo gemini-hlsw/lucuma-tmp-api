@@ -4,7 +4,7 @@
 package lucuma.odb.api.repo
 
 import lucuma.odb.api.model.{AsterismModel, ProgramModel, TargetModel}
-import lucuma.odb.api.model.ProgramModel.{ProgramCreatedEvent, ProgramEditedEvent}
+import lucuma.odb.api.model.ProgramModel.ProgramEvent
 import lucuma.odb.api.model.Existence._
 import cats.Monad
 import cats.implicits._
@@ -34,8 +34,7 @@ object ProgramRepo {
       eventService,
       Tables.lastProgramId,
       Tables.programs,
-      ProgramCreatedEvent.apply,
-      ProgramEditedEvent.apply
+      ProgramEvent.apply
     ) with ProgramRepo[F]
       with LookupSupport[F] {
 

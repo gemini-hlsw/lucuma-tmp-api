@@ -207,26 +207,17 @@ object AsterismModel extends AsterismOptics {
       case (_, _)                   => false
     }
 
-  final case class AsterismCreatedEvent (
-    id:    Long,
-    value: AsterismModel,
-  ) extends Event.Created[AsterismModel]
-
-  object AsterismCreatedEvent {
-    def apply(value: AsterismModel)(id: Long): AsterismCreatedEvent =
-      AsterismCreatedEvent(id, value)
-  }
-
-  final case class AsterismEditedEvent (
+  final case class AsterismEvent (
     id:       Long,
-    oldValue: AsterismModel,
-    newValue: AsterismModel
-  ) extends Event.Edited[AsterismModel]
+    editType: Event.EditType,
+    value:    AsterismModel,
+  ) extends Event.Edit[AsterismModel]
 
-  object AsterismEditedEvent {
-    def apply(oldValue: AsterismModel, newValue: AsterismModel)(id: Long): AsterismEditedEvent =
-      AsterismEditedEvent(id, oldValue, newValue)
+  object AsterismEvent {
+    def apply(editType: Event.EditType, value: AsterismModel)(id: Long): AsterismEvent =
+      AsterismEvent(id, editType, value)
   }
+
 }
 
 trait AsterismOptics { self: AsterismModel.type =>

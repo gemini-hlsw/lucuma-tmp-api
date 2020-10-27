@@ -13,10 +13,10 @@ import cats.syntax.eq._
 import cats.syntax.functor._
 import cats.effect.{ConcurrentEffect, Effect}
 import fs2.Stream
-import lucuma.odb.api.model.AsterismModel.{AsterismCreatedEvent, AsterismEditedEvent}
-import lucuma.odb.api.model.ObservationModel.{ObservationCreatedEvent, ObservationEditedEvent}
-import lucuma.odb.api.model.ProgramModel.{ProgramCreatedEvent, ProgramEditedEvent}
-import lucuma.odb.api.model.TargetModel.{TargetCreatedEvent, TargetEditedEvent}
+import lucuma.odb.api.model.AsterismModel.AsterismEvent
+import lucuma.odb.api.model.ObservationModel.ObservationEvent
+import lucuma.odb.api.model.ProgramModel.ProgramEvent
+import lucuma.odb.api.model.TargetModel.TargetEvent
 import sangria.schema._
 import sangria.streaming.SubscriptionStream
 import sangria.streaming.SubscriptionStreamLike._
@@ -30,6 +30,7 @@ object SubscriptionType {
   import ObservationSchema.OptionalObservationIdArgument
   import ProgramSchema.OptionalProgramIdArgument
   import TargetSchema.OptionalTargetIdArgument
+  import syntax.`enum`._
   import context._
 
   implicit def asterismType[F[_]: Effect]: InterfaceType[OdbRepo[F], AsterismModel] =
@@ -44,6 +45,12 @@ object SubscriptionType {
   implicit def targetType[F[_]: Effect]: ObjectType[OdbRepo[F], TargetModel] =
     TargetSchema.TargetType[F]
 
+  implicit val EditTypeEnum: EnumType[Event.EditType] =
+    EnumType.fromEnumerated(
+      "EditType",
+      "Type of edit that triggered an event"
+    )
+
   def EventType[F[_]: Effect]: InterfaceType[OdbRepo[F], Event]  =
     InterfaceType[OdbRepo[F], Event](
       "Event",
@@ -53,43 +60,27 @@ object SubscriptionType {
       )
     )
 
-  def CreatedEventType[F[_]: Effect, T: OutputType, E <: Event.Created[T]: ClassTag](
+  def EditEventType[F[_]: Effect, T: OutputType, E <: Event.Edit[T]: ClassTag](
     name: String
   ): ObjectType[OdbRepo[F], E] =
     ObjectType[OdbRepo[F], E](
       name        = name,
-      description = "Event sent when a new object is created",
+      description = "Event sent when a new object is created or updated",
       interfaces  = List(PossibleInterface.apply[OdbRepo[F], E](EventType)),
       fields      = fields[OdbRepo[F], E](
-        Field(
-          name        = "value",
-          fieldType   = implicitly[OutputType[T]],
-          description = Some("Newly created object"),
-          resolve     = _.value.value
-        )
-      )
-    )
 
-  def EditedEventType[F[_]: Effect, T: OutputType, E <: Event.Edited[T]: ClassTag](
-    name: String
-  ): ObjectType[OdbRepo[F], E] =
-    ObjectType[OdbRepo[F], E](
-      name        = name,
-      description = "Event sent when an object is edited",
-      interfaces  = List(PossibleInterface.apply[OdbRepo[F], E](EventType)),
-      fields      = fields[OdbRepo[F], E](
         Field(
-          name        = "oldValue",
-          fieldType   = implicitly[OutputType[T]],
-          description = Some("Previous value of the edited object"),
-          resolve     = _.value.oldValue
+          name        = "editType",
+          fieldType   = EditTypeEnum,
+          description = Some("Type of edit"),
+          resolve     = _.value.editType
         ),
 
         Field(
-          name        = "newValue",
+          name        = "value",
           fieldType   = implicitly[OutputType[T]],
-          description = Some("Updated value of the edited object"),
-          resolve     = _.value.newValue
+          description = Some("Edited object"),
+          resolve     = _.value.value
         )
       )
     )
@@ -135,19 +126,7 @@ object SubscriptionType {
       pidsExtractor(c, e).map(_.contains(pid))
     }
 
-  private def createdField[F[_]: ConcurrentEffect, T: OutputType, E <: Event.Created[T]: ClassTag](
-    name: String
-  )(
-    pids: (Context[OdbRepo[F], Unit], E) => F[Set[ProgramModel.Id]]
-  ): Field[OdbRepo[F], Unit] =
-    subscriptionField[F, E](
-      s"${name}Created",
-      s"Subscribes to an event that is generated whenever a(n) $name associated with the provided program id is created",
-      CreatedEventType[F, T, E](s"${name.capitalize}Created"),
-      List(OptionalProgramIdArgument)
-    )(pidMatcher(pids))
-
-  private def editedField[F[_]: ConcurrentEffect, I: Eq, T: OutputType, E <: Event.Edited[T]: ClassTag](
+  private def editedField[F[_]: ConcurrentEffect, I: Eq, T: OutputType, E <: Event.Edit[T]: ClassTag](
     name:  String,
     idArg: Argument[Option[I]],
     id:    E => I
@@ -155,15 +134,15 @@ object SubscriptionType {
     pids: (Context[OdbRepo[F], Unit], E) => F[Set[ProgramModel.Id]]
   ): Field[OdbRepo[F], Unit] =
     subscriptionField[F, E](
-      s"${name}Edited",
+      s"${name}Edit",
       s"""
          |Subscribes to an event that is generated whenever a(n) $name is
-         |edited.  If a(n) $name id is provided, the even is only generated
-         |for edits to that particular $name.  If a program id is provided
-         |then the event must correspond to a(n) $name referenced by that
-         |program.
+         |created or updated.  If a(n) $name id is provided, the event is only
+         |generated for edits to that particular $name.  If a program id is
+         |provided then the event must correspond to a(n) $name referenced by
+         |that program.
          |""".stripMargin,
-      EditedEventType[F, T, E](s"${name.capitalize}Edited"),
+      EditEventType[F, T, E](s"${name.capitalize}Edit"),
       List(idArg, OptionalProgramIdArgument)
     ) { (c, e) =>
       (c.arg(idArg).forall(_ === id(e)).pure[F], pidMatcher(pids).apply(c, e))
@@ -180,62 +159,37 @@ object SubscriptionType {
     ObjectType(
       name   = "Subscription",
       fields = fields(
-        createdField[F, AsterismModel, AsterismCreatedEvent]("asterism") { (c, e) =>
-          programsForAsterism(c, e.value.id)
-        },
 
-        createdField[F, ObservationModel, ObservationCreatedEvent]("observation") { (_, e) =>
-          Set(e.value.programId).pure[F]
-        },
-
-        // ProgramCreatedEvent handled differently for now.  If we reserve
-        // program ids ahead of time and use them in creation then it might
-        // make sense to pass the id to the subscription.  If not, then we don't
-        // know the program id ahead of time.
-        subscriptionField[F, ProgramCreatedEvent](
-          "programCreated",
-          "Subscribes to an event that is generated whenever a program is created",
-          CreatedEventType[F, ProgramModel, ProgramCreatedEvent]("ProgramCreated"),
-          Nil
-        )((_,_) => true.pure[F]),
-
-        createdField[F, TargetModel, TargetCreatedEvent]("target") { (c, e) =>
-          programsForTarget(c, e.value.id)
-        },
-
-        editedField[F, AsterismModel.Id, AsterismModel, AsterismEditedEvent](
+        editedField[F, AsterismModel.Id, AsterismModel, AsterismEvent](
           "asterism",
           OptionalAsterismIdArgument,
-          _.newValue.id
-        ) { (c, e) => programsForAsterism(c, e.newValue.id) },
+          _.value.id
+        ) { (c, e) => programsForAsterism(c, e.value.id) },
 
-        editedField[F, ObservationModel.Id, ObservationModel, ObservationEditedEvent](
+        editedField[F, ObservationModel.Id, ObservationModel, ObservationEvent](
           "observation",
           OptionalObservationIdArgument,
-          _.newValue.id
-        ) { (_, e) => Set(e.newValue.programId).pure[F] },
+          _.value.id
+        ) { (_, e) => Set(e.value.programId).pure[F] },
 
-        // ProgramEditedEvent handled differently.  It would not make sense to
+        // ProgramEvent handled differently.  It would not make sense to
         // filter on program id twice.
-        subscriptionField[F, ProgramEditedEvent](
-          "programEdited",
+        subscriptionField[F, ProgramEvent](
+          "programEdit",
           """
-            |Subscribes to an event that is generated whenever a program |is edited.
-            |A particular program id may be provided to limit events to that program.
+            |Subscribes to an event that is generated whenever a program is created
+            |or edited. A particular program id may be provided to limit events to
+            |that program.
             |""".stripMargin,
-          EditedEventType[F, ProgramModel, ProgramEditedEvent]("program"),
+          EditEventType[F, ProgramModel, ProgramEvent]("ProgramEdit"),
           List(OptionalProgramIdArgument)
-        ) { (c, e) =>
-          c.optionalProgramId.fold(true) { pid =>
-            Set(e.newValue.id).contains(pid)
-          }.pure[F]
-        },
+        ) { (c, e) => c.optionalProgramId.fold(true)(_ === e.value.id).pure[F] },
 
-        editedField[F, TargetModel.Id, TargetModel, TargetEditedEvent](
+        editedField[F, TargetModel.Id, TargetModel, TargetEvent](
           "target",
           OptionalTargetIdArgument,
-          _.newValue.id
-        ) { (c, e) => programsForTarget(c, e.newValue.id) }
+          _.value.id
+        ) { (c, e) => programsForTarget(c, e.value.id) }
       )
     )
   }

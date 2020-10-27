@@ -4,7 +4,7 @@
 package lucuma.odb.api.repo
 
 import lucuma.odb.api.model.{AsterismModel, ProgramModel, TargetModel}
-import lucuma.odb.api.model.AsterismModel.{AsterismCreatedEvent, AsterismEditedEvent, AsterismProgramLinks, Create}
+import lucuma.odb.api.model.AsterismModel.{AsterismEvent, AsterismProgramLinks, Create}
 import lucuma.odb.api.model.syntax.validatedinput._
 import cats._
 import cats.data.State
@@ -42,8 +42,7 @@ object AsterismRepo {
       eventService,
       Tables.lastAsterismId,
       Tables.asterisms,
-      AsterismCreatedEvent.apply,
-      AsterismEditedEvent.apply
+      AsterismEvent.apply
     ) with AsterismRepo[F]
       with LookupSupport[F] {
 

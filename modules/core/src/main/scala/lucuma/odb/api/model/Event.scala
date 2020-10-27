@@ -3,6 +3,8 @@
 
 package lucuma.odb.api.model
 
+import lucuma.core.util.Enumerated
+
 trait Event {
   def id: Long
 }
@@ -17,14 +19,19 @@ object Event {
   def initialize: Event =
     Initialize
 
+  sealed trait EditType extends Product with Serializable
 
-  trait Created[T] extends Event {
-    def value: T
+  object EditType {
+    case object Created extends EditType
+    case object Updated extends EditType
+
+    implicit val EnumeratedEditType: Enumerated[EditType] =
+      Enumerated.of(Created, Updated)
   }
 
-  trait Edited[T] extends Event {
-    def oldValue: T
-    def newValue: T
+  trait Edit[T] extends Event {
+    def editType: EditType
+    def value: T
   }
 
 }

@@ -4,7 +4,7 @@
 package lucuma.odb.api.repo
 
 import lucuma.odb.api.model.{AsterismModel, ObservationModel, PlannedTimeSummaryModel, ProgramModel, TargetModel}
-import lucuma.odb.api.model.ObservationModel.{ObservationCreatedEvent, ObservationEditedEvent}
+import lucuma.odb.api.model.ObservationModel.ObservationEvent
 import cats.effect.Sync
 import cats.effect.concurrent.Ref
 import cats.implicits._
@@ -33,8 +33,7 @@ object ObservationRepo {
       eventService,
       Tables.lastObservationId,
       Tables.observations,
-      ObservationCreatedEvent.apply,
-      ObservationEditedEvent.apply
+      ObservationEvent.apply
     ) with ObservationRepo[F]
       with LookupSupport[F] {
 

@@ -235,25 +235,15 @@ object TargetModel extends TargetOptics {
 
   }
 
-  final case class TargetCreatedEvent (
-    id:    Long,
-    value: TargetModel,
-  ) extends Event.Created[TargetModel]
-
-  object TargetCreatedEvent {
-    def apply(value: TargetModel)(id: Long): TargetCreatedEvent =
-      TargetCreatedEvent(id, value)
-  }
-
-  final case class TargetEditedEvent (
+  final case class TargetEvent (
     id:       Long,
-    oldValue: TargetModel,
-    newValue: TargetModel
-  ) extends Event.Edited[TargetModel]
+    editType: Event.EditType,
+    value:    TargetModel,
+  ) extends Event.Edit[TargetModel]
 
-  object TargetEditedEvent {
-    def apply(oldValue: TargetModel, newValue: TargetModel)(id: Long): TargetEditedEvent =
-      TargetEditedEvent(id, oldValue, newValue)
+  object TargetEvent {
+    def apply(editType: Event.EditType, value: TargetModel)(id: Long): TargetEvent =
+      TargetEvent(id, editType, value)
   }
 
 }

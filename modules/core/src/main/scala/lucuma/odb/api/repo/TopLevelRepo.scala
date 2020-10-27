@@ -97,8 +97,7 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, ?]](
   eventService: EventService[F],
   idLens:       Lens[Tables, I],
   mapLens:      Lens[Tables, SortedMap[I, T]],
-  created:      T => Long => Event.Created[T],
-  edited:       (T, T) => Long => Event.Edited[T]
+  edited:       (Event.EditType, T) => Long => Event.Edit[T]
 )(implicit M: MonadError[F, Throwable]) extends TopLevelRepo[F, I, T] {
 
   def nextId: F[I] =
@@ -148,7 +147,7 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, ?]](
 
     for {
       u <- fu
-      _ <- eventService.publish(created(u))
+      _ <- eventService.publish(edited(Event.EditType.Created, u))
     } yield u
   }
 
@@ -165,25 +164,24 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, ?]](
     val lens: Lens[Tables, Option[U]] =
       Lens[Tables, Option[U]](lensT.get(_).flatMap(f.unapply))(ou => lensT.set(ou))
 
-    val doUpdate: F[(U, U)] =
+    val doUpdate: F[U] =
       tablesRef.modify { oldTables =>
 
         val item   = lens.get(oldTables).toValidNec(InputError.missingReference("id", Gid[I].show(id)))
         val errors = NonEmptyChain.fromSeq(checks(oldTables))
         val result = (item, editor, errors.toInvalid(())).mapN { (oldU, state, _) =>
-          (oldU, state.runS(oldU).value)
+          state.runS(oldU).value
         }
 
-        val tables = result.fold(_ => oldTables, { case (_, newU) => lens.set(Some(newU))(oldTables) })
+        val tables = result.fold(_ => oldTables, { newU => lens.set(Some(newU))(oldTables) })
 
         (tables, result)
       }.flatMap(_.liftTo[F])
 
     for {
       u <- doUpdate
-      (o, n) = u
-      _ <- eventService.publish(edited(o, n))
-    } yield n
+      _ <- eventService.publish(edited(Event.EditType.Updated, u))
+    } yield u
 
   }
 
