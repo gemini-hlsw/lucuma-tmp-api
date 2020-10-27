@@ -4,16 +4,16 @@
 package lucuma.odb.api.repo
 
 import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, TargetModel}
-
 import cats.data.State
 import cats.kernel.BoundedEnumerable
 import cats.instances.order._
 import cats.syntax.functor._
+import lucuma.core.util.Gid
 import monocle.Lens
 import monocle.function.At
 import monocle.state.all._
 
-import scala.collection.immutable.{SortedMap,TreeMap}
+import scala.collection.immutable.{SortedMap, TreeMap}
 
 /**
  * Simplistic immutable database "tables" of top-level types keyed by Id.
@@ -90,7 +90,6 @@ sealed trait TableOptics { self: Tables.type =>
   def target(tid: TargetModel.Id): Lens[Tables, Option[TargetModel]] =
     targets ^|-> At.at(tid)
 
-
   val programAsterisms: Lens[Tables, ManyToMany[ProgramModel.Id, AsterismModel.Id]] =
     Lens[Tables, ManyToMany[ProgramModel.Id, AsterismModel.Id]](_.programAsterisms)(b => a => a.copy(programAsterisms = b))
 
@@ -134,5 +133,14 @@ sealed trait TableState { self: Tables.type =>
 
   def unshareTargetAll(tid: TargetModel.Id): State[Tables, Unit] =
     programTargets.mod_(_.removeRight(tid))
+
+  private def retrieve[I: Gid, T](name: String, id: I, lens: I => Lens[Tables, Option[T]]): State[Tables, T] =
+    lens(id).st.map(_.getOrElse(throw ExecutionException(s"missing $name reference: ${Gid[I].show(id)}")))
+
+  def retrieveAsterism(aid: AsterismModel.Id): State[Tables, AsterismModel] =
+    retrieve("asterism", aid, Tables.asterism)
+
+  def retrieveObservation(oid: ObservationModel.Id): State[Tables, ObservationModel] =
+    retrieve("observation", oid, Tables.observation)
 
 }

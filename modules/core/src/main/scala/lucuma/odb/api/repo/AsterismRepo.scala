@@ -43,7 +43,7 @@ object AsterismRepo {
       Tables.asterisms,
       AsterismEvent.apply
     ) with AsterismRepo[F]
-      with LookupSupport[F] {
+      with LookupSupport {
 
       override def selectAllForProgram(pid: ProgramModel.Id, includeDeleted: Boolean): F[List[AsterismModel]] =
         tablesRef.get.map { t =>

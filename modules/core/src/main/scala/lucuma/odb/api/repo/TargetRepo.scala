@@ -45,7 +45,7 @@ object TargetRepo {
       Tables.targets,
       TargetEvent.apply
     ) with TargetRepo[F]
-      with LookupSupport[F] {
+      with LookupSupport {
 
       override def selectAllForProgram(
         pid:            ProgramModel.Id,
@@ -54,7 +54,7 @@ object TargetRepo {
         tablesRef.get.flatMap { tables =>
           tables.programTargets.selectRight(pid).toList.traverse { tid =>
             tables.targets.get(tid).fold(
-              missingReference[TargetModel.Id, TargetModel](tid)
+              missingReference[F, TargetModel.Id, TargetModel](tid)
             )(M.pure)
           }
         }.map(deletionFilter(includeDeleted))

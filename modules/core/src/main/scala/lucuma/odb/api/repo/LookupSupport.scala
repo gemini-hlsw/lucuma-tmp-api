@@ -12,9 +12,9 @@ import cats.implicits._
 
 import scala.collection.immutable.SortedMap
 
-trait LookupSupport[F[_]] {
+trait LookupSupport {
 
-  def missingReference[I: Gid, T](id: I)(implicit M: MonadError[F, Throwable]): F[T] =
+  def missingReference[F[_], I: Gid, T](id: I)(implicit M: MonadError[F, Throwable]): F[T] =
     ExecutionException.missingReference[F, I, T](id)
 
   def lookup[I: Gid, T](m: SortedMap[I, T], id: I, name: String): ValidatedInput[T] =
@@ -65,3 +65,5 @@ trait LookupSupport[F[_]] {
     State.inspect(lookupTarget(_, tid))
 
 }
+
+object LookupSupport extends LookupSupport

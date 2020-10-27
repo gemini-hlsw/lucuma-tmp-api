@@ -35,7 +35,7 @@ object ObservationRepo {
       Tables.observations,
       ObservationEvent.apply
     ) with ObservationRepo[F]
-      with LookupSupport[F] {
+      with LookupSupport {
 
       override def selectAllForAsterism(aid: AsterismModel.Id, includeDeleted: Boolean): F[List[ObservationModel]] =
         tablesRef

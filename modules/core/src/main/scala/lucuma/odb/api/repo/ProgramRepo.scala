@@ -36,7 +36,7 @@ object ProgramRepo {
       Tables.programs,
       ProgramEvent.apply
     ) with ProgramRepo[F]
-      with LookupSupport[F] {
+      with LookupSupport {
 
       private def selectAllFor[I](
         id:             I,
@@ -45,7 +45,7 @@ object ProgramRepo {
       ): F[List[ProgramModel]] =
         tablesRef.get.flatMap { tables =>
           f(tables).selectLeft(id).toList.traverse { pid =>
-            tables.programs.get(pid).fold(missingReference[ProgramModel.Id, ProgramModel](pid))(M.pure)
+            tables.programs.get(pid).fold(missingReference[F, ProgramModel.Id, ProgramModel](pid))(M.pure)
           }
         }.map(deletionFilter(includeDeleted))
 
