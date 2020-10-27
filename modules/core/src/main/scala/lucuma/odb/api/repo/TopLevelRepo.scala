@@ -12,6 +12,7 @@ import cats.data._
 import cats.effect.concurrent.Ref
 import cats.syntax.apply._
 import cats.syntax.applicative._
+import cats.syntax.either._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.functorFilter._
@@ -97,8 +98,7 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, ?]](
   eventService: EventService[F],
   idLens:       Lens[Tables, I],
   mapLens:      Lens[Tables, SortedMap[I, T]],
-  created:      T => Long => Event.Created[T],
-  edited:       (T, T) => Long => Event.Edited[T]
+  edited:       (Event.EditType, T) => Long => Event.Edit[T]
 )(implicit M: MonadError[F, Throwable]) extends TopLevelRepo[F, I, T] {
 
   def nextId: F[I] =
@@ -133,24 +133,31 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, ?]](
       mapLens.get(tables).values.toList.filter(f(tables))
     }
 
+  def constructAndPublish[U <: T](
+    cons: Tables => ValidatedInput[State[Tables, U]]
+  ): F[U] = {
+    val fu = tablesRef.modify { tables =>
+      cons(tables).fold(
+        err => (tables, err.asLeft[U]),
+        st  => st.run(tables).value.map(_.asRight)
+      )
+    }.flatMap {
+      case Left(err) => M.raiseError[U](InputError.Exception(err))
+      case Right(u)  => M.pure(u)
+    }
+
+    for {
+      u <- fu
+      _ <- eventService.publish(edited(Event.EditType.Created, u))
+    } yield u
+  }
+
   def createAndInsert[U <: T](id: Option[I], f: I => U): State[Tables, U] =
     for {
       i <- id.fold(idLens.mod(BoundedEnumerable[I].cycleNext))(State.pure[Tables, I])
       t  = f(i)
       _ <- mapLens.mod(_ + (i -> t))
     } yield t
-
-  def modify[U <: T](f: Tables => (Tables, EitherNec[InputError, U])): F[U] = {
-    val fu: F[U] = tablesRef.modify(f).flatMap {
-      case Left(err) => M.raiseError(InputError.Exception(err))
-      case Right(u)  => M.pure(u)
-    }
-
-    for {
-      u <- fu
-      _ <- eventService.publish(created(u))
-    } yield u
-  }
 
   override def editSub[U <: T](
     id:     I,
@@ -165,25 +172,24 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, ?]](
     val lens: Lens[Tables, Option[U]] =
       Lens[Tables, Option[U]](lensT.get(_).flatMap(f.unapply))(ou => lensT.set(ou))
 
-    val doUpdate: F[(U, U)] =
+    val doUpdate: F[U] =
       tablesRef.modify { oldTables =>
 
         val item   = lens.get(oldTables).toValidNec(InputError.missingReference("id", Gid[I].show(id)))
         val errors = NonEmptyChain.fromSeq(checks(oldTables))
         val result = (item, editor, errors.toInvalid(())).mapN { (oldU, state, _) =>
-          (oldU, state.runS(oldU).value)
+          state.runS(oldU).value
         }
 
-        val tables = result.fold(_ => oldTables, { case (_, newU) => lens.set(Some(newU))(oldTables) })
+        val tables = result.fold(_ => oldTables, { newU => lens.set(Some(newU))(oldTables) })
 
         (tables, result)
       }.flatMap(_.liftTo[F])
 
     for {
       u <- doUpdate
-      (o, n) = u
-      _ <- eventService.publish(edited(o, n))
-    } yield n
+      _ <- eventService.publish(edited(Event.EditType.Updated, u))
+    } yield u
 
   }
 

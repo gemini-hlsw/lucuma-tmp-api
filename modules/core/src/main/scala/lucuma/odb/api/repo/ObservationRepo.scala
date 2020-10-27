@@ -4,7 +4,7 @@
 package lucuma.odb.api.repo
 
 import lucuma.odb.api.model.{AsterismModel, ObservationModel, PlannedTimeSummaryModel, ProgramModel, TargetModel}
-import lucuma.odb.api.model.ObservationModel.{ObservationCreatedEvent, ObservationEditedEvent}
+import lucuma.odb.api.model.ObservationModel.ObservationEvent
 import cats.effect.Sync
 import cats.effect.concurrent.Ref
 import cats.implicits._
@@ -33,8 +33,7 @@ object ObservationRepo {
       eventService,
       Tables.lastObservationId,
       Tables.observations,
-      ObservationCreatedEvent.apply,
-      ObservationEditedEvent.apply
+      ObservationEvent.apply
     ) with ObservationRepo[F]
       with LookupSupport[F] {
 
@@ -65,15 +64,9 @@ object ObservationRepo {
       override def insert(newObs: ObservationModel.Create): F[ObservationModel] = {
 
         def construct(s: PlannedTimeSummaryModel): F[ObservationModel] =
-          modify { t =>
-            (dontFindObservation(t, newObs.observationId),
-             lookupProgram(t, newObs.programId)
-            )
-              .mapN((_, _) => ())
-              .fold(
-                err => (t, err.asLeft[ObservationModel]),
-                _   => createAndInsert(newObs.observationId, newObs.withId(_, s)).run(t).value.map(_.asRight)
-              )
+          constructAndPublish { t =>
+            (dontFindObservation(t, newObs.observationId) *> lookupProgram(t, newObs.programId))
+              .as(createAndInsert(newObs.observationId, newObs.withId(_, s)))
           }
 
         for {

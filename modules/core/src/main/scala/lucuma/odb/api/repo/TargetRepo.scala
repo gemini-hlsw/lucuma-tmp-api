@@ -4,7 +4,7 @@
 package lucuma.odb.api.repo
 
 import lucuma.odb.api.model.{ProgramModel, TargetModel, ValidatedInput}
-import lucuma.odb.api.model.TargetModel.{CreateNonsidereal, CreateSidereal, TargetCreatedEvent, TargetEditedEvent, TargetProgramLinks}
+import lucuma.odb.api.model.TargetModel.{CreateNonsidereal, CreateSidereal, TargetEvent, TargetProgramLinks}
 import lucuma.odb.api.model.Existence._
 import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.core.model.Target
@@ -12,7 +12,6 @@ import cats._
 import cats.data.State
 import cats.effect.concurrent.Ref
 import cats.syntax.apply._
-import cats.syntax.either._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
@@ -44,8 +43,7 @@ object TargetRepo {
       eventService,
       Tables.lastTargetId,
       Tables.targets,
-      TargetCreatedEvent.apply,
-      TargetEditedEvent.apply
+      TargetEvent.apply
     ) with TargetRepo[F]
       with LookupSupport[F] {
 
@@ -68,15 +66,10 @@ object TargetRepo {
         } yield t
 
       private def insertTarget(id: Option[TargetModel.Id], pids: List[ProgramModel.Id], vt: ValidatedInput[Target]): F[TargetModel] =
-        modify { t =>
-          // NOTE: look up all the supplied program ids to make sure they
-          // correspond to real programs.  We ignore a successful result though.
-          (vt, dontFindTarget(t, id), pids.traverse(lookupProgram(t, _)))
-            .mapN((g, _, _) => addAndShare(id, g, pids.toSet).run(t).value)
-            .fold(
-              err => (t, err.asLeft[TargetModel]),
-              tup => tup.map(_.asRight)
-            )
+        constructAndPublish { t =>
+          (vt, dontFindTarget(t, id), pids.traverse(lookupProgram(t, _))).mapN((g, _, _) =>
+            addAndShare(id, g, pids.toSet)
+          )
         }
 
       override def insertNonsidereal(input: CreateNonsidereal): F[TargetModel] =

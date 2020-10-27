@@ -52,25 +52,15 @@ object ProgramModel extends ProgramOptics {
 
   }
 
-  final case class ProgramCreatedEvent (
-    id:    Long,
-    value: ProgramModel,
-  ) extends Event.Created[ProgramModel]
-
-  object ProgramCreatedEvent {
-    def apply(value: ProgramModel)(id: Long): ProgramCreatedEvent =
-      ProgramCreatedEvent(id, value)
-  }
-
-  final case class ProgramEditedEvent (
+  final case class ProgramEvent (
     id:       Long,
-    oldValue: ProgramModel,
-    newValue: ProgramModel
-  ) extends Event.Edited[ProgramModel]
+    editType: Event.EditType,
+    value:    ProgramModel,
+  ) extends Event.Edit[ProgramModel]
 
-  object ProgramEditedEvent {
-    def apply(oldValue: ProgramModel, newValue: ProgramModel)(id: Long): ProgramEditedEvent =
-      ProgramEditedEvent(id, oldValue, newValue)
+  object ProgramEvent {
+    def apply(editType: Event.EditType, value: ProgramModel)(id: Long): ProgramEvent =
+      ProgramEvent(id, editType, value)
   }
 
 

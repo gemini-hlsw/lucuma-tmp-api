@@ -97,27 +97,16 @@ object ObservationModel extends ObservationOptics {
 
   }
 
-  final case class ObservationCreatedEvent (
-    id:    Long,
-    value: ObservationModel,
-  ) extends Event.Created[ObservationModel]
-
-  object ObservationCreatedEvent {
-    def apply(value: ObservationModel)(id: Long): ObservationCreatedEvent =
-      ObservationCreatedEvent(id, value)
-  }
-
-  final case class ObservationEditedEvent (
+  final case class ObservationEvent (
     id:       Long,
-    oldValue: ObservationModel,
-    newValue: ObservationModel
-  ) extends Event.Edited[ObservationModel]
+    editType: Event.EditType,
+    value:    ObservationModel,
+  ) extends Event.Edit[ObservationModel]
 
-  object ObservationEditedEvent {
-    def apply(oldValue: ObservationModel, newValue: ObservationModel)(id: Long): ObservationEditedEvent =
-      ObservationEditedEvent(id, oldValue, newValue)
+  object ObservationEvent {
+    def apply(editType: Event.EditType, value: ObservationModel)(id: Long): ObservationEvent =
+      ObservationEvent(id, editType, value)
   }
-
 
 }
 

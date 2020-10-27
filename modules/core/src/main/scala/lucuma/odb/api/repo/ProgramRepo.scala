@@ -4,7 +4,7 @@
 package lucuma.odb.api.repo
 
 import lucuma.odb.api.model.{AsterismModel, ProgramModel, TargetModel}
-import lucuma.odb.api.model.ProgramModel.{ProgramCreatedEvent, ProgramEditedEvent}
+import lucuma.odb.api.model.ProgramModel.ProgramEvent
 import lucuma.odb.api.model.Existence._
 import cats.Monad
 import cats.implicits._
@@ -34,8 +34,7 @@ object ProgramRepo {
       eventService,
       Tables.lastProgramId,
       Tables.programs,
-      ProgramCreatedEvent.apply,
-      ProgramEditedEvent.apply
+      ProgramEvent.apply
     ) with ProgramRepo[F]
       with LookupSupport[F] {
 
@@ -57,12 +56,10 @@ object ProgramRepo {
         selectAllFor(tid, _.programTargets, includeDeleted)
 
       override def insert(input: ProgramModel.Create): F[ProgramModel] =
-        modify { t =>
-          dontFindProgram(t, input.programId)
-           .fold(
-             err => (t, err.asLeft[ProgramModel]),
-             _   => createAndInsert(input.programId, pid => ProgramModel(pid, Present, input.name)).run(t).value.map(_.asRight)
-           )
+        constructAndPublish { t =>
+          dontFindProgram(t, input.programId).as(
+            createAndInsert(input.programId, ProgramModel(_, Present, input.name))
+          )
         }
 
     }
