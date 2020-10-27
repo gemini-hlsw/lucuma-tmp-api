@@ -12,6 +12,7 @@ import cats.data._
 import cats.effect.concurrent.Ref
 import cats.syntax.apply._
 import cats.syntax.applicative._
+import cats.syntax.either._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.functorFilter._
@@ -132,16 +133,16 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, ?]](
       mapLens.get(tables).values.toList.filter(f(tables))
     }
 
-  def createAndInsert[U <: T](id: Option[I], f: I => U): State[Tables, U] =
-    for {
-      i <- id.fold(idLens.mod(BoundedEnumerable[I].cycleNext))(State.pure[Tables, I])
-      t  = f(i)
-      _ <- mapLens.mod(_ + (i -> t))
-    } yield t
-
-  def modify[U <: T](f: Tables => (Tables, EitherNec[InputError, U])): F[U] = {
-    val fu: F[U] = tablesRef.modify(f).flatMap {
-      case Left(err) => M.raiseError(InputError.Exception(err))
+  def constructAndPublish[U <: T](
+    cons: Tables => ValidatedInput[State[Tables, U]]
+  ): F[U] = {
+    val fu = tablesRef.modify { tables =>
+      cons(tables).fold(
+        err => (tables, err.asLeft[U]),
+        st  => st.run(tables).value.map(_.asRight)
+      )
+    }.flatMap {
+      case Left(err) => M.raiseError[U](InputError.Exception(err))
       case Right(u)  => M.pure(u)
     }
 
@@ -150,6 +151,13 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, ?]](
       _ <- eventService.publish(edited(Event.EditType.Created, u))
     } yield u
   }
+
+  def createAndInsert[U <: T](id: Option[I], f: I => U): State[Tables, U] =
+    for {
+      i <- id.fold(idLens.mod(BoundedEnumerable[I].cycleNext))(State.pure[Tables, I])
+      t  = f(i)
+      _ <- mapLens.mod(_ + (i -> t))
+    } yield t
 
   override def editSub[U <: T](
     id:     I,

@@ -64,15 +64,9 @@ object ObservationRepo {
       override def insert(newObs: ObservationModel.Create): F[ObservationModel] = {
 
         def construct(s: PlannedTimeSummaryModel): F[ObservationModel] =
-          modify { t =>
-            (dontFindObservation(t, newObs.observationId),
-             lookupProgram(t, newObs.programId)
-            )
-              .mapN((_, _) => ())
-              .fold(
-                err => (t, err.asLeft[ObservationModel]),
-                _   => createAndInsert(newObs.observationId, newObs.withId(_, s)).run(t).value.map(_.asRight)
-              )
+          constructAndPublish { t =>
+            (dontFindObservation(t, newObs.observationId) *> lookupProgram(t, newObs.programId))
+              .as(createAndInsert(newObs.observationId, newObs.withId(_, s)))
           }
 
         for {

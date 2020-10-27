@@ -10,7 +10,6 @@ import cats._
 import cats.data.State
 import cats.effect.concurrent.Ref
 import cats.syntax.apply._
-import cats.syntax.either._
 import cats.syntax.eq._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
@@ -70,17 +69,14 @@ object AsterismRepo {
         } yield a
 
       override def insert[T <: AsterismModel](input: Create[T]): F[T] =
-        modify { t =>
+        constructAndPublish { t =>
           val existing = dontFindAsterism(t, input.asterismId)
           val targets  = input.targetIds.iterator.toList.traverse(lookupTarget(t, _))
           val programs = input.programIds.traverse(lookupProgram(t, _))
           val asterism = input.withId
-          (existing, targets, programs, asterism)
-            .mapN((_, _, _, f) => addAsterism(input.asterismId, input.programIds.toSet, f).run(t).value)
-            .fold(
-              err => (t, err.asLeft[T]),
-              tup => tup.map(_.asRight)
-            )
+          (existing, targets, programs, asterism).mapN((_, _, _, f) =>
+            addAsterism(input.asterismId, input.programIds.toSet, f)
+          )
         }
 
       private def programSharing(
