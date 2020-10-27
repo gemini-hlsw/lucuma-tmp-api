@@ -210,7 +210,7 @@ object AsterismModel extends AsterismOptics {
   final case class AsterismEvent (
     id:       Long,
     editType: Event.EditType,
-    value:    AsterismModel,
+    value:    AsterismModel
   ) extends Event.Edit[AsterismModel]
 
   object AsterismEvent {
