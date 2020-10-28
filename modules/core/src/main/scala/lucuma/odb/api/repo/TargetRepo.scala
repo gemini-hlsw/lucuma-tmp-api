@@ -53,9 +53,7 @@ object TargetRepo {
       ): F[List[TargetModel]] =
         tablesRef.get.flatMap { tables =>
           tables.programTargets.selectRight(pid).toList.traverse { tid =>
-            tables.targets.get(tid).fold(
-              missingReference[F, TargetModel.Id, TargetModel](tid)
-            )(M.pure)
+            tryFindTarget(tables, tid).liftTo[F]
           }
         }.map(deletionFilter(includeDeleted))
 

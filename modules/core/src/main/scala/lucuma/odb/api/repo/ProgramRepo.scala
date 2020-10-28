@@ -6,6 +6,7 @@ package lucuma.odb.api.repo
 import lucuma.odb.api.model.{AsterismModel, ProgramModel, TargetModel}
 import lucuma.odb.api.model.ProgramModel.ProgramEvent
 import lucuma.odb.api.model.Existence._
+import lucuma.odb.api.model.syntax.validatedinput._
 import cats.Monad
 import cats.implicits._
 import cats.MonadError
@@ -45,7 +46,7 @@ object ProgramRepo {
       ): F[List[ProgramModel]] =
         tablesRef.get.flatMap { tables =>
           f(tables).selectLeft(id).toList.traverse { pid =>
-            tables.programs.get(pid).fold(missingReference[F, ProgramModel.Id, ProgramModel](pid))(M.pure)
+            tryFindProgram(tables, pid).liftTo[F]
           }
         }.map(deletionFilter(includeDeleted))
 

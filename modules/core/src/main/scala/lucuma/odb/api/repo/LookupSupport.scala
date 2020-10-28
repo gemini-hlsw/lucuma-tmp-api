@@ -6,15 +6,11 @@ package lucuma.odb.api.repo
 import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, TargetModel, ValidatedInput}
 import lucuma.odb.api.model.InputError
 import lucuma.core.util.Gid
-import cats._
 import cats.implicits._
 
 import scala.collection.immutable.SortedMap
 
 trait LookupSupport {
-
-  def missingReference[F[_], I: Gid, T](id: I)(implicit M: MonadError[F, Throwable]): F[T] =
-    ExecutionException.missingReference[F, I, T](id)
 
   def tryFind[I: Gid, T](m: SortedMap[I, T], id: I, name: String): ValidatedInput[T] =
     m.get(id).toValidNec(InputError.missingReference(name, Gid[I].show(id)))
