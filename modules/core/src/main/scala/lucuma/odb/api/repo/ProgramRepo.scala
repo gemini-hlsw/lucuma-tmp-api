@@ -57,7 +57,7 @@ object ProgramRepo {
 
       override def insert(input: ProgramModel.Create): F[ProgramModel] =
         constructAndPublish { t =>
-          dontFindProgram(t, input.programId).as(
+          tryNotFindProgram(t, input.programId).as(
             createAndInsert(input.programId, ProgramModel(_, Present, input.name))
           )
         }

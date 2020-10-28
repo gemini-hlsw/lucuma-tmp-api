@@ -67,7 +67,7 @@ object TargetRepo {
 
       private def insertTarget(id: Option[TargetModel.Id], pids: List[ProgramModel.Id], vt: ValidatedInput[Target]): F[TargetModel] =
         constructAndPublish { t =>
-          (vt, dontFindTarget(t, id), pids.traverse(lookupProgram(t, _))).mapN((g, _, _) =>
+          (vt, tryNotFindTarget(t, id), pids.traverse(tryFindProgram(t, _))).mapN((g, _, _) =>
             addAndShare(id, g, pids.toSet)
           )
         }
@@ -84,8 +84,8 @@ object TargetRepo {
       ): F[TargetModel] =
         tablesRef.modifyState {
           for {
-            t  <- inspectTargetId(input.targetId)
-            ps <- input.programIds.traverse(inspectProgramId).map(_.sequence)
+            t  <- Tables.tryTarget(input.targetId)
+            ps <- input.programIds.traverse(Tables.tryProgram).map(_.sequence)
             r  <- (t, ps).traverseN { (tm, _) => f(tm, input.programIds.toSet).as(tm) }
           } yield r
         }.flatMap(_.liftTo[F])

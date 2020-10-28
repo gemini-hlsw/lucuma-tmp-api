@@ -12,8 +12,8 @@ import io.circe.generic.semiauto.deriveDecoder
 object Sharing {
 
   final case class TargetObservationLinks(
-    targets:      List[TargetModel.Id],
-    observations: List[ObservationModel.Id]
+    targetIds:      List[TargetModel.Id],
+    observationIds: List[ObservationModel.Id]
   )
 
   object TargetObservationLinks {

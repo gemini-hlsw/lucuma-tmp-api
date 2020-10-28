@@ -3,11 +3,12 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, TargetModel}
+import lucuma.odb.api.model.{AsterismModel, InputError, ObservationModel, ProgramModel, TargetModel, ValidatedInput}
 import cats.data.State
 import cats.kernel.BoundedEnumerable
 import cats.instances.order._
 import cats.syntax.functor._
+import cats.syntax.option._
 import lucuma.core.util.Gid
 import monocle.Lens
 import monocle.function.At
@@ -134,13 +135,36 @@ sealed trait TableState { self: Tables.type =>
   def unshareTargetAll(tid: TargetModel.Id): State[Tables, Unit] =
     programTargets.mod_(_.removeRight(tid))
 
-  private def retrieve[I: Gid, T](name: String, id: I, lens: I => Lens[Tables, Option[T]]): State[Tables, T] =
-    lens(id).st.map(_.getOrElse(throw ExecutionException(s"missing $name reference: ${Gid[I].show(id)}")))
 
-  def retrieveAsterism(aid: AsterismModel.Id): State[Tables, AsterismModel] =
-    retrieve("asterism", aid, Tables.asterism)
+  private def tryFind[I: Gid, T](name: String, id: I, lens: I => Lens[Tables, Option[T]]): State[Tables, ValidatedInput[T]] =
+    lens(id).st.map(_.toValidNec(InputError.missingReference(name, Gid[I].show(id))))
 
-  def retrieveObservation(oid: ObservationModel.Id): State[Tables, ObservationModel] =
-    retrieve("observation", oid, Tables.observation)
+  def tryAsterism(aid: AsterismModel.Id): State[Tables, ValidatedInput[AsterismModel]] =
+    tryFind("asterism", aid, Tables.asterism)
+
+  def tryObservation(oid: ObservationModel.Id): State[Tables, ValidatedInput[ObservationModel]] =
+    tryFind("observation", oid, Tables.observation)
+
+  def tryProgram(pid: ProgramModel.Id): State[Tables, ValidatedInput[ProgramModel]] =
+    tryFind("program", pid, Tables.program)
+
+  def tryTarget(tid: TargetModel.Id): State[Tables, ValidatedInput[TargetModel]] =
+    tryFind("target", tid, Tables.target)
+
+
+  private def require[A](s: State[Tables, ValidatedInput[A]]): State[Tables, A] =
+    s.map(_.valueOr(nec => throw InputError.Exception(nec)))
+
+  def requireAsterism(aid: AsterismModel.Id): State[Tables, AsterismModel] =
+    require(tryAsterism(aid))
+
+  def requireObservation(oid: ObservationModel.Id): State[Tables, ObservationModel] =
+    require(tryObservation(oid))
+
+  def requireProgram(pid: ProgramModel.Id): State[Tables, ProgramModel] =
+    require(tryProgram(pid))
+
+  def requireTarget(tid: TargetModel.Id): State[Tables, TargetModel] =
+    require(tryTarget(tid))
 
 }

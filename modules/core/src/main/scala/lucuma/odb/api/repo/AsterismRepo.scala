@@ -70,9 +70,9 @@ object AsterismRepo {
 
       override def insert[T <: AsterismModel](input: Create[T]): F[T] =
         constructAndPublish { t =>
-          val existing = dontFindAsterism(t, input.asterismId)
-          val targets  = input.targetIds.iterator.toList.traverse(lookupTarget(t, _))
-          val programs = input.programIds.traverse(lookupProgram(t, _))
+          val existing = tryNotFindAsterism(t, input.asterismId)
+          val targets  = input.targetIds.iterator.toList.traverse(tryFindTarget(t, _))
+          val programs = input.programIds.traverse(tryFindProgram(t, _))
           val asterism = input.withId
           (existing, targets, programs, asterism).mapN((_, _, _, f) =>
             addAsterism(input.asterismId, input.programIds.toSet, f)
@@ -85,8 +85,8 @@ object AsterismRepo {
       ): F[AsterismModel] =
         tablesRef.modifyState {
           for {
-            a  <- inspectAsterismId(input.asterismId)
-            ps <- input.programIds.traverse(inspectProgramId).map(_.sequence)
+            a  <- Tables.tryAsterism(input.asterismId)
+            ps <- input.programIds.traverse(Tables.tryProgram).map(_.sequence)
             r  <- (a, ps).traverseN { (am, _) => f(am, input.programIds.toSet).as(am) }
           } yield r
         }.flatMap(_.liftTo[F])

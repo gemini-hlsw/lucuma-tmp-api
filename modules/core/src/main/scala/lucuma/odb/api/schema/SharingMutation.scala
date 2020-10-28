@@ -62,7 +62,7 @@ trait SharingMutation {
       a = AsterismModel.Default(i, Existence.Present, None, targetIds): AsterismModel
       _ <- Tables.asterisms.mod(_ + (i -> a))
       _ <- Tables.observation(observationId).mod(_.map(ObservationModel.asterismId.set(Some(i))))
-      o <- Tables.retrieveObservation(observationId)
+      o <- Tables.requireObservation(observationId)
     } yield (a, List[Long => Event](AsterismEvent(Created, a), ObservationEvent(Updated, o)))
 
   // Produces a `State` computation that adds or removes targets from an
@@ -71,7 +71,7 @@ trait SharingMutation {
     asterismId: AsterismModel.Id,
     update:     Set[TargetModel.Id] => Set[TargetModel.Id]
   ): State[Tables, (AsterismModel, List[Long => Event])] =
-    Tables.retrieveAsterism(asterismId).transform { (t, a) =>
+    Tables.requireAsterism(asterismId).transform { (t, a) =>
       val newIds = update(a.targetIds)
       if (newIds == a.targetIds)
         (t, (a, List.empty[Long => Event]))
@@ -125,9 +125,9 @@ trait SharingMutation {
     val links   = c.arg(ArgumentTargetObservationLinks)
 
     val updates = c.ctx.tables.modify { t =>
-      val targetIds  = links.targets.toSet
-      val targetList = links.targets.traverse(LookupSupport.lookupTarget(t, _))
-      val obsList    = links.observations.traverse(LookupSupport.lookupObservation(t, _))
+      val targetIds  = links.targetIds.toSet
+      val targetList = links.targetIds.traverse(LookupSupport.tryFindTarget(t, _))
+      val obsList    = links.observationIds.traverse(LookupSupport.tryFindObservation(t, _))
       (targetList, obsList).mapN { (_, os) =>
         f(targetIds, os).run(t).value
       }.fold(err => (t, InputError.Exception(err).asLeft), _.map(_.asRight))
