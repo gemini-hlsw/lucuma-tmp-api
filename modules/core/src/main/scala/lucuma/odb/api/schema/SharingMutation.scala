@@ -3,9 +3,12 @@
 
 package lucuma.odb.api.schema
 
-import cats.data.State
-import lucuma.odb.api.model.{AsterismModel, Existence, InputError, ObservationModel, Sharing, TargetModel}
+import lucuma.odb.api.model.{AsterismModel, Event, Existence, InputError, ObservationModel, Sharing, TargetModel}
+import lucuma.odb.api.model.AsterismModel.AsterismEvent
+import lucuma.odb.api.model.ObservationModel.ObservationEvent
+import lucuma.odb.api.model.Event.EditType.{Created, Updated}
 import lucuma.odb.api.repo.{LookupSupport, OdbRepo, Tables}
+import cats.data.{EitherT, State}
 import cats.effect.Effect
 import cats.effect.implicits._
 import cats.syntax.all._
@@ -19,8 +22,6 @@ import monocle.state.all._
  *
  */
 trait SharingMutation {
-
-  import GeneralSchema.ArgumentIncludeDeleted
 
   import AsterismSchema.AsterismType
   import ObservationSchema.ObservationIdType
@@ -40,25 +41,49 @@ trait SharingMutation {
       "Target/observation links"
     )
 
-  def share[F[_]: Effect]: Field[OdbRepo[F], Unit] = {
+  /**
+   * Returns a `State[Tables, ?]` program that will create a `Default` asterism
+   * with the given target ids and associate it with the given observation.
+   *
+   * @param observationId observation that will contain the new asterism
+   * @param targetIds targets referenced by the new asterism
+   *
+   * @return new `Default` asterism paired with the list of resultant events
+   *         that should be published
+   */
+  private def createDefaultAsterism(
+    observationId: ObservationModel.Id,
+    targetIds:     Set[TargetModel.Id]
+  ): State[Tables, (AsterismModel, List[Long => Event])] =
+    for {
+      i <- Tables.nextAsterismId
+      a = AsterismModel.Default(i, Existence.Present, None, targetIds): AsterismModel
+      _ <- Tables.asterisms.mod(_ + (i -> a))
+      _ <- Tables.observation(observationId).mod(_.map(ObservationModel.asterismId.set(Some(i))))
+      o <- Tables.retrieveObservation(observationId)
+    } yield (a, List[Long => Event](AsterismEvent(Created, a), ObservationEvent(Updated, o)))
 
-    def createDefaultAsterism(
-      observationId: ObservationModel.Id,
-      targetIds:     Set[TargetModel.Id]
-    ): State[Tables, (ObservationModel, AsterismModel)] =
-      for {
-        i <- Tables.nextAsterismId
-        a = AsterismModel.Default(i, Existence.Present, None, targetIds): AsterismModel
-        _ <- Tables.asterisms.mod(_ + (i -> a))
-        _ <- Tables.observation(observationId).mod(_.map(ObservationModel.asterismId.set(Some(i))))
-        o <- Tables.retrieveObservation(observationId)
-      } yield (o, a)
+  private def addTargetsToAsterism(
+    asterismId: AsterismModel.Id,
+    targetIds:  Set[TargetModel.Id]
+  ): State[Tables, (AsterismModel, List[Long => Event])] =
+    for {
+      a   <- Tables.retrieveAsterism(asterismId)
+      tup <- Tables.asterism(asterismId).st.transform { (t, _) =>
+        if (a.targetIds == targetIds)
+          (t, (a, List.empty[Long => Event]))
+        else  {
+          val a2 = AsterismModel.Default.asterismTargetIds.modify(_ ++ targetIds)(a)
+          (Tables.asterisms.modify(_.updated(asterismId, a2))(t), (a2, List[Long => Event](AsterismEvent(Updated, a2))))
+        }
+      }
+    } yield tup
 
-
+  def shareTargetsWithObservations[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
-      name      = "share",
+      name      = "shareTargetsWithObservations",
       fieldType = ListType(AsterismType[F]),
-      arguments = List(ArgumentTargetObservationLinks, ArgumentIncludeDeleted),
+      arguments = List(ArgumentTargetObservationLinks),
       resolve   = c => {
         val links   = c.arg(ArgumentTargetObservationLinks)
 
@@ -66,43 +91,26 @@ trait SharingMutation {
           val targetList = links.targets.traverse(LookupSupport.lookupTarget(t, _))
           val obsList    = links.observations.traverse(LookupSupport.lookupObservation(t, _))
           (targetList, obsList).mapN { (_, os) =>
-            val asterisms = os.traverse { o =>
-              o.asterismId.fold(
-                createDefaultAsterism(o.id, links.targets.toSet).map(_.leftMap(Option(_)))
-              )(
-                id => Tables.retrieveAsterism(id).tupleLeft(Option.empty[ObservationModel])
-              )
-            }
-
-            (for {
-              as <- asterisms
-              _  <- Tables.asterisms.mod { aMap =>
-                as.foldLeft(aMap) { case (m, (_, a)) =>
-                  m.updated(a.id, AsterismModel.Default.asterismTargetIds.set(links.targets.toSet)(a))
-                }
-              }
-            } yield as).run(t).value
-          }.fold(
-            err => (t, err.asLeft[List[(Option[ObservationModel], AsterismModel)]]),
-            tup => tup.map(_.asRight)
-          )
-        }.flatMap {
-          case Left(err) => Effect[F].raiseError[List[(Option[ObservationModel], AsterismModel)]](InputError.Exception(err))
-          case Right(as) => Effect[F].pure(as)
+            os.traverse { o =>
+              val targetIds = links.targets.toSet
+              o.asterismId.fold(createDefaultAsterism(o.id, targetIds))(addTargetsToAsterism(_, targetIds))
+            }.run(t).value
+          }.fold(err => (t, InputError.Exception(err).asLeft), _.map(_.asRight))
         }
 
         (for {
-          us <- updates
-          _  <- us.traverse { case (oo, a) =>
-            val es = c.ctx.eventService
-            oo.fold(es.publish(AsterismModel.AsterismEditedEvent(a, a))) { o =>
-              es.publish(AsterismModel.AsterismCreatedEvent(a)) *>
-                es.publish(ObservationModel.ObservationEditedEvent(o, o))
-            }
-          }
-        } yield us.map(_._2)).toIO.unsafeToFuture()
+          us <- EitherT(updates).rethrowT
+          (as, es) = us.unzip
+          _  <- es.flatten.traverse(c.ctx.eventService.publish)
+        } yield as).toIO.unsafeToFuture()
       }
     )
-  }
+
+  def allFields[F[_]: Effect]: List[Field[OdbRepo[F], Unit]] =
+    List(
+      shareTargetsWithObservations
+    )
 
 }
+
+object SharingMutation extends SharingMutation
