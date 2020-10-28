@@ -7,7 +7,7 @@ import lucuma.odb.api.model.{AsterismModel, Event, Existence, InputError, Observ
 import lucuma.odb.api.model.AsterismModel.AsterismEvent
 import lucuma.odb.api.model.ObservationModel.ObservationEvent
 import lucuma.odb.api.model.Event.EditType.{Created, Updated}
-import lucuma.odb.api.repo.{LookupSupport, OdbRepo, Tables}
+import lucuma.odb.api.repo.{LookupSupport, OdbRepo, Tables, TableState}
 import cats.data.{EitherT, State}
 import cats.effect.Effect
 import cats.effect.implicits._
@@ -58,11 +58,11 @@ trait SharingMutation {
     targetIds:     Set[TargetModel.Id]
   ): State[Tables, (AsterismModel, List[Long => Event])] =
     for {
-      i <- Tables.nextAsterismId
+      i <- TableState.nextAsterismId
       a = AsterismModel.Default(i, Existence.Present, None, targetIds): AsterismModel
       _ <- Tables.asterisms.mod(_ + (i -> a))
       _ <- Tables.observation(observationId).mod(_.map(ObservationModel.asterismId.set(Some(i))))
-      o <- Tables.requireObservation(observationId)
+      o <- TableState.requireObservation(observationId)
     } yield (a, List[Long => Event](AsterismEvent(Created, a), ObservationEvent(Updated, o)))
 
   // Produces a `State` computation that adds or removes targets from an
@@ -71,7 +71,7 @@ trait SharingMutation {
     asterismId: AsterismModel.Id,
     update:     Set[TargetModel.Id] => Set[TargetModel.Id]
   ): State[Tables, (AsterismModel, List[Long => Event])] =
-    Tables.requireAsterism(asterismId).transform { (t, a) =>
+    TableState.requireAsterism(asterismId).transform { (t, a) =>
       val newIds = update(a.targetIds)
       if (newIds == a.targetIds)
         (t, (a, List.empty[Long => Event]))

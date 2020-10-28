@@ -65,7 +65,7 @@ object AsterismRepo {
       ): State[Tables, T] =
         for {
           a   <- createAndInsert(asterismId, factory)
-          _   <- Tables.shareAsterismWithPrograms(a, programs)
+          _   <- TableState.shareAsterismWithPrograms(a, programs)
         } yield a
 
       override def insert[T <: AsterismModel](input: Create[T]): F[T] =
@@ -85,17 +85,17 @@ object AsterismRepo {
       ): F[AsterismModel] =
         tablesRef.modifyState {
           for {
-            a  <- Tables.tryAsterism(input.asterismId)
-            ps <- input.programIds.traverse(Tables.tryProgram).map(_.sequence)
+            a  <- TableState.asterism(input.asterismId)
+            ps <- input.programIds.traverse(TableState.program).map(_.sequence)
             r  <- (a, ps).traverseN { (am, _) => f(am, input.programIds.toSet).as(am) }
           } yield r
         }.flatMap(_.liftTo[F])
 
       override def shareWithPrograms(input: AsterismProgramLinks): F[AsterismModel] =
-        programSharing(input, Tables.shareAsterismWithPrograms)
+        programSharing(input, TableState.shareAsterismWithPrograms)
 
       override def unshareWithPrograms(input: AsterismProgramLinks): F[AsterismModel] =
-        programSharing(input, Tables.unshareAsterismWithPrograms)
+        programSharing(input, TableState.unshareAsterismWithPrograms)
 
     }
 }

@@ -3,16 +3,10 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{AsterismModel, InputError, ObservationModel, ProgramModel, TargetModel, ValidatedInput}
-import cats.data.State
-import cats.kernel.BoundedEnumerable
+import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, TargetModel}
 import cats.instances.order._
-import cats.syntax.functor._
-import cats.syntax.option._
-import lucuma.core.util.Gid
 import monocle.Lens
 import monocle.function.At
-import monocle.state.all._
 
 import scala.collection.immutable.{SortedMap, TreeMap}
 
@@ -29,7 +23,7 @@ final case class Tables(
   programTargets:   ManyToMany[ProgramModel.Id, TargetModel.Id]
 )
 
-object Tables extends TableOptics with TableState {
+object Tables extends TableOptics {
 
   val empty: Tables =
     Tables(
@@ -96,75 +90,5 @@ sealed trait TableOptics { self: Tables.type =>
 
   val programTargets: Lens[Tables, ManyToMany[ProgramModel.Id, TargetModel.Id]] =
     Lens[Tables, ManyToMany[ProgramModel.Id, TargetModel.Id]](_.programTargets)(b => a => a.copy(programTargets = b))
-
-
-}
-
-sealed trait TableState { self: Tables.type =>
-
-  val nextEventId: State[Tables, Long] =
-    lastEventId.mod(_ + 1L)
-
-  val nextAsterismId: State[Tables, AsterismModel.Id] =
-    lastAsterismId.mod(BoundedEnumerable[AsterismModel.Id].cycleNext)
-
-  val nextObservationId: State[Tables, ObservationModel.Id] =
-    lastObservationId.mod(BoundedEnumerable[ObservationModel.Id].cycleNext)
-
-  val nextProgramId: State[Tables, ProgramModel.Id] =
-    lastProgramId.mod(BoundedEnumerable[ProgramModel.Id].cycleNext)
-
-  val nextTargetId: State[Tables, TargetModel.Id] =
-    lastTargetId.mod(BoundedEnumerable[TargetModel.Id].cycleNext)
-
-  def shareAsterismWithPrograms(a: AsterismModel, pids: Set[ProgramModel.Id]): State[Tables, Unit] =
-    programAsterisms.mod_(_ ++ pids.toList.tupleRight(a.id))
-
-  def unshareAsterismWithPrograms(a: AsterismModel, pids: Set[ProgramModel.Id]): State[Tables, Unit] =
-    programAsterisms.mod_(_ -- pids.toList.tupleRight(a.id))
-
-  def unshareAsterismAll(aid: AsterismModel.Id): State[Tables, Unit] =
-    programAsterisms.mod_(_.removeRight(aid))
-
-  def shareTargetWithPrograms(t: TargetModel, pids: Set[ProgramModel.Id]): State[Tables, Unit] =
-    programTargets.mod_(_ ++ pids.toList.tupleRight(t.id))
-
-  def unshareTargetWithPrograms(t: TargetModel, pids: Set[ProgramModel.Id]): State[Tables, Unit] =
-    programTargets.mod_(_ -- pids.toList.tupleRight(t.id))
-
-  def unshareTargetAll(tid: TargetModel.Id): State[Tables, Unit] =
-    programTargets.mod_(_.removeRight(tid))
-
-
-  private def tryFind[I: Gid, T](name: String, id: I, lens: I => Lens[Tables, Option[T]]): State[Tables, ValidatedInput[T]] =
-    lens(id).st.map(_.toValidNec(InputError.missingReference(name, Gid[I].show(id))))
-
-  def tryAsterism(aid: AsterismModel.Id): State[Tables, ValidatedInput[AsterismModel]] =
-    tryFind("asterism", aid, Tables.asterism)
-
-  def tryObservation(oid: ObservationModel.Id): State[Tables, ValidatedInput[ObservationModel]] =
-    tryFind("observation", oid, Tables.observation)
-
-  def tryProgram(pid: ProgramModel.Id): State[Tables, ValidatedInput[ProgramModel]] =
-    tryFind("program", pid, Tables.program)
-
-  def tryTarget(tid: TargetModel.Id): State[Tables, ValidatedInput[TargetModel]] =
-    tryFind("target", tid, Tables.target)
-
-
-  private def require[A](s: State[Tables, ValidatedInput[A]]): State[Tables, A] =
-    s.map(_.valueOr(nec => throw InputError.Exception(nec)))
-
-  def requireAsterism(aid: AsterismModel.Id): State[Tables, AsterismModel] =
-    require(tryAsterism(aid))
-
-  def requireObservation(oid: ObservationModel.Id): State[Tables, ObservationModel] =
-    require(tryObservation(oid))
-
-  def requireProgram(pid: ProgramModel.Id): State[Tables, ProgramModel] =
-    require(tryProgram(pid))
-
-  def requireTarget(tid: TargetModel.Id): State[Tables, TargetModel] =
-    require(tryTarget(tid))
 
 }
