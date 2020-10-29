@@ -68,8 +68,9 @@ trait SharingMutation {
   // Produces a `State` computation that adds or removes targets from an
   // asterism
   private def updateAsterism(
-    asterismId: AsterismModel.Id,
-    update:     Set[TargetModel.Id] => Set[TargetModel.Id]
+    asterismId:  AsterismModel.Id,
+    observation: ObservationModel,
+    update:      Set[TargetModel.Id] => Set[TargetModel.Id]
   ): State[Tables, (AsterismModel, List[Long => Event])] =
     TableState.requireAsterism(asterismId).transform { (t, a) =>
       val newIds = update(a.targetIds)
@@ -77,7 +78,11 @@ trait SharingMutation {
         (t, (a, List.empty[Long => Event]))
       else {
         val aʹ = AsterismModel.Default.asterismTargetIds.set(newIds)(a)
-        (Tables.asterisms.modify(_.updated(asterismId, aʹ))(t), (aʹ, List[Long => Event](AsterismEvent(Updated, aʹ))))
+        (Tables.asterisms.modify(_.updated(asterismId, aʹ))(t),
+          // For now, generate an observation event as well as an asterism update for the UI.
+          // We will need to revisit how to do this in general.
+         (aʹ, List[Long => Event](AsterismEvent(Updated, aʹ), ObservationEvent(Updated, observation)))
+        )
       }
     }
 
@@ -92,10 +97,11 @@ trait SharingMutation {
    *         that should be published
    */
   private def addTargetsToAsterism(
-    asterismId: AsterismModel.Id,
-    targetIds:  Set[TargetModel.Id]
+    asterismId:  AsterismModel.Id,
+    observation: ObservationModel,
+    targetIds:   Set[TargetModel.Id]
   ): State[Tables, (AsterismModel, List[Long => Event])] =
-    updateAsterism(asterismId, _ ++ targetIds)
+    updateAsterism(asterismId, observation, _ ++ targetIds)
 
   /**
    * Returns a `State[Tables, ?]` program that will update a `Default` asterism,
@@ -108,10 +114,11 @@ trait SharingMutation {
    *         that should be published
    */
   private def removeTargetsFromAsterism(
-    asterismId: AsterismModel.Id,
-    targetIds:  Set[TargetModel.Id]
+    asterismId:  AsterismModel.Id,
+    observation: ObservationModel,
+    targetIds:   Set[TargetModel.Id]
   ): State[Tables, (AsterismModel, List[Long => Event])] =
-    updateAsterism(asterismId, _ -- targetIds)
+    updateAsterism(asterismId, observation, _ -- targetIds)
 
   // Implements the bulk of a share/unshare field for targets and observations.
   // Takes a function that produces a `State` operation to apply to do the
@@ -147,7 +154,7 @@ trait SharingMutation {
       arguments = List(ArgumentTargetObservationLinks),
       resolve   = c => targetObservationShare[F](c) { (targetIds, obsList) =>
         obsList.traverse { o =>
-          o.asterismId.fold(createDefaultAsterism(o.id, targetIds))(addTargetsToAsterism(_, targetIds))
+          o.asterismId.fold(createDefaultAsterism(o.id, targetIds))(addTargetsToAsterism(_, o, targetIds))
         }
       }
     )
@@ -158,7 +165,9 @@ trait SharingMutation {
       fieldType = ListType(AsterismType[F]),
       arguments = List(ArgumentTargetObservationLinks),
       resolve   = c => targetObservationShare[F](c) { (targetIds, obsList) =>
-        obsList.flatMap(_.asterismId.toList).traverse(removeTargetsFromAsterism(_, targetIds))
+        obsList.flatMap(o => o.asterismId.toList.tupleRight(o)).traverse { case (a, o) =>
+          removeTargetsFromAsterism(a, o, targetIds)
+        }
       }
     )
 
