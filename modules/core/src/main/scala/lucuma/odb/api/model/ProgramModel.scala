@@ -3,10 +3,7 @@
 
 package lucuma.odb.api.model
 
-import lucuma.core.util.Gid
-
-import eu.timepit.refined.auto._
-import eu.timepit.refined.types.numeric.PosLong
+import lucuma.core.model.Program
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import monocle.Lens
@@ -16,32 +13,21 @@ import monocle.Lens
  * A placeholder Program for now.
  */
 final case class ProgramModel(
-  id:        ProgramModel.Id,
+  id:        Program.Id,
   existence: Existence,
   name:      Option[String]
 )
 
 object ProgramModel extends ProgramOptics {
 
-  final case class Id(value: PosLong) {
-
-    override def toString: String =
-      Gid[Id].show(this)
-  }
-
-  object Id {
-    implicit val GidProgramId: Gid[Id] =
-      Gid.instance('p', _.value, apply)
-  }
-
-  implicit val TopLevelProgram: TopLevelModel[Id, ProgramModel] =
+  implicit val TopLevelProgram: TopLevelModel[Program.Id, ProgramModel] =
     TopLevelModel.instance(_.id, ProgramModel.existence)
 
   /**
    * Program creation input class.
    */
   final case class Create(
-    programId: Option[ProgramModel.Id],
+    programId: Option[Program.Id],
     name:      Option[String]
   )
 
@@ -68,8 +54,8 @@ object ProgramModel extends ProgramOptics {
 
 trait ProgramOptics { self: ProgramModel.type =>
 
-  val id: Lens[ProgramModel, ProgramModel.Id] =
-    Lens[ProgramModel, ProgramModel.Id](_.id)(a => b => b.copy(id = a))
+  val id: Lens[ProgramModel, Program.Id] =
+    Lens[ProgramModel, Program.Id](_.id)(a => b => b.copy(id = a))
 
   val existence: Lens[ProgramModel, Existence] =
     Lens[ProgramModel, Existence](_.existence)(a => b => b.copy(existence = a))

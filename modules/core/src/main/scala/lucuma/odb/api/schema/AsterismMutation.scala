@@ -3,8 +3,9 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{AsterismModel, InputError, TargetModel}
+import lucuma.odb.api.model.{AsterismModel, InputError}
 import lucuma.odb.api.repo.{OdbRepo, Tables}
+import lucuma.core.model.Target
 import cats.effect.Effect
 import cats.syntax.option._
 import cats.syntax.traverse._
@@ -96,7 +97,7 @@ trait AsterismMutation extends TargetScalars {
         val checks = (tables: Tables) => {
           ed.targetIds.toList.flatMap(_.toList).traverse { id =>
             tables.targets.get(id).toValidNec(
-              InputError.missingReference("target", Gid[TargetModel.Id].show(id))
+              InputError.missingReference("target", Gid[Target.Id].show(id))
             )
           }.swap.toList.flatMap(_.toNonEmptyList.toList)
         }

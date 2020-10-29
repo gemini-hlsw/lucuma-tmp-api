@@ -5,6 +5,7 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.AsterismModel
 import lucuma.odb.api.repo.OdbRepo
+import lucuma.core.model.Asterism
 import cats.effect.Effect
 import cats.implicits._
 import cats.effect.implicits._
@@ -18,17 +19,17 @@ object AsterismSchema {
   import TargetSchema.{CoordinateType, TargetType}
   import context._
 
-  implicit val AsterismIdType: ScalarType[AsterismModel.Id] =
-    ObjectIdSchema.idType[AsterismModel.Id](name = "AsterismId")
+  implicit val AsterismIdType: ScalarType[Asterism.Id] =
+    ObjectIdSchema.idType[Asterism.Id](name = "AsterismId")
 
-  val AsterismIdArgument: Argument[AsterismModel.Id] =
+  val AsterismIdArgument: Argument[Asterism.Id] =
     Argument(
       name         = "asterismId",
       argumentType = AsterismIdType,
       description  = "Asterism ID"
     )
 
-  val OptionalAsterismIdArgument: Argument[Option[AsterismModel.Id]] =
+  val OptionalAsterismIdArgument: Argument[Option[Asterism.Id]] =
     Argument(
       name         = "asterismId",
       argumentType = OptionInputType(AsterismIdType),

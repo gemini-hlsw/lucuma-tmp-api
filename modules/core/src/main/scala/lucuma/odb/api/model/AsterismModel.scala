@@ -4,26 +4,25 @@
 package lucuma.odb.api.model
 
 import lucuma.odb.api.model.Existence._
-import lucuma.core.util.{Enumerated, Gid}
+import lucuma.core.model.{Asterism, Program, Target}
+import lucuma.core.util.Enumerated
 import lucuma.core.math.Coordinates
 import lucuma.core.optics.syntax.lens._
 import cats.Eq
 import cats.data.{Nested, State}
 import cats.implicits._
-import eu.timepit.refined.auto._
-import eu.timepit.refined.types.numeric.PosLong
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import monocle.{Lens, Optional, Prism}
 
 sealed trait AsterismModel {
 
-  def id:           AsterismModel.Id
+  def id:           Asterism.Id
   def existence:    Existence
 
   def explicitBase: Option[Coordinates]
   def tpe:          AsterismModel.Type
-  def targetIds:    Set[TargetModel.Id]
+  def targetIds:    Set[Target.Id]
 
   def fold[B](
     default: AsterismModel.Default => B,
@@ -48,24 +47,14 @@ object AsterismModel extends AsterismOptics {
       Enumerated.of(Default, Ghost)
   }
 
-  final case class Id(value: PosLong) {
-    override def toString: String =
-      Gid[Id].show(this)
-  }
-
-  object Id {
-    implicit val GidAsterismId: Gid[Id] =
-      Gid.instance('a', _.value, apply)
-  }
-
-  implicit val TopLevelAsterism: TopLevelModel[Id, AsterismModel] =
+  implicit val TopLevelAsterism: TopLevelModel[Asterism.Id, AsterismModel] =
     TopLevelModel.instance(_.id, AsterismModel.existence)
 
   final case class Default(
-    id:           AsterismModel.Id,
+    id:           Asterism.Id,
     existence:    Existence,
     explicitBase: Option[Coordinates],
-    targetIds:    Set[TargetModel.Id]
+    targetIds:    Set[Target.Id]
   ) extends AsterismModel {
 
     def tpe: Type =
@@ -85,10 +74,10 @@ object AsterismModel extends AsterismOptics {
     val select: Prism[AsterismModel, Default] =
       Prism.partial[AsterismModel, Default]{case d: Default => d}(identity)
 
-    val id: Lens[Default, AsterismModel.Id] =
-      Lens[Default, AsterismModel.Id](_.id)(a => b => b.copy(id = a))
+    val id: Lens[Default, Asterism.Id] =
+      Lens[Default, Asterism.Id](_.id)(a => b => b.copy(id = a))
 
-    val asterismId: Optional[AsterismModel, AsterismModel.Id] =
+    val asterismId: Optional[AsterismModel, Asterism.Id] =
       select ^|-> id
 
     val existence: Lens[Default, Existence] =
@@ -103,29 +92,29 @@ object AsterismModel extends AsterismOptics {
     val asterismExplicitBase: Optional[AsterismModel, Option[Coordinates]] =
       select ^|-> explicitBase
 
-    val targetIds: Lens[Default, Set[TargetModel.Id]] =
-      Lens[Default, Set[TargetModel.Id]](_.targetIds)(a => b => b.copy(targetIds = a))
+    val targetIds: Lens[Default, Set[Target.Id]] =
+      Lens[Default, Set[Target.Id]](_.targetIds)(a => b => b.copy(targetIds = a))
 
-    val asterismTargetIds: Optional[AsterismModel, Set[TargetModel.Id]] =
+    val asterismTargetIds: Optional[AsterismModel, Set[Target.Id]] =
       select ^|-> targetIds
 
   }
 
   trait Create[T] {
-    def asterismId: Option[AsterismModel.Id]
-    def programIds: List[ProgramModel.Id]  // to share immediately with the indicated programs
-    def targetIds:  Set[TargetModel.Id]
-    def withId:     ValidatedInput[AsterismModel.Id => T]
+    def asterismId: Option[Asterism.Id]
+    def programIds: List[Program.Id]  // to share immediately with the indicated programs
+    def targetIds:  Set[Target.Id]
+    def withId:     ValidatedInput[Asterism.Id => T]
   }
 
   final case class CreateDefault(
-    asterismId:   Option[AsterismModel.Id],
-    programIds:   List[ProgramModel.Id],
+    asterismId:   Option[Asterism.Id],
+    programIds:   List[Program.Id],
     explicitBase: Option[CoordinatesModel.Input],
-    targetIds:    Set[TargetModel.Id]
+    targetIds:    Set[Target.Id]
   ) extends Create[AsterismModel.Default] {
 
-    override def withId: ValidatedInput[AsterismModel.Id => AsterismModel.Default] =
+    override def withId: ValidatedInput[Asterism.Id => AsterismModel.Default] =
       explicitBase.traverse(_.toCoordinates).map(c => aid => Default(aid, Present, c, targetIds))
 
   }
@@ -139,17 +128,17 @@ object AsterismModel extends AsterismOptics {
 
   // not meant to be realistic yet
   final case class Ghost(
-    id:           AsterismModel.Id,
+    id:           Asterism.Id,
     existence:    Existence,
     explicitBase: Option[Coordinates],
-    ifu1:         TargetModel.Id,
-    ifu2:         Option[TargetModel.Id]
+    ifu1:         Target.Id,
+    ifu2:         Option[Target.Id]
   ) extends AsterismModel {
 
     def tpe: Type =
       Type.Ghost
 
-    def targetIds: Set[TargetModel.Id] =
+    def targetIds: Set[Target.Id] =
       ifu2.foldLeft(Set(ifu1))(_ + _)
 
   }
@@ -162,13 +151,13 @@ object AsterismModel extends AsterismOptics {
   }
 
   final case class EditDefault(
-    asterismId:   Id,
+    asterismId:   Asterism.Id,
     existence:    Option[Existence],
     explicitBase: Option[Option[CoordinatesModel.Input]],
-    targetIds:    Option[Set[TargetModel.Id]]
-  ) extends Editor[Id, AsterismModel.Default] {
+    targetIds:    Option[Set[Target.Id]]
+  ) extends Editor[Asterism.Id, AsterismModel.Default] {
 
-    override def id: Id =
+    override def id: Asterism.Id =
       asterismId
 
     override def editor: ValidatedInput[State[AsterismModel.Default, Unit]] =
@@ -189,8 +178,8 @@ object AsterismModel extends AsterismOptics {
   }
 
   final case class AsterismProgramLinks(
-    asterismId: Id,
-    programIds: List[ProgramModel.Id]
+    asterismId: Asterism.Id,
+    programIds: List[Program.Id]
   )
 
   object AsterismProgramLinks {

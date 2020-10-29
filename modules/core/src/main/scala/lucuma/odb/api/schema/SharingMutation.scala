@@ -3,11 +3,12 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{AsterismModel, Event, Existence, InputError, ObservationModel, Sharing, TargetModel}
+import lucuma.odb.api.model.{AsterismModel, Event, Existence, InputError, ObservationModel, Sharing}
 import lucuma.odb.api.model.AsterismModel.AsterismEvent
 import lucuma.odb.api.model.ObservationModel.ObservationEvent
 import lucuma.odb.api.model.Event.EditType.{Created, Updated}
 import lucuma.odb.api.repo.{LookupSupport, OdbRepo, Tables, TableState}
+import lucuma.core.model.{Asterism, Observation, Target}
 import cats.data.{EitherT, State}
 import cats.effect.Effect
 import cats.effect.implicits._
@@ -54,8 +55,8 @@ trait SharingMutation {
    *         that should be published
    */
   private def createDefaultAsterism(
-    observationId: ObservationModel.Id,
-    targetIds:     Set[TargetModel.Id]
+    observationId: Observation.Id,
+    targetIds:     Set[Target.Id]
   ): State[Tables, (AsterismModel, List[Long => Event])] =
     for {
       i <- TableState.nextAsterismId
@@ -68,9 +69,9 @@ trait SharingMutation {
   // Produces a `State` computation that adds or removes targets from an
   // asterism
   private def updateAsterism(
-    asterismId:  AsterismModel.Id,
+    asterismId:  Asterism.Id,
     observation: ObservationModel,
-    update:      Set[TargetModel.Id] => Set[TargetModel.Id]
+    update:      Set[Target.Id] => Set[Target.Id]
   ): State[Tables, (AsterismModel, List[Long => Event])] =
     TableState.requireAsterism(asterismId).transform { (t, a) =>
       val newIds = update(a.targetIds)
@@ -97,9 +98,9 @@ trait SharingMutation {
    *         that should be published
    */
   private def addTargetsToAsterism(
-    asterismId:  AsterismModel.Id,
+    asterismId:  Asterism.Id,
     observation: ObservationModel,
-    targetIds:   Set[TargetModel.Id]
+    targetIds:   Set[Target.Id]
   ): State[Tables, (AsterismModel, List[Long => Event])] =
     updateAsterism(asterismId, observation, _ ++ targetIds)
 
@@ -114,9 +115,9 @@ trait SharingMutation {
    *         that should be published
    */
   private def removeTargetsFromAsterism(
-    asterismId:  AsterismModel.Id,
+    asterismId:  Asterism.Id,
     observation: ObservationModel,
-    targetIds:   Set[TargetModel.Id]
+    targetIds:   Set[Target.Id]
   ): State[Tables, (AsterismModel, List[Long => Event])] =
     updateAsterism(asterismId, observation, _ -- targetIds)
 
@@ -126,7 +127,7 @@ trait SharingMutation {
   private def targetObservationShare[F[_]: Effect](
     c: Context[OdbRepo[F], Unit]
   )(
-    f: (Set[TargetModel.Id], List[ObservationModel]) => State[Tables, List[(AsterismModel, List[Long => Event])]]
+    f: (Set[Target.Id], List[ObservationModel]) => State[Tables, List[(AsterismModel, List[Long => Event])]]
   ): Future[List[AsterismModel]] = {
 
     val links   = c.arg(ArgumentTargetObservationLinks)

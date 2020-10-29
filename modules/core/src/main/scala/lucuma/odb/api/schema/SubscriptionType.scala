@@ -5,7 +5,12 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.Event
 import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, TargetModel}
+import lucuma.odb.api.model.AsterismModel.AsterismEvent
+import lucuma.odb.api.model.ObservationModel.ObservationEvent
+import lucuma.odb.api.model.ProgramModel.ProgramEvent
+import lucuma.odb.api.model.TargetModel.TargetEvent
 import lucuma.odb.api.repo.OdbRepo
+import lucuma.core.model.{Asterism, Observation, Program, Target}
 import cats.Eq
 import cats.syntax.applicative._
 import cats.syntax.apply._
@@ -13,10 +18,6 @@ import cats.syntax.eq._
 import cats.syntax.functor._
 import cats.effect.{ConcurrentEffect, Effect}
 import fs2.Stream
-import lucuma.odb.api.model.AsterismModel.AsterismEvent
-import lucuma.odb.api.model.ObservationModel.ObservationEvent
-import lucuma.odb.api.model.ProgramModel.ProgramEvent
-import lucuma.odb.api.model.TargetModel.TargetEvent
 import sangria.schema._
 import sangria.streaming.SubscriptionStream
 import sangria.streaming.SubscriptionStreamLike._
@@ -120,7 +121,7 @@ object SubscriptionType {
   // the event is associated with the program id provided as an argument to the
   // subscription field.
   private def pidMatcher[F[_]: ConcurrentEffect, E](
-    pidsExtractor: (Context[OdbRepo[F], Unit], E) => F[Set[ProgramModel.Id]]
+    pidsExtractor: (Context[OdbRepo[F], Unit], E) => F[Set[Program.Id]]
   ): (Context[OdbRepo[F], Unit], E) => F[Boolean] = (c, e) =>
     c.optionalProgramId.fold(true.pure[F]) { pid =>
       pidsExtractor(c, e).map(_.contains(pid))
@@ -131,7 +132,7 @@ object SubscriptionType {
     idArg: Argument[Option[I]],
     id:    E => I
   )(
-    pids: (Context[OdbRepo[F], Unit], E) => F[Set[ProgramModel.Id]]
+    pids: (Context[OdbRepo[F], Unit], E) => F[Set[Program.Id]]
   ): Field[OdbRepo[F], Unit] =
     subscriptionField[F, E](
       s"${name}Edit",
@@ -150,23 +151,23 @@ object SubscriptionType {
     }
 
   def apply[F[_]: ConcurrentEffect]: ObjectType[OdbRepo[F], Unit] = {
-    def programsForAsterism(c: Context[OdbRepo[F], Unit], aid: AsterismModel.Id): F[Set[ProgramModel.Id]] =
+    def programsForAsterism(c: Context[OdbRepo[F], Unit], aid: Asterism.Id): F[Set[Program.Id]] =
       c.ctx.program.selectAllForAsterism(aid).map(_.map(_.id).toSet)
 
-    def programsForTarget(c: Context[OdbRepo[F], Unit], tid: TargetModel.Id): F[Set[ProgramModel.Id]] =
+    def programsForTarget(c: Context[OdbRepo[F], Unit], tid: Target.Id): F[Set[Program.Id]] =
       c.ctx.program.selectAllForTarget(tid).map(_.map(_.id).toSet)
 
     ObjectType(
       name   = "Subscription",
       fields = fields(
 
-        editedField[F, AsterismModel.Id, AsterismModel, AsterismEvent](
+        editedField[F, Asterism.Id, AsterismModel, AsterismEvent](
           "asterism",
           OptionalAsterismIdArgument,
           _.value.id
         ) { (c, e) => programsForAsterism(c, e.value.id) },
 
-        editedField[F, ObservationModel.Id, ObservationModel, ObservationEvent](
+        editedField[F, Observation.Id, ObservationModel, ObservationEvent](
           "observation",
           OptionalObservationIdArgument,
           _.value.id
@@ -185,7 +186,7 @@ object SubscriptionType {
           List(OptionalProgramIdArgument)
         ) { (c, e) => c.optionalProgramId.fold(true)(_ === e.value.id).pure[F] },
 
-        editedField[F, TargetModel.Id, TargetModel, TargetEvent](
+        editedField[F, Target.Id, TargetModel, TargetEvent](
           "target",
           OptionalTargetIdArgument,
           _.value.id
