@@ -7,7 +7,7 @@ import lucuma.odb.api.model.syntax.all._
 import lucuma.odb.api.model.json.targetmath._
 import lucuma.core.`enum`.{EphemerisKeyType, MagnitudeBand}
 import lucuma.core.math.{Coordinates, Declination, Epoch, Parallax, ProperVelocity, RadialVelocity, RightAscension}
-import lucuma.core.model.{EphemerisKey, Magnitude, SiderealTracking, Target}
+import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, SiderealTracking, Target}
 import lucuma.core.util.Gid
 import cats.data._
 import cats.implicits._
@@ -122,6 +122,7 @@ object TargetModel extends TargetOptics {
     targetId:       Option[TargetModel.Id],
     programIds:     List[ProgramModel.Id],
     name:           String,
+    catalogId:      Option[CatalogIdModel.Input],
     ra:             RightAscensionModel.Input,
     dec:            DeclinationModel.Input,
     epoch:          Option[Epoch],
@@ -131,14 +132,15 @@ object TargetModel extends TargetOptics {
   ) {
 
     val toSiderealTracking: ValidatedInput[SiderealTracking] =
-      (ra.toRightAscension,
+      (catalogId.traverse(_.toCatalogId),
+       ra.toRightAscension,
        dec.toDeclination,
        properVelocity.traverse(_.toProperVelocity),
        radialVelocity.traverse(_.toRadialVelocity),
        parallax.traverse(_.toParallax)
-      ).mapN { (ra, dec, pv, rv, px) =>
+      ).mapN { (catalogId, ra, dec, pv, rv, px) =>
         SiderealTracking(
-          None,
+          catalogId,
           Coordinates(ra, dec),
           epoch.getOrElse(Epoch.J2000),
           pv,
@@ -184,6 +186,7 @@ object TargetModel extends TargetOptics {
     targetId:       Id,
     existence:      Option[Existence],
     name:           Option[String],
+    catalogId:      Option[Option[CatalogIdModel.Input]],
     ra:             Option[RightAscensionModel.Input],
     dec:            Option[DeclinationModel.Input],
     epoch:          Option[Epoch],
@@ -196,15 +199,17 @@ object TargetModel extends TargetOptics {
       targetId
 
     override val editor: ValidatedInput[State[TargetModel, Unit]] =
-      (ra.traverse(_.toRightAscension),
+      (Nested(catalogId).traverse(_.toCatalogId).map(_.value),
+       ra.traverse(_.toRightAscension),
        dec.traverse(_.toDeclination),
        Nested(properVelocity).traverse(_.toProperVelocity).map(_.value),
        Nested(radialVelocity).traverse(_.toRadialVelocity).map(_.value),
        Nested(parallax).traverse(_.toParallax).map(_.value)
-      ).mapN { (ra, dec, pv, rv, px) =>
+      ).mapN { (catalogId, ra, dec, pv, rv, px) =>
         for {
           _ <- TargetModel.existence      := existence
           _ <- TargetModel.name           := name.flatMap(n => NonEmptyString.from(n).toOption)
+          _ <- TargetModel.catalogId      := catalogId
           _ <- TargetModel.ra             := ra
           _ <- TargetModel.dec            := dec
           _ <- TargetModel.epoch          := epoch
@@ -273,6 +278,13 @@ trait TargetOptics { self: TargetModel.type =>
 
   val siderealTracking: Optional[TargetModel, SiderealTracking] =
     lucumaTarget.composeOptional(gemTargetSiderealTracking)
+
+  // Add to `core` `SiderealTrackingOptics`
+  private val siderealTrackingCatalogIdLens: Lens[SiderealTracking, Option[CatalogId]] =
+    Lens[SiderealTracking, Option[CatalogId]](_.catalogId)(a => b => b.copy(catalogId = a))
+
+  val catalogId: Optional[TargetModel, Option[CatalogId]] =
+    siderealTracking.composeLens(siderealTrackingCatalogIdLens)
 
   val coordinates: Optional[TargetModel, Coordinates] =
     siderealTracking.composeLens(SiderealTracking.baseCoordinates)
