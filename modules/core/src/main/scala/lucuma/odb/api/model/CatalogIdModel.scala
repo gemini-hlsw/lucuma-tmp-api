@@ -15,16 +15,16 @@ import io.circe.generic.semiauto._
 object CatalogIdModel {
 
   final case class Input(
-    catalogName: CatalogName,
-    catalogId:   String
+    name: CatalogName,
+    id:   String
   ) {
 
     def toCatalogId: ValidatedInput[CatalogId] =
       NonEmptyString
-        .from(catalogId)
-        .leftMap(er => InputError.invalidField("catalogId", catalogId, s"Catalog id must be non-empty: $er"))
+        .from(id)
+        .leftMap(er => InputError.invalidField("id", id, s"Catalog id must be non-empty: $er"))
         .toValidatedNec
-        .map(id => CatalogId(catalogName, id))
+        .map(id => CatalogId(name, id))
 
   }
 

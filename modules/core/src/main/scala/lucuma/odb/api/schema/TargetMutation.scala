@@ -8,7 +8,6 @@ import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
 import lucuma.core.math.VelocityAxis
 import cats.effect.Effect
-import lucuma.core.`enum`.CatalogName
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -18,18 +17,11 @@ trait TargetMutation extends TargetScalars {
   import GeneralSchema.EnumTypeExistence
   import NumericUnitsSchema._
   import ProgramSchema.ProgramIdType
-  import TargetSchema.{EphemerisKeyType, TargetIdArgument, TargetIdType, TargetType}
+  import TargetSchema.{EnumTypeCatalogName, EphemerisKeyType, TargetIdArgument, TargetIdType, TargetType}
 
   import context._
 
   import syntax.inputobjecttype._
-
-
-  implicit val EnumTypeCatalogName: EnumType[CatalogName] =
-    EnumType.fromEnumerated(
-      "CatalogName",
-      "Catalog name values"
-    )
 
   implicit val EnumTypeDeclinationUnits: EnumType[DeclinationModel.Units] =
     EnumType.fromEnumerated(
