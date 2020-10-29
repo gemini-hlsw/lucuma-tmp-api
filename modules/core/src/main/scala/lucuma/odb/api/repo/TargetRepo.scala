@@ -45,7 +45,7 @@ object TargetRepo {
       Tables.targets,
       TargetEvent.apply
     ) with TargetRepo[F]
-      with LookupSupport[F] {
+      with LookupSupport {
 
       override def selectAllForProgram(
         pid:            ProgramModel.Id,
@@ -53,21 +53,19 @@ object TargetRepo {
       ): F[List[TargetModel]] =
         tablesRef.get.flatMap { tables =>
           tables.programTargets.selectRight(pid).toList.traverse { tid =>
-            tables.targets.get(tid).fold(
-              missingReference[TargetModel.Id, TargetModel](tid)
-            )(M.pure)
+            tryFindTarget(tables, tid).liftTo[F]
           }
         }.map(deletionFilter(includeDeleted))
 
       def addAndShare(id: Option[TargetModel.Id], g: Target, pids: Set[ProgramModel.Id]): State[Tables, TargetModel] =
         for {
           t   <- createAndInsert(id, tid => TargetModel(tid, Present, g))
-          _   <- Tables.shareTargetWithPrograms(t, pids)
+          _   <- TableState.shareTargetWithPrograms(t, pids)
         } yield t
 
       private def insertTarget(id: Option[TargetModel.Id], pids: List[ProgramModel.Id], vt: ValidatedInput[Target]): F[TargetModel] =
         constructAndPublish { t =>
-          (vt, dontFindTarget(t, id), pids.traverse(lookupProgram(t, _))).mapN((g, _, _) =>
+          (vt, tryNotFindTarget(t, id), pids.traverse(tryFindProgram(t, _))).mapN((g, _, _) =>
             addAndShare(id, g, pids.toSet)
           )
         }
@@ -84,17 +82,17 @@ object TargetRepo {
       ): F[TargetModel] =
         tablesRef.modifyState {
           for {
-            t  <- inspectTargetId(input.targetId)
-            ps <- input.programIds.traverse(inspectProgramId).map(_.sequence)
+            t  <- TableState.target(input.targetId)
+            ps <- input.programIds.traverse(TableState.program).map(_.sequence)
             r  <- (t, ps).traverseN { (tm, _) => f(tm, input.programIds.toSet).as(tm) }
           } yield r
         }.flatMap(_.liftTo[F])
 
       override def shareWithPrograms(input: TargetProgramLinks): F[TargetModel] =
-        programSharing(input, Tables.shareTargetWithPrograms)
+        programSharing(input, TableState.shareTargetWithPrograms)
 
       override def unshareWithPrograms(input: TargetProgramLinks): F[TargetModel] =
-        programSharing(input, Tables.unshareTargetWithPrograms)
+        programSharing(input, TableState.unshareTargetWithPrograms)
 
     }
 

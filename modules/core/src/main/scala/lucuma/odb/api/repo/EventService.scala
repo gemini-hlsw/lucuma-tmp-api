@@ -24,7 +24,7 @@ final class EventService[F[_]](
 
   def publish(f: Long => Event)(implicit F: FlatMap[F]): F[Unit] =
     for {
-      n <- refTables.modifyState(Tables.nextEventId)
+      n <- refTables.modifyState(TableState.nextEventId)
       _ <- topic.publish1(f(n))
     } yield ()
 

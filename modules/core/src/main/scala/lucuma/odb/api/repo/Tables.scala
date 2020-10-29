@@ -4,16 +4,11 @@
 package lucuma.odb.api.repo
 
 import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, TargetModel}
-
-import cats.data.State
-import cats.kernel.BoundedEnumerable
 import cats.instances.order._
-import cats.syntax.functor._
 import monocle.Lens
 import monocle.function.At
-import monocle.state.all._
 
-import scala.collection.immutable.{SortedMap,TreeMap}
+import scala.collection.immutable.{SortedMap, TreeMap}
 
 /**
  * Simplistic immutable database "tables" of top-level types keyed by Id.
@@ -28,7 +23,7 @@ final case class Tables(
   programTargets:   ManyToMany[ProgramModel.Id, TargetModel.Id]
 )
 
-object Tables extends TableOptics with TableState {
+object Tables extends TableOptics {
 
   val empty: Tables =
     Tables(
@@ -90,49 +85,10 @@ sealed trait TableOptics { self: Tables.type =>
   def target(tid: TargetModel.Id): Lens[Tables, Option[TargetModel]] =
     targets ^|-> At.at(tid)
 
-
   val programAsterisms: Lens[Tables, ManyToMany[ProgramModel.Id, AsterismModel.Id]] =
     Lens[Tables, ManyToMany[ProgramModel.Id, AsterismModel.Id]](_.programAsterisms)(b => a => a.copy(programAsterisms = b))
 
   val programTargets: Lens[Tables, ManyToMany[ProgramModel.Id, TargetModel.Id]] =
     Lens[Tables, ManyToMany[ProgramModel.Id, TargetModel.Id]](_.programTargets)(b => a => a.copy(programTargets = b))
-
-
-}
-
-sealed trait TableState { self: Tables.type =>
-
-  val nextEventId: State[Tables, Long] =
-    lastEventId.mod(_ + 1L)
-
-  val nextAsterismId: State[Tables, AsterismModel.Id] =
-    lastAsterismId.mod(BoundedEnumerable[AsterismModel.Id].cycleNext)
-
-  val nextObservationId: State[Tables, ObservationModel.Id] =
-    lastObservationId.mod(BoundedEnumerable[ObservationModel.Id].cycleNext)
-
-  val nextProgramId: State[Tables, ProgramModel.Id] =
-    lastProgramId.mod(BoundedEnumerable[ProgramModel.Id].cycleNext)
-
-  val nextTargetId: State[Tables, TargetModel.Id] =
-    lastTargetId.mod(BoundedEnumerable[TargetModel.Id].cycleNext)
-
-  def shareAsterismWithPrograms(a: AsterismModel, pids: Set[ProgramModel.Id]): State[Tables, Unit] =
-    programAsterisms.mod_(_ ++ pids.toList.tupleRight(a.id))
-
-  def unshareAsterismWithPrograms(a: AsterismModel, pids: Set[ProgramModel.Id]): State[Tables, Unit] =
-    programAsterisms.mod_(_ -- pids.toList.tupleRight(a.id))
-
-  def unshareAsterismAll(aid: AsterismModel.Id): State[Tables, Unit] =
-    programAsterisms.mod_(_.removeRight(aid))
-
-  def shareTargetWithPrograms(t: TargetModel, pids: Set[ProgramModel.Id]): State[Tables, Unit] =
-    programTargets.mod_(_ ++ pids.toList.tupleRight(t.id))
-
-  def unshareTargetWithPrograms(t: TargetModel, pids: Set[ProgramModel.Id]): State[Tables, Unit] =
-    programTargets.mod_(_ -- pids.toList.tupleRight(t.id))
-
-  def unshareTargetAll(tid: TargetModel.Id): State[Tables, Unit] =
-    programTargets.mod_(_.removeRight(tid))
 
 }

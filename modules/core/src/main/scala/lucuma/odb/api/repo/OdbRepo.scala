@@ -13,6 +13,8 @@ import cats.effect.concurrent.Ref
  */
 trait OdbRepo[F[_]] {
 
+  def tables: Ref[F, Tables]
+
   def eventService: EventService[F]
 
   def asterism: AsterismRepo[F]
@@ -35,6 +37,9 @@ object OdbRepo {
       r <- Ref.of[F, Tables](Tables.empty)
       s <- EventService(r)
     } yield new OdbRepo[F] {
+
+      override def tables: Ref[F, Tables] =
+        r
 
       override def eventService: EventService[F] =
         s

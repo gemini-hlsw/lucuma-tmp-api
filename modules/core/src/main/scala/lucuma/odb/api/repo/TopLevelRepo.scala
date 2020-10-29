@@ -136,15 +136,14 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, ?]](
   def constructAndPublish[U <: T](
     cons: Tables => ValidatedInput[State[Tables, U]]
   ): F[U] = {
-    val fu = tablesRef.modify { tables =>
-      cons(tables).fold(
-        err => (tables, err.asLeft[U]),
-        st  => st.run(tables).value.map(_.asRight)
-      )
-    }.flatMap {
-      case Left(err) => M.raiseError[U](InputError.Exception(err))
-      case Right(u)  => M.pure(u)
-    }
+    val fu = EitherT(
+      tablesRef.modify { tables =>
+        cons(tables).fold(
+          err => (tables, InputError.Exception(err).asLeft[U]),
+          _.run(tables).value.map(_.asRight)
+        )
+      }
+    ).rethrowT
 
     for {
       u <- fu

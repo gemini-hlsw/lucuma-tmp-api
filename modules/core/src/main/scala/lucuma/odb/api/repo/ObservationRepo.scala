@@ -35,7 +35,7 @@ object ObservationRepo {
       Tables.observations,
       ObservationEvent.apply
     ) with ObservationRepo[F]
-      with LookupSupport[F] {
+      with LookupSupport {
 
       override def selectAllForAsterism(aid: AsterismModel.Id, includeDeleted: Boolean): F[List[ObservationModel]] =
         tablesRef
@@ -65,7 +65,7 @@ object ObservationRepo {
 
         def construct(s: PlannedTimeSummaryModel): F[ObservationModel] =
           constructAndPublish { t =>
-            (dontFindObservation(t, newObs.observationId) *> lookupProgram(t, newObs.programId))
+            (tryNotFindObservation(t, newObs.observationId) *> tryFindProgram(t, newObs.programId))
               .as(createAndInsert(newObs.observationId, newObs.withId(_, s)))
           }
 
