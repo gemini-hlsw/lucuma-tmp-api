@@ -3,16 +3,14 @@
 
 package lucuma.odb.api.model
 
-import lucuma.odb.api.model.syntax.all._
 import lucuma.odb.api.model.json.targetmath._
 import lucuma.core.`enum`.{EphemerisKeyType, MagnitudeBand}
 import lucuma.core.math.{Coordinates, Declination, Epoch, Parallax, ProperVelocity, RadialVelocity, RightAscension}
-import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, SiderealTracking, Target}
-import lucuma.core.util.Gid
+import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, Program, SiderealTracking, Target}
+import lucuma.core.optics.syntax.lens._
+import lucuma.core.optics.syntax.optional._
 import cats.data._
 import cats.implicits._
-import eu.timepit.refined.auto._
-import eu.timepit.refined.types.numeric.PosLong
 import eu.timepit.refined.types.string._
 import io.circe.Decoder
 import io.circe.generic.semiauto._
@@ -24,24 +22,14 @@ import scala.collection.immutable.SortedMap
  * A Target combining an ID with a `gem.Target`.
  */
 final case class TargetModel(
-  id:         TargetModel.Id,
+  id:         Target.Id,
   existence:  Existence,
   target:     Target
 )
 
 object TargetModel extends TargetOptics {
 
-  final case class Id(value: PosLong) {
-    override def toString: String =
-      Gid[Id].show(this)
-  }
-
-  object Id {
-    implicit val GidTargetId: Gid[Id] =
-      Gid.instance('t', _.value, apply)
-  }
-
-  implicit val TopLevelTarget: TopLevelModel[Id, TargetModel] =
+  implicit val TopLevelTarget: TopLevelModel[Target.Id, TargetModel] =
     TopLevelModel.instance(_.id, existence)
 
 
@@ -79,8 +67,8 @@ object TargetModel extends TargetOptics {
    * @param des semi-permanent horizons identifier (relative to key type)
    */
   final case class CreateNonsidereal(
-    targetId:   Option[TargetModel.Id],
-    programIds: List[ProgramModel.Id],
+    targetId:   Option[Target.Id],
+    programIds: List[Program.Id],
     name:       String,
     key:        EphemerisKeyType,
     des:        String
@@ -119,8 +107,8 @@ object TargetModel extends TargetOptics {
    * @param parallax parallax
    */
   final case class CreateSidereal(
-    targetId:       Option[TargetModel.Id],
-    programIds:     List[ProgramModel.Id],
+    targetId:       Option[Target.Id],
+    programIds:     List[Program.Id],
     name:           String,
     catalogId:      Option[CatalogIdModel.Input],
     ra:             RightAscensionModel.Input,
@@ -164,13 +152,13 @@ object TargetModel extends TargetOptics {
   }
 
   final case class EditNonsidereal(
-    targetId:  Id,
+    targetId:  Target.Id,
     existence: Option[Existence],
     name:      Option[String],
     key:       Option[EphemerisKey],
-  ) extends Editor[Id, TargetModel] {
+  ) extends Editor[Target.Id, TargetModel] {
 
-    override def id: Id =
+    override def id: Target.Id =
       targetId
 
     override val editor: ValidatedInput[State[TargetModel, Unit]] =
@@ -183,7 +171,7 @@ object TargetModel extends TargetOptics {
   }
 
   final case class EditSidereal(
-    targetId:       Id,
+    targetId:       Target.Id,
     existence:      Option[Existence],
     name:           Option[String],
     catalogId:      Option[Option[CatalogIdModel.Input]],
@@ -193,9 +181,9 @@ object TargetModel extends TargetOptics {
     properVelocity: Option[Option[ProperVelocityModel.Input]],
     radialVelocity: Option[Option[RadialVelocityModel.Input]],
     parallax:       Option[Option[ParallaxModel.Input]]
-  ) extends Editor[Id, TargetModel] {
+  ) extends Editor[Target.Id, TargetModel] {
 
-    override def id: Id =
+    override def id: Target.Id =
       targetId
 
     override val editor: ValidatedInput[State[TargetModel, Unit]] =
@@ -229,8 +217,8 @@ object TargetModel extends TargetOptics {
   }
 
   final case class TargetProgramLinks(
-    targetId:   Id,
-    programIds: List[ProgramModel.Id]
+    targetId:   Target.Id,
+    programIds: List[Program.Id]
   )
 
   object TargetProgramLinks {
@@ -255,8 +243,8 @@ object TargetModel extends TargetOptics {
 
 trait TargetOptics { self: TargetModel.type =>
 
-  val id: Lens[TargetModel, TargetModel.Id] =
-    Lens[TargetModel, TargetModel.Id](_.id)(a => b => b.copy(id = a))
+  val id: Lens[TargetModel, Target.Id] =
+    Lens[TargetModel, Target.Id](_.id)(a => b => b.copy(id = a))
 
   val existence: Lens[TargetModel, Existence] =
     Lens[TargetModel, Existence](_.existence)(a => b => b.copy(existence = a))
@@ -279,12 +267,8 @@ trait TargetOptics { self: TargetModel.type =>
   val siderealTracking: Optional[TargetModel, SiderealTracking] =
     lucumaTarget.composeOptional(gemTargetSiderealTracking)
 
-  // Add to `core` `SiderealTrackingOptics`
-  private val siderealTrackingCatalogIdLens: Lens[SiderealTracking, Option[CatalogId]] =
-    Lens[SiderealTracking, Option[CatalogId]](_.catalogId)(a => b => b.copy(catalogId = a))
-
   val catalogId: Optional[TargetModel, Option[CatalogId]] =
-    siderealTracking.composeLens(siderealTrackingCatalogIdLens)
+    siderealTracking.composeLens(SiderealTracking.catalogId)
 
   val coordinates: Optional[TargetModel, Coordinates] =
     siderealTracking.composeLens(SiderealTracking.baseCoordinates)

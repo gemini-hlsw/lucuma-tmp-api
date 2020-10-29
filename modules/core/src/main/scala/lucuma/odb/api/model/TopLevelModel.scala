@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.model
 
-import lucuma.odb.api.model.syntax.lens._
+import lucuma.core.optics.syntax.lens._
 
 import cats.implicits._
 import cats.data.State

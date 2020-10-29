@@ -8,7 +8,7 @@ import lucuma.odb.api.model.{DeclinationModel, ParallaxModel, ProperVelocityMode
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.`enum`.{CatalogName, EphemerisKeyType}
 import lucuma.core.math.{Coordinates, Declination, Parallax, ProperVelocity, RadialVelocity, RightAscension, VelocityAxis}
-import lucuma.core.model.{CatalogId, EphemerisKey, SiderealTracking}
+import lucuma.core.model.{CatalogId, EphemerisKey, SiderealTracking, Target}
 import cats.effect.Effect
 import cats.syntax.eq._
 import cats.syntax.functor._
@@ -22,17 +22,17 @@ object TargetSchema extends TargetScalars {
   import ProgramSchema.{OptionalProgramIdArgument, ProgramType}
   import context._
 
-  implicit val TargetIdType: ScalarType[TargetModel.Id] =
-    ObjectIdSchema.idType[TargetModel.Id]("TargetId")
+  implicit val TargetIdType: ScalarType[Target.Id] =
+    ObjectIdSchema.idType[Target.Id]("TargetId")
 
-  val TargetIdArgument: Argument[TargetModel.Id] =
+  val TargetIdArgument: Argument[Target.Id] =
     Argument(
       name         = "targetId",
       argumentType = TargetIdType,
       description  = "Target ID"
     )
 
-  val OptionalTargetIdArgument: Argument[Option[TargetModel.Id]] =
+  val OptionalTargetIdArgument: Argument[Option[Target.Id]] =
     Argument(
       name         = "targetId",
       argumentType = OptionInputType(TargetIdType),

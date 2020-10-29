@@ -5,6 +5,7 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.ProgramModel
 import lucuma.odb.api.repo.OdbRepo
+import lucuma.core.model.Program
 import cats.effect.Effect
 import cats.syntax.foldable._
 import cats.syntax.functor._
@@ -19,17 +20,17 @@ object ProgramSchema {
   import TargetSchema.TargetType
   import context._
 
-  implicit val ProgramIdType: ScalarType[ProgramModel.Id] =
-    ObjectIdSchema.idType[ProgramModel.Id]("ProgramId")
+  implicit val ProgramIdType: ScalarType[Program.Id] =
+    ObjectIdSchema.idType[Program.Id]("ProgramId")
 
-  val ProgramIdArgument: Argument[ProgramModel.Id] =
+  val ProgramIdArgument: Argument[Program.Id] =
     Argument(
       name         = "programId",
       argumentType = ProgramIdType,
       description  = "Program ID"
     )
 
-  val OptionalProgramIdArgument: Argument[Option[ProgramModel.Id]] =
+  val OptionalProgramIdArgument: Argument[Option[Program.Id]] =
     Argument(
       name         = "programId",
       argumentType = OptionInputType(ProgramIdType),

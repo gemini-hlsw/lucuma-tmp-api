@@ -3,11 +3,11 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{ProgramModel, TargetModel, ValidatedInput}
+import lucuma.odb.api.model.{TargetModel, ValidatedInput}
 import lucuma.odb.api.model.TargetModel.{CreateNonsidereal, CreateSidereal, TargetEvent, TargetProgramLinks}
 import lucuma.odb.api.model.Existence._
 import lucuma.odb.api.model.syntax.validatedinput._
-import lucuma.core.model.Target
+import lucuma.core.model.{Program, Target}
 import cats._
 import cats.data.State
 import cats.effect.concurrent.Ref
@@ -17,9 +17,9 @@ import cats.syntax.functor._
 import cats.syntax.traverse._
 
 
-sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, TargetModel.Id, TargetModel] {
+sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
 
-  def selectAllForProgram(pid: ProgramModel.Id, includeDeleted: Boolean = false): F[List[TargetModel]]
+  def selectAllForProgram(pid: Program.Id, includeDeleted: Boolean = false): F[List[TargetModel]]
 
   def insertNonsidereal(input: CreateNonsidereal): F[TargetModel]
 
@@ -38,7 +38,7 @@ object TargetRepo {
     eventService: EventService[F]
   )(implicit M: MonadError[F, Throwable]): TargetRepo[F] =
 
-    new TopLevelRepoBase[F, TargetModel.Id, TargetModel](
+    new TopLevelRepoBase[F, Target.Id, TargetModel](
       tablesRef,
       eventService,
       Tables.lastTargetId,
@@ -48,7 +48,7 @@ object TargetRepo {
       with LookupSupport {
 
       override def selectAllForProgram(
-        pid:            ProgramModel.Id,
+        pid:            Program.Id,
         includeDeleted: Boolean = false
       ): F[List[TargetModel]] =
         tablesRef.get.flatMap { tables =>
@@ -57,13 +57,13 @@ object TargetRepo {
           }
         }.map(deletionFilter(includeDeleted))
 
-      def addAndShare(id: Option[TargetModel.Id], g: Target, pids: Set[ProgramModel.Id]): State[Tables, TargetModel] =
+      def addAndShare(id: Option[Target.Id], g: Target, pids: Set[Program.Id]): State[Tables, TargetModel] =
         for {
           t   <- createAndInsert(id, tid => TargetModel(tid, Present, g))
           _   <- TableState.shareTargetWithPrograms(t, pids)
         } yield t
 
-      private def insertTarget(id: Option[TargetModel.Id], pids: List[ProgramModel.Id], vt: ValidatedInput[Target]): F[TargetModel] =
+      private def insertTarget(id: Option[Target.Id], pids: List[Program.Id], vt: ValidatedInput[Target]): F[TargetModel] =
         constructAndPublish { t =>
           (vt, tryNotFindTarget(t, id), pids.traverse(tryFindProgram(t, _))).mapN((g, _, _) =>
             addAndShare(id, g, pids.toSet)
@@ -78,7 +78,7 @@ object TargetRepo {
 
       private def programSharing(
         input: TargetProgramLinks,
-        f:     (TargetModel, Set[ProgramModel.Id]) => State[Tables, Unit]
+        f:     (TargetModel, Set[Program.Id]) => State[Tables, Unit]
       ): F[TargetModel] =
         tablesRef.modifyState {
           for {

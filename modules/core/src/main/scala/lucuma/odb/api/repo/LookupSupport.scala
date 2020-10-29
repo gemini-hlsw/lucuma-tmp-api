@@ -3,8 +3,8 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, TargetModel, ValidatedInput}
-import lucuma.odb.api.model.InputError
+import lucuma.odb.api.model.{AsterismModel, InputError, ObservationModel, ProgramModel, TargetModel, ValidatedInput}
+import lucuma.core.model.{Asterism, Observation, Program, Target}
 import lucuma.core.util.Gid
 import cats.implicits._
 
@@ -15,16 +15,16 @@ trait LookupSupport {
   def tryFind[I: Gid, T](m: SortedMap[I, T], id: I, name: String): ValidatedInput[T] =
     m.get(id).toValidNec(InputError.missingReference(name, Gid[I].show(id)))
 
-  def tryFindAsterism(t: Tables, aid: AsterismModel.Id): ValidatedInput[AsterismModel] =
+  def tryFindAsterism(t: Tables, aid: Asterism.Id): ValidatedInput[AsterismModel] =
     tryFind(t.asterisms, aid, "asterism")
 
-  def tryFindObservation(t: Tables, oid: ObservationModel.Id): ValidatedInput[ObservationModel] =
+  def tryFindObservation(t: Tables, oid: Observation.Id): ValidatedInput[ObservationModel] =
     tryFind(t.observations, oid, "observation")
 
-  def tryFindProgram(t: Tables, pid: ProgramModel.Id): ValidatedInput[ProgramModel] =
+  def tryFindProgram(t: Tables, pid: Program.Id): ValidatedInput[ProgramModel] =
     tryFind(t.programs, pid, "program")
 
-  def tryFindTarget(t: Tables, tid: TargetModel.Id): ValidatedInput[TargetModel] =
+  def tryFindTarget(t: Tables, tid: Target.Id): ValidatedInput[TargetModel] =
     tryFind(t.targets, tid, "target")
 
 
@@ -36,16 +36,16 @@ trait LookupSupport {
       m.get(i).as(InputError.idClash(name, Gid[I].show(i))).toInvalidNec(())
     }
 
-  def tryNotFindAsterism(t: Tables, aid: Option[AsterismModel.Id]): ValidatedInput[Unit] =
+  def tryNotFindAsterism(t: Tables, aid: Option[Asterism.Id]): ValidatedInput[Unit] =
     tryNotFind(t.asterisms, aid, "asterism")
 
-  def tryNotFindObservation(t: Tables, oid: Option[ObservationModel.Id]): ValidatedInput[Unit] =
+  def tryNotFindObservation(t: Tables, oid: Option[Observation.Id]): ValidatedInput[Unit] =
     tryNotFind(t.observations, oid, "observation")
 
-  def tryNotFindProgram(t: Tables, pid: Option[ProgramModel.Id]): ValidatedInput[Unit] =
+  def tryNotFindProgram(t: Tables, pid: Option[Program.Id]): ValidatedInput[Unit] =
     tryNotFind(t.programs, pid, "program")
 
-  def tryNotFindTarget(t: Tables, tid: Option[TargetModel.Id]): ValidatedInput[Unit] =
+  def tryNotFindTarget(t: Tables, tid: Option[Target.Id]): ValidatedInput[Unit] =
     tryNotFind(t.targets, tid, "target")
 
 }

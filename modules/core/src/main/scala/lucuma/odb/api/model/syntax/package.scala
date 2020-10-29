@@ -5,9 +5,7 @@ package lucuma.odb.api.model
 
 package object syntax {
 
-  object all extends ToLensEditorOps
-                with ToOptionalEditorOps
-                with ToTopLevelOps
+  object all extends ToTopLevelOps
                 with ToValidatedInputOps
 
 }

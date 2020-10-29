@@ -3,21 +3,22 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{AsterismModel, ProgramModel, TargetModel}
+import lucuma.odb.api.model.ProgramModel
 import lucuma.odb.api.model.ProgramModel.ProgramEvent
 import lucuma.odb.api.model.Existence._
 import lucuma.odb.api.model.syntax.validatedinput._
+import lucuma.core.model.{Asterism, Program, Target}
 import cats.Monad
 import cats.implicits._
 import cats.MonadError
 import cats.effect.concurrent.Ref
 
 
-trait ProgramRepo[F[_]] extends TopLevelRepo[F, ProgramModel.Id, ProgramModel] {
+trait ProgramRepo[F[_]] extends TopLevelRepo[F, Program.Id, ProgramModel] {
 
-  def selectAllForAsterism(aid: AsterismModel.Id, includeDeleted: Boolean = false): F[List[ProgramModel]]
+  def selectAllForAsterism(aid: Asterism.Id, includeDeleted: Boolean = false): F[List[ProgramModel]]
 
-  def selectAllForTarget(tid: TargetModel.Id, includeDeleted: Boolean = false): F[List[ProgramModel]]
+  def selectAllForTarget(tid: Target.Id, includeDeleted: Boolean = false): F[List[ProgramModel]]
 
   def insert(input: ProgramModel.Create): F[ProgramModel]
 
@@ -30,7 +31,7 @@ object ProgramRepo {
     eventService: EventService[F]
   )(implicit M: MonadError[F, Throwable]): ProgramRepo[F] =
 
-    new TopLevelRepoBase[F, ProgramModel.Id, ProgramModel](
+    new TopLevelRepoBase[F, Program.Id, ProgramModel](
       tablesRef,
       eventService,
       Tables.lastProgramId,
@@ -41,7 +42,7 @@ object ProgramRepo {
 
       private def selectAllFor[I](
         id:             I,
-        f:              Tables => ManyToMany[ProgramModel.Id, I],
+        f:              Tables => ManyToMany[Program.Id, I],
         includeDeleted: Boolean
       ): F[List[ProgramModel]] =
         tablesRef.get.flatMap { tables =>
@@ -50,10 +51,10 @@ object ProgramRepo {
           }
         }.map(deletionFilter(includeDeleted))
 
-      override def selectAllForAsterism(aid: AsterismModel.Id, includeDeleted: Boolean = false): F[List[ProgramModel]] =
+      override def selectAllForAsterism(aid: Asterism.Id, includeDeleted: Boolean = false): F[List[ProgramModel]] =
         selectAllFor(aid, _.programAsterisms, includeDeleted)
 
-      override def selectAllForTarget(tid: TargetModel.Id, includeDeleted: Boolean = false): F[List[ProgramModel]] =
+      override def selectAllForTarget(tid: Target.Id, includeDeleted: Boolean = false): F[List[ProgramModel]] =
         selectAllFor(tid, _.programTargets, includeDeleted)
 
       override def insert(input: ProgramModel.Create): F[ProgramModel] =

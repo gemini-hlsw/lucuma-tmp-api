@@ -3,6 +3,8 @@
 
 package lucuma.odb.api.model
 
+import lucuma.core.model.{Observation, Target}
+
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 
@@ -12,8 +14,8 @@ import io.circe.generic.semiauto.deriveDecoder
 object Sharing {
 
   final case class TargetObservationLinks(
-    targetIds:      List[TargetModel.Id],
-    observationIds: List[ObservationModel.Id]
+    targetIds:      List[Target.Id],
+    observationIds: List[Observation.Id]
   )
 
   object TargetObservationLinks {
