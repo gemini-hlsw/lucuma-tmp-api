@@ -3,11 +3,12 @@
 
 package lucuma.odb.api.model
 
-import lucuma.odb.api.model.syntax.all._
 import lucuma.odb.api.model.json.targetmath._
 import lucuma.core.`enum`.{EphemerisKeyType, MagnitudeBand}
 import lucuma.core.math.{Coordinates, Declination, Epoch, Parallax, ProperVelocity, RadialVelocity, RightAscension}
 import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, SiderealTracking, Target}
+import lucuma.core.optics.syntax.lens._
+import lucuma.core.optics.syntax.optional._
 import lucuma.core.util.Gid
 import cats.data._
 import cats.implicits._
@@ -279,12 +280,8 @@ trait TargetOptics { self: TargetModel.type =>
   val siderealTracking: Optional[TargetModel, SiderealTracking] =
     lucumaTarget.composeOptional(gemTargetSiderealTracking)
 
-  // Add to `core` `SiderealTrackingOptics`
-  private val siderealTrackingCatalogIdLens: Lens[SiderealTracking, Option[CatalogId]] =
-    Lens[SiderealTracking, Option[CatalogId]](_.catalogId)(a => b => b.copy(catalogId = a))
-
   val catalogId: Optional[TargetModel, Option[CatalogId]] =
-    siderealTracking.composeLens(siderealTrackingCatalogIdLens)
+    siderealTracking.composeLens(SiderealTracking.catalogId)
 
   val coordinates: Optional[TargetModel, Coordinates] =
     siderealTracking.composeLens(SiderealTracking.baseCoordinates)

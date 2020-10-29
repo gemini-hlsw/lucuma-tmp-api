@@ -4,8 +4,8 @@
 package lucuma.odb.api.model
 
 import lucuma.odb.api.model.Existence._
-import lucuma.odb.api.model.syntax.all._
 import lucuma.core.`enum`.ObsStatus
+import lucuma.core.optics.syntax.lens._
 import lucuma.core.util.Gid
 import cats.data.State
 import cats.syntax.validated._

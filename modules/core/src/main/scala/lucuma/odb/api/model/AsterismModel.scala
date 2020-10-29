@@ -4,9 +4,9 @@
 package lucuma.odb.api.model
 
 import lucuma.odb.api.model.Existence._
-import lucuma.odb.api.model.syntax.all._
 import lucuma.core.util.{Enumerated, Gid}
 import lucuma.core.math.Coordinates
+import lucuma.core.optics.syntax.lens._
 import cats.Eq
 import cats.data.{Nested, State}
 import cats.implicits._
