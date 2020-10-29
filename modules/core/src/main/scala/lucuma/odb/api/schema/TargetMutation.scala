@@ -3,15 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{
-  CoordinatesModel,
-  DeclinationModel,
-  ParallaxModel,
-  ProperVelocityModel,
-  RadialVelocityModel,
-  RightAscensionModel,
-  TargetModel
-}
+import lucuma.odb.api.model.{CatalogIdModel, CoordinatesModel, DeclinationModel, ParallaxModel, ProperVelocityModel, RadialVelocityModel, RightAscensionModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
 import lucuma.core.math.VelocityAxis
@@ -25,7 +17,7 @@ trait TargetMutation extends TargetScalars {
   import GeneralSchema.EnumTypeExistence
   import NumericUnitsSchema._
   import ProgramSchema.ProgramIdType
-  import TargetSchema.{EphemerisKeyType, TargetIdArgument, TargetIdType, TargetType}
+  import TargetSchema.{EnumTypeCatalogName, EphemerisKeyType, TargetIdArgument, TargetIdType, TargetType}
 
   import context._
 
@@ -71,6 +63,12 @@ trait TargetMutation extends TargetScalars {
     InputObjectTypeTargetCreateNonsidereal.argument(
       "input",
       "Nonsidereal target description"
+    )
+
+  implicit val InputObjectCatalogId: InputObjectType[CatalogIdModel.Input] =
+    deriveInputObjectType[CatalogIdModel.Input](
+      InputObjectTypeName("CatalogIdInput"),
+      InputObjectTypeDescription("Catalog id consisting of catalog name and string identifier")
     )
 
   implicit val InputObjectTypeCoordinates: InputObjectType[CoordinatesModel.Input] =

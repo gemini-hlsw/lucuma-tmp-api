@@ -7,12 +7,18 @@ import cats.data.State
 import monocle.Optional
 import monocle.state.all._
 
-final class OptionalEditorOps[S, A](self: Optional[S, A]) {
+final class OptionalEditorOps[S, A](val self: Optional[S, A]) extends AnyVal {
+
+  def edit(a: A): State[S, Option[A]] =
+    self.assign(a)
+
+  @inline def :=(a: A): State[S, Option[A]] =
+    edit(a)
 
   def edit(a: Option[A]): State[S, Option[A]] =
     a.fold(self.st)(self.assign)
 
-  def :=(a: Option[A]): State[S, Option[A]] =
+  @inline def :=(a: Option[A]): State[S, Option[A]] =
     edit(a)
 
 }

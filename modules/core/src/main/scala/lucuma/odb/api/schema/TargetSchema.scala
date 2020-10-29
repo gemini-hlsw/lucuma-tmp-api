@@ -6,9 +6,9 @@ package lucuma.odb.api.schema
 import lucuma.odb.api.schema.syntax.all._
 import lucuma.odb.api.model.{DeclinationModel, ParallaxModel, ProperVelocityModel, RadialVelocityModel, RightAscensionModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.core.`enum`.EphemerisKeyType
+import lucuma.core.`enum`.{CatalogName, EphemerisKeyType}
 import lucuma.core.math.{Coordinates, Declination, Parallax, ProperVelocity, RadialVelocity, RightAscension, VelocityAxis}
-import lucuma.core.model.{ EphemerisKey, SiderealTracking }
+import lucuma.core.model.{CatalogId, EphemerisKey, SiderealTracking}
 import cats.effect.Effect
 import cats.syntax.eq._
 import cats.syntax.functor._
@@ -39,6 +39,12 @@ object TargetSchema extends TargetScalars {
       description  = "Target ID"
     )
 
+  implicit val EnumTypeCatalogName: EnumType[CatalogName] =
+    EnumType.fromEnumerated(
+      "CatalogName",
+      "Catalog name values"
+    )
+
   implicit val EphemerisKeyType: EnumType[EphemerisKeyType] =
     EnumType.fromEnumerated(
       "EphemerisKeyType",
@@ -62,6 +68,27 @@ object TargetSchema extends TargetScalars {
           fieldType   = EphemerisKeyType,
           description = Some("Nonsidereal target lookup type."),
           resolve     = _.value.keyType
+        )
+      )
+    )
+
+  def CatalogIdType[F[_]: Effect]: ObjectType[OdbRepo[F], CatalogId] =
+    ObjectType(
+      name = "CatalogId",
+      fieldsFn = () => fields(
+
+        Field(
+          name        = "name",
+          fieldType   = EnumTypeCatalogName,
+          description = Some("Catalog name option"),
+          resolve     = _.value.catalog
+        ),
+
+        Field(
+          name        = "id",
+          fieldType   = StringType,
+          description = Some("Catalog id string"),
+          resolve     = _.value.id.value
         )
       )
     )
@@ -251,6 +278,13 @@ object TargetSchema extends TargetScalars {
     ObjectType(
       name     = "Sidereal",
       fieldsFn = () => fields(
+
+        Field(
+          name        = "catalogId",
+          fieldType   = OptionType(CatalogIdType[F]),
+          description = Some("Catalog id, if any, describing from where the information in this target was obtained"),
+          resolve     = _.value.catalogId
+        ),
 
         Field(
           name        = "coordinates",
