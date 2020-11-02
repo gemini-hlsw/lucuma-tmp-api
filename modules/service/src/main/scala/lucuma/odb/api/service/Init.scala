@@ -5,7 +5,7 @@ package lucuma.odb.api.service
 
 import lucuma.odb.api.model._
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.core.`enum`.ObsStatus
+import lucuma.core.`enum`.{MagnitudeBand, MagnitudeSystem, ObsStatus}
 import lucuma.core.math.Epoch
 import cats.effect.Sync
 import cats.syntax.flatMap._
@@ -33,7 +33,7 @@ object Init {
       t0 <- repo.target.insertSidereal(
               TargetModel.CreateSidereal(
                 None,
-                List(p.id),
+                Some(List(p.id)),
                 "Betelgeuse",
                 None,
                 RightAscensionModel.Input.unsafeFromHms("05:55:10.305"),
@@ -41,13 +41,17 @@ object Init {
                 Some(Epoch.J2000),
                 Some(ProperVelocityModel.Input.fromMilliarcsecondsPerYear(BigDecimal("27.54"), BigDecimal("11.3"))),
                 Some(RadialVelocityModel.Input.fromMetersPerSecond(21884)),
-                Some(ParallaxModel.Input.fromMilliarcseconds(BigDecimal("6.55")))
+                Some(ParallaxModel.Input.fromMilliarcseconds(BigDecimal("6.55"))),
+                Some(List(
+                  MagnitudeModel.Input(BigDecimal("-1.17"), MagnitudeBand.R, Some(MagnitudeSystem.Vega), None),
+                  MagnitudeModel.Input(BigDecimal( "0.42"), MagnitudeBand.V, Some(MagnitudeSystem.Vega), None)
+                ))
               )
             )
       t1 <- repo.target.insertSidereal(
               TargetModel.CreateSidereal(
                 None,
-                List(p.id),
+                Some(List(p.id)),
                 "Rigel",
                 None,
                 RightAscensionModel.Input.unsafeFromHms("05:14:32.272"),
@@ -55,7 +59,11 @@ object Init {
                 Some(Epoch.J2000),
                 Some(ProperVelocityModel.Input.fromMilliarcsecondsPerYear(BigDecimal("1.31"), BigDecimal("0.5"))),
                 Some(RadialVelocityModel.Input.fromMetersPerSecond(17687)),
-                Some(ParallaxModel.Input.fromMilliarcseconds(BigDecimal("3.78")))
+                Some(ParallaxModel.Input.fromMilliarcseconds(BigDecimal("3.78"))),
+                Some(List(
+                  MagnitudeModel.Input(BigDecimal("0.13"), MagnitudeBand.R, Some(MagnitudeSystem.Vega), None),
+                  MagnitudeModel.Input(BigDecimal("0.13"), MagnitudeBand.V, Some(MagnitudeSystem.Vega), None)
+                ))
               )
             )
       a0 <- repo.asterism.insert(
