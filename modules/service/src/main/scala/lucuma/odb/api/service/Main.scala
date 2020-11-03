@@ -6,7 +6,7 @@ package lucuma.odb.api.service
 import java.util.concurrent._
 
 import scala.concurrent.ExecutionContext.global
-import cats.effect.{Blocker, ConcurrentEffect, ContextShift, ExitCode, IO, IOApp, Timer}
+import cats.effect.{Blocker, Concurrent, ConcurrentEffect, ContextShift, ExitCode, IO, IOApp, Timer}
 import cats.implicits._
 import lucuma.odb.api.repo.OdbRepo
 import fs2.Stream
@@ -14,6 +14,7 @@ import org.http4s.implicits._
 import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.server.middleware.Logger
 import org.http4s.server.staticcontent._
+import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 
 // #server
 object Main extends IOApp {
@@ -44,7 +45,8 @@ object Main extends IOApp {
 
   def run(args: List[String]): IO[ExitCode] =
     for {
-      odb  <- OdbRepo.create[IO]
+      log  <- Slf4jLogger.create[IO]
+      odb  <- OdbRepo.create[IO](Concurrent[IO], log)
       port <- IO(sys.env.getOrElse("PORT", "8080").toInt) // Heroku provides binding port in PORT env variable.
       _    <- Init.initialize(odb)
       _    <- stream(odb, port).compile.drain
