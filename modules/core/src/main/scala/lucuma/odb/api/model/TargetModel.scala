@@ -4,9 +4,9 @@
 package lucuma.odb.api.model
 
 import lucuma.odb.api.model.json.targetmath._
-import lucuma.core.`enum`.{EphemerisKeyType, MagnitudeBand}
+import lucuma.core.`enum`.EphemerisKeyType
 import lucuma.core.math.{Coordinates, Declination, Epoch, Parallax, ProperVelocity, RadialVelocity, RightAscension}
-import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, Program, SiderealTracking, Target}
+import lucuma.core.model.{CatalogId, EphemerisKey, Program, SiderealTracking, Target}
 import lucuma.core.optics.syntax.lens._
 import lucuma.core.optics.syntax.optional._
 import cats.data._
@@ -68,18 +68,22 @@ object TargetModel extends TargetOptics {
    */
   final case class CreateNonsidereal(
     targetId:   Option[Target.Id],
-    programIds: List[Program.Id],
+    programIds: Option[List[Program.Id]],
     name:       String,
     key:        EphemerisKeyType,
-    des:        String
+    des:        String,
+    magnitudes: Option[List[MagnitudeModel.Input]]
   ) {
 
     val toEphemerisKey: ValidatedInput[EphemerisKey] =
       parse.ephemerisKey("des", key, des)
 
     val toGemTarget: ValidatedInput[Target] = {
-      (targetName(name), toEphemerisKey).mapN { (n, k) =>
-        Target(n, Left(k), SortedMap.empty[MagnitudeBand, Magnitude])
+      (targetName(name),
+       toEphemerisKey,
+       magnitudes.toList.flatten.traverse(_.toMagnitude)
+      ).mapN { (n, k, ms) =>
+        Target(n, Left(k), SortedMap.from(ms.map(m => m.band -> m)))
       }
     }
   }
@@ -108,7 +112,7 @@ object TargetModel extends TargetOptics {
    */
   final case class CreateSidereal(
     targetId:       Option[Target.Id],
-    programIds:     List[Program.Id],
+    programIds:     Option[List[Program.Id]],
     name:           String,
     catalogId:      Option[CatalogIdModel.Input],
     ra:             RightAscensionModel.Input,
@@ -116,7 +120,8 @@ object TargetModel extends TargetOptics {
     epoch:          Option[Epoch],
     properVelocity: Option[ProperVelocityModel.Input],
     radialVelocity: Option[RadialVelocityModel.Input],
-    parallax:       Option[ParallaxModel.Input]
+    parallax:       Option[ParallaxModel.Input],
+    magnitudes:     Option[List[MagnitudeModel.Input]]
   ) {
 
     val toSiderealTracking: ValidatedInput[SiderealTracking] =
@@ -138,8 +143,11 @@ object TargetModel extends TargetOptics {
       }
 
     val toGemTarget: ValidatedInput[Target] =
-      (targetName(name), toSiderealTracking).mapN { (n, pm) =>
-        Target(n, Right(pm), SortedMap.empty)
+      (targetName(name),
+       toSiderealTracking,
+       magnitudes.toList.flatten.traverse(_.toMagnitude)
+      ).mapN { (n, pm, ms) =>
+        Target(n, Right(pm), SortedMap.from(ms.map(m => m.band -> m)))
       }
 
   }

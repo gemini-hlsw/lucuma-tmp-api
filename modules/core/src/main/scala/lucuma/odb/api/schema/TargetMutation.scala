@@ -3,10 +3,13 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{CatalogIdModel, CoordinatesModel, DeclinationModel, ParallaxModel, ProperVelocityModel, RadialVelocityModel, RightAscensionModel, TargetModel}
+import lucuma.odb.api.model.{CatalogIdModel, CoordinatesModel, DeclinationModel, MagnitudeModel, ParallaxModel, ProperVelocityModel, RadialVelocityModel, RightAscensionModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
+
+import lucuma.core.`enum`.MagnitudeSystem
 import lucuma.core.math.VelocityAxis
+
 import cats.effect.Effect
 import sangria.macros.derive._
 import sangria.marshalling.circe._
@@ -17,7 +20,7 @@ trait TargetMutation extends TargetScalars {
   import GeneralSchema.EnumTypeExistence
   import NumericUnitsSchema._
   import ProgramSchema.ProgramIdType
-  import TargetSchema.{EnumTypeCatalogName, EphemerisKeyType, TargetIdArgument, TargetIdType, TargetType}
+  import TargetSchema.{EnumTypeCatalogName, EphemerisKeyType, EnumTypeMagnitudeBand, EnumTypeMagnitudeSystem, TargetIdArgument, TargetIdType, TargetType}
 
   import context._
 
@@ -119,6 +122,20 @@ trait TargetMutation extends TargetScalars {
     deriveInputObjectType[ParallaxModel.Input](
       InputObjectTypeName("ParallaxModelInput"),
       InputObjectTypeDescription("Parallax, choose one of the available units")
+    )
+
+  implicit val InputObjectMagnitude: InputObjectType[MagnitudeModel.Input] =
+    deriveInputObjectType[MagnitudeModel.Input](
+      InputObjectTypeName("MagnitudeInput"),
+      InputObjectTypeDescription("Magnitude description"),
+      ReplaceInputField(
+        "system",
+        InputField(
+          name         = "system",
+          fieldType    = OptionInputType(EnumTypeMagnitudeSystem),
+          defaultValue = Some(MagnitudeSystem.Vega: MagnitudeSystem)
+        )
+      )
     )
 
   val InputObjectTypeCreateSidereal: InputObjectType[TargetModel.CreateSidereal] =

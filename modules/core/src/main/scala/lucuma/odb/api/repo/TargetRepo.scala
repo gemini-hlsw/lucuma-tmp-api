@@ -71,10 +71,10 @@ object TargetRepo {
         }
 
       override def insertNonsidereal(input: CreateNonsidereal): F[TargetModel] =
-        insertTarget(input.targetId, input.programIds, input.toGemTarget)
+        insertTarget(input.targetId, input.programIds.toList.flatten, input.toGemTarget)
 
       override def insertSidereal(input: CreateSidereal): F[TargetModel] =
-        insertTarget(input.targetId, input.programIds, input.toGemTarget)
+        insertTarget(input.targetId, input.programIds.toList.flatten, input.toGemTarget)
 
       private def programSharing(
         input: TargetProgramLinks,

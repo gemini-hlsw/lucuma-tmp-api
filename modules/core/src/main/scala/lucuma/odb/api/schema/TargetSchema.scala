@@ -6,9 +6,9 @@ package lucuma.odb.api.schema
 import lucuma.odb.api.schema.syntax.all._
 import lucuma.odb.api.model.{DeclinationModel, ParallaxModel, ProperVelocityModel, RadialVelocityModel, RightAscensionModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.core.`enum`.{CatalogName, EphemerisKeyType}
-import lucuma.core.math.{Coordinates, Declination, Parallax, ProperVelocity, RadialVelocity, RightAscension, VelocityAxis}
-import lucuma.core.model.{CatalogId, EphemerisKey, SiderealTracking, Target}
+import lucuma.core.`enum`.{CatalogName, EphemerisKeyType, MagnitudeBand, MagnitudeSystem}
+import lucuma.core.math.{Coordinates, Declination, MagnitudeValue, Parallax, ProperVelocity, RadialVelocity, RightAscension, VelocityAxis}
+import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, SiderealTracking, Target}
 import cats.effect.Effect
 import cats.syntax.eq._
 import cats.syntax.functor._
@@ -43,6 +43,18 @@ object TargetSchema extends TargetScalars {
     EnumType.fromEnumerated(
       "CatalogName",
       "Catalog name values"
+    )
+
+  implicit val EnumTypeMagnitudeBand: EnumType[MagnitudeBand] =
+    EnumType.fromEnumerated(
+      "MagnitudeBand",
+      "Magnitude band"
+    )
+
+  implicit val EnumTypeMagnitudeSystem: EnumType[MagnitudeSystem] =
+    EnumType.fromEnumerated(
+      "MagnitudeSystem",
+      "Magnitude system"
     )
 
   implicit val EphemerisKeyType: EnumType[EphemerisKeyType] =
@@ -90,6 +102,35 @@ object TargetSchema extends TargetScalars {
           description = Some("Catalog id string"),
           resolve     = _.value.id.value
         )
+      )
+    )
+
+  def MagnitudeType[F[_]: Effect]: ObjectType[OdbRepo[F], Magnitude] =
+    ObjectType(
+      name = "Magnitude",
+      fieldsFn = () => fields(
+
+        Field(
+          name        = "value",
+          fieldType   = BigDecimalType,
+          description = Some("Magnitude value (unitless)"),
+          resolve     = m => MagnitudeValue.fromBigDecimal.reverseGet(m.value.value)
+        ),
+
+        Field(
+          name        = "band",
+          fieldType   = EnumTypeMagnitudeBand,
+          description = Some("Magnitude band"),
+          resolve     = _.value.band
+        ),
+
+        Field(
+          name        = "system",
+          fieldType   = EnumTypeMagnitudeSystem,
+          description = Some("Magnitude System"),
+          resolve     = _.value.system
+        )
+
       )
     )
 
@@ -404,6 +445,13 @@ object TargetSchema extends TargetScalars {
           fieldType   = TrackingType[F],
           description = Some("Information required to find a target in the sky."),
           resolve     = _.value.target.track
+        ),
+
+        Field(
+          name        = "magnitudes",
+          fieldType   = ListType(MagnitudeType[F]),
+          description = Some("Target magnitudes"),
+          resolve     = _.value.target.magnitudes.values.toList
         )
       )
     )
