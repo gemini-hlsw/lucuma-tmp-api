@@ -6,6 +6,7 @@ package lucuma.odb.api.repo
 import cats.implicits._
 import cats.effect.Concurrent
 import cats.effect.concurrent.Ref
+import io.chrisdavenport.log4cats.Logger
 
 /**
  * The main "repository" for the API server.  It is simply a collection of
@@ -32,7 +33,7 @@ object OdbRepo {
   /**
    * Creates an empty ODB repository backed by a `Ref` containing `Tables`.
    */
-  def create[F[_]: Concurrent]: F[OdbRepo[F]] =
+  def create[F[_]: Concurrent: Logger]: F[OdbRepo[F]] =
     for {
       r <- Ref.of[F, Tables](Tables.empty)
       s <- EventService(r)

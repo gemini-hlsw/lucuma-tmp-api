@@ -8,19 +8,26 @@ import lucuma.odb.api.model.Event
 import cats.effect.Concurrent
 import cats.implicits._
 import cats.effect.concurrent.Ref
+import io.chrisdavenport.log4cats.Logger
+
+
 import fs2.Stream
 import fs2.concurrent.Topic
 
 /**
  *
  */
-final class EventService[F[_]](
+final class EventService[F[_]: Logger](
   topic:     Topic[F, Event],
   refTables: Ref[F, Tables]
-) {
+)(implicit F: Concurrent[F]) {
 
   def subscribe: Stream[F, Event] =
-    topic.subscribe(100)
+    topic.subscribeSize(100)
+      .evalTap { case (e, i) =>
+        Logger[F].info(s"subscription event ($i still queued): $e")
+      }
+      .map(_._1)
 
   def publish(f: Long => Event)(implicit F: FlatMap[F]): F[Unit] =
     for {
@@ -32,7 +39,7 @@ final class EventService[F[_]](
 
 object EventService {
 
-  def apply[F[_]: Concurrent](r: Ref[F, Tables]): F[EventService[F]] =
-    Topic(Event.initialize).map(t => new EventService(t, r))
+  def apply[F[_]: Concurrent: Logger](r: Ref[F, Tables]): F[EventService[F]] =
+    Topic(Event.initialize).map(t => new EventService[F](t, r))
 
 }
