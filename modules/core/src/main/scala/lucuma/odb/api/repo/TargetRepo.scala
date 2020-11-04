@@ -25,9 +25,9 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
 
   def insertSidereal(input: CreateSidereal): F[TargetModel]
 
-  def shareWithPrograms(input: TargetProgramLinks): F[TargetModel]
+  def shareWithPrograms(input: TargetProgramLinks): F[List[TargetModel]]
 
-  def unshareWithPrograms(input: TargetProgramLinks): F[TargetModel]
+  def unshareWithPrograms(input: TargetProgramLinks): F[List[TargetModel]]
 
 }
 
@@ -79,19 +79,21 @@ object TargetRepo {
       private def programSharing(
         input: TargetProgramLinks,
         f:     (TargetModel, Set[Program.Id]) => State[Tables, Unit]
-      ): F[TargetModel] =
+      ): F[List[TargetModel]] =
         tablesRef.modifyState {
           for {
-            t  <- TableState.target(input.targetId)
+            ts <- input.targetIds.traverse(TableState.target).map(_.sequence)
             ps <- input.programIds.traverse(TableState.program).map(_.sequence)
-            r  <- (t, ps).traverseN { (tm, _) => f(tm, input.programIds.toSet).as(tm) }
+            r  <- (ts, ps).traverseN { (tms, _) =>
+              tms.traverse(tm => f(tm, input.programIds.toSet).as(tm))
+            }
           } yield r
         }.flatMap(_.liftTo[F])
 
-      override def shareWithPrograms(input: TargetProgramLinks): F[TargetModel] =
+      override def shareWithPrograms(input: TargetProgramLinks): F[List[TargetModel]] =
         programSharing(input, TableState.shareTargetWithPrograms)
 
-      override def unshareWithPrograms(input: TargetProgramLinks): F[TargetModel] =
+      override def unshareWithPrograms(input: TargetProgramLinks): F[List[TargetModel]] =
         programSharing(input, TableState.unshareTargetWithPrograms)
 
     }

@@ -178,8 +178,8 @@ object AsterismModel extends AsterismOptics {
   }
 
   final case class AsterismProgramLinks(
-    asterismId: Asterism.Id,
-    programIds: List[Program.Id]
+    asterismIds: List[Asterism.Id],
+    programIds:  List[Program.Id]
   )
 
   object AsterismProgramLinks {

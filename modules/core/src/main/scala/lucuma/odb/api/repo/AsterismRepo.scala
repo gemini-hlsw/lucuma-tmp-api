@@ -24,9 +24,9 @@ sealed trait AsterismRepo[F[_]] extends TopLevelRepo[F, Asterism.Id, AsterismMod
 
   def insert[T <: AsterismModel](input: AsterismModel.Create[T]): F[T]
 
-  def shareWithPrograms(input: AsterismProgramLinks): F[AsterismModel]
+  def shareWithPrograms(input: AsterismProgramLinks): F[List[AsterismModel]]
 
-  def unshareWithPrograms(input: AsterismProgramLinks): F[AsterismModel]
+  def unshareWithPrograms(input: AsterismProgramLinks): F[List[AsterismModel]]
 
 }
 
@@ -83,19 +83,21 @@ object AsterismRepo {
       private def programSharing(
         input: AsterismProgramLinks,
         f:     (AsterismModel, Set[Program.Id]) => State[Tables, Unit]
-      ): F[AsterismModel] =
+      ): F[List[AsterismModel]] =
         tablesRef.modifyState {
           for {
-            a  <- TableState.asterism(input.asterismId)
+            as <- input.asterismIds.traverse(TableState.asterism).map(_.sequence)
             ps <- input.programIds.traverse(TableState.program).map(_.sequence)
-            r  <- (a, ps).traverseN { (am, _) => f(am, input.programIds.toSet).as(am) }
+            r  <- (as, ps).traverseN { (ams, _) =>
+              ams.traverse(am => f(am, input.programIds.toSet).as(am))
+            }
           } yield r
         }.flatMap(_.liftTo[F])
 
-      override def shareWithPrograms(input: AsterismProgramLinks): F[AsterismModel] =
+      override def shareWithPrograms(input: AsterismProgramLinks): F[List[AsterismModel]] =
         programSharing(input, TableState.shareAsterismWithPrograms)
 
-      override def unshareWithPrograms(input: AsterismProgramLinks): F[AsterismModel] =
+      override def unshareWithPrograms(input: AsterismProgramLinks): F[List[AsterismModel]] =
         programSharing(input, TableState.unshareAsterismWithPrograms)
 
     }

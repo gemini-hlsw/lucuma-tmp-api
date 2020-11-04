@@ -225,7 +225,7 @@ object TargetModel extends TargetOptics {
   }
 
   final case class TargetProgramLinks(
-    targetId:   Target.Id,
+    targetIds:  List[Target.Id],
     programIds: List[Program.Id]
   )
 
