@@ -3,16 +3,17 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{AsterismModel, Event, Existence, InputError, ObservationModel, Sharing}
+import lucuma.odb.api.model.{AsterismModel, Event, Existence, InputError, ObservationModel, Sharing, TargetModel}
 import lucuma.odb.api.model.AsterismModel.AsterismEvent
 import lucuma.odb.api.model.ObservationModel.ObservationEvent
 import lucuma.odb.api.model.Event.EditType.{Created, Updated}
-import lucuma.odb.api.repo.{LookupSupport, OdbRepo, Tables, TableState}
+import lucuma.odb.api.repo.{LookupSupport, OdbRepo, TableState, Tables}
 import lucuma.core.model.{Asterism, Observation, Target}
 import cats.data.{EitherT, State}
 import cats.effect.Effect
 import cats.effect.implicits._
 import cats.syntax.all._
+import lucuma.odb.api.schema.TargetSchema.TargetType
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -26,16 +27,30 @@ import scala.concurrent.Future
  */
 trait SharingMutation {
 
-  import AsterismSchema.AsterismType
+  import AsterismSchema.{AsterismIdType, AsterismType}
   import ObservationSchema.ObservationIdType
+  import ProgramSchema.ProgramIdType
   import TargetSchema.TargetIdType
 
+  import context._
   import syntax.inputobjecttype._
+
+  val InputObjectAsterismProgramLinks: InputObjectType[AsterismModel.AsterismProgramLinks] =
+    deriveInputObjectType[AsterismModel.AsterismProgramLinks](
+      InputObjectTypeName("AsterismProgramLinks"),
+      InputObjectTypeDescription("Asterism and the programs with which they are associated")
+    )
+
+  val ArgumentAsterismProgramLinks: Argument[AsterismModel.AsterismProgramLinks] =
+    InputObjectAsterismProgramLinks.argument(
+      "input",
+      "Asterism/program links"
+    )
 
   val InputObjectTargetObservationLinks: InputObjectType[Sharing.TargetObservationLinks] =
     deriveInputObjectType[Sharing.TargetObservationLinks](
       InputObjectTypeName("TargetObservationLinks"),
-      InputObjectTypeDescription("Target and the observations with which they are associated")
+      InputObjectTypeDescription("Targets and the observations with which they are associated")
     )
 
   val ArgumentTargetObservationLinks: Argument[Sharing.TargetObservationLinks] =
@@ -43,6 +58,35 @@ trait SharingMutation {
       "input",
       "Target/observation links"
     )
+
+  val InputObjectTargetProgramLinks: InputObjectType[TargetModel.TargetProgramLinks] =
+    deriveInputObjectType[TargetModel.TargetProgramLinks](
+      InputObjectTypeName("TargetProgramLinks"),
+      InputObjectTypeDescription("Targets and the programs with which they are associated")
+    )
+
+  val ArgumentTargetProgramLinks: Argument[TargetModel.TargetProgramLinks] =
+    InputObjectTargetProgramLinks.argument(
+      "input",
+      "Target/program links"
+    )
+
+  def shareAsterismsWithPrograms[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+    Field(
+      name      = "shareAsterismsWithPrograms",
+      fieldType = ListType(AsterismType[F]),
+      arguments = List(ArgumentAsterismProgramLinks),
+      resolve   = c => c.asterism(_.shareWithPrograms(c.arg(ArgumentAsterismProgramLinks)))
+    )
+
+  def unshareAsterismsWithPrograms[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+    Field(
+      name      = "unshareAsterismsWithPrograms",
+      fieldType = ListType(AsterismType[F]),
+      arguments = List(ArgumentAsterismProgramLinks),
+      resolve   = c => c.asterism(_.unshareWithPrograms(c.arg(ArgumentAsterismProgramLinks)))
+    )
+
 
   /**
    * Returns a `State[Tables, ?]` program that will create a `Default` asterism
@@ -172,10 +216,30 @@ trait SharingMutation {
       }
     )
 
+  def shareTargetsWithPrograms[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+    Field(
+      name      = "shareTargetsWithPrograms",
+      fieldType = ListType(TargetType[F]),
+      arguments = List(ArgumentTargetProgramLinks),
+      resolve   = c => c.target(_.shareWithPrograms(c.arg(ArgumentTargetProgramLinks)))
+    )
+
+  def unshareTargetsWithPrograms[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+    Field(
+      name      = "unshareTargetsWithPrograms",
+      fieldType = ListType(TargetType[F]),
+      arguments = List(ArgumentTargetProgramLinks),
+      resolve   = c => c.target(_.unshareWithPrograms(c.arg(ArgumentTargetProgramLinks)))
+    )
+
   def allFields[F[_]: Effect]: List[Field[OdbRepo[F], Unit]] =
     List(
+      shareAsterismsWithPrograms,
+      unshareAsterismsWithPrograms,
       shareTargetsWithObservations,
-      unshareTargetsWithObservations
+      unshareTargetsWithObservations,
+      shareTargetsWithPrograms,
+      unshareTargetsWithPrograms
     )
 
 }
