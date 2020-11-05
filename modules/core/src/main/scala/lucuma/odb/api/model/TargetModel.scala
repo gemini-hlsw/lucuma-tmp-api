@@ -13,7 +13,8 @@ import lucuma.core.optics.syntax.optional._
 import cats.data._
 import cats.implicits._
 import eu.timepit.refined.types.string._
-import io.circe.Decoder
+import io.circe.Decoder.Result
+import io.circe.{Decoder, HCursor}
 import io.circe.generic.semiauto._
 import monocle.{Lens, Optional}
 
@@ -262,8 +263,21 @@ object TargetModel extends TargetOptics {
 
   object EditSidereal {
 
+    import syntax.hcursor._
+
     implicit val DecoderEditSidereal: Decoder[EditSidereal] =
-      deriveDecoder[EditSidereal]
+      (c: HCursor) => for {
+        id <- c.get[Target.Id]("targetId")
+        ex <- c.editor[Existence]("existence")
+        nm <- c.editor[String]("name")
+        ct <- c.optionEditor[CatalogIdModel.Input]("catalogId")
+        ra <- c.editor[RightAscensionModel.Input]("ra")
+        dc <- c.editor[DeclinationModel.Input]("dec")
+        ep <- c.editor[Epoch]("epoch")
+        pv <- c.optionEditor[ProperVelocityModel.Input]("properVelocity")
+        rv <- c.optionEditor[RadialVelocityModel.Input]("radialVelocity")
+        px <- c.optionEditor[ParallaxModel.Input]("parallax")
+      } yield EditSidereal(id, ex, nm, ct, ra, dc, ep, pv, rv, px)
 
     implicit val EqEditSidereal: Eq[EditSidereal] =
       Eq.by(es => (
