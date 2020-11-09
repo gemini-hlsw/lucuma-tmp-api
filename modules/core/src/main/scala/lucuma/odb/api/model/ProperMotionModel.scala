@@ -3,8 +3,8 @@
 
 package lucuma.odb.api.model
 
-import lucuma.core.math.ProperVelocity.AngularVelocityComponent
-import lucuma.core.math.{Angle, ProperVelocity}
+import lucuma.core.math.ProperMotion.AngularVelocityComponent
+import lucuma.core.math.{Angle, ProperMotion}
 import lucuma.core.math.VelocityAxis.{RA, Dec}
 import lucuma.core.optics.SplitMono
 import lucuma.core.util.{Display, Enumerated}
@@ -16,7 +16,7 @@ import io.circe.Decoder
 import io.circe.generic.semiauto._
 
 
-object ProperVelocityModel {
+object ProperMotionModel {
 
   sealed abstract class Units(
     val angleUnit: AngleModel.Units
@@ -97,9 +97,9 @@ object ProperVelocityModel {
     dec: ComponentInput[Dec]
   ) {
 
-    val toProperVelocity: ValidatedInput[ProperVelocity] =
+    val toProperMotion: ValidatedInput[ProperMotion] =
       (ra.toComponent, dec.toComponent).mapN { case (ra, dec) =>
-        ProperVelocity(ra, dec)
+        ProperMotion(ra, dec)
       }
 
   }
