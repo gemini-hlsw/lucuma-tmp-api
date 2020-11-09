@@ -4,10 +4,10 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.schema.syntax.all._
-import lucuma.odb.api.model.{DeclinationModel, ParallaxModel, ProperVelocityModel, RadialVelocityModel, RightAscensionModel, TargetModel}
+import lucuma.odb.api.model.{DeclinationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.`enum`.{CatalogName, EphemerisKeyType, MagnitudeBand, MagnitudeSystem}
-import lucuma.core.math.{Coordinates, Declination, MagnitudeValue, Parallax, ProperVelocity, RadialVelocity, RightAscension, VelocityAxis}
+import lucuma.core.math.{Coordinates, Declination, MagnitudeValue, Parallax, ProperMotion, RadialVelocity, RightAscension, VelocityAxis}
 import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, SiderealTracking, Target}
 import cats.effect.Effect
 import cats.syntax.eq._
@@ -134,46 +134,47 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-  def ProperVelocityComponentType[A, F[_]: Effect](
-    name: String
-  ): ObjectType[OdbRepo[F], ProperVelocity.AngularVelocityComponent[A]] =
+  def ProperMotionComponentType[A, F[_]: Effect](
+    name: String,
+    componentName: String
+  ): ObjectType[OdbRepo[F], ProperMotion.AngularVelocityComponent[A]] =
     ObjectType(
-      name     = s"ProperVelocity$name",
+      name     = s"${name.capitalize}${componentName.capitalize}",
       fieldsFn = () => fields(
 
         Field(
           name        = "microarcsecondsPerYear",
           fieldType   = LongType,
-          description = Some(s"Proper velocity in $name μas/year"),
-          resolve     = v => ProperVelocityModel.Units.MicroarcsecondsPerYear.long.get(v.value)
+          description = Some(s"Proper motion in $name μas/year"),
+          resolve     = v => ProperMotionModel.Units.MicroarcsecondsPerYear.long.get(v.value)
         ),
 
         Field(
           name        = "milliarcsecondsPerYear",
           fieldType   = BigDecimalType,
-          description = Some(s"Proper velocity in $name mas/year"),
-          resolve     = v => ProperVelocityModel.Units.MilliarcsecondsPerYear.decimal.get(v.value)
+          description = Some(s"Proper motion in $name mas/year"),
+          resolve     = v => ProperMotionModel.Units.MilliarcsecondsPerYear.decimal.get(v.value)
         )
 
       )
     )
 
-  def ProperVelocityType[F[_]: Effect]: ObjectType[OdbRepo[F], ProperVelocity] =
+  def ProperMotionType[F[_]: Effect](name: String): ObjectType[OdbRepo[F], ProperMotion] =
     ObjectType(
-      name     = "ProperVelocity",
+      name     = name.capitalize,
       fieldsFn = () => fields(
 
         Field(
           name        = "ra",
-          fieldType   = ProperVelocityComponentType[VelocityAxis.RA, F]("RA"),
-          description = Some("Proper velocity in RA"),
+          fieldType   = ProperMotionComponentType[VelocityAxis.RA, F](name, "RA"),
+          description = Some("Proper motion in RA"),
           resolve     = _.value.ra
         ),
 
         Field(
           name        = "dec",
-          fieldType   = ProperVelocityComponentType[VelocityAxis.Dec, F]("declination"),
-          description = Some("Proper velocity in declination"),
+          fieldType   = ProperMotionComponentType[VelocityAxis.Dec, F](name, "declination"),
+          description = Some("Proper motion in declination"),
           resolve     = _.value.dec
         )
       )
@@ -342,10 +343,18 @@ object TargetSchema extends TargetScalars {
         ),
 
         Field(
-          name        = "properVelocity",
-          fieldType   = OptionType(ProperVelocityType[F]),
-          description = Some("Proper velocity per year in right ascension and declination"),
-          resolve     = _.value.properVelocity
+          name              = "properVelocity",
+          fieldType         = OptionType(ProperMotionType[F]("properVelocity")),
+          description       = Some("Proper velocity per year in right ascension and declination"),
+          deprecationReason = Some("Renamed properMotion"),
+          resolve           = _.value.properMotion
+        ),
+
+        Field(
+          name              = "properMotion",
+          fieldType         = OptionType(ProperMotionType[F]("properMotion")),
+          description       = Some("Proper motion per year in right ascension and declination"),
+          resolve           = _.value.properMotion
         ),
 
         Field(

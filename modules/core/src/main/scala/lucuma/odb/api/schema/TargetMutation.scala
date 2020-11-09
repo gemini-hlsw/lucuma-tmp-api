@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{CatalogIdModel, CoordinatesModel, DeclinationModel, MagnitudeModel, ParallaxModel, ProperVelocityModel, RadialVelocityModel, RightAscensionModel, TargetModel}
+import lucuma.odb.api.model.{CatalogIdModel, CoordinatesModel, DeclinationModel, MagnitudeModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
 
@@ -38,7 +38,7 @@ trait TargetMutation extends TargetScalars {
       "Unit options for RightAscension values"
     )
 
-  implicit val EnumTypeProperVelocityUnits: EnumType[ProperVelocityModel.Units] =
+  implicit val EnumTypeProperVelocityUnits: EnumType[ProperMotionModel.Units] =
     EnumType.fromEnumerated(
       "ProperVelocityComponentUnits",
       "Unit options for proper velocity components (RA and Dec)"
@@ -92,24 +92,24 @@ trait TargetMutation extends TargetScalars {
       InputObjectTypeDescription("Right Ascension, choose one of the available units")
     )
 
-  private def InputObjectProperVelocityComponent[A](
+  private def InputObjectProperMotionComponent[A](
     name: String
-  ): InputObjectType[ProperVelocityModel.ComponentInput[A]] =
-    deriveInputObjectType[ProperVelocityModel.ComponentInput[A]](
+  ): InputObjectType[ProperMotionModel.ComponentInput[A]] =
+    deriveInputObjectType[ProperMotionModel.ComponentInput[A]](
       InputObjectTypeName(s"${name}Input"),
       InputObjectTypeDescription(s"$name, choose one of the available units")
     )
 
-  implicit val InputObjectProperVelocityRa: InputObjectType[ProperVelocityModel.ComponentInput[VelocityAxis.RA]] =
-    InputObjectProperVelocityComponent("ProperVelocityRa")
+  implicit val InputObjectProperMotionRa: InputObjectType[ProperMotionModel.ComponentInput[VelocityAxis.RA]] =
+    InputObjectProperMotionComponent("ProperMotionRa")
 
-  implicit val InputObjectProperVelocityDec: InputObjectType[ProperVelocityModel.ComponentInput[VelocityAxis.Dec]] =
-    InputObjectProperVelocityComponent("ProperVelocityDec")
+  implicit val InputObjectProperMotionDec: InputObjectType[ProperMotionModel.ComponentInput[VelocityAxis.Dec]] =
+    InputObjectProperMotionComponent("ProperMotionDec")
 
-  implicit val InputObjectProperVelocity: InputObjectType[ProperVelocityModel.Input] =
-    deriveInputObjectType[ProperVelocityModel.Input](
-      InputObjectTypeName("ProperVelocityInput"),
-      InputObjectTypeDescription("Proper velocity, choose one of the available units")
+  implicit val InputObjectProperMotion: InputObjectType[ProperMotionModel.Input] =
+    deriveInputObjectType[ProperMotionModel.Input](
+      InputObjectTypeName("ProperMotionInput"),
+      InputObjectTypeDescription("Proper motion, choose one of the available units")
     )
 
   implicit val InputObjectRadialVelocity: InputObjectType[RadialVelocityModel.Input] =
@@ -141,7 +141,8 @@ trait TargetMutation extends TargetScalars {
   val InputObjectTypeCreateSidereal: InputObjectType[TargetModel.CreateSidereal] =
     deriveInputObjectType[TargetModel.CreateSidereal](
       InputObjectTypeName("CreateSiderealInput"),
-      InputObjectTypeDescription("Sidereal target parameters")
+      InputObjectTypeDescription("Sidereal target parameters"),
+      DocumentInputField("properVelocity", "Deprecated, use properMotion instead.")
     )
 
   val ArgumentTargetCreateSidereal: Argument[TargetModel.CreateSidereal] =
@@ -153,7 +154,8 @@ trait TargetMutation extends TargetScalars {
   val InputObjectTypeTargetEditSidereal: InputObjectType[TargetModel.EditSidereal] =
     deriveInputObjectType[TargetModel.EditSidereal](
       InputObjectTypeName("EditSiderealInput"),
-      InputObjectTypeDescription("Sidereal target edit parameters")
+      InputObjectTypeDescription("Sidereal target edit parameters"),
+      DocumentInputField("properVelocity", "Deprecated, use properMotion instead.")
     )
 
   val ArgumentTargetEditSidereal: Argument[TargetModel.EditSidereal] =

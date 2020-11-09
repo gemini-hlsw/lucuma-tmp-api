@@ -39,7 +39,8 @@ object Init {
                 RightAscensionModel.Input.unsafeFromHms("05:55:10.305"),
                 DeclinationModel.Input.unsafeFromDms("07:24:25.43"),
                 Some(Epoch.J2000),
-                Some(ProperVelocityModel.Input.fromMilliarcsecondsPerYear(BigDecimal("27.54"), BigDecimal("11.3"))),
+                Some(ProperMotionModel.Input.fromMilliarcsecondsPerYear(BigDecimal("27.54"), BigDecimal("11.3"))),
+                None,
                 Some(RadialVelocityModel.Input.fromMetersPerSecond(21884)),
                 Some(ParallaxModel.Input.fromMilliarcseconds(BigDecimal("6.55"))),
                 Some(List(
@@ -57,7 +58,8 @@ object Init {
                 RightAscensionModel.Input.unsafeFromHms("05:14:32.272"),
                 DeclinationModel.Input.unsafeFromDms("-08:12:05.90"),
                 Some(Epoch.J2000),
-                Some(ProperVelocityModel.Input.fromMilliarcsecondsPerYear(BigDecimal("1.31"), BigDecimal("0.5"))),
+                Some(ProperMotionModel.Input.fromMilliarcsecondsPerYear(BigDecimal("1.31"), BigDecimal("0.5"))),
+                None,
                 Some(RadialVelocityModel.Input.fromMetersPerSecond(17687)),
                 Some(ParallaxModel.Input.fromMilliarcseconds(BigDecimal("3.78"))),
                 Some(List(

@@ -5,7 +5,7 @@ package lucuma.odb.api.model
 
 import lucuma.odb.api.model.json.targetmath._
 import lucuma.core.`enum`.EphemerisKeyType
-import lucuma.core.math.{Coordinates, Declination, Epoch, Parallax, ProperVelocity, RadialVelocity, RightAscension}
+import lucuma.core.math.{Coordinates, Declination, Epoch, Parallax, ProperMotion, RadialVelocity, RightAscension}
 import lucuma.core.model.{CatalogId, EphemerisKey, Program, SiderealTracking, Target}
 import lucuma.core.optics.syntax.lens._
 import lucuma.core.optics.syntax.optional._
@@ -118,7 +118,8 @@ object TargetModel extends TargetOptics {
     ra:             RightAscensionModel.Input,
     dec:            DeclinationModel.Input,
     epoch:          Option[Epoch],
-    properVelocity: Option[ProperVelocityModel.Input],
+    properMotion:   Option[ProperMotionModel.Input],
+    properVelocity: Option[ProperMotionModel.Input],
     radialVelocity: Option[RadialVelocityModel.Input],
     parallax:       Option[ParallaxModel.Input],
     magnitudes:     Option[List[MagnitudeModel.Input]]
@@ -128,15 +129,15 @@ object TargetModel extends TargetOptics {
       (catalogId.traverse(_.toCatalogId),
        ra.toRightAscension,
        dec.toDeclination,
-       properVelocity.traverse(_.toProperVelocity),
+       (properMotion orElse properVelocity).traverse(_.toProperMotion),
        radialVelocity.traverse(_.toRadialVelocity),
        parallax.traverse(_.toParallax)
-      ).mapN { (catalogId, ra, dec, pv, rv, px) =>
+      ).mapN { (catalogId, ra, dec, pm, rv, px) =>
         SiderealTracking(
           catalogId,
           Coordinates(ra, dec),
           epoch.getOrElse(Epoch.J2000),
-          pv,
+          pm,
           rv,
           px
         )
@@ -186,7 +187,8 @@ object TargetModel extends TargetOptics {
     ra:             Option[RightAscensionModel.Input],
     dec:            Option[DeclinationModel.Input],
     epoch:          Option[Epoch],
-    properVelocity: Option[Option[ProperVelocityModel.Input]],
+    properMotion:   Option[Option[ProperMotionModel.Input]],
+    properVelocity: Option[Option[ProperMotionModel.Input]],
     radialVelocity: Option[Option[RadialVelocityModel.Input]],
     parallax:       Option[Option[ParallaxModel.Input]]
   ) extends Editor[Target.Id, TargetModel] {
@@ -198,10 +200,10 @@ object TargetModel extends TargetOptics {
       (Nested(catalogId).traverse(_.toCatalogId).map(_.value),
        ra.traverse(_.toRightAscension),
        dec.traverse(_.toDeclination),
-       Nested(properVelocity).traverse(_.toProperVelocity).map(_.value),
+       Nested(properMotion orElse properVelocity).traverse(_.toProperMotion).map(_.value),
        Nested(radialVelocity).traverse(_.toRadialVelocity).map(_.value),
        Nested(parallax).traverse(_.toParallax).map(_.value)
-      ).mapN { (catalogId, ra, dec, pv, rv, px) =>
+      ).mapN { (catalogId, ra, dec, pm, rv, px) =>
         for {
           _ <- TargetModel.existence      := existence
           _ <- TargetModel.name           := name.flatMap(n => NonEmptyString.from(n).toOption)
@@ -209,7 +211,7 @@ object TargetModel extends TargetOptics {
           _ <- TargetModel.ra             := ra
           _ <- TargetModel.dec            := dec
           _ <- TargetModel.epoch          := epoch
-          _ <- TargetModel.properVelocity := pv
+          _ <- TargetModel.properMotion   := pm
           _ <- TargetModel.radialVelocity := rv
           _ <- TargetModel.parallax       := px
         } yield ()
@@ -290,8 +292,8 @@ trait TargetOptics { self: TargetModel.type =>
   val epoch: Optional[TargetModel, Epoch] =
     siderealTracking.composeLens(SiderealTracking.epoch)
 
-  val properVelocity: Optional[TargetModel, Option[ProperVelocity]] =
-    siderealTracking.composeLens(SiderealTracking.properVelocity)
+  val properMotion: Optional[TargetModel, Option[ProperMotion]] =
+    siderealTracking.composeLens(SiderealTracking.properMotion)
 
   val radialVelocity: Optional[TargetModel, Option[RadialVelocity]] =
     siderealTracking.composeLens(SiderealTracking.radialVelocity)
