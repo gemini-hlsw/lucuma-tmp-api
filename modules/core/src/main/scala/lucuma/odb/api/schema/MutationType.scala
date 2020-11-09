@@ -5,6 +5,7 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
+import io.chrisdavenport.log4cats.Logger
 import sangria.schema._
 
 /**
@@ -12,7 +13,7 @@ import sangria.schema._
  */
 object MutationType {
 
-  def apply[F[_]: Effect]: ObjectType[OdbRepo[F], Unit] =
+  def apply[F[_]: Effect: Logger]: ObjectType[OdbRepo[F], Unit] =
     ObjectType(
       name   = "Mutation",
       fields =

@@ -7,7 +7,7 @@ import lucuma.odb.api.model.InputError
 import lucuma.odb.api.repo.OdbRepo
 
 import cats.effect.ConcurrentEffect
-
+import io.chrisdavenport.log4cats.Logger
 import sangria.execution.{ExceptionHandler, HandledException}
 import sangria.schema.Schema
 
@@ -31,7 +31,7 @@ object OdbSchema {
       }
     )
 
-  def apply[F[_]: ConcurrentEffect]: Schema[OdbRepo[F], Unit] =
+  def apply[F[_]: ConcurrentEffect: Logger]: Schema[OdbRepo[F], Unit] =
     Schema(QueryType[F], Some(MutationType[F]), Some(SubscriptionType[F]))
 
 }
