@@ -8,6 +8,7 @@ import lucuma.odb.api.repo.OdbRepo
 import cats.implicits._
 import cats.effect.{Async, ConcurrentEffect, ContextShift, IO}
 import fs2.Stream
+import io.chrisdavenport.log4cats.Logger
 import io.circe._
 import org.log4s.getLogger
 import sangria.execution._
@@ -33,7 +34,7 @@ object OdbService {
 
   private[this] val logger = getLogger
 
-  def apply[F[_]](
+  def apply[F[_]: Logger](
     odb: OdbRepo[F]
   )(
     implicit F: ConcurrentEffect[F], cs: ContextShift[F]

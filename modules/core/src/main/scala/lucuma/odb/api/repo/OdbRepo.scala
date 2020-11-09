@@ -39,23 +39,26 @@ object OdbRepo {
       s <- EventService(r)
     } yield new OdbRepo[F] {
 
+      private val ref: Ref[F, Tables] =
+        DebuggingRef(r)
+
       override def tables: Ref[F, Tables] =
-        r
+        ref
 
       override def eventService: EventService[F] =
         s
 
       override def asterism: AsterismRepo[F] =
-        AsterismRepo.create(r, s)
+        AsterismRepo.create(ref, s)
 
       override def observation: ObservationRepo[F] =
-        ObservationRepo.create(r, s)
+        ObservationRepo.create(ref, s)
 
       override def program: ProgramRepo[F] =
-        ProgramRepo.create(r, s)
+        ProgramRepo.create(ref, s)
 
       override def target: TargetRepo[F] =
-        TargetRepo.create(r, s)
+        TargetRepo.create(ref, s)
     }
 
 }

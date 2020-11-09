@@ -13,7 +13,7 @@ import cats.data.{EitherT, State}
 import cats.effect.Effect
 import cats.effect.implicits._
 import cats.syntax.all._
-import lucuma.odb.api.schema.TargetSchema.TargetType
+import io.chrisdavenport.log4cats.Logger
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -30,7 +30,7 @@ trait SharingMutation {
   import AsterismSchema.{AsterismIdType, AsterismType}
   import ObservationSchema.ObservationIdType
   import ProgramSchema.ProgramIdType
-  import TargetSchema.TargetIdType
+  import TargetSchema.{TargetIdType, TargetType}
 
   import context._
   import syntax.inputobjecttype._
@@ -168,7 +168,7 @@ trait SharingMutation {
   // Implements the bulk of a share/unshare field for targets and observations.
   // Takes a function that produces a `State` operation to apply to do the
   // tables.
-  private def targetObservationShare[F[_]: Effect](
+  private def targetObservationShare[F[_]: Effect: Logger](
     c: Context[OdbRepo[F], Unit]
   )(
     f: (Set[Target.Id], List[ObservationModel]) => State[Tables, List[(AsterismModel, List[Long => Event])]]
@@ -186,13 +186,15 @@ trait SharingMutation {
     }
 
     (for {
+      _  <- Logger[F].info("targetObservationShare start")
       us <- EitherT(updates).rethrowT
+      _  <- Logger[F].info("targetObservationShare done")
       (as, es) = us.unzip
       _  <- es.flatten.traverse(c.ctx.eventService.publish)
     } yield as).toIO.unsafeToFuture()
   }
 
-  def shareTargetsWithObservations[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def shareTargetsWithObservations[F[_]: Effect: Logger]: Field[OdbRepo[F], Unit] =
     Field(
       name      = "shareTargetsWithObservations",
       fieldType = ListType(AsterismType[F]),
@@ -204,7 +206,7 @@ trait SharingMutation {
       }
     )
 
-  def unshareTargetsWithObservations[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def unshareTargetsWithObservations[F[_]: Effect: Logger]: Field[OdbRepo[F], Unit] =
     Field(
       name      = "unshareTargetsWithObservations",
       fieldType = ListType(AsterismType[F]),
@@ -232,7 +234,7 @@ trait SharingMutation {
       resolve   = c => c.target(_.unshareWithPrograms(c.arg(ArgumentTargetProgramLinks)))
     )
 
-  def allFields[F[_]: Effect]: List[Field[OdbRepo[F], Unit]] =
+  def allFields[F[_]: Effect: Logger]: List[Field[OdbRepo[F], Unit]] =
     List(
       shareAsterismsWithPrograms,
       unshareAsterismsWithPrograms,
