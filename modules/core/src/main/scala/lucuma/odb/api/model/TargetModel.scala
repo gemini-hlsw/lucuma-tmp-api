@@ -3,6 +3,7 @@
 
 package lucuma.odb.api.model
 
+import cats.Eq
 import lucuma.odb.api.model.json.targetmath._
 import lucuma.core.`enum`.EphemerisKeyType
 import lucuma.core.math.{Coordinates, Declination, Epoch, Parallax, ProperMotion, RadialVelocity, RightAscension}
@@ -32,6 +33,8 @@ object TargetModel extends TargetOptics {
   implicit val TopLevelTarget: TopLevelModel[Target.Id, TargetModel] =
     TopLevelModel.instance(_.id, existence)
 
+  implicit val EqualTarget: Eq[TargetModel] =
+    Eq.by(t => (t.id, t.existence, t.target))
 
   object parse {
 

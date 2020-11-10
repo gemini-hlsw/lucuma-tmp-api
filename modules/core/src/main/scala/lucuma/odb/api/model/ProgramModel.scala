@@ -4,6 +4,7 @@
 package lucuma.odb.api.model
 
 import lucuma.core.model.Program
+import cats.Eq
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import monocle.Lens
@@ -22,6 +23,9 @@ object ProgramModel extends ProgramOptics {
 
   implicit val TopLevelProgram: TopLevelModel[Program.Id, ProgramModel] =
     TopLevelModel.instance(_.id, ProgramModel.existence)
+
+  implicit val EqProgram: Eq[ProgramModel] =
+    Eq.by(p => (p.id, p.existence, p.name))
 
   /**
    * Program creation input class.

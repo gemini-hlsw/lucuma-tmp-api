@@ -7,6 +7,7 @@ import lucuma.odb.api.model.Existence._
 import lucuma.core.`enum`.ObsStatus
 import lucuma.core.optics.syntax.lens._
 import lucuma.core.model.{Asterism, Observation, Program}
+import cats.Eq
 import cats.data.State
 import cats.syntax.validated._
 import io.circe.Decoder
@@ -28,6 +29,9 @@ object ObservationModel extends ObservationOptics {
 
   implicit val TopLevelObservation: TopLevelModel[Observation.Id, ObservationModel] =
     TopLevelModel.instance(_.id, ObservationModel.existence)
+
+  implicit val EqObservation: Eq[ObservationModel] =
+    Eq.by(o => (o.id, o.existence, o.programId, o.name, o.status, o.asterismId, o.plannedTimeSummary))
 
   final case class Create(
     observationId: Option[Observation.Id],

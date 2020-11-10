@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.model
 
-import cats.Monoid
+import cats.{Eq, Monoid}
 import cats.effect.Sync
 import cats.syntax.functor._
 import cats.syntax.flatMap._
@@ -42,5 +42,8 @@ object PlannedTimeSummaryModel {
           a.unchargedTime + b.unchargedTime
         )
     )
+
+  implicit val EqPlannedTimeSummaryModel: Eq[PlannedTimeSummaryModel] =
+    Eq.by(t => (t.piTime.toNanos, t.unchargedTime.toNanos))
 
 }

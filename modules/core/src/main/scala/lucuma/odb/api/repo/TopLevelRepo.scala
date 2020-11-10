@@ -7,17 +7,10 @@ import lucuma.odb.api.model.{Editor, Event, Existence, InputError, TopLevelModel
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.core.util.Gid
-import cats.{FunctorFilter, Monad, MonadError}
+import cats.{Eq, FunctorFilter, Monad, MonadError}
 import cats.data._
 import cats.effect.concurrent.Ref
-import cats.syntax.apply._
-import cats.syntax.applicative._
-import cats.syntax.either._
-import cats.syntax.flatMap._
-import cats.syntax.functor._
-import cats.syntax.functorFilter._
-import cats.syntax.option._
-import cats.syntax.validated._
+import cats.syntax.all._
 import cats.kernel.BoundedEnumerable
 import monocle.Lens
 import monocle.function.At
@@ -61,8 +54,7 @@ trait TopLevelRepo[F[_], I, T] {
     id:     I,
     editor: ValidatedInput[State[T, Unit]],
     checks: Tables => List[InputError]
-  ): F[T] =
-    editSub[T](id, editor, checks)(unlift(_.some))
+  ): F[T]
 
   /**
    * Edits a top-level item identified by the given id, assuming it is of type
@@ -76,7 +68,7 @@ trait TopLevelRepo[F[_], I, T] {
    * @return updated item, but raises an error and does nothing if any checks
    *         fail
    */
-  def editSub[U <: T](
+  def editSub[U <: T: Eq](
     id:     I,
     editor: ValidatedInput[State[U, Unit]],
     checks: Tables => List[InputError]
@@ -93,7 +85,7 @@ trait TopLevelRepo[F[_], I, T] {
 /**
  *
  */
-abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, ?]](
+abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, ?]: Eq](
   tablesRef:    Ref[F, Tables],
   eventService: EventService[F],
   idLens:       Lens[Tables, I],
@@ -158,7 +150,14 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, ?]](
       _ <- mapLens.mod(_ + (i -> t))
     } yield t
 
-  override def editSub[U <: T](
+  override def edit(
+    id:     I,
+    editor: ValidatedInput[State[T, Unit]],
+    checks: Tables => List[InputError]
+  ): F[T] =
+    editSub[T](id, editor, checks)(unlift(_.some))
+
+  override def editSub[U <: T: Eq](
     id:     I,
     editor: ValidatedInput[State[U, Unit]],
     checks: Tables => List[InputError]
@@ -171,24 +170,27 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, ?]](
     val lens: Lens[Tables, Option[U]] =
       Lens[Tables, Option[U]](lensT.get(_).flatMap(f.unapply))(ou => lensT.set(ou))
 
-    val doUpdate: F[U] =
+    val doUpdate: F[Either[U, U]] =
       tablesRef.modify { oldTables =>
 
         val item   = lens.get(oldTables).toValidNec(InputError.missingReference("id", Gid[I].show(id)))
         val errors = NonEmptyChain.fromSeq(checks(oldTables))
         val result = (item, editor, errors.toInvalid(())).mapN { (oldU, state, _) =>
-          state.runS(oldU).value
+          val newU = state.runS(oldU).value
+          Either.cond(oldU =!= newU, newU, oldU) // Right => updated, Left => no update
         }
 
-        val tables = result.fold(_ => oldTables, { newU => lens.set(Some(newU))(oldTables) })
+        val tables = result.fold(_ => oldTables, {
+          _.fold(_ => oldTables, newU => lens.set(Some(newU))(oldTables))
+        })
 
         (tables, result)
       }.flatMap(_.liftTo[F])
 
     for {
-      u <- doUpdate
-      _ <- eventService.publish(edited(Event.EditType.Updated, u))
-    } yield u
+      e <- doUpdate
+      _ <- e.fold(_ => M.unit, u => eventService.publish(edited(Event.EditType.Updated, u)))
+    } yield e.merge
 
   }
 
