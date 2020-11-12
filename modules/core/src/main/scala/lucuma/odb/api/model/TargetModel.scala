@@ -5,9 +5,9 @@ package lucuma.odb.api.model
 
 import cats.Eq
 import lucuma.odb.api.model.json.targetmath._
-import lucuma.core.`enum`.EphemerisKeyType
+import lucuma.core.`enum`.{EphemerisKeyType, MagnitudeBand}
 import lucuma.core.math.{Coordinates, Declination, Epoch, Parallax, ProperMotion, RadialVelocity, RightAscension}
-import lucuma.core.model.{CatalogId, EphemerisKey, Program, SiderealTracking, Target}
+import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, Program, SiderealTracking, Target}
 import lucuma.core.optics.syntax.lens._
 import lucuma.core.optics.syntax.optional._
 import cats.data._
@@ -220,16 +220,19 @@ object TargetModel extends TargetOptics {
   }
 
   final case class EditSidereal(
-    targetId:       Target.Id,
-    existence:      Option[Existence],
-    name:           Option[String],
-    catalogId:      Option[Option[CatalogIdModel.Input]],
-    ra:             Option[RightAscensionModel.Input],
-    dec:            Option[DeclinationModel.Input],
-    epoch:          Option[Epoch],
-    properMotion:   Option[Option[ProperMotionModel.Input]],
-    radialVelocity: Option[Option[RadialVelocityModel.Input]],
-    parallax:       Option[Option[ParallaxModel.Input]]
+    targetId:        Target.Id,
+    existence:       Option[Existence],
+    name:            Option[String],
+    catalogId:       Option[Option[CatalogIdModel.Input]],
+    ra:              Option[RightAscensionModel.Input],
+    dec:             Option[DeclinationModel.Input],
+    epoch:           Option[Epoch],
+    properMotion:    Option[Option[ProperMotionModel.Input]],
+    radialVelocity:  Option[Option[RadialVelocityModel.Input]],
+    parallax:        Option[Option[ParallaxModel.Input]],
+    magnitudes:      Option[List[MagnitudeModel.Input]]
+//    magnitudesPlus:  Option[List[MagnitudeModel.Input]],
+//    magnitudesMinus: Option[List[MagnitudeBand]]
   ) extends Editor[Target.Id, TargetModel] {
 
     override def id: Target.Id =
@@ -241,8 +244,9 @@ object TargetModel extends TargetOptics {
        dec.traverse(_.toDeclination),
        Nested(properMotion).traverse(_.toProperMotion).map(_.value),
        Nested(radialVelocity).traverse(_.toRadialVelocity).map(_.value),
-       Nested(parallax).traverse(_.toParallax).map(_.value)
-      ).mapN { (catalogId, ra, dec, pm, rv, px) =>
+       Nested(parallax).traverse(_.toParallax).map(_.value),
+       magnitudes.toList.flatten.traverse(_.toMagnitude).map(l => SortedMap.from(l.map(m => m.band -> m)))
+      ).mapN { (catalogId, ra, dec, pm, rv, px, ms) =>
         for {
           _ <- TargetModel.existence      := existence
           _ <- TargetModel.name           := name.flatMap(n => NonEmptyString.from(n).toOption)
@@ -253,6 +257,7 @@ object TargetModel extends TargetOptics {
           _ <- TargetModel.properMotion   := pm
           _ <- TargetModel.radialVelocity := rv
           _ <- TargetModel.parallax       := px
+          _ <- TargetModel.magnitudes     := ms
         } yield ()
       }
 
@@ -274,7 +279,8 @@ object TargetModel extends TargetOptics {
         pm <- c.optionEditor[ProperMotionModel.Input]("properMotion")
         rv <- c.optionEditor[RadialVelocityModel.Input]("radialVelocity")
         px <- c.optionEditor[ParallaxModel.Input]("parallax")
-      } yield EditSidereal(id, ex, nm, ct, ra, dc, ep, pm, rv, px)
+        ms <- c.editor[List[MagnitudeModel.Input]]("magnitudes")
+      } yield EditSidereal(id, ex, nm, ct, ra, dc, ep, pm, rv, px, ms)
 
     implicit val EqEditSidereal: Eq[EditSidereal] =
       Eq.by(es => (
@@ -367,4 +373,7 @@ trait TargetOptics { self: TargetModel.type =>
 
   val parallax: Optional[TargetModel, Option[Parallax]] =
     siderealTracking.composeLens(SiderealTracking.parallax)
+
+  val magnitudes: Lens[TargetModel, SortedMap[MagnitudeBand, Magnitude]] =
+    lucumaTarget.composeLens(Target.magnitudes)
 }

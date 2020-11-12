@@ -12,7 +12,10 @@ final class HCursorOps(self: HCursor) {
     self.get[Option[A]](field)
 
   def optionEditor[A: Decoder](field: String): Decoder.Result[Option[Option[A]]] =
-    self.downField(field).success.traverse(_.as[Option[A]])
+    self.downField(field).success.traverse { hc =>
+      if (hc.keys.exists(_.nonEmpty)) hc.as[Option[A]]
+      else Right(Option.empty[A])
+    }
 
 }
 
