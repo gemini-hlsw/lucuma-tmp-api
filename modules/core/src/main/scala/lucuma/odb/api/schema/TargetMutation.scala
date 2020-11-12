@@ -36,10 +36,10 @@ trait TargetMutation extends TargetScalars {
       "Unit options for RightAscension values"
     )
 
-  implicit val EnumTypeProperVelocityUnits: EnumType[ProperMotionModel.Units] =
+  implicit val EnumTypeProperMotionUnits: EnumType[ProperMotionModel.Units] =
     EnumType.fromEnumerated(
-      "ProperVelocityComponentUnits",
-      "Unit options for proper velocity components (RA and Dec)"
+      "ProperMotionComponentUnits",
+      "Unit options for proper motion components (RA and Dec)"
     )
 
   implicit val EnumTypeRadialVelocityUnits: EnumType[RadialVelocityModel.Units] =
@@ -131,8 +131,7 @@ trait TargetMutation extends TargetScalars {
   val InputObjectTypeCreateSidereal: InputObjectType[TargetModel.CreateSidereal] =
     deriveInputObjectType[TargetModel.CreateSidereal](
       InputObjectTypeName("CreateSiderealInput"),
-      InputObjectTypeDescription("Sidereal target parameters"),
-      DocumentInputField("properVelocity", "Deprecated, use properMotion instead.")
+      InputObjectTypeDescription("Sidereal target parameters")
     )
 
   val ArgumentTargetCreateSidereal: Argument[TargetModel.CreateSidereal] =
@@ -144,8 +143,7 @@ trait TargetMutation extends TargetScalars {
   val InputObjectTypeTargetEditSidereal: InputObjectType[TargetModel.EditSidereal] =
     deriveInputObjectType[TargetModel.EditSidereal](
       InputObjectTypeName("EditSiderealInput"),
-      InputObjectTypeDescription("Sidereal target edit parameters"),
-      DocumentInputField("properVelocity", "Deprecated, use properMotion instead.")
+      InputObjectTypeDescription("Sidereal target edit parameters")
     )
 
   val ArgumentTargetEditSidereal: Argument[TargetModel.EditSidereal] =

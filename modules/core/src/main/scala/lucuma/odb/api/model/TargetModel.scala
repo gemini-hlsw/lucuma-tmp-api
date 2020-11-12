@@ -13,7 +13,6 @@ import lucuma.core.optics.syntax.optional._
 import cats.data._
 import cats.implicits._
 import eu.timepit.refined.types.string._
-import io.circe.Decoder.Result
 import io.circe.{Decoder, HCursor}
 import io.circe.generic.semiauto._
 import monocle.{Lens, Optional}
@@ -120,7 +119,7 @@ object TargetModel extends TargetOptics {
    * @param ra right ascension coordinate at epoch
    * @param dec declination coordinate at epoch
    * @param epoch time of the base observation
-   * @param properVelocity proper velocity per year in right ascension and declination
+   * @param properMotion proper motion per year in right ascension and declination
    * @param radialVelocity radial velocity
    * @param parallax parallax
    */
@@ -133,7 +132,6 @@ object TargetModel extends TargetOptics {
     dec:            DeclinationModel.Input,
     epoch:          Option[Epoch],
     properMotion:   Option[ProperMotionModel.Input],
-    properVelocity: Option[ProperMotionModel.Input],
     radialVelocity: Option[RadialVelocityModel.Input],
     parallax:       Option[ParallaxModel.Input],
     magnitudes:     Option[List[MagnitudeModel.Input]]
@@ -143,7 +141,7 @@ object TargetModel extends TargetOptics {
       (catalogId.traverse(_.toCatalogId),
        ra.toRightAscension,
        dec.toDeclination,
-       (properMotion orElse properVelocity).traverse(_.toProperMotion),
+       properMotion.traverse(_.toProperMotion),
        radialVelocity.traverse(_.toRadialVelocity),
        parallax.traverse(_.toParallax)
       ).mapN { (catalogId, ra, dec, pm, rv, px) =>
@@ -230,7 +228,6 @@ object TargetModel extends TargetOptics {
     dec:            Option[DeclinationModel.Input],
     epoch:          Option[Epoch],
     properMotion:   Option[Option[ProperMotionModel.Input]],
-    properVelocity: Option[Option[ProperMotionModel.Input]],
     radialVelocity: Option[Option[RadialVelocityModel.Input]],
     parallax:       Option[Option[ParallaxModel.Input]]
   ) extends Editor[Target.Id, TargetModel] {
@@ -242,7 +239,7 @@ object TargetModel extends TargetOptics {
       (Nested(catalogId).traverse(_.toCatalogId).map(_.value),
        ra.traverse(_.toRightAscension),
        dec.traverse(_.toDeclination),
-       Nested(properMotion orElse properVelocity).traverse(_.toProperMotion).map(_.value),
+       Nested(properMotion).traverse(_.toProperMotion).map(_.value),
        Nested(radialVelocity).traverse(_.toRadialVelocity).map(_.value),
        Nested(parallax).traverse(_.toParallax).map(_.value)
       ).mapN { (catalogId, ra, dec, pm, rv, px) =>
@@ -274,10 +271,10 @@ object TargetModel extends TargetOptics {
         ra <- c.editor[RightAscensionModel.Input]("ra")
         dc <- c.editor[DeclinationModel.Input]("dec")
         ep <- c.editor[Epoch]("epoch")
-        pv <- c.optionEditor[ProperVelocityModel.Input]("properVelocity")
+        pm <- c.optionEditor[ProperMotionModel.Input]("properMotion")
         rv <- c.optionEditor[RadialVelocityModel.Input]("radialVelocity")
         px <- c.optionEditor[ParallaxModel.Input]("parallax")
-      } yield EditSidereal(id, ex, nm, ct, ra, dc, ep, pv, rv, px)
+      } yield EditSidereal(id, ex, nm, ct, ra, dc, ep, pm, rv, px)
 
     implicit val EqEditSidereal: Eq[EditSidereal] =
       Eq.by(es => (

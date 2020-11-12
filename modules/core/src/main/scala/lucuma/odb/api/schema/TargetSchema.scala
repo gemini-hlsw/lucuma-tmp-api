@@ -343,14 +343,6 @@ object TargetSchema extends TargetScalars {
         ),
 
         Field(
-          name              = "properVelocity",
-          fieldType         = OptionType(ProperMotionType[F]("properVelocity")),
-          description       = Some("Proper velocity per year in right ascension and declination"),
-          deprecationReason = Some("Renamed properMotion"),
-          resolve           = _.value.properMotion
-        ),
-
-        Field(
           name              = "properMotion",
           fieldType         = OptionType(ProperMotionType[F]("properMotion")),
           description       = Some("Proper motion per year in right ascension and declination"),
