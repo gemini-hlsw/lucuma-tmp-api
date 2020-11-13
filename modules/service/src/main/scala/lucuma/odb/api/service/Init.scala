@@ -65,7 +65,7 @@ object Init {
     }
   ]
 }
-""".stripMargin
+"""
   )
 
   val targets: Either[Exception, List[TargetModel.CreateSidereal]] =
@@ -95,7 +95,7 @@ object Init {
                 None,
                 List(p.id),
                 None,
-                Set(ts.head.id, ts.tail.head.id)
+                Set.from(ts.take(2).map(_.id))
               )
             )
       _  <- repo.observation.insert(
