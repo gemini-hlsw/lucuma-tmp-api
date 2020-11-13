@@ -3,20 +3,78 @@
 
 package lucuma.odb.api.service
 
+import cats.Applicative
 import lucuma.odb.api.model._
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.core.`enum`.{MagnitudeBand, MagnitudeSystem, ObsStatus}
-import lucuma.core.math.Epoch
+import lucuma.core.`enum`.ObsStatus
 import cats.effect.Sync
-import cats.syntax.flatMap._
-import cats.syntax.functor._
+import cats.syntax.all._
+import io.circe.parser.decode
 
 object Init {
+
+  val targetsJson = List(
+"""
+{
+  "name":  "Rigel",
+  "ra":    { "hms":  "05:14:32.272" },
+  "dec":   { "dms": "-08:12:05.90"  },
+  "epoch": "J2000.000",
+  "properMotion": {
+    "ra":  { "milliarcsecondsPerYear": 1.31 },
+    "dec": { "milliarcsecondsPerYear": 0.5  }
+  },
+  "radialVelocity": { "metersPerSecond": 17687 },
+  "parallax":       { "milliarcseconds":  6.55 },
+  "magnitudes": [
+    {
+      "band": "R",
+      "value": 0.13,
+      "system": "VEGA"
+    },
+    {
+      "band": "V",
+      "value": 0.13,
+      "system": "VEGA"
+    }
+  ]
+}
+""",
+"""
+{
+  "name":  "Betelgeuse",
+  "ra":    { "hms": "05:55:10.305" },
+  "dec":   { "dms": "07:24:25.43"  },
+  "epoch": "J2000.000",
+  "properMotion": {
+    "ra":  { "milliarcsecondsPerYear": 27.54 },
+    "dec": { "milliarcsecondsPerYear":  11.3 }
+  },
+  "radialVelocity": { "metersPerSecond": 21884 },
+  "parallax":       { "milliarcseconds":  3.78 },
+  "magnitudes": [
+    {
+      "band": "R",
+      "value": -1.17,
+      "system": "VEGA"
+    },
+    {
+      "band": "V",
+      "value": 0.42,
+      "system": "VEGA"
+    }
+  ]
+}
+""".stripMargin
+  )
+
+  val targets: Either[Exception, List[TargetModel.CreateSidereal]] =
+    targetsJson.traverse(decode[TargetModel.CreateSidereal])
 
   /**
    * Initializes a (presumably) empty ODB with some demo values.
    */
-  def initialize[F[_]: Sync](repo: OdbRepo[F]): F[Unit] =
+  def initialize[F[_]: Sync: Applicative](repo: OdbRepo[F]): F[Unit] =
     for {
       p  <- repo.program.insert(
               ProgramModel.Create(
@@ -30,50 +88,14 @@ object Init {
                 Some("An Empty Placeholder Program")
               )
             )
-      t0 <- repo.target.insertSidereal(
-              TargetModel.CreateSidereal(
-                None,
-                Some(List(p.id)),
-                "Betelgeuse",
-                None,
-                RightAscensionModel.Input.unsafeFromHms("05:55:10.305"),
-                DeclinationModel.Input.unsafeFromDms("07:24:25.43"),
-                Some(Epoch.J2000),
-                Some(ProperMotionModel.Input.fromMilliarcsecondsPerYear(BigDecimal("27.54"), BigDecimal("11.3"))),
-                None,
-                Some(RadialVelocityModel.Input.fromMetersPerSecond(21884)),
-                Some(ParallaxModel.Input.fromMilliarcseconds(BigDecimal("6.55"))),
-                Some(List(
-                  MagnitudeModel.Input(BigDecimal("-1.17"), MagnitudeBand.R, Some(MagnitudeSystem.Vega), None),
-                  MagnitudeModel.Input(BigDecimal( "0.42"), MagnitudeBand.V, Some(MagnitudeSystem.Vega), None)
-                ))
-              )
-            )
-      t1 <- repo.target.insertSidereal(
-              TargetModel.CreateSidereal(
-                None,
-                Some(List(p.id)),
-                "Rigel",
-                None,
-                RightAscensionModel.Input.unsafeFromHms("05:14:32.272"),
-                DeclinationModel.Input.unsafeFromDms("-08:12:05.90"),
-                Some(Epoch.J2000),
-                Some(ProperMotionModel.Input.fromMilliarcsecondsPerYear(BigDecimal("1.31"), BigDecimal("0.5"))),
-                None,
-                Some(RadialVelocityModel.Input.fromMetersPerSecond(17687)),
-                Some(ParallaxModel.Input.fromMilliarcseconds(BigDecimal("3.78"))),
-                Some(List(
-                  MagnitudeModel.Input(BigDecimal("0.13"), MagnitudeBand.R, Some(MagnitudeSystem.Vega), None),
-                  MagnitudeModel.Input(BigDecimal("0.13"), MagnitudeBand.V, Some(MagnitudeSystem.Vega), None)
-                ))
-              )
-            )
+      cs <- targets.liftTo[F]
+      ts <- cs.map(_.copy(programIds = Some(List(p.id)))).traverse(repo.target.insertSidereal)
       a0 <- repo.asterism.insert(
               AsterismModel.CreateDefault(
                 None,
                 List(p.id),
                 None,
-                Set(t0.id, t1.id)
+                Set(ts.head.id, ts.tail.head.id)
               )
             )
       _  <- repo.observation.insert(
