@@ -3,9 +3,11 @@
 
 package lucuma.odb.api.model
 
+import lucuma.core.util.Enumerated
+
+import cats.Eq
 import io.circe.Decoder
 import io.circe.generic.semiauto._
-import lucuma.core.util.Enumerated
 
 trait NumericUnits[A, U] {
 
@@ -31,37 +33,43 @@ object NumericUnits {
         decimalToA(units, value)
     }
 
-  final case class LongInput[A, U](
+  final case class LongInput[U](
     value: Long,
     units: U
   ) {
 
-    def read(implicit U: NumericUnits[A, U]): ValidatedInput[A] =
+    def read[A](implicit U: NumericUnits[A, U]): ValidatedInput[A] =
       U.readLong(value, units)
 
   }
 
   object LongInput {
 
-    implicit def DecoderLongInput[A, U: Enumerated]: Decoder[LongInput[A, U]] =
-      deriveDecoder[LongInput[A, U]]
+    implicit def DecoderLongInput[U: Enumerated]: Decoder[LongInput[U]] =
+      deriveDecoder[LongInput[U]]
+
+    implicit def EqLongInput[U: Eq]: Eq[LongInput[U]] =
+      Eq.by(li => (li.value, li.units))
 
   }
 
-  final case class DecimalInput[A, U](
+  final case class DecimalInput[U](
     value: BigDecimal,
     units: U
   ) {
 
-    def read(implicit U: NumericUnits[A, U]): ValidatedInput[A] =
+    def read[A](implicit U: NumericUnits[A, U]): ValidatedInput[A] =
       U.readDecimal(value, units)
 
   }
 
   object DecimalInput {
 
-    implicit def DecoderDecimalInput[A, U: Enumerated]: Decoder[DecimalInput[A, U]] =
-      deriveDecoder[DecimalInput[A, U]]
+    implicit def DecoderDecimalInput[U: Enumerated]: Decoder[DecimalInput[U]] =
+      deriveDecoder[DecimalInput[U]]
+
+    implicit def EqDecimalInput[U: Eq]: Eq[DecimalInput[U]] =
+      Eq.by(li => (li.value, li.units))
 
   }
 

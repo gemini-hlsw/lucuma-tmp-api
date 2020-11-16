@@ -3,9 +3,10 @@
 
 package lucuma.odb.api.model
 
+import cats.Eq
 import lucuma.core.math.{Angle, Parallax}
 import lucuma.core.util.{Display, Enumerated}
-import cats.syntax.validated._
+import cats.implicits._
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import lucuma.core.optics.SplitMono
@@ -56,8 +57,8 @@ object ParallaxModel {
   final case class Input(
     microarcseconds: Option[Long],
     milliarcseconds: Option[BigDecimal],
-    fromLong:        Option[NumericUnits.LongInput[Parallax, Units]],
-    fromDecimal:     Option[NumericUnits.DecimalInput[Parallax, Units]]
+    fromLong:        Option[NumericUnits.LongInput[Units]],
+    fromDecimal:     Option[NumericUnits.DecimalInput[Units]]
   ) {
 
     import Units._
@@ -83,8 +84,22 @@ object ParallaxModel {
     def fromMilliarcseconds(value: BigDecimal): Input =
       Empty.copy(milliarcseconds = Some(value))
 
+    def fromLong(value: NumericUnits.LongInput[Units]): Input =
+      Empty.copy(fromLong = Some(value))
+
+    def fromDecimal(value: NumericUnits.DecimalInput[Units]): Input =
+      Empty.copy(fromDecimal = Some(value))
+
     implicit val DecoderInput: Decoder[Input] =
       deriveDecoder[Input]
+
+    implicit val EqInput: Eq[Input] =
+      Eq.by(i => (
+        i.microarcseconds,
+        i.milliarcseconds,
+        i.fromLong,
+        i.fromDecimal
+      ))
 
   }
 }

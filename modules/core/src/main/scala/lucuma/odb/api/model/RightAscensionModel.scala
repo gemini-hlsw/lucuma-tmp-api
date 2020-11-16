@@ -74,8 +74,8 @@ object RightAscensionModel {
     degrees:         Option[BigDecimal],
     hours:           Option[BigDecimal],
     hms:             Option[RightAscension],
-    fromLong:        Option[NumericUnits.LongInput[RightAscension, Units]],
-    fromDecimal:     Option[NumericUnits.DecimalInput[RightAscension, Units]]
+    fromLong:        Option[NumericUnits.LongInput[Units]],
+    fromDecimal:     Option[NumericUnits.DecimalInput[Units]]
   ) {
 
     import Units._

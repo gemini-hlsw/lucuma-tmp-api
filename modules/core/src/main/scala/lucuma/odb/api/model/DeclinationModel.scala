@@ -84,8 +84,8 @@ object DeclinationModel {
     microarcseconds: Option[Long],
     degrees:         Option[BigDecimal],
     dms:             Option[Declination],
-    fromLong:        Option[NumericUnits.LongInput[Declination, Units]],
-    fromDecimal:     Option[NumericUnits.DecimalInput[Declination, Units]]
+    fromLong:        Option[NumericUnits.LongInput[Units]],
+    fromDecimal:     Option[NumericUnits.DecimalInput[Units]]
   ) {
 
     import Units._

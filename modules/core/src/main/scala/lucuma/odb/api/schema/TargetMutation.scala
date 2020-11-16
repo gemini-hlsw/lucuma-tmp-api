@@ -8,8 +8,6 @@ import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
 
 import lucuma.core.`enum`.MagnitudeSystem
-import lucuma.core.math.VelocityAxis
-
 import cats.effect.Effect
 import sangria.macros.derive._
 import sangria.marshalling.circe._
@@ -92,19 +90,11 @@ trait TargetMutation extends TargetScalars {
       InputObjectTypeDescription("Right Ascension, choose one of the available units")
     )
 
-  private def InputObjectProperMotionComponent[A](
-    name: String
-  ): InputObjectType[ProperMotionModel.ComponentInput[A]] =
-    deriveInputObjectType[ProperMotionModel.ComponentInput[A]](
-      InputObjectTypeName(s"${name}Input"),
-      InputObjectTypeDescription(s"$name, choose one of the available units")
+  implicit val InputObjectProperMotionComponent: InputObjectType[ProperMotionModel.ComponentInput] =
+    deriveInputObjectType[ProperMotionModel.ComponentInput](
+      InputObjectTypeName("ProperMotionComponentInput"),
+      InputObjectTypeDescription(s"Proper motion component, choose one of the available units")
     )
-
-  implicit val InputObjectProperMotionRa: InputObjectType[ProperMotionModel.ComponentInput[VelocityAxis.RA]] =
-    InputObjectProperMotionComponent("ProperMotionRa")
-
-  implicit val InputObjectProperMotionDec: InputObjectType[ProperMotionModel.ComponentInput[VelocityAxis.Dec]] =
-    InputObjectProperMotionComponent("ProperMotionDec")
 
   implicit val InputObjectProperMotion: InputObjectType[ProperMotionModel.Input] =
     deriveInputObjectType[ProperMotionModel.Input](

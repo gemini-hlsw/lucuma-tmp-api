@@ -59,14 +59,14 @@ object ProperMotionModel {
   implicit def NumericUnitsProperVelocityComponent[A]: NumericUnits[AngularVelocityComponent[A], Units] =
     NumericUnits.fromRead(_.readLong(_), _.readDecimal(_))
 
-  final case class ComponentInput[A](
+  final case class ComponentInput(
     microarcsecondsPerYear: Option[Long],
     milliarcsecondsPerYear: Option[BigDecimal],
-    fromLong:               Option[NumericUnits.LongInput[AngularVelocityComponent[A], Units]],
-    fromDecimal:            Option[NumericUnits.DecimalInput[AngularVelocityComponent[A], Units]]
+    fromLong:               Option[NumericUnits.LongInput[Units]],
+    fromDecimal:            Option[NumericUnits.DecimalInput[Units]]
   ) {
 
-    val toComponent: ValidatedInput[AngularVelocityComponent[A]] =
+    def toComponent[A]: ValidatedInput[AngularVelocityComponent[A]] =
       ValidatedInput.requireOne("proper velocity component",
         microarcsecondsPerYear.map(Units.MicroarcsecondsPerYear.readLong[A]),
         milliarcsecondsPerYear.map(Units.MilliarcsecondsPerYear.readDecimal[A]),
@@ -78,27 +78,27 @@ object ProperMotionModel {
 
   object ComponentInput {
 
-    def Empty[A]: ComponentInput[A] =
-      ComponentInput[A](None, None, None, None)
+    def Empty: ComponentInput =
+      ComponentInput(None, None, None, None)
 
-    def fromMicroarcsecondsPerYear[A](value: Long): ComponentInput[A] =
-      Empty[A].copy(microarcsecondsPerYear = Some(value))
+    def fromMicroarcsecondsPerYear[A](value: Long): ComponentInput =
+      Empty.copy(microarcsecondsPerYear = Some(value))
 
-    def fromMilliarcsecondsPerYear[A](value: BigDecimal): ComponentInput[A] =
-      Empty[A].copy(milliarcsecondsPerYear = Some(value))
+    def fromMilliarcsecondsPerYear(value: BigDecimal): ComponentInput =
+      Empty.copy(milliarcsecondsPerYear = Some(value))
 
-    implicit def DecoderComponentInput[A]: Decoder[ComponentInput[A]] =
-      deriveDecoder[ComponentInput[A]]
+    implicit def DecoderComponentInput[A]: Decoder[ComponentInput] =
+      deriveDecoder[ComponentInput]
 
   }
 
   final case class Input(
-    ra: ComponentInput[RA],
-    dec: ComponentInput[Dec]
+    ra: ComponentInput,
+    dec: ComponentInput
   ) {
 
     val toProperMotion: ValidatedInput[ProperMotion] =
-      (ra.toComponent, dec.toComponent).mapN { case (ra, dec) =>
+      (ra.toComponent[RA], dec.toComponent[Dec]).mapN { case (ra, dec) =>
         ProperMotion(ra, dec)
       }
 

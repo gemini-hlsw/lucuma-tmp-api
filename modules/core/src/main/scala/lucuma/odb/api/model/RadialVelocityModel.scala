@@ -72,8 +72,8 @@ object RadialVelocityModel {
     centimetersPerSecond: Option[Long],
     metersPerSecond:      Option[BigDecimal],
     kilometersPerSecond:  Option[BigDecimal],
-    fromLong:             Option[NumericUnits.LongInput[RadialVelocity, Units]],
-    fromDecimal:          Option[NumericUnits.DecimalInput[RadialVelocity, Units]]
+    fromLong:             Option[NumericUnits.LongInput[Units]],
+    fromDecimal:          Option[NumericUnits.DecimalInput[Units]]
   ) {
 
     import Units._
