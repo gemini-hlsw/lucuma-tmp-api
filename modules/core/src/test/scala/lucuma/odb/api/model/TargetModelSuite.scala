@@ -11,11 +11,13 @@ import munit.DisciplineSuite
 final class TargetModelSuite extends DisciplineSuite {
 
   import ArbCatalogIdModel._
+  import ArbCoordinatesModel._
   import ArbDeclinationModel._
   import ArbParallaxModel._
   import ArbRightAscensionModel._
 
   checkAll("CatalogIdModel.Input", EqTests[CatalogIdModel.Input].eqv)
+  checkAll("CoordinatesModel.Input", EqTests[CoordinatesModel.Input].eqv)
   checkAll("DeclinationModel.Input", EqTests[DeclinationModel.Input].eqv)
   checkAll("ParallaxModel.Input", EqTests[ParallaxModel.Input].eqv)
   checkAll("RightAscensionModel.Input", EqTests[RightAscensionModel.Input].eqv)
