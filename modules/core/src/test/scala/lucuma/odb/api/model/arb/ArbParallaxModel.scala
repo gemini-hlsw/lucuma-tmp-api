@@ -27,14 +27,14 @@ trait ArbParallaxModel {
 
   val genParallaxModelInputFromLong: Gen[Input] =
     Gen.oneOf(
-      genLongInputFromLong[Units](microarcseconds, Units.Microarcseconds),
-      genLongInputFromDecimal[Units](milliarcseconds, Units.Milliarcseconds)
+      genLongInput(microarcseconds, Units.microarcseconds),
+      genLongInput(milliarcseconds, Units.milliarcseconds)
     ).map(Input.fromLong)
 
   val genParallaxModelInputFromDecimal: Gen[Input] =
     Gen.oneOf(
-      genDecimalInputFromLong[Units](microarcseconds, Units.Microarcseconds),
-      genDecimalInputFromDecimal[Units](milliarcseconds, Units.Milliarcseconds)
+      genDecimalInput(microarcseconds, Units.microarcseconds),
+      genDecimalInput(milliarcseconds, Units.milliarcseconds)
     ).map(Input.fromDecimal)
 
   implicit val arbParallaxModelInput: Arbitrary[ParallaxModel.Input] =

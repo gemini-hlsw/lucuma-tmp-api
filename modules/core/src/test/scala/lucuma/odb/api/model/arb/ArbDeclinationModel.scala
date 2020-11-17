@@ -26,14 +26,14 @@ trait ArbDeclinationModel {
 
   val genDeclinationModelInputFromLong: Gen[Input] =
     Gen.oneOf(
-      genLongInputFromLong[Units](microarcseconds, Units.Microarcseconds),
-      genLongInputFromDecimal[Units](degrees, Units.Degrees)
+      genLongInput(microarcseconds, Units.microarcseconds),
+      genLongInput(degrees, Units.degrees)
     ).map(Input.fromLong)
 
   val genDeclinationModelInputFromDecimal: Gen[Input] =
     Gen.oneOf(
-      genDecimalInputFromLong[Units](microarcseconds, Units.Microarcseconds),
-      genDecimalInputFromDecimal[Units](degrees, Units.Degrees)
+      genDecimalInput(microarcseconds, Units.microarcseconds),
+      genDecimalInput(degrees, Units.degrees)
     ).map(Input.fromDecimal)
 
   implicit val arbDeclinationModelInput: Arbitrary[DeclinationModel.Input] =

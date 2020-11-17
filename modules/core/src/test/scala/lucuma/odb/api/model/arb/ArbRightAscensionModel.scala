@@ -28,16 +28,16 @@ trait ArbRightAscensionModel {
 
   val genRightAscensionModelInputFromLong: Gen[Input] =
     Gen.oneOf(
-      genLongInputFromLong[Units](microarcseconds, Units.Microarcseconds),
-      genLongInputFromDecimal[Units](degrees, Units.Degrees),
-      genLongInputFromDecimal[Units](hours, Units.Hours)
+      genLongInput(microarcseconds, Units.microarcseconds),
+      genLongInput(degrees, Units.degrees),
+      genLongInput(hours, Units.hours)
     ).map(Input.fromLong)
 
   val genRightAscensionModelInputFromDecimal: Gen[Input] =
     Gen.oneOf(
-      genDecimalInputFromLong[Units](microarcseconds, Units.Microarcseconds),
-      genDecimalInputFromDecimal[Units](degrees, Units.Degrees),
-      genDecimalInputFromDecimal[Units](hours, Units.Hours)
+      genDecimalInput(microarcseconds, Units.microarcseconds),
+      genDecimalInput(degrees, Units.degrees),
+      genDecimalInput(hours, Units.hours)
     ).map(Input.fromDecimal)
 
   implicit val arbRightAscensionModelInput: Arbitrary[RightAscensionModel.Input] =

@@ -45,6 +45,10 @@ object RightAscensionModel {
     case object Degrees         extends Units(AngleModel.Units.Degrees)
     case object Hours           extends Units(AngleModel.Units.Hours)
 
+    val microarcseconds: Units = Microarcseconds
+    val degrees: Units         = Degrees
+    val hours: Units           = Hours
+
     implicit val EnumeratedRightAscensionUnits: Enumerated[Units] =
       Enumerated.of(Microarcseconds, Degrees, Hours)
 

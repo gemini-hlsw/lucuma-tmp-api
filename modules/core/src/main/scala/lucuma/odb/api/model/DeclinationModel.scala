@@ -55,6 +55,9 @@ object DeclinationModel {
     case object Microarcseconds extends Units(AngleModel.Units.Microarcseconds)
     case object Degrees         extends Units(AngleModel.Units.Degrees)
 
+    val microarcseconds: Units = Microarcseconds
+    val degrees: Units         = Degrees
+
     implicit val EnumeratedDeclinationUnits: Enumerated[Units] =
       Enumerated.of(Microarcseconds, Degrees)
 

@@ -43,6 +43,9 @@ object ParallaxModel {
     case object Microarcseconds extends Units(AngleModel.Units.Microarcseconds)
     case object Milliarcseconds extends Units(AngleModel.Units.Milliarcseconds)
 
+    val microarcseconds: Units = Microarcseconds
+    val milliarcseconds: Units = Milliarcseconds
+
     implicit val EnumeratedParallaxUnits: Enumerated[Units] =
       Enumerated.of(Microarcseconds, Milliarcseconds)
 
