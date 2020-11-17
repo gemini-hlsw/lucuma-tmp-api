@@ -4,14 +4,13 @@
 package lucuma.odb.api.model
 package arb
 
-import org.scalacheck.{Arbitrary, Cogen, Gen}
-import org.scalacheck.Arbitrary.arbitrary
-
+import org.scalacheck.{Cogen, Gen}
 
 trait GenNumericUnitsInput {
 
   import NumericUnits.{DecimalInput, LongInput}
 
+  /*
   def genLongInput[U: Arbitrary](
     min: Long = Long.MinValue,
     max: Long = Long.MaxValue
@@ -31,11 +30,12 @@ trait GenNumericUnitsInput {
 
   def genBigDecimal(
     genLong: Gen[Long],
+    minMoveLeft: Int,
     maxMoveLeft: Int
   ): Gen[BigDecimal] =
     for {
       l <- genLong
-      m <- Gen.choose(0, maxMoveLeft)
+      m <- Gen.choose(minMoveLeft, maxMoveLeft)
     } yield BigDecimal(BigDecimal(l).underlying.movePointLeft(m))
 
   def genDecimalInput[U: Arbitrary](
@@ -45,6 +45,20 @@ trait GenNumericUnitsInput {
       n <- g
       u <- arbitrary[U]
     } yield DecimalInput[U](n, u)
+
+  */
+
+  def genLongInputFromLong[U](g: Gen[Long], u: U): Gen[LongInput[U]] =
+    g.map(l => LongInput[U](l, u))
+
+  def genLongInputFromDecimal[U](g: Gen[BigDecimal], u: U): Gen[LongInput[U]] =
+    g.map(d => LongInput[U](d.toLong, u))
+
+  def genDecimalInputFromLong[U](g: Gen[Long], u: U): Gen[DecimalInput[U]] =
+    g.map(l => DecimalInput[U](l.toDouble, u))
+
+  def genDecimalInputFromDecimal[U](g: Gen[BigDecimal], u: U): Gen[DecimalInput[U]] =
+    g.map(d => DecimalInput[U](d, u))
 
   implicit def cogLongInput[U: Cogen]: Cogen[LongInput[U]] =
     Cogen[(Long, U)].contramap { li =>

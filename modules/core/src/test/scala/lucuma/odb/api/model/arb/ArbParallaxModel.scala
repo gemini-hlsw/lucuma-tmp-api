@@ -4,42 +4,57 @@
 package lucuma.odb.api.model
 package arb
 
-import NumericUnits.{LongInput, DecimalInput}
-
-import lucuma.core.util.Enumerated
+import NumericUnits.{DecimalInput, LongInput}
+import ParallaxModel.{Input, Units}
+import lucuma.core.math.Parallax
+import lucuma.core.math.arb.ArbParallax
+import lucuma.core.util.arb.ArbEnumerated
 import org.scalacheck._
+import org.scalacheck.Arbitrary.arbitrary
+
+import java.math.MathContext
 
 trait ArbParallaxModel {
+  import ArbEnumerated._
+  import ArbParallax._
   import GenNumericUnitsInput._
 
-  import ParallaxModel.{Input, Units}
+  private[this] val microarcseconds: Gen[Long] =
+    arbitrary[Parallax].map(_.μas.value)
 
-  implicit val arbParallaxModelUnits: Arbitrary[ParallaxModel.Units] =
-    Arbitrary { Gen.oneOf(Enumerated[ParallaxModel.Units].all) }
+  private[this] val milliarcseconds: Gen[BigDecimal] =
+    arbitrary[Parallax].map(_.mas.value.toBigDecimal(MathContext.UNLIMITED))
 
-  private val parallaxTestRangeLong: Gen[Long] =
-    Gen.choose(-1L, 1000000L)
+  val genParallaxModelInputFromLong: Gen[Input] =
+    Gen.oneOf(
+      genLongInputFromLong[Units](microarcseconds, Units.Microarcseconds),
+      genLongInputFromDecimal[Units](milliarcseconds, Units.Milliarcseconds)
+    ).map(Input.fromLong)
 
-  private val parallaxTestRangeBigDecimal: Gen[BigDecimal] =
-    genBigDecimal(parallaxTestRangeLong, 6)
+  val genParallaxModelInputFromDecimal: Gen[Input] =
+    Gen.oneOf(
+      genDecimalInputFromLong[Units](microarcseconds, Units.Microarcseconds),
+      genDecimalInputFromDecimal[Units](milliarcseconds, Units.Milliarcseconds)
+    ).map(Input.fromDecimal)
 
   implicit val arbParallaxModelInput: Arbitrary[ParallaxModel.Input] =
     Arbitrary {
       Gen.oneOf(
-        parallaxTestRangeLong.map(Input.fromMicroarcseconds),
-        parallaxTestRangeBigDecimal.map(Input.fromMilliarcseconds),
-        genLongInput[Units](parallaxTestRangeLong).map(Input.fromLong),
-        genDecimalInput[Units](parallaxTestRangeBigDecimal).map(Input.fromDecimal)
+        microarcseconds.map(Input.fromMicroarcseconds),
+        milliarcseconds.map(Input.fromMilliarcseconds),
+        genParallaxModelInputFromLong,
+        genParallaxModelInputFromDecimal
       )
     }
 
-  implicit val cogUnits: Cogen[Units] =
-    Cogen[String].contramap(_.angleUnit.name)
-
   implicit val cogParallaxModelInput: Cogen[ParallaxModel.Input] =
-    Cogen[(Option[Long], Option[BigDecimal], Option[LongInput[Units]], Option[DecimalInput[Units]])].contramap { pmi =>
-      (pmi.microarcseconds, pmi.milliarcseconds, pmi.fromLong, pmi.fromDecimal)
-
+    Cogen[(
+      Option[Long],
+      Option[BigDecimal],
+      Option[LongInput[Units]],
+      Option[DecimalInput[Units]]
+    )].contramap { in =>
+      (in.microarcseconds, in.milliarcseconds, in.fromLong, in.fromDecimal)
     }
 }
 

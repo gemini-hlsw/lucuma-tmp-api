@@ -3,14 +3,13 @@
 
 package lucuma.odb.api.model
 
+import cats.Eq
 import lucuma.odb.api.model.json.targetmath._
 import lucuma.core.math.{Angle, Declination}
 import lucuma.core.optics.SplitMono
 import lucuma.core.util.{Display, Enumerated}
-
 import cats.syntax.option._
 import cats.syntax.validated._
-
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import monocle.Prism
@@ -108,13 +107,28 @@ object DeclinationModel {
     def fromMicroarcseconds(value: Long): Input =
       Empty.copy(microarcseconds = Some(value))
 
-    def fromDms(s: String): ValidatedInput[Input] =
-      readDms(s).map(dms => Empty.copy(dms = Some(dms)))
+    def fromDegrees(value: BigDecimal): Input =
+      Empty.copy(degrees = Some(value))
 
-    def unsafeFromDms(s: String): Input =
-      fromDms(s).valueOr(err => throw InputError.Exception(err))
+    def fromDms(value: Declination): Input =
+      Empty.copy(dms = Some(value))
+
+    def fromLong(value: NumericUnits.LongInput[Units]): Input =
+      Empty.copy(fromLong = Some(value))
+
+    def fromDecimal(value: NumericUnits.DecimalInput[Units]): Input =
+      Empty.copy(fromDecimal = Some(value))
 
     implicit val DecoderInput: Decoder[Input] =
       deriveDecoder[Input]
+
+    implicit val EqInput: Eq[Input] =
+      Eq.by(in => (
+        in.microarcseconds,
+        in.degrees,
+        in.dms,
+        in.fromLong,
+        in.fromDecimal
+      ))
   }
 }

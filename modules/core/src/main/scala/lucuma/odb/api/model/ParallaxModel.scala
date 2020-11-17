@@ -94,11 +94,11 @@ object ParallaxModel {
       deriveDecoder[Input]
 
     implicit val EqInput: Eq[Input] =
-      Eq.by(i => (
-        i.microarcseconds,
-        i.milliarcseconds,
-        i.fromLong,
-        i.fromDecimal
+      Eq.by(in => (
+        in.microarcseconds,
+        in.milliarcseconds,
+        in.fromLong,
+        in.fromDecimal
       ))
 
   }
