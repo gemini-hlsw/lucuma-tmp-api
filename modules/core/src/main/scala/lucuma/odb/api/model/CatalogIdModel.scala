@@ -6,9 +6,9 @@ package lucuma.odb.api.model
 import lucuma.core.`enum`.CatalogName
 import lucuma.core.model.CatalogId
 
+import cats.Eq
 import cats.syntax.either._
 import eu.timepit.refined.types.all.NonEmptyString
-
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 
@@ -32,6 +32,9 @@ object CatalogIdModel {
 
     implicit val DecoderInput: Decoder[Input] =
       deriveDecoder[Input]
+
+    implicit val EqInput: Eq[Input] =
+      Eq.by(i => (i.name, i.id))
 
   }
 }

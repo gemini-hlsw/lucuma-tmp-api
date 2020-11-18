@@ -33,7 +33,7 @@ object TargetModel extends TargetOptics {
   implicit val TopLevelTarget: TopLevelModel[Target.Id, TargetModel] =
     TopLevelModel.instance(_.id, existence)
 
-  implicit val EqualTarget: Eq[TargetModel] =
+  implicit val EqTarget: Eq[TargetModel] =
     Eq.by(t => (t.id, t.existence, t.target))
 
   object parse {
@@ -95,6 +95,16 @@ object TargetModel extends TargetOptics {
 
     implicit val DecoderCreateNonsidereal: Decoder[CreateNonsidereal] =
       deriveDecoder[CreateNonsidereal]
+
+    implicit val EqCreateNonsidereal: Eq[CreateNonsidereal] =
+      Eq.by(cn => (
+        cn.targetId,
+        cn.programIds,
+        cn.name,
+        cn.key,
+        cn.des,
+        cn.magnitudes
+      ))
 
   }
 
@@ -161,6 +171,22 @@ object TargetModel extends TargetOptics {
     implicit val DecoderCreateSidereal: Decoder[CreateSidereal] =
       deriveDecoder[CreateSidereal]
 
+    implicit val EqCreateSidereal: Eq[CreateSidereal] =
+      Eq.by(cs => (
+        cs.targetId,
+        cs.programIds,
+        cs.name,
+        cs.catalogId,
+        cs.ra,
+        cs.dec,
+        cs.epoch,
+        cs.properMotion,
+        cs.properVelocity,
+        cs.radialVelocity,
+        cs.parallax,
+        cs.magnitudes
+      ))
+
   }
 
   final case class EditNonsidereal(
@@ -179,6 +205,18 @@ object TargetModel extends TargetOptics {
         _ <- TargetModel.name         := name.flatMap(n => NonEmptyString.from(n).toOption)
         _ <- TargetModel.ephemerisKey := key
       } yield ()).validNec
+
+  }
+
+  object EditNonsidereal {
+
+    implicit val EqEditNonsidereal: Eq[EditNonsidereal] =
+      Eq.by(en => (
+        en.targetId,
+        en.existence,
+        en.name,
+        en.key
+      ))
 
   }
 
@@ -226,6 +264,21 @@ object TargetModel extends TargetOptics {
 
     implicit val DecoderEditSidereal: Decoder[EditSidereal] =
       deriveDecoder[EditSidereal]
+
+    implicit val EqEditSidereal: Eq[EditSidereal] =
+      Eq.by(es => (
+        es.targetId,
+        es.existence,
+        es.name,
+        es.catalogId,
+        es.ra,
+        es.dec,
+        es.epoch,
+        es.properMotion,
+        es.properVelocity,
+        es.radialVelocity,
+        es.parallax
+      ))
 
   }
 

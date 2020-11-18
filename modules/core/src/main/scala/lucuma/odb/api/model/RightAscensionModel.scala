@@ -3,13 +3,13 @@
 
 package lucuma.odb.api.model
 
+import cats.Eq
 import lucuma.odb.api.model.json.targetmath._
 import lucuma.core.math.{Angle, HourAngle, RightAscension}
 import lucuma.core.optics.SplitMono
 import lucuma.core.util.{Display, Enumerated}
 import cats.syntax.option._
 import cats.syntax.validated._
-
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 
@@ -45,6 +45,10 @@ object RightAscensionModel {
     case object Degrees         extends Units(AngleModel.Units.Degrees)
     case object Hours           extends Units(AngleModel.Units.Hours)
 
+    val microarcseconds: Units = Microarcseconds
+    val degrees: Units         = Degrees
+    val hours: Units           = Hours
+
     implicit val EnumeratedRightAscensionUnits: Enumerated[Units] =
       Enumerated.of(Microarcseconds, Degrees, Hours)
 
@@ -74,8 +78,8 @@ object RightAscensionModel {
     degrees:         Option[BigDecimal],
     hours:           Option[BigDecimal],
     hms:             Option[RightAscension],
-    fromLong:        Option[NumericUnits.LongInput[RightAscension, Units]],
-    fromDecimal:     Option[NumericUnits.DecimalInput[RightAscension, Units]]
+    fromLong:        Option[NumericUnits.LongInput[Units]],
+    fromDecimal:     Option[NumericUnits.DecimalInput[Units]]
   ) {
 
     import Units._
@@ -99,14 +103,33 @@ object RightAscensionModel {
     def fromMicroarcseconds(value: Long): Input =
       Empty.copy(microarcseconds = Some(value))
 
-    def fromHms(s: String): ValidatedInput[Input] =
-      readHms(s).map(hms => Empty.copy(hms = Some(hms)))
+    def fromDegrees(value: BigDecimal): Input =
+      Empty.copy(degrees = Some(value))
 
-    def unsafeFromHms(s: String): Input =
-      fromHms(s).valueOr(err => throw InputError.Exception(err))
+    def fromHours(value: BigDecimal): Input =
+      Empty.copy(hours = Some(value))
+
+    def fromHms(value: RightAscension): Input =
+      Empty.copy(hms = Some(value))
+
+    def fromLong(value: NumericUnits.LongInput[Units]): Input =
+      Empty.copy(fromLong = Some(value))
+
+    def fromDecimal(value: NumericUnits.DecimalInput[Units]): Input =
+      Empty.copy(fromDecimal = Some(value))
 
     implicit val DecoderInput: Decoder[Input] =
       deriveDecoder[Input]
+
+    implicit val EqInput: Eq[Input] =
+      Eq.by(in => (
+        in.microarcseconds,
+        in.degrees,
+        in.hours,
+        in.hms,
+        in.fromLong,
+        in.fromDecimal
+      ))
 
   }
 

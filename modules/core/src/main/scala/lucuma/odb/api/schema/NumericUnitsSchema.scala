@@ -10,8 +10,8 @@ object NumericUnitsSchema {
   private def inputNameFromEnum[U](E: EnumType[U]): String =
     E.name.replaceAll("Units", "")
 
-  implicit def LongInput[A, U](implicit E: EnumType[U]): InputObjectType[NumericUnits.LongInput[A, U]] =
-    InputObjectType[NumericUnits.LongInput[A, U]](
+  implicit def LongInput[U](implicit E: EnumType[U]): InputObjectType[NumericUnits.LongInput[U]] =
+    InputObjectType[NumericUnits.LongInput[U]](
       name        = s"${inputNameFromEnum(E)}LongInput",
       description = s"Integral value in ${inputNameFromEnum(E)}",
       fields      = List[InputField[_]](
@@ -20,8 +20,8 @@ object NumericUnitsSchema {
       )
     )
 
-  implicit def DecimalInput[A, U](implicit E: EnumType[U]): InputObjectType[NumericUnits.DecimalInput[A, U]] =
-    InputObjectType[NumericUnits.DecimalInput[A, U]](
+  implicit def DecimalInput[U](implicit E: EnumType[U]): InputObjectType[NumericUnits.DecimalInput[U]] =
+    InputObjectType[NumericUnits.DecimalInput[U]](
       name        = s"${inputNameFromEnum(E)}DecimalInput",
       description = s"Decimal value in ${inputNameFromEnum(E)}",
       fields      = List[InputField[_]](

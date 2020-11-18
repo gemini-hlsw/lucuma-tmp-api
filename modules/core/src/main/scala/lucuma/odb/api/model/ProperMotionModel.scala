@@ -3,15 +3,14 @@
 
 package lucuma.odb.api.model
 
+import cats.Eq
 import lucuma.core.math.ProperMotion.AngularVelocityComponent
 import lucuma.core.math.{Angle, ProperMotion}
-import lucuma.core.math.VelocityAxis.{RA, Dec}
+import lucuma.core.math.VelocityAxis.{Dec, RA}
 import lucuma.core.optics.SplitMono
 import lucuma.core.util.{Display, Enumerated}
-
 import cats.syntax.apply._
 import cats.syntax.validated._
-
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 
@@ -48,6 +47,9 @@ object ProperMotionModel {
 
     case object MilliarcsecondsPerYear extends Units(AngleModel.Units.Milliarcseconds)
 
+    val microarcsecondsPerYear: Units = MicroarcsecondsPerYear
+    val milliarcsecondsPerYear: Units = MilliarcsecondsPerYear
+
     implicit def EnumeratedProperVelocityUnits: Enumerated[Units] =
       Enumerated.of(MicroarcsecondsPerYear, MilliarcsecondsPerYear)
 
@@ -59,14 +61,14 @@ object ProperMotionModel {
   implicit def NumericUnitsProperVelocityComponent[A]: NumericUnits[AngularVelocityComponent[A], Units] =
     NumericUnits.fromRead(_.readLong(_), _.readDecimal(_))
 
-  final case class ComponentInput[A](
+  final case class ComponentInput(
     microarcsecondsPerYear: Option[Long],
     milliarcsecondsPerYear: Option[BigDecimal],
-    fromLong:               Option[NumericUnits.LongInput[AngularVelocityComponent[A], Units]],
-    fromDecimal:            Option[NumericUnits.DecimalInput[AngularVelocityComponent[A], Units]]
+    fromLong:               Option[NumericUnits.LongInput[Units]],
+    fromDecimal:            Option[NumericUnits.DecimalInput[Units]]
   ) {
 
-    val toComponent: ValidatedInput[AngularVelocityComponent[A]] =
+    def toComponent[A]: ValidatedInput[AngularVelocityComponent[A]] =
       ValidatedInput.requireOne("proper velocity component",
         microarcsecondsPerYear.map(Units.MicroarcsecondsPerYear.readLong[A]),
         milliarcsecondsPerYear.map(Units.MilliarcsecondsPerYear.readDecimal[A]),
@@ -78,27 +80,41 @@ object ProperMotionModel {
 
   object ComponentInput {
 
-    def Empty[A]: ComponentInput[A] =
-      ComponentInput[A](None, None, None, None)
+    def Empty: ComponentInput =
+      ComponentInput(None, None, None, None)
 
-    def fromMicroarcsecondsPerYear[A](value: Long): ComponentInput[A] =
-      Empty[A].copy(microarcsecondsPerYear = Some(value))
+    def fromMicroarcsecondsPerYear[A](value: Long): ComponentInput =
+      Empty.copy(microarcsecondsPerYear = Some(value))
 
-    def fromMilliarcsecondsPerYear[A](value: BigDecimal): ComponentInput[A] =
-      Empty[A].copy(milliarcsecondsPerYear = Some(value))
+    def fromMilliarcsecondsPerYear(value: BigDecimal): ComponentInput =
+      Empty.copy(milliarcsecondsPerYear = Some(value))
 
-    implicit def DecoderComponentInput[A]: Decoder[ComponentInput[A]] =
-      deriveDecoder[ComponentInput[A]]
+    def fromLong(value: NumericUnits.LongInput[Units]): ComponentInput =
+      Empty.copy(fromLong = Some(value))
+
+    def fromDecimal(value: NumericUnits.DecimalInput[Units]): ComponentInput =
+      Empty.copy(fromDecimal = Some(value))
+
+    implicit def DecoderComponentInput: Decoder[ComponentInput] =
+      deriveDecoder[ComponentInput]
+
+    implicit def EqComponentInput: Eq[ComponentInput] =
+      Eq.by(in => (
+        in.microarcsecondsPerYear,
+        in.milliarcsecondsPerYear,
+        in.fromLong,
+        in.fromDecimal
+      ))
 
   }
 
   final case class Input(
-    ra: ComponentInput[RA],
-    dec: ComponentInput[Dec]
+    ra: ComponentInput,
+    dec: ComponentInput
   ) {
 
     val toProperMotion: ValidatedInput[ProperMotion] =
-      (ra.toComponent, dec.toComponent).mapN { case (ra, dec) =>
+      (ra.toComponent[RA], dec.toComponent[Dec]).mapN { case (ra, dec) =>
         ProperMotion(ra, dec)
       }
 
@@ -118,8 +134,14 @@ object ProperMotionModel {
         ComponentInput.fromMilliarcsecondsPerYear(dec)
       )
 
-    implicit val DecoderProperVelocityInput: Decoder[Input] =
+    implicit val DecoderProperMotionInput: Decoder[Input] =
       deriveDecoder[Input]
+
+    implicit val EqInput: Eq[Input] =
+      Eq.by(in => (
+        in.ra,
+        in.dec
+      ))
 
   }
 

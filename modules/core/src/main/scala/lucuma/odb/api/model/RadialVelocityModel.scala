@@ -3,9 +3,9 @@
 
 package lucuma.odb.api.model
 
+import cats.Eq
 import lucuma.core.math.RadialVelocity
 import lucuma.core.util.{Display, Enumerated}
-
 import cats.syntax.option._
 import io.circe.Decoder
 import io.circe.generic.semiauto._
@@ -57,6 +57,10 @@ object RadialVelocityModel {
     case object MetersPerSecond      extends Units("m/s",   0)
     case object KilometersPerSecond  extends Units("km/s", -3)
 
+    val centimetersPerSecond: Units = CentimetersPerSecond
+    val metersPerSecond: Units      = MetersPerSecond
+    val kilometersPerSecond: Units  = KilometersPerSecond
+
     implicit val EnumeratedRadialVelocityUnits: Enumerated[Units] =
       Enumerated.of(CentimetersPerSecond, MetersPerSecond, KilometersPerSecond)
 
@@ -72,8 +76,8 @@ object RadialVelocityModel {
     centimetersPerSecond: Option[Long],
     metersPerSecond:      Option[BigDecimal],
     kilometersPerSecond:  Option[BigDecimal],
-    fromLong:             Option[NumericUnits.LongInput[RadialVelocity, Units]],
-    fromDecimal:          Option[NumericUnits.DecimalInput[RadialVelocity, Units]]
+    fromLong:             Option[NumericUnits.LongInput[Units]],
+    fromDecimal:          Option[NumericUnits.DecimalInput[Units]]
   ) {
 
     import Units._
@@ -102,8 +106,23 @@ object RadialVelocityModel {
     def fromKilometersPerSecond(value: BigDecimal): Input =
       Empty.copy(kilometersPerSecond = Some(value))
 
+    def fromLong(value: NumericUnits.LongInput[Units]): Input =
+      Empty.copy(fromLong = Some(value))
+
+    def fromDecimal(value: NumericUnits.DecimalInput[Units]): Input =
+      Empty.copy(fromDecimal = Some(value))
+
     implicit val DecoderInput: Decoder[Input] =
       deriveDecoder[Input]
+
+    implicit val EqInput: Eq[Input] =
+      Eq.by(in => (
+        in.centimetersPerSecond,
+        in.metersPerSecond,
+        in.kilometersPerSecond,
+        in.fromLong,
+        in.fromDecimal
+      ))
 
   }
 

@@ -5,8 +5,8 @@ package lucuma.odb.api.model
 
 import lucuma.core.math.Coordinates
 
+import cats.Eq
 import cats.syntax.apply._
-
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 
@@ -29,6 +29,12 @@ object CoordinatesModel {
 
     implicit val DecoderCoordinatesInput: Decoder[Input] =
       deriveDecoder[Input]
+
+    implicit val EqInput: Eq[Input] =
+      Eq.by(in => (
+        in.ra,
+        in.dec
+      ))
 
   }
 
