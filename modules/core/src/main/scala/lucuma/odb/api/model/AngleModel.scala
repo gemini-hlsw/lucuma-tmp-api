@@ -64,14 +64,11 @@ object AngleModel {
     def readUnsignedDecimal(d: BigDecimal): ValidatedInput[Angle] =
       readDecimal(d, unsignedDecimal)
 
-    val maxLong: Long =
-      Units.µas360 / µas
-
   }
 
   object Units {
 
-    val µas360: Long =
+    private val µas360: Long =
       Angle.Angle180.toMicroarcseconds * 2L
 
     case object Microarcseconds extends Units(None,      "µas",  "microarcseconds",          1L)
