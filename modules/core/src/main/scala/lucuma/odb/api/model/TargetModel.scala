@@ -181,7 +181,6 @@ object TargetModel extends TargetOptics {
         cs.dec,
         cs.epoch,
         cs.properMotion,
-        cs.properVelocity,
         cs.radialVelocity,
         cs.parallax,
         cs.magnitudes
@@ -305,7 +304,6 @@ object TargetModel extends TargetOptics {
         es.dec,
         es.epoch,
         es.properMotion,
-        es.properVelocity,
         es.radialVelocity,
         es.parallax
       ))

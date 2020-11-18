@@ -5,7 +5,7 @@ package lucuma.odb.api.model
 package arb
 
 import TargetModel.{CreateNonsidereal, CreateSidereal, EditNonsidereal, EditSidereal}
-import lucuma.core.`enum`.EphemerisKeyType
+import lucuma.core.`enum`.{EphemerisKeyType, MagnitudeBand}
 import lucuma.core.model.{EphemerisKey, Program, Target}
 import lucuma.core.model.arb.{ArbEphemerisKey, ArbTarget}
 import lucuma.core.math.Epoch
@@ -53,7 +53,6 @@ trait ArbTargetModel {
         dec,
         epoch,
         pm,
-        None,
         rv,
         px,
         mags
@@ -131,6 +130,9 @@ trait ArbTargetModel {
         pm    <- arbitrary[Option[Option[ProperMotionModel.Input]]]
         rv    <- arbitrary[Option[Option[RadialVelocityModel.Input]]]
         px    <- arbitrary[Option[Option[ParallaxModel.Input]]]
+        mags  <- arbitrary[Option[List[MagnitudeModel.Input]]]
+        mmags <- arbitrary[Option[List[MagnitudeModel.Input]]]
+        dmags <- arbitrary[Option[List[MagnitudeBand]]]
       } yield EditSidereal(
         id,
         ex,
@@ -140,9 +142,11 @@ trait ArbTargetModel {
         dec,
         epoch,
         pm,
-        None,
         rv,
-        px
+        px,
+        mags,
+        mmags,
+        dmags
       )
     }
 
