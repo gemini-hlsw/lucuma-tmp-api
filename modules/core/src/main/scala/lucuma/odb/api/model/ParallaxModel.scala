@@ -6,7 +6,7 @@ package lucuma.odb.api.model
 import cats.Eq
 import lucuma.core.math.{Angle, Parallax}
 import lucuma.core.util.{Display, Enumerated}
-import cats.implicits._
+import cats.syntax.validated._
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import lucuma.core.optics.SplitMono
