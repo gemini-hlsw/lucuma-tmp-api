@@ -6,6 +6,7 @@ package lucuma.odb.api.model
 import lucuma.core.`enum`.{MagnitudeBand, MagnitudeSystem}
 import lucuma.core.math.MagnitudeValue
 import lucuma.core.model.Magnitude
+import cats.Eq
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto._
@@ -39,6 +40,13 @@ object MagnitudeModel {
     implicit val DecoderInput: Decoder[Input] =
       deriveDecoder[Input]
 
+    implicit val EqInput: Eq[Input] =
+      Eq.by(in => (
+        in.value,
+        in.band,
+        in.system,
+        in.error
+      ))
   }
 
 }

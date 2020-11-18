@@ -6,6 +6,7 @@ package arb
 
 import NumericUnits.{DecimalInput, LongInput}
 import ParallaxModel.{Input, Units}
+
 import lucuma.core.math.Parallax
 import lucuma.core.math.arb.ArbParallax
 import lucuma.core.util.arb.ArbEnumerated
@@ -15,6 +16,7 @@ import org.scalacheck.Arbitrary.arbitrary
 import java.math.MathContext
 
 trait ArbParallaxModel {
+
   import ArbEnumerated._
   import ArbParallax._
   import GenNumericUnitsInput._

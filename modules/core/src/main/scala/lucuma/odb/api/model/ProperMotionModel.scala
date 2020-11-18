@@ -3,15 +3,14 @@
 
 package lucuma.odb.api.model
 
+import cats.Eq
 import lucuma.core.math.ProperMotion.AngularVelocityComponent
 import lucuma.core.math.{Angle, ProperMotion}
-import lucuma.core.math.VelocityAxis.{RA, Dec}
+import lucuma.core.math.VelocityAxis.{Dec, RA}
 import lucuma.core.optics.SplitMono
 import lucuma.core.util.{Display, Enumerated}
-
 import cats.syntax.apply._
 import cats.syntax.validated._
-
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 
@@ -47,6 +46,9 @@ object ProperMotionModel {
     case object MicroarcsecondsPerYear extends Units(AngleModel.Units.Microarcseconds)
 
     case object MilliarcsecondsPerYear extends Units(AngleModel.Units.Milliarcseconds)
+
+    val microarcsecondsPerYear: Units = MicroarcsecondsPerYear
+    val milliarcsecondsPerYear: Units = MilliarcsecondsPerYear
 
     implicit def EnumeratedProperVelocityUnits: Enumerated[Units] =
       Enumerated.of(MicroarcsecondsPerYear, MilliarcsecondsPerYear)
@@ -87,8 +89,22 @@ object ProperMotionModel {
     def fromMilliarcsecondsPerYear(value: BigDecimal): ComponentInput =
       Empty.copy(milliarcsecondsPerYear = Some(value))
 
-    implicit def DecoderComponentInput[A]: Decoder[ComponentInput] =
+    def fromLong(value: NumericUnits.LongInput[Units]): ComponentInput =
+      Empty.copy(fromLong = Some(value))
+
+    def fromDecimal(value: NumericUnits.DecimalInput[Units]): ComponentInput =
+      Empty.copy(fromDecimal = Some(value))
+
+    implicit def DecoderComponentInput: Decoder[ComponentInput] =
       deriveDecoder[ComponentInput]
+
+    implicit def EqComponentInput: Eq[ComponentInput] =
+      Eq.by(in => (
+        in.microarcsecondsPerYear,
+        in.milliarcsecondsPerYear,
+        in.fromLong,
+        in.fromDecimal
+      ))
 
   }
 
@@ -118,8 +134,14 @@ object ProperMotionModel {
         ComponentInput.fromMilliarcsecondsPerYear(dec)
       )
 
-    implicit val DecoderProperVelocityInput: Decoder[Input] =
+    implicit val DecoderProperMotionInput: Decoder[Input] =
       deriveDecoder[Input]
+
+    implicit val EqInput: Eq[Input] =
+      Eq.by(in => (
+        in.ra,
+        in.dec
+      ))
 
   }
 
