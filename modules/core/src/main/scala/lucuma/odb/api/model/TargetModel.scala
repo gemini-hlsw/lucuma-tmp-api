@@ -16,6 +16,7 @@ import eu.timepit.refined.types.string._
 import io.circe.{Decoder, HCursor}
 import io.circe.generic.semiauto._
 import monocle.{Lens, Optional}
+import monocle.state.all._
 
 import scala.collection.immutable.SortedMap
 
@@ -220,23 +221,30 @@ object TargetModel extends TargetOptics {
   }
 
   final case class EditSidereal(
-    targetId:        Target.Id,
-    existence:       Option[Existence],
-    name:            Option[String],
-    catalogId:       Option[Option[CatalogIdModel.Input]],
-    ra:              Option[RightAscensionModel.Input],
-    dec:             Option[DeclinationModel.Input],
-    epoch:           Option[Epoch],
-    properMotion:    Option[Option[ProperMotionModel.Input]],
-    radialVelocity:  Option[Option[RadialVelocityModel.Input]],
-    parallax:        Option[Option[ParallaxModel.Input]],
-    magnitudes:      Option[List[MagnitudeModel.Input]]
-//    magnitudesPlus:  Option[List[MagnitudeModel.Input]],
-//    magnitudesMinus: Option[List[MagnitudeBand]]
+    targetId:         Target.Id,
+    existence:        Option[Existence],
+    name:             Option[String],
+    catalogId:        Option[Option[CatalogIdModel.Input]],
+    ra:               Option[RightAscensionModel.Input],
+    dec:              Option[DeclinationModel.Input],
+    epoch:            Option[Epoch],
+    properMotion:     Option[Option[ProperMotionModel.Input]],
+    radialVelocity:   Option[Option[RadialVelocityModel.Input]],
+    parallax:         Option[Option[ParallaxModel.Input]],
+    magnitudes:       Option[List[MagnitudeModel.Input]],
+    modifyMagnitudes: Option[List[MagnitudeModel.Input]],
+    deleteMagnitudes: Option[List[MagnitudeBand]]
   ) extends Editor[Target.Id, TargetModel] {
 
     override def id: Target.Id =
       targetId
+
+    private def validateMags(
+      ms: Option[List[MagnitudeModel.Input]]
+    ): ValidatedInput[Option[SortedMap[MagnitudeBand, Magnitude]]] =
+      ms.traverse(_.traverse(_.toMagnitude).map { lst =>
+        SortedMap.from(lst.map(m => m.band -> m))
+      })
 
     override val editor: ValidatedInput[State[TargetModel, Unit]] =
       (Nested(catalogId).traverse(_.toCatalogId).map(_.value),
@@ -245,8 +253,9 @@ object TargetModel extends TargetOptics {
        Nested(properMotion).traverse(_.toProperMotion).map(_.value),
        Nested(radialVelocity).traverse(_.toRadialVelocity).map(_.value),
        Nested(parallax).traverse(_.toParallax).map(_.value),
-       magnitudes.toList.flatten.traverse(_.toMagnitude).map(l => SortedMap.from(l.map(m => m.band -> m)))
-      ).mapN { (catalogId, ra, dec, pm, rv, px, ms) =>
+       validateMags(magnitudes),
+       validateMags(modifyMagnitudes)
+      ).mapN { (catalogId, ra, dec, pm, rv, px, ms, mp) =>
         for {
           _ <- TargetModel.existence      := existence
           _ <- TargetModel.name           := name.flatMap(n => NonEmptyString.from(n).toOption)
@@ -258,6 +267,8 @@ object TargetModel extends TargetOptics {
           _ <- TargetModel.radialVelocity := rv
           _ <- TargetModel.parallax       := px
           _ <- TargetModel.magnitudes     := ms
+          _ <- TargetModel.magnitudes.mod(_ ++ mp.getOrElse(SortedMap.empty[MagnitudeBand, Magnitude]))
+          _ <- TargetModel.magnitudes.mod(_ -- deleteMagnitudes.toList.flatten)
         } yield ()
       }
 
@@ -280,7 +291,9 @@ object TargetModel extends TargetOptics {
         rv <- c.optionEditor[RadialVelocityModel.Input]("radialVelocity")
         px <- c.optionEditor[ParallaxModel.Input]("parallax")
         ms <- c.editor[List[MagnitudeModel.Input]]("magnitudes")
-      } yield EditSidereal(id, ex, nm, ct, ra, dc, ep, pm, rv, px, ms)
+        mp <- c.editor[List[MagnitudeModel.Input]]("modifyMagnitudes")
+        md <- c.editor[List[MagnitudeBand]]("deleteMagnitudes")
+      } yield EditSidereal(id, ex, nm, ct, ra, dc, ep, pm, rv, px, ms, mp, md)
 
     implicit val EqEditSidereal: Eq[EditSidereal] =
       Eq.by(es => (

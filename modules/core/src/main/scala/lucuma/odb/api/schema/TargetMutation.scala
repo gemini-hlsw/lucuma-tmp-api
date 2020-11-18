@@ -6,8 +6,8 @@ package lucuma.odb.api.schema
 import lucuma.odb.api.model.{CatalogIdModel, CoordinatesModel, DeclinationModel, MagnitudeModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
-
 import lucuma.core.`enum`.MagnitudeSystem
+
 import cats.effect.Effect
 import sangria.macros.derive._
 import sangria.marshalling.circe._
@@ -143,7 +143,10 @@ trait TargetMutation extends TargetScalars {
   val InputObjectTypeTargetEditSidereal: InputObjectType[TargetModel.EditSidereal] =
     deriveInputObjectType[TargetModel.EditSidereal](
       InputObjectTypeName("EditSiderealInput"),
-      InputObjectTypeDescription("Sidereal target edit parameters")
+      InputObjectTypeDescription("Sidereal target edit parameters"),
+      DocumentInputField("magnitudes", "Replace all magnitudes with the provided values"),
+      DocumentInputField("modifyMagnitudes", "Update any listed magnitudes leaving unmentioned values unchanged"),
+      DocumentInputField("deleteMagnitudes", "Removes any listed magnitude values")
     )
 
   val ArgumentTargetEditSidereal: Argument[TargetModel.EditSidereal] =
