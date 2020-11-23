@@ -62,5 +62,4 @@ object Config {
     envOrProp("ODB_SERVICE_JWT")
   ).parMapN(Config.apply)
 
-
 }
