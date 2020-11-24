@@ -15,6 +15,9 @@ import org.http4s.client.blaze.BlazeClientBuilder
 
 import java.security.PublicKey
 
+/**
+ * Application configuration.
+ */
 final case class Config(
   port:         Int,
   ssoRoot:      Uri,
