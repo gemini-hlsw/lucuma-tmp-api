@@ -61,7 +61,7 @@ object Config {
   val fromCiris: ConfigValue[Config] = (
     (envOrProp("ODB_PORT") or envOrProp("PORT") or ConfigValue.default("8080")).as[Int],
     envOrProp("ODB_SSO_ROOT").as[Uri],
-    envOrProp("ODB_PUBLIC_KEY").as[PublicKey],
+    envOrProp("ODB_SSO_PUBLIC_KEY").as[PublicKey],
     envOrProp("ODB_SERVICE_JWT")
   ).parMapN(Config.apply)
 
