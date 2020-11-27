@@ -1,5 +1,5 @@
 val attoVersion                 = "0.8.0"
-val catsEffectVersion           = "2.2.0"
+val catsEffectVersion           = "2.3.0"
 val catsTestkitScalaTestVersion = "2.0.0"
 val catsVersion                 = "2.2.0"
 val circeOpticsVersion          = "0.13.0"
