@@ -6,9 +6,8 @@ package lucuma.odb.api.schema.syntax
 import lucuma.core.syntax.display._
 import lucuma.core.syntax.enumerated._
 import lucuma.core.syntax.string._
-
 import lucuma.core.util.{Display, Enumerated}
-import sangria.schema.{EnumType, EnumValue}
+import sangria.schema.{EnumType, EnumValue, InputType, OptionInputType}
 
 final class EnumTypeCompanionOps(val self: EnumType.type) {
 
@@ -51,4 +50,16 @@ trait ToEnumTypeCompanionOps {
     new EnumTypeCompanionOps(c)
 }
 
-object enum extends ToEnumTypeCompanionOps
+final class EnumTypeOps[A](val self: EnumType[A]) extends AnyVal {
+
+  def optional: InputType[Option[A]] =
+    OptionInputType(self)
+
+}
+
+trait ToEnumTypeOps {
+  implicit def ToEnumTypeOps[A](enumType: EnumType[A]): EnumTypeOps[A] =
+    new EnumTypeOps[A](enumType)
+}
+
+object enum extends ToEnumTypeCompanionOps with ToEnumTypeOps

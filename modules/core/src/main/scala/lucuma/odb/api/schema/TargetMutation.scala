@@ -7,7 +7,6 @@ import lucuma.odb.api.model.{CatalogIdModel, CoordinatesModel, DeclinationModel,
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
 import lucuma.core.`enum`.MagnitudeSystem
-
 import cats.effect.Effect
 import sangria.macros.derive._
 import sangria.marshalling.circe._
@@ -22,6 +21,7 @@ trait TargetMutation extends TargetScalars {
 
   import context._
 
+  import syntax.inputtype._
   import syntax.inputobjecttype._
 
   implicit val EnumTypeDeclinationUnits: EnumType[DeclinationModel.Units] =
@@ -144,9 +144,20 @@ trait TargetMutation extends TargetScalars {
     deriveInputObjectType[TargetModel.EditSidereal](
       InputObjectTypeName("EditSiderealInput"),
       InputObjectTypeDescription("Sidereal target edit parameters"),
-      DocumentInputField("magnitudes", "Replace all magnitudes with the provided values"),
+
+      DocumentInputField("magnitudes",       "Replace all magnitudes with the provided values"                  ),
       DocumentInputField("modifyMagnitudes", "Update any listed magnitudes leaving unmentioned values unchanged"),
-      DocumentInputField("deleteMagnitudes", "Removes any listed magnitude values")
+      DocumentInputField("deleteMagnitudes", "Removes any listed magnitude values"                              ),
+
+      ReplaceInputField("existence",      EnumTypeExistence        .notNullableField("existence"  )),
+      ReplaceInputField("name",           StringType               .notNullableField("name"       )),
+      ReplaceInputField("catalogId",      InputObjectCatalogId     .nullableField("catalogId"     )),
+      ReplaceInputField("ra",             InputObjectRightAscension.notNullableField("ra"         )),
+      ReplaceInputField("dec",            InputObjectDeclination   .notNullableField("dec"         )),
+      ReplaceInputField("epoch",          EpochStringType          .notNullableField("epoch"      )),
+      ReplaceInputField("properMotion",   InputObjectProperMotion  .nullableField("properMotion"  )),
+      ReplaceInputField("radialVelocity", InputObjectRadialVelocity.nullableField("radialVelocity")),
+      ReplaceInputField("parallax",       InputObjectParallax      .nullableField("parallax"      ))
     )
 
   val ArgumentTargetEditSidereal: Argument[TargetModel.EditSidereal] =

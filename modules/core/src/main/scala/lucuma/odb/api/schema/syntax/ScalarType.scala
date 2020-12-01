@@ -6,7 +6,7 @@ package lucuma.odb.api.schema.syntax
 import cats.implicits._
 import lucuma.odb.api.model.format.ScalarFormat
 import sangria.ast.StringValue
-import sangria.schema.ScalarType
+import sangria.schema.{InputType, OptionInputType, ScalarType}
 import sangria.validation.{ValueCoercionViolation, Violation}
 
 final case class FormatViolation(msg: String) extends ValueCoercionViolation(msg)
@@ -55,4 +55,16 @@ trait ToScalarTypeCompanionOps {
     new ScalarTypeCompanionOps(c)
 }
 
-object scalar extends ToScalarTypeCompanionOps
+final class ScalarTypeOps[A](val self: ScalarType[A]) extends AnyVal {
+
+  def optional: InputType[Option[A]] =
+    OptionInputType(self)
+
+}
+
+trait ToScalarTypeOps {
+  implicit def ToScalarTypeOps[A](scalarType: ScalarType[A]): ScalarTypeOps[A] =
+    new ScalarTypeOps[A](scalarType)
+}
+
+object scalar extends ToScalarTypeCompanionOps with ToScalarTypeOps

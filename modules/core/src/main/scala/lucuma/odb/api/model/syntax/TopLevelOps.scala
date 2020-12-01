@@ -5,7 +5,7 @@ package lucuma.odb.api.model.syntax
 
 import lucuma.odb.api.model.TopLevelModel
 
-final class TopLevelOps[I, T: TopLevelModel[I, ?]](self: T) {
+final class TopLevelOps[I, T: TopLevelModel[I, *]](self: T) {
 
   def isPresent: Boolean =
     TopLevelModel[I, T].existence.get(self).isPresent
@@ -16,7 +16,7 @@ final class TopLevelOps[I, T: TopLevelModel[I, ?]](self: T) {
 }
 
 trait ToTopLevelOps {
-  implicit def toTopLevelOps[I, T: TopLevelModel[I, ?]](t: T): TopLevelOps[I, T] =
+  implicit def toTopLevelOps[I, T: TopLevelModel[I, *]](t: T): TopLevelOps[I, T] =
     new TopLevelOps[I, T](t)
 }
 

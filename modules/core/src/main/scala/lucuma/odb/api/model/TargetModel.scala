@@ -10,10 +10,13 @@ import lucuma.core.math.{Coordinates, Declination, Epoch, Parallax, ProperMotion
 import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, Program, SiderealTracking, Target}
 import lucuma.core.optics.syntax.lens._
 import lucuma.core.optics.syntax.optional._
+import lucuma.odb.api.model.syntax.input._
+
 import cats.data._
 import cats.implicits._
+import clue.data.Input
 import eu.timepit.refined.types.string._
-import io.circe.{Decoder, HCursor}
+import io.circe.Decoder
 import io.circe.generic.semiauto._
 import monocle.{Lens, Optional}
 import monocle.state.all._
@@ -221,15 +224,15 @@ object TargetModel extends TargetOptics {
 
   final case class EditSidereal(
     targetId:         Target.Id,
-    existence:        Option[Existence],
-    name:             Option[String],
-    catalogId:        Option[Option[CatalogIdModel.Input]],
-    ra:               Option[RightAscensionModel.Input],
-    dec:              Option[DeclinationModel.Input],
-    epoch:            Option[Epoch],
-    properMotion:     Option[Option[ProperMotionModel.Input]],
-    radialVelocity:   Option[Option[RadialVelocityModel.Input]],
-    parallax:         Option[Option[ParallaxModel.Input]],
+    existence:        Input[Existence]                 = Input.ignore,
+    name:             Input[String]                    = Input.ignore,
+    catalogId:        Input[CatalogIdModel.Input]      = Input.ignore,
+    ra:               Input[RightAscensionModel.Input] = Input.ignore,
+    dec:              Input[DeclinationModel.Input]    = Input.ignore,
+    epoch:            Input[Epoch]                     = Input.ignore,
+    properMotion:     Input[ProperMotionModel.Input]   = Input.ignore,
+    radialVelocity:   Input[RadialVelocityModel.Input] = Input.ignore,
+    parallax:         Input[ParallaxModel.Input]       = Input.ignore,
     magnitudes:       Option[List[MagnitudeModel.Input]],
     modifyMagnitudes: Option[List[MagnitudeModel.Input]],
     deleteMagnitudes: Option[List[MagnitudeBand]]
@@ -246,18 +249,21 @@ object TargetModel extends TargetOptics {
       })
 
     override val editor: ValidatedInput[State[TargetModel, Unit]] =
-      (Nested(catalogId).traverse(_.toCatalogId).map(_.value),
-       ra.traverse(_.toRightAscension),
-       dec.traverse(_.toDeclination),
-       Nested(properMotion).traverse(_.toProperMotion).map(_.value),
-       Nested(radialVelocity).traverse(_.toRadialVelocity).map(_.value),
-       Nested(parallax).traverse(_.toParallax).map(_.value),
+      (existence     .validateIsNotNull("existence"),
+       name          .validateNotNullable("epoch")(n => ValidatedInput.nonEmptyString("name", n)),
+       catalogId     .validateNullable(_.toCatalogId),
+       ra            .validateNotNullable("ra")(_.toRightAscension),
+       dec           .validateNotNullable("dec")(_.toDeclination),
+       epoch         .validateIsNotNull("epoch"),
+       properMotion  .validateNullable(_.toProperMotion),
+       radialVelocity.validateNullable(_.toRadialVelocity),
+       parallax      .validateNullable(_.toParallax),
        validateMags(magnitudes),
        validateMags(modifyMagnitudes)
-      ).mapN { (catalogId, ra, dec, pm, rv, px, ms, mp) =>
+      ).mapN { (ex, name, catalogId, ra, dec, epoch, pm, rv, px, ms, mp) =>
         for {
-          _ <- TargetModel.existence      := existence
-          _ <- TargetModel.name           := name.flatMap(n => NonEmptyString.from(n).toOption)
+          _ <- TargetModel.existence      := ex
+          _ <- TargetModel.name           := name
           _ <- TargetModel.catalogId      := catalogId
           _ <- TargetModel.ra             := ra
           _ <- TargetModel.dec            := dec
@@ -275,24 +281,13 @@ object TargetModel extends TargetOptics {
 
   object EditSidereal {
 
-    import syntax.hcursor._
+    import io.circe.generic.extras.semiauto._
+    import io.circe.generic.extras.Configuration
+    implicit val customConfig: Configuration = Configuration.default.withDefaults
+
 
     implicit val DecoderEditSidereal: Decoder[EditSidereal] =
-      (c: HCursor) => for {
-        id <- c.get[Target.Id]("targetId")
-        ex <- c.editor[Existence]("existence")
-        nm <- c.editor[String]("name")
-        ct <- c.optionEditor[CatalogIdModel.Input]("catalogId")
-        ra <- c.editor[RightAscensionModel.Input]("ra")
-        dc <- c.editor[DeclinationModel.Input]("dec")
-        ep <- c.editor[Epoch]("epoch")
-        pm <- c.optionEditor[ProperMotionModel.Input]("properMotion")
-        rv <- c.optionEditor[RadialVelocityModel.Input]("radialVelocity")
-        px <- c.optionEditor[ParallaxModel.Input]("parallax")
-        ms <- c.editor[List[MagnitudeModel.Input]]("magnitudes")
-        mp <- c.editor[List[MagnitudeModel.Input]]("modifyMagnitudes")
-        md <- c.editor[List[MagnitudeBand]]("deleteMagnitudes")
-      } yield EditSidereal(id, ex, nm, ct, ra, dc, ep, pm, rv, px, ms, mp, md)
+      deriveConfiguredDecoder[EditSidereal]
 
     implicit val EqEditSidereal: Eq[EditSidereal] =
       Eq.by(es => (

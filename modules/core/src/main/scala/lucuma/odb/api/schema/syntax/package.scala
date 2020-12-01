@@ -9,6 +9,7 @@ package object syntax {
     extends ToEnumTypeCompanionOps
        with ToFromInputCompanionOps
        with ToFromInputOps
+       with ToInputTypeOps
        with ToToInputCompanionOps
        with ToToInputOps
        with ToScalarTypeCompanionOps

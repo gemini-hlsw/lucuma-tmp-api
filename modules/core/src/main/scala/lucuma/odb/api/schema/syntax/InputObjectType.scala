@@ -18,6 +18,9 @@ final class InputObjectTypeOps[A: FromInput](val self: InputObjectType[A]) {
       description  = description
     )
 
+  def optional: InputType[Option[A]] =
+    OptionInputType(self)
+
 }
 
 trait ToInputObjectTypeOps {
