@@ -44,21 +44,20 @@ object ProperMotionModel {
   object Units {
 
     case object MicroarcsecondsPerYear extends Units(AngleModel.Units.Microarcseconds)
-
     case object MilliarcsecondsPerYear extends Units(AngleModel.Units.Milliarcseconds)
 
     val microarcsecondsPerYear: Units = MicroarcsecondsPerYear
     val milliarcsecondsPerYear: Units = MilliarcsecondsPerYear
 
-    implicit def EnumeratedProperVelocityUnits: Enumerated[Units] =
+    implicit def EnumeratedProperMotionUnits: Enumerated[Units] =
       Enumerated.of(MicroarcsecondsPerYear, MilliarcsecondsPerYear)
 
-    implicit def DisplayProperVelocityUnits: Display[Units] =
+    implicit def DisplayProperMotionUnits: Display[Units] =
       Display.by(u => s"${u.angleUnit.abbreviation}/yr", u => s"${u.angleUnit.name}/year")
 
   }
 
-  implicit def NumericUnitsProperVelocityComponent[A]: NumericUnits[AngularVelocityComponent[A], Units] =
+  implicit def NumericUnitsProperMotionComponent[A]: NumericUnits[AngularVelocityComponent[A], Units] =
     NumericUnits.fromRead(_.readLong(_), _.readDecimal(_))
 
   final case class ComponentInput(

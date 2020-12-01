@@ -85,7 +85,7 @@ trait TopLevelRepo[F[_], I, T] {
 /**
  *
  */
-abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, ?]: Eq](
+abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq](
   tablesRef:    Ref[F, Tables],
   eventService: EventService[F],
   idLens:       Lens[Tables, I],

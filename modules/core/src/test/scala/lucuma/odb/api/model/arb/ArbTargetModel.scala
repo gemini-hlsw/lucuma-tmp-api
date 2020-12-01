@@ -5,12 +5,14 @@ package lucuma.odb.api.model
 package arb
 
 import TargetModel.{CreateNonsidereal, CreateSidereal, EditNonsidereal, EditSidereal}
-import lucuma.core.`enum`.EphemerisKeyType
+import lucuma.core.`enum`.{EphemerisKeyType, MagnitudeBand}
 import lucuma.core.model.{EphemerisKey, Program, Target}
 import lucuma.core.model.arb.{ArbEphemerisKey, ArbTarget}
 import lucuma.core.math.Epoch
 import lucuma.core.math.arb.ArbEpoch
 import lucuma.core.util.arb.ArbEnumerated
+
+import clue.data.Input
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
@@ -23,6 +25,7 @@ trait ArbTargetModel {
   import ArbEphemerisKey._
   import ArbEpoch._
   import lucuma.core.util.arb.ArbGid._
+  import ArbInput._
   import ArbMagnitudeModel._
   import ArbParallaxModel._
   import ArbProperMotionModel._
@@ -53,7 +56,6 @@ trait ArbTargetModel {
         dec,
         epoch,
         pm,
-        None,
         rv,
         px,
         mags
@@ -122,15 +124,18 @@ trait ArbTargetModel {
     Arbitrary {
       for {
         id    <- arbitrary[Target.Id]
-        ex    <- arbitrary[Option[Existence]]
-        name  <- Gen.option(Gen.alphaNumStr.suchThat(!_.isEmpty))
-        cat   <- arbitrary[Option[Option[CatalogIdModel.Input]]]
-        ra    <- arbitrary[Option[RightAscensionModel.Input]]
-        dec   <- arbitrary[Option[DeclinationModel.Input]]
-        epoch <- arbitrary[Option[Epoch]]
-        pm    <- arbitrary[Option[Option[ProperMotionModel.Input]]]
-        rv    <- arbitrary[Option[Option[RadialVelocityModel.Input]]]
-        px    <- arbitrary[Option[Option[ParallaxModel.Input]]]
+        ex    <- arbNotNullableInput[Existence].arbitrary
+        name  <- arbNotNullableInput[String](Arbitrary(Gen.nonEmptyListOf(Gen.alphaNumChar).map(_.mkString))).arbitrary
+        cat   <- arbitrary[Input[CatalogIdModel.Input]]
+        ra    <- arbNotNullableInput[RightAscensionModel.Input].arbitrary
+        dec   <- arbNotNullableInput[DeclinationModel.Input].arbitrary
+        epoch <- arbNotNullableInput[Epoch].arbitrary
+        pm    <- arbitrary[Input[ProperMotionModel.Input]]
+        rv    <- arbitrary[Input[RadialVelocityModel.Input]]
+        px    <- arbitrary[Input[ParallaxModel.Input]]
+        mags  <- arbitrary[Option[List[MagnitudeModel.Input]]]
+        mmags <- arbitrary[Option[List[MagnitudeModel.Input]]]
+        dmags <- arbitrary[Option[List[MagnitudeBand]]]
       } yield EditSidereal(
         id,
         ex,
@@ -140,24 +145,26 @@ trait ArbTargetModel {
         dec,
         epoch,
         pm,
-        None,
         rv,
-        px
+        px,
+        mags,
+        mmags,
+        dmags
       )
     }
 
   implicit val cogEditSidereal: Cogen[EditSidereal] =
     Cogen[(
       Target.Id,
-      Option[Existence],
-      Option[String],
-      Option[Option[CatalogIdModel.Input]],
-      Option[RightAscensionModel.Input],
-      Option[DeclinationModel.Input],
-      Option[Epoch],
-      Option[Option[ProperMotionModel.Input]],
-      Option[Option[RadialVelocityModel.Input]],
-      Option[Option[ParallaxModel.Input]]
+      Input[Existence],
+      Input[String],
+      Input[CatalogIdModel.Input],
+      Input[RightAscensionModel.Input],
+      Input[DeclinationModel.Input],
+      Input[Epoch],
+      Input[ProperMotionModel.Input],
+      Input[RadialVelocityModel.Input],
+      Input[ParallaxModel.Input]
     )].contramap { in => (
       in.targetId,
       in.existence,

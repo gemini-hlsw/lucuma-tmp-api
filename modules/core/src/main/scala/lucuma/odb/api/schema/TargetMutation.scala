@@ -6,7 +6,6 @@ package lucuma.odb.api.schema
 import lucuma.odb.api.model.{CatalogIdModel, CoordinatesModel, DeclinationModel, MagnitudeModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
-
 import lucuma.core.`enum`.MagnitudeSystem
 import cats.effect.Effect
 import sangria.macros.derive._
@@ -22,6 +21,7 @@ trait TargetMutation extends TargetScalars {
 
   import context._
 
+  import syntax.inputtype._
   import syntax.inputobjecttype._
 
   implicit val EnumTypeDeclinationUnits: EnumType[DeclinationModel.Units] =
@@ -36,10 +36,10 @@ trait TargetMutation extends TargetScalars {
       "Unit options for RightAscension values"
     )
 
-  implicit val EnumTypeProperVelocityUnits: EnumType[ProperMotionModel.Units] =
+  implicit val EnumTypeProperMotionUnits: EnumType[ProperMotionModel.Units] =
     EnumType.fromEnumerated(
-      "ProperVelocityComponentUnits",
-      "Unit options for proper velocity components (RA and Dec)"
+      "ProperMotionComponentUnits",
+      "Unit options for proper motion components (RA and Dec)"
     )
 
   implicit val EnumTypeRadialVelocityUnits: EnumType[RadialVelocityModel.Units] =
@@ -131,8 +131,7 @@ trait TargetMutation extends TargetScalars {
   val InputObjectTypeCreateSidereal: InputObjectType[TargetModel.CreateSidereal] =
     deriveInputObjectType[TargetModel.CreateSidereal](
       InputObjectTypeName("CreateSiderealInput"),
-      InputObjectTypeDescription("Sidereal target parameters"),
-      DocumentInputField("properVelocity", "Deprecated, use properMotion instead.")
+      InputObjectTypeDescription("Sidereal target parameters")
     )
 
   val ArgumentTargetCreateSidereal: Argument[TargetModel.CreateSidereal] =
@@ -145,7 +144,20 @@ trait TargetMutation extends TargetScalars {
     deriveInputObjectType[TargetModel.EditSidereal](
       InputObjectTypeName("EditSiderealInput"),
       InputObjectTypeDescription("Sidereal target edit parameters"),
-      DocumentInputField("properVelocity", "Deprecated, use properMotion instead.")
+
+      DocumentInputField("magnitudes",       "Replace all magnitudes with the provided values"                  ),
+      DocumentInputField("modifyMagnitudes", "Update any listed magnitudes leaving unmentioned values unchanged"),
+      DocumentInputField("deleteMagnitudes", "Removes any listed magnitude values"                              ),
+
+      ReplaceInputField("existence",      EnumTypeExistence        .notNullableField("existence"  )),
+      ReplaceInputField("name",           StringType               .notNullableField("name"       )),
+      ReplaceInputField("catalogId",      InputObjectCatalogId     .nullableField("catalogId"     )),
+      ReplaceInputField("ra",             InputObjectRightAscension.notNullableField("ra"         )),
+      ReplaceInputField("dec",            InputObjectDeclination   .notNullableField("dec"         )),
+      ReplaceInputField("epoch",          EpochStringType          .notNullableField("epoch"      )),
+      ReplaceInputField("properMotion",   InputObjectProperMotion  .nullableField("properMotion"  )),
+      ReplaceInputField("radialVelocity", InputObjectRadialVelocity.nullableField("radialVelocity")),
+      ReplaceInputField("parallax",       InputObjectParallax      .nullableField("parallax"      ))
     )
 
   val ArgumentTargetEditSidereal: Argument[TargetModel.EditSidereal] =
