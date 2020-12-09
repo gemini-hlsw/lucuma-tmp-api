@@ -300,7 +300,10 @@ object TargetModel extends TargetOptics {
         es.epoch,
         es.properMotion,
         es.radialVelocity,
-        es.parallax
+        es.parallax,
+        es.magnitudes,
+        es.modifyMagnitudes,
+        es.deleteMagnitudes
       ))
 
   }
