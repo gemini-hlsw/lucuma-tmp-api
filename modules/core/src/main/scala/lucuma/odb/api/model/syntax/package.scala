@@ -6,6 +6,7 @@ package lucuma.odb.api.model
 package object syntax {
 
   object all extends ToInputOps
+                with ToInputValidatorOps
                 with ToTopLevelOps
                 with ToValidatedInputOps
 
