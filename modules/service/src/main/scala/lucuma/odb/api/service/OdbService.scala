@@ -10,7 +10,6 @@ import cats.effect.{Async, ConcurrentEffect, ContextShift, IO}
 import fs2.Stream
 import io.chrisdavenport.log4cats.Logger
 import io.circe._
-import org.log4s.getLogger
 import sangria.execution._
 import sangria.marshalling.circe._
 import sangria.streaming
@@ -32,8 +31,6 @@ trait OdbService[F[_]] {
 
 object OdbService {
 
-  private[this] val logger = getLogger
-
   def apply[F[_]: Logger](
     odb: OdbRepo[F]
   )(
@@ -42,8 +39,7 @@ object OdbService {
 
     new OdbService[F] {
 
-      def info(m: String): F[Unit] =
-        F.delay(logger.info(m))
+      def info(m: String): F[Unit] = Logger[F].info(m)
 
       override def query(request: ParsedGraphQLRequest): F[Either[Throwable, Json]] =
 
