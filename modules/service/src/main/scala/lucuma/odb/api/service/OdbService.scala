@@ -39,8 +39,6 @@ object OdbService {
 
     new OdbService[F] {
 
-      def info(m: String): F[Unit] = Logger[F].info(m)
-
       override def query(request: ParsedGraphQLRequest): F[Either[Throwable, Json]] =
 
         F.async { (cb: Either[Throwable, Json] => Unit) =>
@@ -77,7 +75,7 @@ object OdbService {
               ).map { preparedQuery =>
                 preparedQuery
                   .execute()
-                  .evalTap(n => info(s"Subscription event: ${n.printWith(Printer.spaces2)}"))
+                  .evalTap(n => Logger[F].info(s"Subscription event: ${n.printWith(Printer.spaces2)}"))
                   .map(_.asRight[Throwable])
                   .recover { case NonFatal(error) => error.asLeft[Json] }
               }
