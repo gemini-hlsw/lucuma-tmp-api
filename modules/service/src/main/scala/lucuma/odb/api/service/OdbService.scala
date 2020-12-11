@@ -10,7 +10,7 @@ import cats.effect.{Async, ConcurrentEffect, ContextShift, IO}
 import fs2.Stream
 import io.chrisdavenport.log4cats.Logger
 import io.circe._
-import org.log4s.getLogger
+import lucuma.core.model.User
 import sangria.execution._
 import sangria.marshalling.circe._
 import sangria.streaming
@@ -25,14 +25,12 @@ trait OdbService[F[_]] {
 
   def query(request: ParsedGraphQLRequest): F[Either[Throwable, Json]]
 
-  def subscribe(request: ParsedGraphQLRequest): F[Stream[F, Either[Throwable, Json]]]
+  def subscribe(user: Option[User], request: ParsedGraphQLRequest): F[Stream[F, Either[Throwable, Json]]]
 
 }
 
 
 object OdbService {
-
-  private[this] val logger = getLogger
 
   def apply[F[_]: Logger](
     odb: OdbRepo[F]
@@ -41,9 +39,6 @@ object OdbService {
   ): OdbService[F] =
 
     new OdbService[F] {
-
-      def info(m: String): F[Unit] =
-        F.delay(logger.info(m))
 
       override def query(request: ParsedGraphQLRequest): F[Either[Throwable, Json]] =
 
@@ -61,7 +56,10 @@ object OdbService {
           }
         }.attempt
 
-      override def subscribe(request: ParsedGraphQLRequest): F[Stream[F, Either[Throwable, Json]]] = {
+      override def subscribe(
+        user:    Option[User],
+        request: ParsedGraphQLRequest
+      ): F[Stream[F, Either[Throwable, Json]]] = {
 
         implicit val subStream: SubscriptionStream[Stream[F, *]] =
           streaming.fs2.fs2SubscriptionStream[F](ConcurrentEffect[F], scala.concurrent.ExecutionContext.global)
@@ -81,7 +79,7 @@ object OdbService {
               ).map { preparedQuery =>
                 preparedQuery
                   .execute()
-                  .evalTap(n => info(s"Subscription event: ${n.printWith(Printer.spaces2)}"))
+                  .evalTap(n => info(user, s"Subscription event: ${n.printWith(Printer.spaces2)}"))
                   .map(_.asRight[Throwable])
                   .recover { case NonFatal(error) => error.asLeft[Json] }
               }
