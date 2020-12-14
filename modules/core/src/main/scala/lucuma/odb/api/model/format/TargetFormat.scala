@@ -3,11 +3,8 @@
 
 package lucuma.odb.api.model.format
 
-import lucuma.core.math.{
-  Declination,
-  Epoch,
-  RightAscension
-}
+import lucuma.core.math.{Declination, Epoch, RightAscension}
+import lucuma.core.optics.Format
 
 trait TargetFormat {
 
@@ -15,7 +12,7 @@ trait TargetFormat {
     ScalarFormat(Declination.fromStringSignedDMS, "[+/-]DD:MM:SS.sss")
 
   val FormatEpoch: ScalarFormat[Epoch] =
-    ScalarFormat(Epoch.fromString, "[JB]YYYY.YYY")
+    ScalarFormat(Format.fromPrism(Epoch.fromString), "[JB]YYYY.YYY")
 
   val FormatRightAscension: ScalarFormat[RightAscension] =
     ScalarFormat(RightAscension.fromStringHMS, "HH:MM:SS.sss")

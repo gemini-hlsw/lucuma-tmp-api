@@ -21,7 +21,7 @@ object ParallaxModel {
     private def angleToParallax[A](m: SplitMono[Angle, A]): SplitMono[Parallax, A] =
       m.imapA(
         a => Parallax.fromMicroarcseconds(a.toMicroarcseconds),
-        p => Angle.fromMicroarcseconds(p.μas.value)
+        p => Angle.fromMicroarcseconds(p.μas.value.value)
       )
 
     val long: SplitMono[Parallax, Long] =
