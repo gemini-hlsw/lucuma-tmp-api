@@ -22,7 +22,7 @@ trait ArbParallaxModel {
   import GenNumericUnitsInput._
 
   private[this] val microarcseconds: Gen[Long] =
-    arbitrary[Parallax].map(_.μas.value)
+    arbitrary[Parallax].map(_.μas.value.value)
 
   private[this] val milliarcseconds: Gen[BigDecimal] =
     arbitrary[Parallax].map(_.mas.value.toBigDecimal(MathContext.UNLIMITED))
