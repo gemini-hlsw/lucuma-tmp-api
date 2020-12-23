@@ -104,7 +104,7 @@ trait SharingMutation {
   ): State[Tables, (AsterismModel, List[Long => Event])] =
     for {
       i <- TableState.nextAsterismId
-      a = AsterismModel.Default(i, Existence.Present, None, targetIds): AsterismModel
+      a = AsterismModel.Default(i, Existence.Present, None, None, targetIds): AsterismModel
       _ <- Tables.asterisms.mod(_ + (i -> a))
       _ <- Tables.observation(observationId).mod(_.map(ObservationModel.asterismId.set(Some(i))))
       o <- TableState.requireObservation(observationId)

@@ -93,6 +93,7 @@ object Init {
       a0 <- repo.asterism.insert(
               AsterismModel.CreateDefault(
                 None,
+                Some("More Constellation Than Asterism"),
                 List(p.id),
                 None,
                 Set.from(ts.take(2).map(_.id))

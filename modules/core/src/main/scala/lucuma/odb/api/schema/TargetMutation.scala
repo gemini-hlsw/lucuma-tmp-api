@@ -153,7 +153,7 @@ trait TargetMutation extends TargetScalars {
       ReplaceInputField("name",           StringType               .notNullableField("name"       )),
       ReplaceInputField("catalogId",      InputObjectCatalogId     .nullableField("catalogId"     )),
       ReplaceInputField("ra",             InputObjectRightAscension.notNullableField("ra"         )),
-      ReplaceInputField("dec",            InputObjectDeclination   .notNullableField("dec"         )),
+      ReplaceInputField("dec",            InputObjectDeclination   .notNullableField("dec"        )),
       ReplaceInputField("epoch",          EpochStringType          .notNullableField("epoch"      )),
       ReplaceInputField("properMotion",   InputObjectProperMotion  .nullableField("properMotion"  )),
       ReplaceInputField("radialVelocity", InputObjectRadialVelocity.nullableField("radialVelocity")),
