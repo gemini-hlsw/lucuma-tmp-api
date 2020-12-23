@@ -24,6 +24,7 @@ trait AsterismMutation extends TargetScalars {
   import TargetMutation.InputObjectTypeCoordinates
 
   import context._
+  import syntax.inputtype._
   import syntax.inputobjecttype._
 
   val InputObjectTypeAsterismCreateDefault: InputObjectType[AsterismModel.CreateDefault] =
@@ -49,6 +50,9 @@ trait AsterismMutation extends TargetScalars {
     deriveInputObjectType[AsterismModel.EditDefault](
       InputObjectTypeName("EditDefaultAsterismInput"),
       InputObjectTypeDescription("Default asterism edit"),
+        ReplaceInputField("existence",    EnumTypeExistence.notNullableField("existence")),
+        ReplaceInputField("name",         StringType.nullableField("name")),
+        ReplaceInputField("explicitBase", InputObjectTypeCoordinates.nullableField("explicitBase")),
         ReplaceInputField("targetIds",
           InputField(
             name        = "targetIds",

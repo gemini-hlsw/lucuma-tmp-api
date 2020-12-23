@@ -56,12 +56,6 @@ object TargetModel extends TargetOptics {
 
   }
 
-  private def targetName(name: String): ValidatedInput[NonEmptyString] =
-    NonEmptyString
-      .from(name)
-      .leftMap(er => InputError.invalidField("name", name, s"Target name must be non-empty: $er"))
-      .toValidatedNec
-
   /**
    * Describes input used to create a nonsidereal target.
    *
@@ -86,7 +80,7 @@ object TargetModel extends TargetOptics {
       parse.ephemerisKey("des", key, des)
 
     val toGemTarget: ValidatedInput[Target] = {
-      (targetName(name),
+      (ValidatedInput.nonEmptyString("name", name),
        toEphemerisKey,
        magnitudes.toList.flatten.traverse(_.toMagnitude)
       ).mapN { (n, k, ms) =>
@@ -160,7 +154,7 @@ object TargetModel extends TargetOptics {
       }
 
     val toGemTarget: ValidatedInput[Target] =
-      (targetName(name),
+      (ValidatedInput.nonEmptyString("name", name),
        toSiderealTracking,
        magnitudes.toList.flatten.traverse(_.toMagnitude)
       ).mapN { (n, pm, ms) =>
@@ -250,7 +244,7 @@ object TargetModel extends TargetOptics {
 
     override val editor: ValidatedInput[State[TargetModel, Unit]] =
       (existence     .validateIsNotNull("existence"),
-       name          .validateNotNullable("epoch")(n => ValidatedInput.nonEmptyString("name", n)),
+       name          .validateNotNullable("name")(n => ValidatedInput.nonEmptyString("name", n)),
        catalogId     .validateNullable(_.toCatalogId),
        ra            .validateNotNullable("ra")(_.toRightAscension),
        dec           .validateNotNullable("dec")(_.toDeclination),

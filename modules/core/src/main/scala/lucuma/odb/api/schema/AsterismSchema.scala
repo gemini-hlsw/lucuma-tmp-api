@@ -56,6 +56,13 @@ object AsterismSchema {
         ),
 
         Field(
+          name        = "name",
+          fieldType   = OptionType(StringType),
+          description = Some("Asterism name, if any."),
+          resolve     = _.value.name.map(_.value)
+        ),
+
+        Field(
           name        = "explicitBase",
           fieldType   = OptionType(CoordinateType[F]),
           description = Some("When set, overrides the default base position of the asterism"),
