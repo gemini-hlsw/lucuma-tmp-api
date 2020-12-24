@@ -6,6 +6,8 @@ package lucuma.odb.api.schema
 import lucuma.odb.api.model.ObservationModel
 import lucuma.odb.api.repo.OdbRepo
 
+import lucuma.odb.api.schema.syntax.inputtype._
+
 import cats.effect.Effect
 import sangria.macros.derive._
 import sangria.marshalling.circe._
@@ -35,7 +37,11 @@ trait ObservationMutation {
   val InputObjectTypeObservationEdit: InputObjectType[ObservationModel.Edit] =
     deriveInputObjectType[ObservationModel.Edit](
       InputObjectTypeName("EditObservationInput"),
-      InputObjectTypeDescription("Edit observation")
+      InputObjectTypeDescription("Edit observation"),
+      ReplaceInputField("existence",  EnumTypeExistence.notNullableField("existence")),
+      ReplaceInputField("name",       StringType.nullableField("name")),
+      ReplaceInputField("status",     ObsStatusType.notNullableField("status")),
+      ReplaceInputField("asterismId", AsterismIdType.nullableField("asterismId"))
     )
 
   val ArgumentObservationEdit: Argument[ObservationModel.Edit] =

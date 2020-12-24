@@ -66,8 +66,10 @@ object ObservationRepo {
 
         def construct(s: PlannedTimeSummaryModel): F[ObservationModel] =
           constructAndPublish { t =>
-            (tryNotFindObservation(t, newObs.observationId) *> tryFindProgram(t, newObs.programId))
-              .as(createAndInsert(newObs.observationId, newObs.withId(_, s)))
+            (tryNotFindObservation(t, newObs.observationId) *>
+             tryFindProgram(t, newObs.programId)            *>
+              newObs.withId(s)
+            ).map(createAndInsert(newObs.observationId, _))
           }
 
         for {

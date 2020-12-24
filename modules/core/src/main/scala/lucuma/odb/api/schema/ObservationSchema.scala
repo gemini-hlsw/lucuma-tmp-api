@@ -69,7 +69,7 @@ object ObservationSchema {
           name        = "name",
           fieldType   = OptionType(StringType),
           description = Some("Observation name"),
-          resolve     = _.value.name
+          resolve     = _.value.name.map(_.value)
         ),
 
         Field(
