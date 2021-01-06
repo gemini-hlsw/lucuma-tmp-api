@@ -11,6 +11,8 @@ import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 
+// For now, just bias, dark, and science.  Pending smart-gcal and gcal.
+
 sealed abstract class StepModel[A] extends Product with Serializable {
   def dynamicConfig: A
 
@@ -130,7 +132,7 @@ object StepModel {
     implicit def DecoderCreateDark[A: Decoder]: Decoder[CreateDark[A]] =
       deriveDecoder[CreateDark[A]]
 
-    implicit def ValidateCreateDark[A, B](implicit V: InputValidator[A, B]): InputValidator[CreateDark[A], Dark[B]] =
+    implicit def ValidateCreateDark[A, B](implicit ev: InputValidator[A, B]): InputValidator[CreateDark[A], Dark[B]] =
       (cda: CreateDark[A]) => cda.create[B]
 
   }
@@ -163,7 +165,7 @@ object StepModel {
     implicit def DecoderCreateStep[A: Decoder]: Decoder[CreateStep[A]] =
       deriveDecoder[CreateStep[A]]
 
-    implicit def ValidateCreateStep[A, B](implicit V: InputValidator[A, B]): InputValidator[CreateStep[A], StepModel[B]] =
+    implicit def ValidateCreateStep[A, B](implicit ev: InputValidator[A, B]): InputValidator[CreateStep[A], StepModel[B]] =
       (csa: CreateStep[A]) => csa.create[B]
 
   }

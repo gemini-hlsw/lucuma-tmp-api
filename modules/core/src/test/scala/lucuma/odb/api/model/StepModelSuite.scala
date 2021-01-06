@@ -7,7 +7,6 @@ import lucuma.odb.api.model.arb._
 
 import cats.kernel.laws.discipline.EqTests
 import munit.DisciplineSuite
-//import monocle.law.discipline._
 
 final class StepModelSuite extends DisciplineSuite {
 

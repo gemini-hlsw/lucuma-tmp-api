@@ -28,7 +28,8 @@ final case class ObservationModel(
   name:               Option[NonEmptyString],
   status:             ObsStatus,
   asterismId:         Option[Asterism.Id],
-  plannedTimeSummary: PlannedTimeSummaryModel
+  plannedTimeSummary: PlannedTimeSummaryModel,
+  config:             Option[ConfigModel]
 )
 
 object ObservationModel extends ObservationOptics {
@@ -37,30 +38,34 @@ object ObservationModel extends ObservationOptics {
     TopLevelModel.instance(_.id, ObservationModel.existence)
 
   implicit val EqObservation: Eq[ObservationModel] =
-    Eq.by(o => (o.id, o.existence, o.programId, o.name, o.status, o.asterismId, o.plannedTimeSummary))
+    Eq.by(o => (o.id, o.existence, o.programId, o.name, o.status, o.asterismId, o.plannedTimeSummary, o.config))
+
 
   final case class Create(
     observationId: Option[Observation.Id],
     programId:     Program.Id,
     name:          Option[String],
     asterismId:    Option[Asterism.Id],
-    status:        Option[ObsStatus]
+    status:        Option[ObsStatus],
+    config:        Option[ConfigModel.Create]
   ) {
 
     def withId(s: PlannedTimeSummaryModel): ValidatedInput[Observation.Id => ObservationModel] =
-      name
-        .traverse(ValidatedInput.nonEmptyString("name", _))
-        .map { n => oid =>
-          ObservationModel(
-            oid,
-            Present,
-            programId,
-            n,
-            status.getOrElse(ObsStatus.New),
-            asterismId,
-            s
-          )
-        }
+      (
+        name.traverse(ValidatedInput.nonEmptyString("name", _)),
+        config.traverse(_.create)
+      ).mapN { (n, c) => oid =>
+        ObservationModel(
+          oid,
+          Present,
+          programId,
+          n,
+          status.getOrElse(ObsStatus.New),
+          asterismId,
+          s,
+          c
+        )
+      }
 
   }
 
@@ -156,5 +161,8 @@ trait ObservationOptics { self: ObservationModel.type =>
 
   val asterismId: Lens[ObservationModel, Option[Asterism.Id]] =
     Lens[ObservationModel, Option[Asterism.Id]](_.asterismId)(a => _.copy(asterismId = a))
+
+  val config: Lens[ObservationModel, Option[ConfigModel]] =
+    Lens[ObservationModel, Option[ConfigModel]](_.config)(a => _.copy(config = a))
 
 }

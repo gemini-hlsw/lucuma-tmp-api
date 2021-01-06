@@ -6,9 +6,7 @@ package lucuma.odb.api.model
 import lucuma.core.`enum`._
 import lucuma.core.math.{Offset, Wavelength}
 import lucuma.core.optics.syntax.lens._
-import lucuma.odb.api.model.StepModel.CreateStep
 import lucuma.odb.api.model.syntax.input._
-//import lucuma.odb.api.model.syntax.inputvalidator._
 
 import cats.Eq
 import cats.data.{State, Validated}
@@ -306,6 +304,9 @@ object GmosModel {
         a.stageMode
       )}
 
+    implicit val InputValidatorCreateNorthStatic: InputValidator[CreateNorthStatic, NorthStatic] =
+      InputValidator.by(_.create)
+
   }
 
   final case class SouthStatic(
@@ -353,6 +354,9 @@ object GmosModel {
         a.common,
         a.stageMode
       )}
+
+    implicit val InputValidatorCreateSouthStatic: InputValidator[CreateSouthStatic, SouthStatic] =
+      InputValidator.by(_.create)
 
   }
 
@@ -686,7 +690,7 @@ object GmosModel {
       )}
 
     implicit def ValidatorNorthDynamic: InputValidator[CreateNorthDynamic, NorthDynamic] =
-      InputValidator.from(_.create)
+      InputValidator.by(_.create)
 
   }
 
@@ -759,136 +763,8 @@ object GmosModel {
       deriveDecoder[CreateSouthDynamic]
 
     implicit def ValidatorSouthDynamic: InputValidator[CreateSouthDynamic, SouthDynamic] =
-      InputValidator.from(_.create)
+      InputValidator.by(_.create)
 
   }
-
-
-  final case class North(
-    static:      NorthStatic,
-    acquisition: List[StepModel[NorthDynamic]],
-    science:     List[StepModel[NorthDynamic]]
-  )
-
-  object North extends NorthOptics {
-
-    implicit def EqNorth: Eq[North] =
-      Eq.by { a => (
-        a.static,
-        a.acquisition,
-        a.science
-      )}
-
-  }
-
-  sealed trait NorthOptics { this: North.type =>
-
-    val static: Lens[North, NorthStatic] =
-      Lens[North, NorthStatic](_.static)(a => _.copy(static = a))
-
-    val acquisition: Lens[North, List[StepModel[NorthDynamic]]] =
-      Lens[North, List[StepModel[NorthDynamic]]](_.acquisition)(a => _.copy(acquisition = a))
-
-    val science: Lens[North, List[StepModel[NorthDynamic]]] =
-      Lens[North, List[StepModel[NorthDynamic]]](_.science)(a => _.copy(science = a))
-
-  }
-
-  final case class CreateNorth(
-    static:      CreateNorthStatic,
-    acquisition: List[CreateStep[CreateNorthDynamic]],
-    science:     List[CreateStep[CreateNorthDynamic]]
-  ) {
-
-    def create: ValidatedInput[North] =
-      (
-        static.create,
-        acquisition.traverse(_.create[NorthDynamic]),
-        science.traverse(_.create[NorthDynamic])
-      ).mapN { (ns, a, s) => North(ns, a, s) }
-
-  }
-
-  object CreateNorth {
-
-    implicit val EqCreateNorth: Eq[CreateNorth] =
-      Eq.by { a => (
-        a.static,
-        a.acquisition,
-        a.science
-      )}
-
-    implicit val DecoderCreateNorth: Decoder[CreateNorth] =
-      deriveDecoder[CreateNorth]
-
-    implicit def ValidatorCreateNorth: InputValidator[CreateNorth, North] =
-      InputValidator.from(_.create)
-
-  }
-
-
-  final case class South(
-    static:      SouthStatic,
-    acquisition: List[StepModel[SouthDynamic]],
-    science:     List[StepModel[SouthDynamic]]
-  )
-
-  object South extends SouthOptics {
-
-    implicit def EqSouth: Eq[South] =
-      Eq.by { a => (
-        a.static,
-        a.acquisition,
-        a.science
-      )}
-
-  }
-
-  sealed trait SouthOptics { this: South.type =>
-
-    val static: Lens[South, SouthStatic] =
-      Lens[South, SouthStatic](_.static)(a => _.copy(static = a))
-
-    val acquisition: Lens[South, List[StepModel[SouthDynamic]]] =
-      Lens[South, List[StepModel[SouthDynamic]]](_.acquisition)(a => _.copy(acquisition = a))
-
-    val science: Lens[South, List[StepModel[SouthDynamic]]] =
-      Lens[South, List[StepModel[SouthDynamic]]](_.science)(a => _.copy(science = a))
-
-  }
-
-  final case class CreateSouth(
-    static:      CreateSouthStatic,
-    acquisition: List[CreateStep[CreateSouthDynamic]],
-    science:     List[CreateStep[CreateSouthDynamic]]
-  ) {
-
-    def create: ValidatedInput[South] =
-      (
-        static.create,
-        acquisition.traverse(_.create[SouthDynamic]),
-        science.traverse(_.create[SouthDynamic])
-      ).mapN { (ss, a, s) => South(ss, a, s) }
-
-  }
-
-  object CreateSouth {
-
-    implicit val EqCreateSouth: Eq[CreateSouth] =
-      Eq.by { a => (
-        a.static,
-        a.acquisition,
-        a.science
-      )}
-
-    implicit val DecoderCreateSouth: Decoder[CreateSouth] =
-      deriveDecoder[CreateSouth]
-
-    implicit def ValidatorCreateSouth: InputValidator[CreateSouth, South] =
-      InputValidator.from(_.create)
-
-  }
-
-
 
 }

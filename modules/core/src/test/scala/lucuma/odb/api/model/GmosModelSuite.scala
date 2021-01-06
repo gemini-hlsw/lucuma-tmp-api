@@ -12,15 +12,14 @@ import lucuma.core.util.arb.ArbEnumerated
 import cats.kernel.laws.discipline.EqTests
 import eu.timepit.refined.cats._
 import eu.timepit.refined.scalacheck.all._
-import munit.DisciplineSuite
 import monocle.law.discipline._
+import munit.DisciplineSuite
 
 final class GmosModelSuite extends DisciplineSuite {
 
   import ArbEnumerated._
   import ArbGmosModel._
   import ArbOffset._
-  import ArbStepModel._
   import ArbWavelength._
 
   checkAll("GmosModel.NodAndShuffle",               EqTests[GmosModel.NodAndShuffle].eqv)
@@ -88,16 +87,5 @@ final class GmosModelSuite extends DisciplineSuite {
   checkAll("GmosModel.SouthDynamic.filter",         LensTests(GmosModel.SouthDynamic.filter))
   checkAll("GmosModel.SouthDynamic.fpu",            LensTests(GmosModel.SouthDynamic.fpu))
   checkAll("GmosModel.CreateSouthDynamic",          EqTests[GmosModel.CreateSouthDynamic].eqv)
-
-  checkAll("GmosModel.North",                       EqTests[GmosModel.North].eqv)
-  checkAll("GmosModel.North.static",                LensTests(GmosModel.North.static))
-  checkAll("GmosModel.North.acquisition",           LensTests(GmosModel.North.acquisition))
-  checkAll("GmosModel.North.science",               LensTests(GmosModel.North.science))
-  checkAll("GmosModel.South",                       EqTests[GmosModel.South].eqv)
-  checkAll("GmosModel.South.static",                LensTests(GmosModel.South.static))
-  checkAll("GmosModel.South.acquisition",           LensTests(GmosModel.South.acquisition))
-  checkAll("GmosModel.South.science",               LensTests(GmosModel.South.science))
-  checkAll("GmosModel.CreateNorth",                 EqTests[GmosModel.CreateNorth].eqv)
-  checkAll("GmosModel.CreateSouth",                 EqTests[GmosModel.CreateSouth].eqv)
 
 }

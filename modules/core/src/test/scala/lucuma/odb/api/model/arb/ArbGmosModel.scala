@@ -26,7 +26,6 @@ trait ArbGmosModel {
   import ArbInput._
   import ArbOffset._
   import ArbOffsetModel._
-  import ArbStepModel._
   import ArbWavelength._
   import ArbWavelengthModel._
 
@@ -506,87 +505,6 @@ trait ArbGmosModel {
         in.fpu
       )
     }
-
-  implicit val arbNorth: Arbitrary[GmosModel.North] =
-    Arbitrary {
-      for {
-        st <- arbitrary[GmosModel.NorthStatic]
-        aq <- arbitrary[List[StepModel[GmosModel.NorthDynamic]]]
-        sc <- arbitrary[List[StepModel[GmosModel.NorthDynamic]]]
-      } yield GmosModel.North(st, aq, sc)
-    }
-
-  implicit val cogNorth: Cogen[GmosModel.North] =
-    Cogen[(
-      GmosModel.NorthStatic,
-      List[StepModel[GmosModel.NorthDynamic]],
-      List[StepModel[GmosModel.NorthDynamic]]
-    )].contramap { in => (
-      in.static,
-      in.acquisition,
-      in.science
-    )}
-
-  implicit val arbCreateNorth: Arbitrary[GmosModel.CreateNorth] =
-    Arbitrary {
-      for {
-        st <- arbitrary[GmosModel.CreateNorthStatic]
-        aq <- arbitrary[List[StepModel.CreateStep[GmosModel.CreateNorthDynamic]]]
-        sc <- arbitrary[List[StepModel.CreateStep[GmosModel.CreateNorthDynamic]]]
-      } yield GmosModel.CreateNorth(st, aq, sc)
-    }
-
-  implicit val cogCreateNorth: Cogen[GmosModel.CreateNorth] =
-    Cogen[(
-      GmosModel.CreateNorthStatic,
-      List[StepModel.CreateStep[GmosModel.CreateNorthDynamic]],
-      List[StepModel.CreateStep[GmosModel.CreateNorthDynamic]]
-    )].contramap { in => (
-      in.static,
-      in.acquisition,
-      in.science
-    )}
-
-  implicit val arbSouth: Arbitrary[GmosModel.South] =
-    Arbitrary {
-      for {
-        st <- arbitrary[GmosModel.SouthStatic]
-        aq <- arbitrary[List[StepModel[GmosModel.SouthDynamic]]]
-        sc <- arbitrary[List[StepModel[GmosModel.SouthDynamic]]]
-      } yield GmosModel.South(st, aq, sc)
-    }
-
-  implicit val cogSouth: Cogen[GmosModel.South] =
-    Cogen[(
-      GmosModel.SouthStatic,
-      List[StepModel[GmosModel.SouthDynamic]],
-      List[StepModel[GmosModel.SouthDynamic]]
-    )].contramap { in => (
-      in.static,
-      in.acquisition,
-      in.science
-    )}
-
-  implicit val arbCreateSouth: Arbitrary[GmosModel.CreateSouth] =
-    Arbitrary {
-      for {
-        st <- arbitrary[GmosModel.CreateSouthStatic]
-        aq <- arbitrary[List[StepModel.CreateStep[GmosModel.CreateSouthDynamic]]]
-        sc <- arbitrary[List[StepModel.CreateStep[GmosModel.CreateSouthDynamic]]]
-      } yield GmosModel.CreateSouth(st, aq, sc)
-    }
-
-  implicit val cogCreateSouth: Cogen[GmosModel.CreateSouth] =
-    Cogen[(
-      GmosModel.CreateSouthStatic,
-      List[StepModel.CreateStep[GmosModel.CreateSouthDynamic]],
-      List[StepModel.CreateStep[GmosModel.CreateSouthDynamic]]
-    )].contramap { in => (
-      in.static,
-      in.acquisition,
-      in.science
-    )}
-
 
 }
 

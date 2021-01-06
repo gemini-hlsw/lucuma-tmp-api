@@ -105,7 +105,8 @@ object Init {
                 p.id,
                 Some("First Observation"),
                 Some(a0.id),
-                Some(ObsStatus.New)
+                Some(ObsStatus.New),
+                None
               )
             )
     } yield ()

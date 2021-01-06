@@ -25,7 +25,8 @@ trait ObservationMutation {
   val InputObjectTypeObservationCreate: InputObjectType[ObservationModel.Create] =
     deriveInputObjectType[ObservationModel.Create](
       InputObjectTypeName("CreateObservationInput"),
-      InputObjectTypeDescription("Observation creation parameters")
+      InputObjectTypeDescription("Observation creation parameters"),
+      ExcludeInputFields("config")  // TODO
     )
 
   val ArgumentObservationCreate: Argument[ObservationModel.Create] =
