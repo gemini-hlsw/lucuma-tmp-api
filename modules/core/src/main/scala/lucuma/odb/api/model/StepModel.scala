@@ -4,6 +4,7 @@
 package lucuma.odb.api.model
 
 import lucuma.core.math.Offset
+import lucuma.core.`enum`.StepType
 import lucuma.odb.api.model.syntax.inputvalidator._
 
 import cats.Eq
@@ -44,6 +45,13 @@ sealed abstract class StepModel[A] extends Product with Serializable {
       case s @ StepModel.Science(_, _) => Some(s)
       case _                           => None
     }
+
+  def stepType: StepType =
+    fold(
+      _ => StepType.Bias,
+      _ => StepType.Dark,
+      _ => StepType.Science
+    )
 
 }
 

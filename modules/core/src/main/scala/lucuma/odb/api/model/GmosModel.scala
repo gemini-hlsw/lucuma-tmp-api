@@ -258,14 +258,14 @@ object GmosModel {
   }
    */
 
-  final case class NorthStatic(
+  final case class Static[S](
     common:    CommonStatic,
-    stageMode: GmosNorthStageMode
+    stageMode: S
   )
 
-  object NorthStatic extends NorthStaticOptics {
+  object Static extends StaticOptics {
 
-    implicit val EqGmosNorthStatic: Eq[NorthStatic] =
+    implicit def EqGmosStatic[S: Eq]: Eq[Static[S]] =
       Eq.by { a => (
         a.common,
         a.stageMode
@@ -273,15 +273,18 @@ object GmosModel {
 
   }
 
-  sealed trait NorthStaticOptics { this: NorthStatic.type =>
+  sealed trait StaticOptics { this: Static.type =>
 
-    val common: Lens[NorthStatic, CommonStatic] =
-      Lens[NorthStatic, CommonStatic](_.common)(a => _.copy(common = a))
+    def common[S]: Lens[Static[S], CommonStatic] =
+      Lens[Static[S], CommonStatic](_.common)(a => _.copy(common = a))
 
-    val stageMode: Lens[NorthStatic, GmosNorthStageMode] =
-      Lens[NorthStatic, GmosNorthStageMode](_.stageMode)(a => _.copy(stageMode = a))
+    def stageMode[S]: Lens[Static[S], S] =
+      Lens[Static[S], S](_.stageMode)(a => _.copy(stageMode = a))
 
   }
+
+  type NorthStatic = Static[GmosNorthStageMode]
+  type SouthStatic = Static[GmosSouthStageMode]
 
   final case class CreateNorthStatic(
     common:    CreateCommonStatic = CreateCommonStatic.Default,
@@ -289,7 +292,7 @@ object GmosModel {
   ) {
 
     val create: ValidatedInput[NorthStatic] =
-      common.create.map(NorthStatic(_, stageMode))
+      common.create.map(Static(_, stageMode))
 
   }
 
@@ -309,38 +312,13 @@ object GmosModel {
 
   }
 
-  final case class SouthStatic(
-    common:    CommonStatic,
-    stageMode: GmosSouthStageMode
-  )
-
-  object SouthStatic extends SouthStaticOptics {
-
-    implicit val EqGmosSouthStatic: Eq[SouthStatic] =
-      Eq.by{ a => (
-        a.common,
-        a.stageMode
-      )}
-
-  }
-
-  sealed trait SouthStaticOptics { this: SouthStatic.type =>
-
-    val common: Lens[SouthStatic, CommonStatic] =
-      Lens[SouthStatic, CommonStatic](_.common)(a => _.copy(common = a))
-
-    val stageMode: Lens[SouthStatic, GmosSouthStageMode] =
-      Lens[SouthStatic, GmosSouthStageMode](_.stageMode)(a => _.copy(stageMode = a))
-
-  }
-
   final case class CreateSouthStatic(
     common:    CreateCommonStatic = CreateCommonStatic.Default,
     stageMode: GmosSouthStageMode = GmosSouthStageMode.FollowXy
   ) {
 
     val create: ValidatedInput[SouthStatic] =
-      common.create.map(SouthStatic(_, stageMode))
+      common.create.map(Static(_, stageMode))
 
   }
 
@@ -620,17 +598,16 @@ object GmosModel {
 
   }
 
-
-  final case class NorthDynamic(
+  final case class Dynamic[D, L, U](
     common:  CommonDynamic,
-    grating: Option[Grating[GmosNorthDisperser]],
-    filter:  Option[GmosNorthFilter],
-    fpu:     Option[Either[CustomMask, GmosNorthFpu]]
+    grating: Option[Grating[D]],
+    filter:  Option[L],
+    fpu:     Option[Either[CustomMask, U]]
   )
 
-  object NorthDynamic extends NorthDynamicOptics {
+  object Dynamic extends DynamicOptics {
 
-    implicit def EqNorthDynamic: Eq[NorthDynamic] =
+    implicit def EqDynamic[D: Eq, L: Eq, U: Eq]: Eq[Dynamic[D, L, U]] =
       Eq.by { a => (
         a.common,
         a.grating,
@@ -640,21 +617,24 @@ object GmosModel {
 
   }
 
-  sealed trait NorthDynamicOptics { this: NorthDynamic.type =>
+  sealed trait DynamicOptics { this: Dynamic.type =>
 
-    val common: Lens[NorthDynamic, CommonDynamic] =
-      Lens[NorthDynamic, CommonDynamic](_.common)(a => _.copy(common = a))
+    def common[D, L, U]: Lens[Dynamic[D, L, U], CommonDynamic] =
+      Lens[Dynamic[D, L, U], CommonDynamic](_.common)(a => _.copy(common = a))
 
-    val grating: Lens[NorthDynamic, Option[Grating[GmosNorthDisperser]]] =
-      Lens[NorthDynamic, Option[Grating[GmosNorthDisperser]]](_.grating)(a => _.copy(grating = a))
+    def grating[D, L, U]: Lens[Dynamic[D, L, U], Option[Grating[D]]] =
+      Lens[Dynamic[D, L, U], Option[Grating[D]]](_.grating)(a => _.copy(grating = a))
 
-    val filter: Lens[NorthDynamic, Option[GmosNorthFilter]] =
-      Lens[NorthDynamic, Option[GmosNorthFilter]](_.filter)(a => _.copy(filter = a))
+    def filter[D, L, U]: Lens[Dynamic[D, L, U], Option[L]] =
+      Lens[Dynamic[D, L, U], Option[L]](_.filter)(a => _.copy(filter = a))
 
-    val fpu: Lens[NorthDynamic, Option[Either[CustomMask, GmosNorthFpu]]] =
-      Lens[NorthDynamic, Option[Either[CustomMask, GmosNorthFpu]]](_.fpu)(a => _.copy(fpu = a))
+    def fpu[D, L, U]: Lens[Dynamic[D, L, U], Option[Either[CustomMask, U]]] =
+      Lens[Dynamic[D, L, U], Option[Either[CustomMask, U]]](_.fpu)(a => _.copy(fpu = a))
 
   }
+
+  type NorthDynamic = Dynamic[GmosNorthDisperser, GmosNorthFilter, GmosNorthFpu]
+  type SouthDynamic = Dynamic[GmosSouthDisperser, GmosSouthFilter, GmosSouthFpu]
 
 
   implicit val DecoderNorthFpu: Decoder[Either[CreateCustomMask, GmosNorthFpu]] =
@@ -672,7 +652,7 @@ object GmosModel {
         common.create,
         grating.traverse(_.create),
         fpu.traverse(_.fold(_.create.map(_.asLeft[GmosNorthFpu]), _.asRight[CustomMask].validNec[InputError]))
-      ).mapN { (c, g, u) => NorthDynamic(c, g, filter, u) }
+      ).mapN { (c, g, u) => Dynamic(c, g, filter, u) }
 
   }
 
@@ -694,42 +674,6 @@ object GmosModel {
 
   }
 
-  final case class SouthDynamic(
-    common:  CommonDynamic,
-    grating: Option[Grating[GmosSouthDisperser]],
-    filter:  Option[GmosSouthFilter],
-    fpu:     Option[Either[CustomMask, GmosSouthFpu]]
-  )
-
-  object SouthDynamic extends SouthDynamicOptics {
-
-    implicit def EqSouthDynamic: Eq[SouthDynamic] =
-      Eq.by { a => (
-        a.common,
-        a.grating,
-        a.filter,
-        a.fpu
-      )}
-
-  }
-
-  sealed trait SouthDynamicOptics { this: SouthDynamic.type =>
-
-    val common: Lens[SouthDynamic, CommonDynamic] =
-      Lens[SouthDynamic, CommonDynamic](_.common)(a => _.copy(common = a))
-
-    val grating: Lens[SouthDynamic, Option[Grating[GmosSouthDisperser]]] =
-      Lens[SouthDynamic, Option[Grating[GmosSouthDisperser]]](_.grating)(a => _.copy(grating = a))
-
-    val filter: Lens[SouthDynamic, Option[GmosSouthFilter]] =
-      Lens[SouthDynamic, Option[GmosSouthFilter]](_.filter)(a => _.copy(filter = a))
-
-    val fpu: Lens[SouthDynamic, Option[Either[CustomMask, GmosSouthFpu]]] =
-      Lens[SouthDynamic, Option[Either[CustomMask, GmosSouthFpu]]](_.fpu)(a => _.copy(fpu = a))
-
-  }
-
-
   implicit val DecoderSouthFpu: Decoder[Either[CreateCustomMask, GmosSouthFpu]] =
     Decoder[CreateCustomMask].either(Decoder[GmosSouthFpu])
 
@@ -745,7 +689,7 @@ object GmosModel {
         common.create,
         grating.traverse(_.create),
         fpu.traverse(_.fold(_.create.map(_.asLeft[GmosSouthFpu]), _.asRight[CustomMask].validNec[InputError]))
-      ).mapN { (c, g, u) => SouthDynamic(c, g, filter, u) }
+      ).mapN { (c, g, u) => Dynamic(c, g, filter, u) }
 
   }
 
