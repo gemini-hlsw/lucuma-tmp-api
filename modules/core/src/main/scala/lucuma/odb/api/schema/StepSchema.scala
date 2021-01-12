@@ -45,7 +45,11 @@ object StepSchema {
         )
 
       )
-    )
+    ).withPossibleTypes(() => List(
+      PossibleObject[OdbRepo[F], StepModel[A]](BiasType[F, A](outputType)),
+      PossibleObject[OdbRepo[F], StepModel[A]](DarkType[F, A](outputType)),
+      PossibleObject[OdbRepo[F], StepModel[A]](ScienceType[F, A](outputType))
+    ))
 
   def BiasType[F[_]: Effect, A](
     dynamicConfigType: OutputType[A]

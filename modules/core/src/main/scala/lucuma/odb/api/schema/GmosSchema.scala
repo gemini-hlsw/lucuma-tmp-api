@@ -181,9 +181,9 @@ object GmosSchema {
       case Site.GS => "South"
     }
 
-  def GmosStaticConfig[F[_]: Effect, S: EnumType](
+  def GmosStaticConfig[F[_]: Effect, S: EnumType, G <: GmosModel.Static[S]: ClassTag](
     site: Site
-  ): ObjectType[OdbRepo[F], GmosModel.Static[S]] =
+  ): ObjectType[OdbRepo[F], G] =
     ObjectType(
       name        = s"Gmos${location(site)}StaticConfig",
       description = "Unchanging (over the course of the sequence) configuration values",
@@ -200,35 +200,31 @@ object GmosSchema {
           name        = "detector",
           fieldType   = EnumTypeGmosDetector,
           description = Some("Detector in use (always HAMAMATSU for recent and new observations)"),
-          resolve     = _.value.common.detector
+          resolve     = _.value.detector
         ),
 
         Field(
           name        = "mosPreImaging",
           fieldType   = EnumTypeMosPreImaging,
           description = Some("Is MOS Pre-Imaging Observation"),
-          resolve     = _.value.common.mosPreImaging
+          resolve     = _.value.mosPreImaging
         ),
 
         Field(
           name        = "nodAndShuffle",
           fieldType   = OptionType(GmosNodAndShuffleType[F]),
           description = Some("Nod-and-shuffle configuration"),
-          resolve     = _.value.common.nodAndShuffle
+          resolve     = _.value.nodAndShuffle
         )
 
       )
     )
 
-  type GmosNorthStatic = GmosModel.Static[GmosNorthStageMode]
+  def GmosNorthStaticConfigType[F[_]: Effect]: ObjectType[OdbRepo[F], GmosModel.NorthStatic] =
+    GmosStaticConfig[F, GmosNorthStageMode, GmosModel.NorthStatic](Site.GN)
 
-  def GmosNorthStaticConfigType[F[_]: Effect]: ObjectType[OdbRepo[F], GmosNorthStatic] =
-    GmosStaticConfig[F, GmosNorthStageMode](Site.GN)
-
-  type GmosSouthStatic = GmosModel.Static[GmosSouthStageMode]
-
-  def GmosSouthStaticConfigType[F[_]: Effect]: ObjectType[OdbRepo[F], GmosSouthStatic] =
-    GmosStaticConfig[F, GmosSouthStageMode](Site.GS)
+  def GmosSouthStaticConfigType[F[_]: Effect]: ObjectType[OdbRepo[F], GmosModel.SouthStatic] =
+    GmosStaticConfig[F, GmosSouthStageMode, GmosModel.SouthStatic](Site.GS)
 
   def GmosCcdReadoutType[F[_]: Effect]: ObjectType[OdbRepo[F], GmosModel.CcdReadout] =
     ObjectType(
@@ -360,40 +356,40 @@ object GmosSchema {
       )
     )
 
-  def GmosDynamicType[F[_]: Effect, D: EnumType, L: EnumType, U: EnumType: ClassTag](
+  def GmosDynamicType[F[_]: Effect, D: EnumType, L: EnumType, U: EnumType: ClassTag, G <: GmosModel.Dynamic[D, L, U] : ClassTag](
     site: Site
-  ): ObjectType[OdbRepo[F], GmosModel.Dynamic[D, L, U]] =
+  ): ObjectType[OdbRepo[F], G] =
     ObjectType(
       name        = s"Gmos${location(site)}Dynamic",
       description = s"GMOS ${location(site)} dynamic step configuration",
       fieldsFn    = () => fields(
 
         Field(
+          name        = "exposure",
+          fieldType   = DurationType[F],
+          description = Some("GMOS exposure time"),
+          resolve     = _.value.exposure
+        ),
+
+        Field(
           name        = "readout",
           fieldType   = GmosCcdReadoutType[F],
           description = Some("GMOS CCD Readout"),
-          resolve     = _.value.common.readout
+          resolve     = _.value.readout
         ),
 
         Field(
           name        = "dtax",
           fieldType   = EnumTypeGmosDtax,
           description = Some("GMOS detector x offset"),
-          resolve     = _.value.common.dtax
-        ),
-
-        Field(
-          name        = "exposure",
-          fieldType   = DurationType[F],
-          description = Some("GMOS exposure time"),
-          resolve     = _.value.common.exposure
+          resolve     = _.value.dtax
         ),
 
         Field(
           name        = "roi",
           fieldType   = EnumTypeGmosRoi,
           description = Some("GMOS region of interest"),
-          resolve     = _.value.common.roi
+          resolve     = _.value.roi
         ),
 
         Field(
@@ -419,14 +415,10 @@ object GmosSchema {
       )
     )
 
-  type GmosNorthDynamic = GmosModel.Dynamic[GmosNorthDisperser, GmosNorthFilter, GmosNorthFpu]
+  def GmosNorthDynamicType[F[_]: Effect]: ObjectType[OdbRepo[F], GmosModel.NorthDynamic] =
+    GmosDynamicType[F, GmosNorthDisperser, GmosNorthFilter, GmosNorthFpu, GmosModel.NorthDynamic](Site.GN)
 
-  def GmosNorthDynamicType[F[_]: Effect]: ObjectType[OdbRepo[F], GmosNorthDynamic] =
-    GmosDynamicType[F, GmosNorthDisperser, GmosNorthFilter, GmosNorthFpu](Site.GN)
-
-  type GmosSouthDynamic = GmosModel.Dynamic[GmosSouthDisperser, GmosSouthFilter, GmosSouthFpu]
-
-  def GmosSouthDynamicType[F[_]: Effect]: ObjectType[OdbRepo[F], GmosSouthDynamic] =
-    GmosDynamicType[F, GmosSouthDisperser, GmosSouthFilter, GmosSouthFpu](Site.GN)
+  def GmosSouthDynamicType[F[_]: Effect]: ObjectType[OdbRepo[F], GmosModel.SouthDynamic] =
+    GmosDynamicType[F, GmosSouthDisperser, GmosSouthFilter, GmosSouthFpu, GmosModel.SouthDynamic](Site.GS)
 
 }

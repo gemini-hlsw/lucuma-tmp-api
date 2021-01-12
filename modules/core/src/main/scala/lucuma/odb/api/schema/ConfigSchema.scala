@@ -38,6 +38,12 @@ object ConfigSchema {
       )
     )
 
+  def implementations[F[_]: Effect]: List[Type with Named] =
+    List(
+      GmosNorthConfigType[F],
+      GmosSouthConfigType[F]
+    )
+
   def GmosNorthConfigType[F[_]: Effect]: ObjectType[OdbRepo[F], ConfigModel.GmosNorth] =
     ObjectType(
       name        = "GmosNorthConfig",

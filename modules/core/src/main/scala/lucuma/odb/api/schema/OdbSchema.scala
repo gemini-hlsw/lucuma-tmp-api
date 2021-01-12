@@ -32,6 +32,11 @@ object OdbSchema {
     )
 
   def apply[F[_]: ConcurrentEffect: Logger]: Schema[OdbRepo[F], Unit] =
-    Schema(QueryType[F], Some(MutationType[F]), Some(SubscriptionType[F]))
+    Schema(
+      QueryType[F],
+      Some(MutationType[F]),
+      Some(SubscriptionType[F]),
+      additionalTypes = ConfigSchema.implementations[F]
+    )
 
 }

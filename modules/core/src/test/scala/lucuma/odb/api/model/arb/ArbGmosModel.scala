@@ -108,111 +108,95 @@ trait ArbGmosModel {
     )}
 
 
-  implicit val arbCommonStatic: Arbitrary[GmosModel.CommonStatic] =
+  implicit val arbNorthStatic: Arbitrary[GmosModel.NorthStatic] =
     Arbitrary {
       for {
         d <- arbitrary[GmosDetector]
         m <- arbitrary[MosPreImaging]
         n <- arbitrary[Option[GmosModel.NodAndShuffle]]
-      } yield GmosModel.CommonStatic(d, m, n)
-    }
-
-  implicit val cogCommonStatic: Cogen[GmosModel.CommonStatic] =
-    Cogen[(
-      GmosDetector,
-      MosPreImaging,
-      Option[GmosModel.NodAndShuffle]
-    )].contramap { in => (
-      in.detector,
-      in.mosPreImaging,
-      in.nodAndShuffle
-    )}
-
-  implicit val arbCreateCommonStatic: Arbitrary[GmosModel.CreateCommonStatic] =
-    Arbitrary {
-      for {
-        d <- arbitrary[GmosDetector]
-        m <- arbitrary[MosPreImaging]
-        n <- arbitrary[Option[GmosModel.CreateNodAndShuffle]]
-      } yield GmosModel.CreateCommonStatic(d, m, n)
-    }
-
-  implicit val cogCreateCommonStatic: Cogen[GmosModel.CreateCommonStatic] =
-    Cogen[(
-      GmosDetector,
-      MosPreImaging,
-      Option[GmosModel.CreateNodAndShuffle]
-    )].contramap { in => (
-      in.detector,
-      in.mosPreImaging,
-      in.nodAndShuffle
-    )}
-
-  implicit val arbNorthStatic: Arbitrary[GmosModel.NorthStatic] =
-    Arbitrary {
-      for {
-        c <- arbitrary[GmosModel.CommonStatic]
         s <- arbitrary[GmosNorthStageMode]
-      } yield GmosModel.NorthStatic(c, s)
+      } yield GmosModel.NorthStatic(d, m, n, s)
     }
 
   implicit val cogNorthStatic: Cogen[GmosModel.NorthStatic] =
     Cogen[(
-      GmosModel.CommonStatic,
+      GmosDetector,
+      MosPreImaging,
+      Option[GmosModel.NodAndShuffle],
       GmosNorthStageMode
     )].contramap { in => (
-      in.common,
+      in.detector,
+      in.mosPreImaging,
+      in.nodAndShuffle,
       in.stageMode
     )}
 
   implicit val arbCreateNorthStatic: Arbitrary[GmosModel.CreateNorthStatic] =
     Arbitrary {
       for {
-        c <- arbitrary[GmosModel.CreateCommonStatic]
+        d <- arbitrary[GmosDetector]
+        m <- arbitrary[MosPreImaging]
+        n <- arbitrary[Option[GmosModel.CreateNodAndShuffle]]
         s <- arbitrary[GmosNorthStageMode]
-      } yield GmosModel.CreateNorthStatic(c, s)
+      } yield GmosModel.CreateNorthStatic(d, m, n, s)
     }
 
   implicit val cogCreateNorthStatic: Cogen[GmosModel.CreateNorthStatic] =
     Cogen[(
-      GmosModel.CreateCommonStatic,
+      GmosDetector,
+      MosPreImaging,
+      Option[GmosModel.CreateNodAndShuffle],
       GmosNorthStageMode
     )].contramap { in => (
-      in.common,
+      in.detector,
+      in.mosPreImaging,
+      in.nodAndShuffle,
       in.stageMode
     )}
 
   implicit val arbSouthStatic: Arbitrary[GmosModel.SouthStatic] =
     Arbitrary {
       for {
-        c <- arbitrary[GmosModel.CommonStatic]
+        d <- arbitrary[GmosDetector]
+        m <- arbitrary[MosPreImaging]
+        n <- arbitrary[Option[GmosModel.NodAndShuffle]]
         s <- arbitrary[GmosSouthStageMode]
-      } yield GmosModel.SouthStatic(c, s)
+      } yield GmosModel.SouthStatic(d, m, n, s)
     }
 
   implicit val cogSouthStatic: Cogen[GmosModel.SouthStatic] =
     Cogen[(
-      GmosModel.CommonStatic,
+      GmosDetector,
+      MosPreImaging,
+      Option[GmosModel.NodAndShuffle],
       GmosSouthStageMode
     )].contramap { in => (
-      in.common,
+      in.detector,
+      in.mosPreImaging,
+      in.nodAndShuffle,
       in.stageMode
     )}
 
   implicit val arbCreateSouthStatic: Arbitrary[GmosModel.CreateSouthStatic] =
     Arbitrary {
       for {
-        c <- arbitrary[GmosModel.CreateCommonStatic]
+        d <- arbitrary[GmosDetector]
+        m <- arbitrary[MosPreImaging]
+        n <- arbitrary[Option[GmosModel.CreateNodAndShuffle]]
         s <- arbitrary[GmosSouthStageMode]
-      } yield GmosModel.CreateSouthStatic(c, s)
+      } yield GmosModel.CreateSouthStatic(d, m, n, s)
     }
 
   implicit val cogCreateSouthStatic: Cogen[GmosModel.CreateSouthStatic] =
     Cogen[(
-      GmosModel.CreateCommonStatic,
+      GmosDetector,
+      MosPreImaging,
+      Option[GmosModel.CreateNodAndShuffle],
       GmosSouthStageMode
     )].contramap { in => (
-      in.common,
+      in.detector,
+      in.mosPreImaging,
+      in.nodAndShuffle,
       in.stageMode
     )}
 
@@ -270,57 +254,6 @@ trait ArbGmosModel {
         in.ampCount,
         in.ampGain,
         in.ampRead
-      )
-    }
-
-
-  implicit val arbCommonDynamic: Arbitrary[GmosModel.CommonDynamic] =
-    Arbitrary {
-      for {
-        c <- arbitrary[GmosModel.CcdReadout]
-        x <- arbitrary[GmosDtax]
-        e <- arbitrary[FiniteDuration]
-        r <- arbitrary[GmosRoi]
-      } yield GmosModel.CommonDynamic(c, x, e, r)
-    }
-
-  implicit val cogCommonDynamic: Cogen[GmosModel.CommonDynamic] =
-    Cogen[(
-      GmosModel.CcdReadout,
-      GmosDtax,
-      FiniteDuration,
-      GmosRoi
-    )].contramap { in =>
-      (
-        in.readout,
-        in.dtax,
-        in.exposure,
-        in.roi
-      )
-    }
-
-  implicit val arbCreateCommonDynamic: Arbitrary[GmosModel.CreateCommonDynamic] =
-    Arbitrary {
-      for {
-        c <- arbitrary[GmosModel.CreateCcdReadout]
-        x <- arbitrary[GmosDtax]
-        e <- arbitrary[FiniteDurationModel.Input]
-        r <- arbitrary[GmosRoi]
-      } yield GmosModel.CreateCommonDynamic(c, x, e, r)
-    }
-
-  implicit val cogCreateCommonDynamic: Cogen[GmosModel.CreateCommonDynamic] =
-    Cogen[(
-      GmosModel.CreateCcdReadout,
-      GmosDtax,
-      FiniteDurationModel.Input,
-      GmosRoi
-    )].contramap { in =>
-      (
-        in.readout,
-        in.dtax,
-        in.exposure,
-        in.roi
       )
     }
 
@@ -409,22 +342,31 @@ trait ArbGmosModel {
   implicit val arbNorthDynamic: Arbitrary[GmosModel.NorthDynamic] =
     Arbitrary {
       for {
-        c <- arbitrary[GmosModel.CommonDynamic]
+        e <- arbitrary[FiniteDuration]
+        c <- arbitrary[GmosModel.CcdReadout]
+        x <- arbitrary[GmosDtax]
+        r <- arbitrary[GmosRoi]
         g <- arbitrary[Option[GmosModel.Grating[GmosNorthDisperser]]]
         f <- arbitrary[Option[GmosNorthFilter]]
         u <- arbitrary[Option[Either[GmosModel.CustomMask, GmosNorthFpu]]]
-      } yield GmosModel.NorthDynamic(c, g, f, u)
+      } yield GmosModel.NorthDynamic(e, c, x, r, g, f, u)
     }
 
   implicit val cogNorthDynamic: Cogen[GmosModel.NorthDynamic] =
     Cogen[(
-      GmosModel.CommonDynamic,
+      FiniteDuration,
+      GmosModel.CcdReadout,
+      GmosDtax,
+      GmosRoi,
       Option[GmosModel.Grating[GmosNorthDisperser]],
       Option[GmosNorthFilter],
       Option[Either[GmosModel.CustomMask, GmosNorthFpu]]
     )].contramap { in =>
       (
-        in.common,
+        in.exposure,
+        in.readout,
+        in.dtax,
+        in.roi,
         in.grating,
         in.filter,
         in.fpu
@@ -434,22 +376,31 @@ trait ArbGmosModel {
   implicit val arbCreateNorthDynamic: Arbitrary[GmosModel.CreateNorthDynamic] =
     Arbitrary {
       for {
-        c <- arbitrary[GmosModel.CreateCommonDynamic]
+        e <- arbitrary[FiniteDurationModel.Input]
+        c <- arbitrary[GmosModel.CreateCcdReadout]
+        x <- arbitrary[GmosDtax]
+        r <- arbitrary[GmosRoi]
         g <- arbitrary[Option[GmosModel.CreateGrating[GmosNorthDisperser]]]
         f <- arbitrary[Option[GmosNorthFilter]]
         u <- arbitrary[Option[Either[GmosModel.CreateCustomMask, GmosNorthFpu]]]
-      } yield GmosModel.CreateNorthDynamic(c, g, f, u)
+      } yield GmosModel.CreateNorthDynamic(e, c, x, r, g, f, u)
     }
 
   implicit val cogCreateNorthDynamic: Cogen[GmosModel.CreateNorthDynamic] =
     Cogen[(
-      GmosModel.CreateCommonDynamic,
+      FiniteDurationModel.Input,
+      GmosModel.CreateCcdReadout,
+      GmosDtax,
+      GmosRoi,
       Option[GmosModel.CreateGrating[GmosNorthDisperser]],
       Option[GmosNorthFilter],
       Option[Either[GmosModel.CreateCustomMask, GmosNorthFpu]]
     )].contramap { in =>
       (
-        in.common,
+        in.exposure,
+        in.readout,
+        in.dtax,
+        in.roi,
         in.grating,
         in.filter,
         in.fpu
@@ -459,22 +410,31 @@ trait ArbGmosModel {
   implicit val arbSouthDynamic: Arbitrary[GmosModel.SouthDynamic] =
     Arbitrary {
       for {
-        c <- arbitrary[GmosModel.CommonDynamic]
+        e <- arbitrary[FiniteDuration]
+        c <- arbitrary[GmosModel.CcdReadout]
+        x <- arbitrary[GmosDtax]
+        r <- arbitrary[GmosRoi]
         g <- arbitrary[Option[GmosModel.Grating[GmosSouthDisperser]]]
         f <- arbitrary[Option[GmosSouthFilter]]
         u <- arbitrary[Option[Either[GmosModel.CustomMask, GmosSouthFpu]]]
-      } yield GmosModel.SouthDynamic(c, g, f, u)
+      } yield GmosModel.SouthDynamic(e, c, x, r, g, f, u)
     }
 
   implicit val cogSouthDynamic: Cogen[GmosModel.SouthDynamic] =
     Cogen[(
-      GmosModel.CommonDynamic,
+      FiniteDuration,
+      GmosModel.CcdReadout,
+      GmosDtax,
+      GmosRoi,
       Option[GmosModel.Grating[GmosSouthDisperser]],
       Option[GmosSouthFilter],
       Option[Either[GmosModel.CustomMask, GmosSouthFpu]]
     )].contramap { in =>
       (
-        in.common,
+        in.exposure,
+        in.readout,
+        in.dtax,
+        in.roi,
         in.grating,
         in.filter,
         in.fpu
@@ -484,22 +444,31 @@ trait ArbGmosModel {
   implicit val arbCreateSouthDynamic: Arbitrary[GmosModel.CreateSouthDynamic] =
     Arbitrary {
       for {
-        c <- arbitrary[GmosModel.CreateCommonDynamic]
+        e <- arbitrary[FiniteDurationModel.Input]
+        c <- arbitrary[GmosModel.CreateCcdReadout]
+        x <- arbitrary[GmosDtax]
+        r <- arbitrary[GmosRoi]
         g <- arbitrary[Option[GmosModel.CreateGrating[GmosSouthDisperser]]]
         f <- arbitrary[Option[GmosSouthFilter]]
         u <- arbitrary[Option[Either[GmosModel.CreateCustomMask, GmosSouthFpu]]]
-      } yield GmosModel.CreateSouthDynamic(c, g, f, u)
+      } yield GmosModel.CreateSouthDynamic(e, c, x, r, g, f, u)
     }
 
   implicit val cogCreateSouthDynamic: Cogen[GmosModel.CreateSouthDynamic] =
     Cogen[(
-      GmosModel.CreateCommonDynamic,
+      FiniteDurationModel.Input,
+      GmosModel.CreateCcdReadout,
+      GmosDtax,
+      GmosRoi,
       Option[GmosModel.CreateGrating[GmosSouthDisperser]],
       Option[GmosSouthFilter],
       Option[Either[GmosModel.CreateCustomMask, GmosSouthFpu]]
     )].contramap { in =>
       (
-        in.common,
+        in.exposure,
+        in.readout,
+        in.dtax,
+        in.roi,
         in.grating,
         in.filter,
         in.fpu
