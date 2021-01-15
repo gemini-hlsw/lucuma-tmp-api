@@ -123,6 +123,13 @@ object ObservationSchema {
             }
             .toIO
             .unsafeToFuture()
+        ),
+
+        Field(
+          name        = "config",
+          fieldType   = OptionType(ConfigSchema.ConfigType[F]),
+          description = Some("Instrument configuration"),
+          resolve     = _.value.config
         )
 
       )

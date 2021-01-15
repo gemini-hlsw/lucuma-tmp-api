@@ -6,10 +6,16 @@ package lucuma.odb.api.service
 import cats.Applicative
 import lucuma.odb.api.model._
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.core.`enum`.ObsStatus
+import lucuma.core.`enum`._
+import lucuma.core.optics.syntax.all._
+import lucuma.core.math.syntax.int._
 import cats.effect.Sync
 import cats.syntax.all._
 import io.circe.parser.decode
+import lucuma.odb.api.model.OffsetModel.ComponentInput
+import monocle.state.all._
+
+import scala.concurrent.duration._
 
 object Init {
 
@@ -71,6 +77,48 @@ object Init {
   val targets: Either[Exception, List[TargetModel.CreateSidereal]] =
     targetsJson.traverse(decode[TargetModel.CreateSidereal])
 
+  import GmosModel.CreateSouthDynamic
+
+  val ac0: StepModel.CreateStep[CreateSouthDynamic] =
+    StepModel.CreateStep.science(
+      StepModel.CreateScience(
+        GmosModel.CreateSouthDynamic(
+          FiniteDurationModel.Input(10.seconds),
+          GmosModel.CreateCcdReadout(
+            GmosXBinning.Two,
+            GmosYBinning.Two,
+            GmosAmpCount.Twelve,
+            GmosAmpGain.Low,
+            GmosAmpReadMode.Fast
+          ),
+          GmosDtax.Zero,
+          GmosRoi.Ccd2,
+          None,
+          Some(GmosSouthFilter.RPrime),
+          None
+        ),
+        OffsetModel.Input.Zero
+      )
+    )
+
+  import GmosModel.CreateSouthDynamic.{readout, roi, step, fpu}
+
+  val ac1: StepModel.CreateStep[CreateSouthDynamic] = {
+    import GmosModel.CreateCcdReadout.{xBin, yBin}
+
+    (for {
+      _ <- step.p                              := ComponentInput(10.arcsec)
+      _ <- step.exposure                       .assign_(FiniteDurationModel.Input(20.seconds))
+      _ <- (step.setter ^|-> readout ^|-> xBin).assign_(GmosXBinning.One)
+      _ <- (step.setter ^|-> readout ^|-> yBin).assign_(GmosYBinning.One)
+      _ <- (step.setter ^|-> roi)              .assign_(GmosRoi.CentralStamp)
+      _ <- (step.setter ^|-> fpu)              .assign_(Some(Right(GmosSouthFpu.LongSlit_1_00)))
+    } yield ()).runS(ac0).value
+  }
+
+  val ac2: StepModel.CreateStep[CreateSouthDynamic] =
+    step.exposure.assign_(FiniteDurationModel.Input(30.seconds)).runS(ac1).value
+
   /**
    * Initializes a (presumably) empty ODB with some demo values.
    */
@@ -106,7 +154,17 @@ object Init {
                 Some("First Observation"),
                 Some(a0.id),
                 Some(ObsStatus.New),
-                None
+                Some(
+                  ConfigModel.Create.gmosSouth(
+                    ConfigModel.CreateGmosSouth(
+                      ManualSequence.Create(
+                        GmosModel.CreateSouthStatic.Default,
+                        List(ac0, ac1, ac2, ac2),
+                        Nil
+                      )
+                    )
+                  )
+                )
               )
             )
     } yield ()

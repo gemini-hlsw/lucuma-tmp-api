@@ -4,12 +4,12 @@
 package lucuma.odb.api.model
 
 import lucuma.core.util.{Display, Enumerated}
-
 import cats.Eq
 import cats.syntax.option._
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import monocle.Prism
+import monocle.macros.Lenses
 
 import scala.concurrent.duration._
 import scala.math.BigDecimal.RoundingMode
@@ -77,7 +77,7 @@ object FiniteDurationModel {
   implicit val NumericUnitsFiniteDuration: NumericUnits[FiniteDuration, Units] =
     NumericUnits.fromRead(_.readLong(_), _.readDecimal(_))
 
-  final case class Input(
+  @Lenses final case class Input(
     nanoseconds:  Option[Long],
     microseconds: Option[BigDecimal],
     milliseconds: Option[BigDecimal],
@@ -110,6 +110,9 @@ object FiniteDurationModel {
 
     val Empty: Input =
       Input(None, None, None, None, None, None, None, None, None)
+
+    def apply(fd: FiniteDuration): Input =
+      fromNanoseconds(fd.toNanos)
 
     def fromNanoseconds(value: Long): Input =
       Empty.copy(nanoseconds = Some(value))

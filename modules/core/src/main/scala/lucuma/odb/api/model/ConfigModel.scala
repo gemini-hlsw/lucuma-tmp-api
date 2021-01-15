@@ -47,10 +47,10 @@ object ConfigModel {
   // least it gives a GmosNorth-specific ManualSequence type.  Perhaps there
   // are better ideas?
 
-  type ManualSequenceGmosNorth = ManualSequence[GmosModel.NorthStatic, GmosModel.NorthDynamic]
+  type GmosNorthManualSequence = ManualSequence[GmosModel.NorthStatic, GmosModel.NorthDynamic]
 
   final case class GmosNorth(
-    manual: ManualSequenceGmosNorth
+    manual: GmosNorthManualSequence
   ) extends ConfigModel(Instrument.GmosN)
 
   object GmosNorth extends GmosNorthOptics {
@@ -62,15 +62,15 @@ object ConfigModel {
 
   sealed trait GmosNorthOptics { this: GmosNorth.type =>
 
-    val manual: Lens[GmosNorth, ManualSequenceGmosNorth] =
-      Lens[GmosNorth, ManualSequenceGmosNorth](_.manual)(a => _.copy(manual = a))
+    val manual: Lens[GmosNorth, GmosNorthManualSequence] =
+      Lens[GmosNorth, GmosNorthManualSequence](_.manual)(a => _.copy(manual = a))
 
   }
 
-  type ManualSequenceGmosSouth = ManualSequence[GmosModel.SouthStatic, GmosModel.SouthDynamic]
+  type GmosSouthManualSequence = ManualSequence[GmosModel.SouthStatic, GmosModel.SouthDynamic]
 
   final case class GmosSouth(
-    manual: ManualSequenceGmosSouth
+    manual: GmosSouthManualSequence
   ) extends ConfigModel(Instrument.GmosS)
 
   object GmosSouth extends GmosSouthOptics {
@@ -82,8 +82,8 @@ object ConfigModel {
 
   sealed trait GmosSouthOptics { this: GmosSouth.type =>
 
-    val manual: Lens[GmosSouth, ManualSequenceGmosSouth] =
-      Lens[GmosSouth, ManualSequenceGmosSouth](_.manual)(a => _.copy(manual = a))
+    val manual: Lens[GmosSouth, GmosSouthManualSequence] =
+      Lens[GmosSouth, GmosSouthManualSequence](_.manual)(a => _.copy(manual = a))
 
   }
 

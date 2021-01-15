@@ -4,12 +4,14 @@
 package lucuma.odb.api.model
 
 import lucuma.core.math.Offset
+import lucuma.core.`enum`.StepType
 import lucuma.odb.api.model.syntax.inputvalidator._
-
 import cats.Eq
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
+import monocle.{Lens, Optional, Setter}
+import monocle.macros.Lenses
 
 // For now, just bias, dark, and science.  Pending smart-gcal and gcal.
 
@@ -45,13 +47,38 @@ sealed abstract class StepModel[A] extends Product with Serializable {
       case _                           => None
     }
 
+  def stepType: StepType =
+    fold(
+      _ => StepType.Bias,
+      _ => StepType.Dark,
+      _ => StepType.Science
+    )
+
 }
 
 object StepModel {
 
-  final case class Bias     [A](dynamicConfig: A)                 extends StepModel[A]
-  final case class Dark     [A](dynamicConfig: A)                 extends StepModel[A]
-  final case class Science  [A](dynamicConfig: A, offset: Offset) extends StepModel[A]
+  @Lenses final case class Bias     [A](dynamicConfig: A)                 extends StepModel[A]
+  @Lenses final case class Dark     [A](dynamicConfig: A)                 extends StepModel[A]
+  @Lenses final case class Science  [A](dynamicConfig: A, offset: Offset) extends StepModel[A]
+
+  def dynamicConfig[A]: Lens[StepModel[A], A] =
+    Lens[StepModel[A], A](_.dynamicConfig) { a =>
+      _.fold(
+        _.copy(dynamicConfig = a),
+        _.copy(dynamicConfig = a),
+        _.copy(dynamicConfig = a)
+      )
+    }
+
+  def offset[A]: Optional[StepModel[A], Offset] =
+    Optional[StepModel[A], Offset](_.science.map(_.offset)) { a =>
+      _.fold(
+        identity,
+        identity,
+        _.copy(offset = a)
+      )
+    }
 
   def bias[A](dynamicConfig: A): StepModel[A] =
     Bias(dynamicConfig)
@@ -71,7 +98,7 @@ object StepModel {
       case _                                => false
     }
 
-  final case class CreateScience[A](
+  @Lenses final case class CreateScience[A](
     config: A,
     offset: OffsetModel.Input
   ) {
@@ -97,7 +124,7 @@ object StepModel {
 
   }
 
-  final case class CreateBias[A](config: A) {
+  @Lenses final case class CreateBias[A](config: A) {
 
     def create[B](implicit V: InputValidator[A, B]): ValidatedInput[Bias[B]] =
       config.validateAndCreate.map(Bias(_))
@@ -117,7 +144,7 @@ object StepModel {
 
   }
 
-  final case class CreateDark[A](config: A) {
+  @Lenses final case class CreateDark[A](config: A) {
 
     def create[B](implicit V: InputValidator[A, B]): ValidatedInput[Dark[B]] =
       config.validateAndCreate.map(Dark(_))
@@ -137,7 +164,7 @@ object StepModel {
 
   }
 
-  final case class CreateStep[A](
+  @Lenses final case class CreateStep[A](
     bias:    Option[CreateBias[A]],
     dark:    Option[CreateDark[A]],
     science: Option[CreateScience[A]]
@@ -155,6 +182,13 @@ object StepModel {
 
   object CreateStep {
 
+    def Empty[A]: CreateStep[A] =
+      CreateStep[A](
+        None,
+        None,
+        None
+      )
+
     implicit def EqCreateStep[A: Eq]: Eq[CreateStep[A]] =
       Eq.by { a => (
         a.bias,
@@ -168,6 +202,41 @@ object StepModel {
     implicit def ValidateCreateStep[A, B](implicit ev: InputValidator[A, B]): InputValidator[CreateStep[A], StepModel[B]] =
       (csa: CreateStep[A]) => csa.create[B]
 
+    def bias[A](b: CreateBias[A]): CreateStep[A] =
+      Empty[A].copy(bias = Some(b))
+
+    def dark[A](d: CreateDark[A]): CreateStep[A] =
+      Empty[A].copy(dark = Some(d))
+
+    def science[A](s: CreateScience[A]): CreateStep[A] =
+      Empty[A].copy(science = Some(s))
+
+    /**
+     * Sets the instrument configuration in the step, whether it is a bias,
+     * dark, etc.
+     */
+    def config[A]: Setter[CreateStep[A], A] =
+      Setter[CreateStep[A], A] { f => c =>
+        CreateStep(
+          c.bias.map(CreateBias.config.modify(f)),
+          c.dark.map(CreateDark.config.modify(f)),
+          c.science.map(CreateScience.config.modify(f))
+        )
+      }
+
+    /**
+     * Optional for science step offset.
+     */
+    def offset[A]: Optional[CreateStep[A], OffsetModel.Input] =
+      Optional[CreateStep[A], OffsetModel.Input](_.science.map(_.offset)) { a => c =>
+        c.copy(science = c.science.map(CreateScience.offset[A].set(a)))
+      }
+
+    def p[A]: Optional[CreateStep[A], OffsetModel.ComponentInput] =
+      offset[A] ^|-> OffsetModel.Input.p
+
+    def q[A]: Optional[CreateStep[A], OffsetModel.ComponentInput] =
+      offset[A] ^|-> OffsetModel.Input.q
   }
 
   /*

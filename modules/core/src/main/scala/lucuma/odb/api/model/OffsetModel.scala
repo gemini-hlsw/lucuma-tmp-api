@@ -11,6 +11,7 @@ import cats.syntax.validated._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import lucuma.core.util.{Display, Enumerated}
+import monocle.macros.Lenses
 
 
 object OffsetModel {
@@ -60,7 +61,7 @@ object OffsetModel {
   implicit def NumericUnitsOffsetComponent[A]: NumericUnits[Offset.Component[A], Units] =
     NumericUnits.fromRead(_.readLong(_), _.readDecimal(_))
 
-  final case class ComponentInput(
+  @Lenses final case class ComponentInput(
     microarcseconds: Option[Long],
     milliarcseconds: Option[BigDecimal],
     arcseconds:      Option[BigDecimal],
@@ -70,7 +71,7 @@ object OffsetModel {
 
     def toComponent[A]: ValidatedInput[Offset.Component[A]] =
       ValidatedInput.requireOne("offset component",
-        microarcseconds.map(Units.Milliarcseconds.readLong[A]),
+        microarcseconds.map(Units.Microarcseconds.readLong[A]),
         milliarcseconds.map(Units.Milliarcseconds.readDecimal[A]),
         arcseconds     .map(Units.Arcseconds.readDecimal[A]),
         fromLong       .map(_.read),
@@ -83,6 +84,12 @@ object OffsetModel {
 
     def Empty: ComponentInput =
       ComponentInput(None, None, None, None, None)
+
+    def Zero: ComponentInput =
+      fromMicroarcseconds(0L)
+
+    def apply[A](value: Angle): ComponentInput =
+      fromMicroarcseconds(value.toMicroarcseconds)
 
     def fromMicroarcseconds[A](value: Long): ComponentInput =
       Empty.copy(microarcseconds = Some(value))
@@ -112,7 +119,7 @@ object OffsetModel {
       ))
   }
 
-  final case class Input(
+  @Lenses final case class Input(
     p: ComponentInput,
     q: ComponentInput
   ) {
@@ -125,6 +132,12 @@ object OffsetModel {
   }
 
   object Input {
+
+    val Zero: Input =
+      Input(
+        ComponentInput.Zero,
+        ComponentInput.Zero
+      )
 
     def fromMicroarcseconds(p: Long, q: Long): Input =
       Input(
