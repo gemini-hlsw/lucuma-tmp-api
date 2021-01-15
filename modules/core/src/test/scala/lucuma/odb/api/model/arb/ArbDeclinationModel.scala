@@ -10,6 +10,7 @@ import NumericUnits.{LongInput, DecimalInput}
 import lucuma.core.math.Declination
 import lucuma.core.util.arb.ArbEnumerated
 import lucuma.core.math.arb.ArbDeclination
+
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
