@@ -5,8 +5,7 @@ package lucuma.odb.api.model
 
 import lucuma.odb.api.model.Existence._
 import lucuma.odb.api.model.syntax.input._
-import lucuma.core.model.{Asterism, Program, Target}
-import lucuma.core.util.Enumerated
+import lucuma.core.model.{Asterism, Program}
 import lucuma.core.math.Coordinates
 import lucuma.core.optics.syntax.lens._
 import cats.Eq
@@ -17,228 +16,106 @@ import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string._
 import io.circe.Decoder
 import io.circe.generic.semiauto._
-import monocle.{Lens, Optional, Prism}
+import monocle.Lens
 
-sealed trait AsterismModel {
-
-  def id:           Asterism.Id
-  def existence:    Existence
-  def name:         Option[NonEmptyString]
-
-  def explicitBase: Option[Coordinates]
-  def tpe:          AsterismModel.Type
-  def targetIds:    Set[Target.Id]
-
-  def fold[B](
-    default: AsterismModel.Default => B,
-    ghost:   AsterismModel.Ghost   => B
-  ): B =
-    this match {
-      case a: AsterismModel.Default => default(a)
-      case a: AsterismModel.Ghost   => ghost(a)
-    }
-
-}
+final case class AsterismModel(
+  id:           Asterism.Id,
+  existence:    Existence,
+  name:         Option[NonEmptyString],
+  explicitBase: Option[Coordinates]
+)
 
 object AsterismModel extends AsterismOptics {
 
   sealed trait Type extends Product with Serializable
 
-  object Type {
-    case object Default extends Type
-    case object Ghost   extends Type  // just to have a second one...
-
-    implicit val EnumeratedType: Enumerated[Type] =
-      Enumerated.of(Default, Ghost)
-  }
+//  object Type {
+//    case object Default extends Type
+//    case object Ghost   extends Type  // just to have a second one...
+//
+//    implicit val EnumeratedType: Enumerated[Type] =
+//      Enumerated.of(Default, Ghost)
+//  }
 
   implicit val TopLevelAsterism: TopLevelModel[Asterism.Id, AsterismModel] =
     TopLevelModel.instance(_.id, AsterismModel.existence)
 
-  final case class Default(
-    id:           Asterism.Id,
-    existence:    Existence,
-    name:         Option[NonEmptyString],
-    explicitBase: Option[Coordinates],
-    targetIds:    Set[Target.Id]
-  ) extends AsterismModel {
 
-    def tpe: Type =
-      Type.Default
+  implicit val EqAsterism: Eq[AsterismModel] =
+    Eq.by(d => (d.id, d.existence, d.name, d.explicitBase))
 
-  }
 
-  object Default extends DefaultOptics {
-
-    implicit val EqDefault: Eq[Default] =
-      Eq.by(d => (d.id, d.existence, d.name, d.explicitBase, d.targetIds))
-
-  }
-
-  trait DefaultOptics { self: Default.type =>
-
-    val select: Prism[AsterismModel, Default] =
-      Prism.partial[AsterismModel, Default]{case d: Default => d}(identity)
-
-    val id: Lens[Default, Asterism.Id] =
-      Lens[Default, Asterism.Id](_.id)(a => _.copy(id = a))
-
-    val asterismId: Optional[AsterismModel, Asterism.Id] =
-      select ^|-> id
-
-    val existence: Lens[Default, Existence] =
-      Lens[Default, Existence](_.existence)(a => _.copy(existence = a))
-
-    val asterismExistence: Optional[AsterismModel, Existence] =
-      select ^|-> existence
-
-    val name: Lens[Default, Option[NonEmptyString]] =
-      Lens[Default, Option[NonEmptyString]](_.name)(a => _.copy(name = a))
-
-    val asterismName: Optional[AsterismModel, Option[NonEmptyString]] =
-      select ^|-> name
-
-    val explicitBase: Lens[Default, Option[Coordinates]] =
-      Lens[Default, Option[Coordinates]](_.explicitBase)(a => _.copy(explicitBase = a))
-
-    val asterismExplicitBase: Optional[AsterismModel, Option[Coordinates]] =
-      select ^|-> explicitBase
-
-    val targetIds: Lens[Default, Set[Target.Id]] =
-      Lens[Default, Set[Target.Id]](_.targetIds)(a => _.copy(targetIds = a))
-
-    val asterismTargetIds: Optional[AsterismModel, Set[Target.Id]] =
-      select ^|-> targetIds
-
-  }
-
-  trait Create[T] {
-    def asterismId: Option[Asterism.Id]
-    def name:       Option[String]
-    def programIds: List[Program.Id]  // to share immediately with the indicated programs
-    def targetIds:  Set[Target.Id]
-    def withId:     ValidatedInput[Asterism.Id => T]
-  }
-
-  final case class CreateDefault(
+  final case class Create(
     asterismId:   Option[Asterism.Id],
     name:         Option[String],
     programIds:   List[Program.Id],
-    explicitBase: Option[CoordinatesModel.Input],
-    targetIds:    Set[Target.Id]
-  ) extends Create[AsterismModel.Default] {
+    explicitBase: Option[CoordinatesModel.Input]
+  ) {
 
-    override def withId: ValidatedInput[Asterism.Id => AsterismModel.Default] =
+    def withId: ValidatedInput[Asterism.Id => AsterismModel] =
       (name.traverse(ValidatedInput.nonEmptyString("name", _)),
        explicitBase.traverse(_.toCoordinates)
-      ).mapN((n, b) => aid => Default(aid, Present, n, b, targetIds))
+      ).mapN((n, b) => aid => AsterismModel(aid, Present, n, b))
 
   }
 
-  object CreateDefault {
+  object Create {
 
-    implicit val DecoderCreateDefault: Decoder[CreateDefault] =
-      deriveDecoder[CreateDefault]
+    implicit val DecoderCreate: Decoder[Create] =
+      deriveDecoder[Create]
 
-    implicit val EqCreateDefault: Eq[CreateDefault] =
+    implicit val EqCreate: Eq[Create] =
       Eq.by { a => (
         a.asterismId,
         a.name,
         a.programIds,
         a.explicitBase,
-        a.targetIds
       )}
-  }
-
-  // not meant to be realistic yet
-  final case class Ghost(
-    id:           Asterism.Id,
-    existence:    Existence,
-    name:         Option[NonEmptyString],
-    explicitBase: Option[Coordinates],
-    ifu1:         Target.Id,
-    ifu2:         Option[Target.Id]
-  ) extends AsterismModel {
-
-    def tpe: Type =
-      Type.Ghost
-
-    def targetIds: Set[Target.Id] =
-      ifu2.foldLeft(Set(ifu1))(_ + _)
 
   }
 
-  object Ghost {
-
-    implicit val EqGhost: Eq[Ghost] =
-      Eq.by(g => (g.id, g.existence, g.name, g.explicitBase, g.ifu1, g.ifu2))
-
-  }
-
-  final case class EditDefault(
+  final case class Edit(
     asterismId:   Asterism.Id,
     existence:    Input[Existence]              = Input.ignore,
     name:         Input[String]                 = Input.ignore,
-    explicitBase: Input[CoordinatesModel.Input] = Input.ignore,
-    targetIds:    Option[Set[Target.Id]]
-  ) extends Editor[Asterism.Id, AsterismModel.Default] {
+    explicitBase: Input[CoordinatesModel.Input] = Input.ignore
+  ) extends Editor[Asterism.Id, AsterismModel] {
 
     override def id: Asterism.Id =
       asterismId
 
-    override def editor: ValidatedInput[State[AsterismModel.Default, Unit]] = {
+    override def editor: ValidatedInput[State[AsterismModel, Unit]] = {
       (existence   .validateIsNotNull("existence"),
        name        .validateNullable(n => ValidatedInput.nonEmptyString("name", n)),
        explicitBase.validateNullable(_.toCoordinates)
       ).mapN { (e, n, b) =>
         for {
-          _ <- Default.existence    := e
-          _ <- Default.name         := n
-          _ <- Default.explicitBase := b
-          _ <- Default.targetIds    := targetIds
+          _ <- AsterismModel.existence    := e
+          _ <- AsterismModel.name         := n
+          _ <- AsterismModel.explicitBase := b
         } yield ()
       }
     }
   }
 
-  object EditDefault {
+  object Edit {
 
     import io.circe.generic.extras.semiauto._
     import io.circe.generic.extras.Configuration
     implicit val customConfig: Configuration = Configuration.default.withDefaults
 
-    implicit val DecoderEditSidereal: Decoder[EditDefault] =
-      deriveConfiguredDecoder[EditDefault]
+    implicit val DecoderEdit: Decoder[Edit] =
+      deriveConfiguredDecoder[Edit]
 
-    implicit val EqEditDefault: Eq[EditDefault] =
+    implicit val EqEdit: Eq[Edit] =
       Eq.by { a => (
         a.asterismId,
         a.existence,
         a.name,
-        a.explicitBase,
-        a.targetIds
+        a.explicitBase
       )}
 
   }
-
-  final case class AsterismProgramLinks(
-    asterismIds: List[Asterism.Id],
-    programIds:  List[Program.Id]
-  )
-
-  object AsterismProgramLinks {
-
-    implicit val DecoderAsterismProgramLinks: Decoder[AsterismProgramLinks] =
-      deriveDecoder[AsterismProgramLinks]
-
-  }
-
-  implicit val EqAsterism: Eq[AsterismModel] =
-    Eq.instance[AsterismModel] {
-      case (a: Default, b: Default) => a === b
-      case (a: Ghost, b: Ghost)     => a === b
-      case (_, _)                   => false
-    }
 
   final case class AsterismEvent (
     id:       Long,
@@ -255,12 +132,16 @@ object AsterismModel extends AsterismOptics {
 
 trait AsterismOptics { self: AsterismModel.type =>
 
+  val id: Lens[AsterismModel, Asterism.Id] =
+    Lens[AsterismModel, Asterism.Id](_.id)(a => _.copy(id = a))
+
   val existence: Lens[AsterismModel, Existence] =
-    Lens[AsterismModel, Existence](_.existence) { a =>
-      _.fold(
-        _.copy(existence = a),
-        _.copy(existence = a)
-      )
-    }
+    Lens[AsterismModel, Existence](_.existence)(a => _.copy(existence = a))
+
+  val name: Lens[AsterismModel, Option[NonEmptyString]] =
+    Lens[AsterismModel, Option[NonEmptyString]](_.name)(a => _.copy(name = a))
+
+  val explicitBase: Lens[AsterismModel, Option[Coordinates]] =
+    Lens[AsterismModel, Option[Coordinates]](_.explicitBase)(a => _.copy(explicitBase = a))
 
 }

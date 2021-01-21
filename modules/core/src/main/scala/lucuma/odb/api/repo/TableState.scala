@@ -7,10 +7,8 @@ import lucuma.core.util.Gid
 import lucuma.odb.api.model.{AsterismModel, InputError, ObservationModel, ProgramModel, TargetModel, ValidatedInput}
 import lucuma.core.model.{Asterism, Observation, Program, Target}
 
-
 import cats.data.State
 import cats.kernel.BoundedEnumerable
-import cats.syntax.functor._
 import cats.syntax.option._
 import monocle.Lens
 import monocle.state.all._
@@ -32,24 +30,42 @@ trait TableState {
   val nextTargetId: State[Tables, Target.Id] =
     Tables.lastTargetId.mod(BoundedEnumerable[Target.Id].cycleNext)
 
+/*
+  private def share[A, B: Order](a: A, bs: Set[B], lens: Lens[Tables, SortedMap[B, _]]): State[Tables, Unit] =
+    lens.mod_(_ ++ bs.toList.tupleRight(a))
+
+  private def unshare[A, B: Order](a: A, bs: Set[B], lens: Lens[Tables, SortedMap[B, _]]): State[Tables, Unit] =
+    lens.mod_(_ -- bs.toList.tupleRight(a))
+
   def shareAsterismWithPrograms(a: AsterismModel, pids: Set[Program.Id]): State[Tables, Unit] =
-    Tables.programAsterisms.mod_(_ ++ pids.toList.tupleRight(a.id))
+//    Tables.programAsterisms.mod_(_ ++ pids.toList.tupleRight(a.id))
+    share(a.id, pids, Tables.programAsterism)
 
   def unshareAsterismWithPrograms(a: AsterismModel, pids: Set[Program.Id]): State[Tables, Unit] =
-    Tables.programAsterisms.mod_(_ -- pids.toList.tupleRight(a.id))
+//    Tables.programAsterisms.mod_(_ -- pids.toList.tupleRight(a.id))
+    unshare(a.id, pids, Tables.programAsterism)
+
+  def shareAsterismWithTargets(a: AsModel, aids: Set[Asterism.Id]): State[Tables, Unit] =
+    share(t.id, aids, Tables.targetAsterism)
+
+  def unshareTargetWithAsterisms(t: TargetModel, aids: Set[Asterism.Id]): State[Tables, Unit] =
+    unshare(t.id, aids, Tables.targetAsterism)
 
   def unshareAsterismAll(aid: Asterism.Id): State[Tables, Unit] =
-    Tables.programAsterisms.mod_(_.removeRight(aid))
+    for {
+      _ <- Tables.programAsterism.mod_(_.removeRight(aid))
+      _ <- Tables.targetAsterism.mod_(_.removeLeft(aid))
+    } yield ()
 
   def shareTargetWithPrograms(t: TargetModel, pids: Set[Program.Id]): State[Tables, Unit] =
-    Tables.programTargets.mod_(_ ++ pids.toList.tupleRight(t.id))
+    Tables.programTarget.mod_(_ ++ pids.toList.tupleRight(t.id))
 
   def unshareTargetWithPrograms(t: TargetModel, pids: Set[Program.Id]): State[Tables, Unit] =
-    Tables.programTargets.mod_(_ -- pids.toList.tupleRight(t.id))
+    Tables.programTarget.mod_(_ -- pids.toList.tupleRight(t.id))
 
   def unshareTargetAll(tid: Target.Id): State[Tables, Unit] =
-    Tables.programTargets.mod_(_.removeRight(tid))
-
+    Tables.programTarget.mod_(_.removeRight(tid))
+*/
 
   private def tryFind[I: Gid, T](name: String, id: I, lens: I => Lens[Tables, Option[T]]): State[Tables, ValidatedInput[T]] =
     lens(id).st.map(_.toValidNec(InputError.missingReference(name, Gid[I].show(id))))

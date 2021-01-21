@@ -12,6 +12,6 @@ final class AsterismSuite extends DisciplineSuite {
 
   import ArbAsterismModel._
 
-  checkAll("AsterismModel.CreateDefault", EqTests[AsterismModel.CreateDefault].eqv)
-  checkAll("AsterismModel.EditDefault", EqTests[AsterismModel.EditDefault].eqv)
+  checkAll("AsterismModel.Create", EqTests[AsterismModel.Create].eqv)
+  checkAll("AsterismModel.Edit", EqTests[AsterismModel.Edit].eqv)
 }

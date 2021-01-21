@@ -34,7 +34,7 @@ object SubscriptionType {
   import syntax.`enum`._
   import context._
 
-  implicit def asterismType[F[_]: Effect]: InterfaceType[OdbRepo[F], AsterismModel] =
+  implicit def asterismType[F[_]: Effect]: ObjectType[OdbRepo[F], AsterismModel] =
     AsterismSchema.AsterismType[F]
 
   implicit def observationType[F[_]: Effect]: ObjectType[OdbRepo[F], ObservationModel] =

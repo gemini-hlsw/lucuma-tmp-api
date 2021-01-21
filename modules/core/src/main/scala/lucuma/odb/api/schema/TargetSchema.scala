@@ -10,8 +10,7 @@ import lucuma.core.`enum`.{CatalogName, EphemerisKeyType, MagnitudeBand, Magnitu
 import lucuma.core.math.{Coordinates, Declination, MagnitudeValue, Parallax, ProperMotion, RadialVelocity, RightAscension, VelocityAxis}
 import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, SiderealTracking, Target}
 import cats.effect.Effect
-import cats.syntax.eq._
-import cats.syntax.functor._
+import cats.syntax.all._
 import sangria.schema._
 
 object TargetSchema extends TargetScalars {
@@ -403,10 +402,12 @@ object TargetSchema extends TargetScalars {
           description = Some("The asterisms associated with the target."),
           resolve     = c =>
             c.asterism { repo =>
-              c.optionalProgramId.fold(
-                repo.selectAllForTarget(c.value.id, c.includeDeleted)
-              ) { pid =>
-                repo.selectAllForProgram(pid, c.includeDeleted).map(_.filter(_.targetIds(c.value.id)))
+              repo.selectAllForTarget(c.value.id, c.includeDeleted).flatMap { as =>
+                c.optionalProgramId.fold(as.pure[F]) { pid =>
+                  repo.selectAllForProgram(pid, c.includeDeleted)
+                    .map(_.map(_.id).toSet)
+                    .map { ids => as.filter(a => ids(a.id)) }
+                }
               }
             }
         ),

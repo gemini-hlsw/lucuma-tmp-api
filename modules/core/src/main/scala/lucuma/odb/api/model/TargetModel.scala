@@ -302,18 +302,6 @@ object TargetModel extends TargetOptics {
 
   }
 
-  final case class TargetProgramLinks(
-    targetIds:  List[Target.Id],
-    programIds: List[Program.Id]
-  )
-
-  object TargetProgramLinks {
-
-    implicit val DecoderTargetProgramLinks: Decoder[TargetProgramLinks] =
-      deriveDecoder[TargetProgramLinks]
-
-  }
-
   final case class TargetEvent (
     id:       Long,
     editType: Event.EditType,
