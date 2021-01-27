@@ -36,7 +36,7 @@ object ProgramRepo {
       eventService,
       Tables.lastProgramId,
       Tables.programs,
-      ProgramEvent.apply
+      (editType, model) => ProgramEvent(_, editType, model)
     ) with ProgramRepo[F]
       with LookupSupport {
 

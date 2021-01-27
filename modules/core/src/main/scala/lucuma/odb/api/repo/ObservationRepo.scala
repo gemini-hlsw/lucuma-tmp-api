@@ -34,7 +34,7 @@ object ObservationRepo {
       eventService,
       Tables.lastObservationId,
       Tables.observations,
-      ObservationEvent.apply
+      (editType, model) => ObservationEvent(_, editType, model)
     ) with ObservationRepo[F]
       with LookupSupport {
 

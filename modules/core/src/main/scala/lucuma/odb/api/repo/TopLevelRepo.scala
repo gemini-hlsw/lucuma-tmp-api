@@ -3,15 +3,17 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{Editor, Event, Existence, InputError, TopLevelModel, ValidatedInput}
+import lucuma.odb.api.model.{Editor, Event, Existence, InputError, Sharing, TopLevelModel, ValidatedInput}
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.core.util.Gid
-import cats.{Eq, FunctorFilter, Monad, MonadError}
+
+import cats._ //{Eq, FunctorFilter, Monad, MonadError}
 import cats.data._
 import cats.effect.concurrent.Ref
-import cats.syntax.all._
 import cats.kernel.BoundedEnumerable
+import cats.syntax.all._
+
 import monocle.Lens
 import monocle.function.At
 import monocle.state.all._
@@ -19,6 +21,7 @@ import monocle.state.all._
 import Function.unlift
 import scala.Function.const
 import scala.collection.immutable.SortedMap
+
 
 trait TopLevelRepo[F[_], I, T] {
 
@@ -82,9 +85,6 @@ trait TopLevelRepo[F[_], I, T] {
 
 }
 
-/**
- *
- */
 abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq](
   tablesRef:    Ref[F, Tables],
   eventService: EventService[F],
@@ -202,5 +202,57 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
 
   def undelete(id: I): F[T] =
     setExistence(id, Existence.Present)
+
+  private def share[J, M](
+    name:    String,
+    input:   Sharing[I, J],
+    findM:   J => State[Tables, ValidatedInput[M]],
+    editedM: M => Long => Event.Edit[M]
+  )(
+    update:  ValidatedInput[(T, List[M])] => State[Tables, Unit],
+  ): F[T] = {
+
+    val link = tablesRef.modifyState {
+      for {
+        vo <- focusOn(input.one).st.map(_.toValidNec(InputError.missingReference(name, Gid[I].show(input.one))))
+        vm <- input.many.traverse(findM).map(_.sequence)
+        vtm = (vo, vm).mapN { (o, m) => (o, m) }
+        _  <- update(vtm)
+      } yield vtm
+    }
+
+    for {
+      tm <- link.flatMap(_.liftTo[F])
+      (t, ms) = tm
+      _ <- eventService.publish(edited(Event.EditType.Updated, t)) // publish one
+      _ <- ms.traverse_(m => eventService.publish(editedM(m)))     // publish many
+    } yield t
+  }
+
+  protected def shareLeft[J, M](
+    name:     String,
+    input:    Sharing[I, J],
+    findM:    J => State[Tables, ValidatedInput[M]],
+    linkLens: Lens[Tables, ManyToMany[J, I]],
+    editedM:  M => Long => Event.Edit[M]
+ )(
+    update:   (ManyToMany[J, I], IterableOnce[(J, I)]) => ManyToMany[J, I]
+ ): F[T] =
+    share(name, input, findM, editedM) { vtm =>
+      vtm.traverse_ { _ => linkLens.mod_(links => update(links, input.tupleRight)) }
+    }
+
+  protected def shareRight[J, M](
+    name:     String,
+    input:    Sharing[I, J],
+    findM:    J => State[Tables, ValidatedInput[M]],
+    linkLens: Lens[Tables, ManyToMany[I, J]],
+    editedM:  M => Long => Event.Edit[M]
+  )(
+    update:   (ManyToMany[I, J], IterableOnce[(I, J)]) => ManyToMany[I, J]
+  ): F[T] =
+    share(name, input, findM, editedM) { vtm =>
+      vtm.traverse_ { _ => linkLens.mod_(links => update(links, input.tupleLeft)) }
+    }
 
 }

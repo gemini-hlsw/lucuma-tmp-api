@@ -14,7 +14,7 @@ final case class DebuggingRef[F[_]: Logger: Sync, A](ref: Ref[F, A]) extends Ref
   import DebuggingRef._
 
   private def log(s: String): F[Unit] =
-    Logger[F].info(s)
+    Logger[F].trace(s)
 
   private def logAndDelegate[T](n: String, f: F[T]): F[T] =
     for {

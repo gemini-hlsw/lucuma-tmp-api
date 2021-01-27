@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{ObservationModel, Sharing, TargetModel, ValidatedInput}
+import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, Sharing, TargetModel, ValidatedInput}
 import lucuma.odb.api.model.TargetModel.{CreateNonsidereal, CreateSidereal, TargetEvent}
 import lucuma.odb.api.model.Existence._
 import lucuma.odb.api.model.syntax.validatedinput._
@@ -24,6 +24,10 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
   def insertNonsidereal(input: CreateNonsidereal): F[TargetModel]
 
   def insertSidereal(input: CreateSidereal): F[TargetModel]
+
+  def shareWithAsterisms(input: Sharing[Target.Id, Asterism.Id]): F[TargetModel]
+
+  def unshareWithAsterisms(input: Sharing[Target.Id, Asterism.Id]): F[TargetModel]
 
   def shareWithObservations(input: Sharing[Target.Id, Observation.Id]): F[TargetModel]
 
@@ -47,7 +51,7 @@ object TargetRepo {
       eventService,
       Tables.lastTargetId,
       Tables.targets,
-      TargetEvent.apply
+      (editType, model) => TargetEvent(_, editType, model)
     ) with TargetRepo[F]
       with LookupSupport {
 
@@ -73,8 +77,8 @@ object TargetRepo {
 
       def addAndShare(id: Option[Target.Id], g: Target, pids: Set[Program.Id]): State[Tables, TargetModel] =
         for {
-          t   <- createAndInsert(id, tid => TargetModel(tid, Present, g))
-          _   <- Tables.programTarget.mod_(_ ++ pids.toList.tupleRight(t.id))
+          t <- createAndInsert(id, tid => TargetModel(tid, Present, g))
+          _ <- Tables.programTarget.mod_(_ ++ pids.toList.tupleRight(t.id))
         } yield t
 
       private def insertTarget(id: Option[Target.Id], pids: List[Program.Id], vt: ValidatedInput[Target]): F[TargetModel] =
@@ -90,20 +94,43 @@ object TargetRepo {
       override def insertSidereal(input: CreateSidereal): F[TargetModel] =
         insertTarget(input.targetId, input.programIds.toList.flatten, input.toGemTarget)
 
+      private def asterismSharing(
+        input: Sharing[Target.Id, Asterism.Id]
+      )(
+        update: (ManyToMany[Target.Id, Asterism.Id], IterableOnce[(Target.Id, Asterism.Id)]) => ManyToMany[Target.Id, Asterism.Id]
+      ): F[TargetModel] =
+        shareRight[Asterism.Id, AsterismModel](
+          "target", input, TableState.asterism, Tables.targetAsterism, AsterismModel.AsterismEvent.updated
+        )(update)
+
+      override def shareWithAsterisms(input: Sharing[Target.Id, Asterism.Id]): F[TargetModel] =
+        asterismSharing(input)(_ ++ _)
+
+      override def unshareWithAsterisms(input: Sharing[Target.Id, Asterism.Id]): F[TargetModel] =
+        asterismSharing(input)(_ -- _)
+
       def observationSharing(
         input:   Sharing[Target.Id, Observation.Id],
         targets: Option[Either[Asterism.Id, Target.Id]]
-      ): F[TargetModel] =
-        tablesRef.modifyState {
+      ): F[TargetModel] = {
+        val link = tablesRef.modifyState {
           for {
             t  <- TableState.target(input.one)
             os <- input.many.traverse(TableState.observation).map(_.sequence)
             r  <- (t, os).traverseN { (tm, oms) =>
               val updates = oms.map(om => (om.id, ObservationModel.targets.set(targets)(om)))
-              Tables.observations.mod(_ ++ updates).as(tm)
+              Tables.observations.mod(_ ++ updates).as((tm, oms))
             }
           } yield r
         }.flatMap(_.liftTo[F])
+
+        for {
+          tos    <- link
+          (t, os) = tos
+          _      <- eventService.publish(TargetModel.TargetEvent.updated(t))
+          _      <- os.traverse_(o => eventService.publish(ObservationModel.ObservationEvent.updated(o)))
+        } yield t
+      }
 
       override def shareWithObservations(input: Sharing[Target.Id, Observation.Id]): F[TargetModel] =
         observationSharing(input, input.one.asRight[Asterism.Id].some)
@@ -113,21 +140,18 @@ object TargetRepo {
 
       private def programSharing(
         input: Sharing[Target.Id, Program.Id],
-        f:     ManyToMany[Program.Id, Target.Id] => ManyToMany[Program.Id, Target.Id]
+      )(
+        update: (ManyToMany[Program.Id, Target.Id], IterableOnce[(Program.Id, Target.Id)]) => ManyToMany[Program.Id, Target.Id]
       ): F[TargetModel] =
-        tablesRef.modifyState {
-          for {
-            ts <- TableState.target(input.one)
-            ps <- input.many.traverse(TableState.program).map(_.sequence)
-            r  <- (ts, ps).traverseN { (tm, _) => Tables.programTarget.mod_(f).as(tm) }
-          } yield r
-        }.flatMap(_.liftTo[F])
+        shareLeft[Program.Id, ProgramModel](
+          "target", input, TableState.program, Tables.programTarget, ProgramModel.ProgramEvent.updated
+        )(update)
 
       override def shareWithPrograms(input: Sharing[Target.Id, Program.Id]): F[TargetModel] =
-        programSharing(input, _ ++ input.tupleRight)
+        programSharing(input)(_ ++ _)
 
       override def unshareWithPrograms(input: Sharing[Target.Id, Program.Id]): F[TargetModel] =
-        programSharing(input, _ -- input.tupleRight)
+        programSharing(input)(_ -- _)
 
     }
 

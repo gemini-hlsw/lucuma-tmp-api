@@ -309,8 +309,11 @@ object TargetModel extends TargetOptics {
   ) extends Event.Edit[TargetModel]
 
   object TargetEvent {
-    def apply(editType: Event.EditType, value: TargetModel)(id: Long): TargetEvent =
-      TargetEvent(id, editType, value)
+    def created(value: TargetModel)(id: Long): TargetEvent =
+      TargetEvent(id, Event.EditType.Created, value)
+
+    def updated(value: TargetModel)(id: Long): TargetEvent =
+      TargetEvent(id, Event.EditType.Updated, value)
   }
 
 }

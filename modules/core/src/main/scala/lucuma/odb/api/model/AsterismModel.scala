@@ -124,8 +124,11 @@ object AsterismModel extends AsterismOptics {
   ) extends Event.Edit[AsterismModel]
 
   object AsterismEvent {
-    def apply(editType: Event.EditType, value: AsterismModel)(id: Long): AsterismEvent =
-      AsterismEvent(id, editType, value)
+    def created(value: AsterismModel)(id: Long): AsterismEvent =
+      AsterismEvent(id, Event.EditType.Created, value)
+
+    def updated(value: AsterismModel)(id: Long): AsterismEvent =
+      AsterismEvent(id, Event.EditType.Updated, value)
   }
 
 }

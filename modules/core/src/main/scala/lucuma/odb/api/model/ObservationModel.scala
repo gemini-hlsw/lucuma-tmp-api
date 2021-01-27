@@ -142,8 +142,11 @@ object ObservationModel extends ObservationOptics {
   ) extends Event.Edit[ObservationModel]
 
   object ObservationEvent {
-    def apply(editType: Event.EditType, value: ObservationModel)(id: Long): ObservationEvent =
-      ObservationEvent(id, editType, value)
+    def created(value: ObservationModel)(id: Long): ObservationEvent =
+      ObservationEvent(id, Event.EditType.Created, value)
+
+    def updated(value: ObservationModel)(id: Long): ObservationEvent =
+      ObservationEvent(id, Event.EditType.Updated, value)
   }
 
 }

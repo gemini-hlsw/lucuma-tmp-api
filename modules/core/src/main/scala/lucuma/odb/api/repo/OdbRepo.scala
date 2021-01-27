@@ -34,8 +34,14 @@ object OdbRepo {
    * Creates an empty ODB repository backed by a `Ref` containing `Tables`.
    */
   def create[F[_]: Concurrent: Logger]: F[OdbRepo[F]] =
+    fromTables[F](Tables.empty)
+
+  /**
+   * Creates an ODB repository backed by a `Ref` containing the given `Tables`.
+   */
+  def fromTables[F[_]: Concurrent: Logger](t: Tables): F[OdbRepo[F]] =
     for {
-      r <- Ref.of[F, Tables](Tables.empty)
+      r <- Ref.of[F, Tables](t)
       s <- EventService(r)
     } yield new OdbRepo[F] {
 
@@ -60,5 +66,7 @@ object OdbRepo {
       override def target: TargetRepo[F] =
         TargetRepo.create(ref, s)
     }
+
+
 
 }
