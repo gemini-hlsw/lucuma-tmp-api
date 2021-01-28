@@ -25,8 +25,8 @@ object StepSchema {
   def StepType[F[_]: Effect, A](
     typePrefix: String,
     outputType: OutputType[A]
-  ): InterfaceType[OdbRepo[F], StepModel[A]] =
-    InterfaceType[OdbRepo[F], StepModel[A]](
+  ): ObjectType[OdbRepo[F], StepModel[A]] =
+    ObjectType[OdbRepo[F], StepModel[A]](
       name         = s"${typePrefix}Step",
       description  = "Step (bias, dark, science, etc.)",
       fields[OdbRepo[F], StepModel[A]](
@@ -41,54 +41,68 @@ object StepSchema {
         Field(
           name        = "instrumentConfig",
           fieldType   = outputType,
-          description = Some("Dynamic instrument configuration"),
+          description = Some("Instrument configuration"),
           resolve     = _.value.dynamicConfig
+        ),
+
+        Field(
+          name        = "stepConfig",
+          fieldType   = StepConfigType[F],
+          description = Some("Step configuration"),
+          resolve     = _.value
+        )
+
+      )
+    )
+
+  def StepConfigType[F[_]: Effect]: InterfaceType[OdbRepo[F], StepModel[_]] =
+    InterfaceType[OdbRepo[F], StepModel[_]](
+      name         = s"StepConfig",
+      description  = "Step (bias, dark, science, etc.)",
+      fields[OdbRepo[F], StepModel[_]](
+
+        Field(
+          name        = "stepType",
+          fieldType   = EnumTypeStepType,
+          description = Some("Step type"),
+          resolve     = _.value.stepType
         )
 
       )
     ).withPossibleTypes(() => List(
-      PossibleObject[OdbRepo[F], StepModel[A]](BiasType[F, A](typePrefix, outputType)),
-      PossibleObject[OdbRepo[F], StepModel[A]](DarkType[F, A](typePrefix, outputType)),
-      PossibleObject[OdbRepo[F], StepModel[A]](ScienceType[F, A](typePrefix, outputType))
+      PossibleObject[OdbRepo[F], StepModel[_]](BiasType[F]),
+      PossibleObject[OdbRepo[F], StepModel[_]](DarkType[F]),
+      PossibleObject[OdbRepo[F], StepModel[_]](ScienceType[F])
     ))
 
-  def BiasType[F[_]: Effect, A](
-    typePrefix:        String,
-    dynamicConfigType: OutputType[A]
-  ): ObjectType[OdbRepo[F], StepModel.Bias[A]] =
-    ObjectType[OdbRepo[F], StepModel.Bias[A]](
-      name        = s"${typePrefix}Bias",
+  def BiasType[F[_]: Effect]: ObjectType[OdbRepo[F], StepModel.Bias[_]] =
+    ObjectType[OdbRepo[F], StepModel.Bias[_]](
+      name        = s"Bias",
       description = "Bias calibration step",
-      interfaces  = List(PossibleInterface.apply[OdbRepo[F], StepModel.Bias[A]](StepType[F, A](typePrefix, dynamicConfigType))),
+      interfaces  = List(PossibleInterface.apply[OdbRepo[F], StepModel.Bias[_]](StepConfigType[F])),
       fields      = Nil
     )
 
-  def DarkType[F[_]: Effect, A](
-    typePrefix:        String,
-    dynamicConfigType: OutputType[A]
-  ): ObjectType[OdbRepo[F], StepModel.Dark[A]] =
-    ObjectType[OdbRepo[F], StepModel.Dark[A]](
-      name        = s"${typePrefix}Dark",
+  def DarkType[F[_]: Effect]: ObjectType[OdbRepo[F], StepModel.Dark[_]] =
+    ObjectType[OdbRepo[F], StepModel.Dark[_]](
+      name        = s"Dark",
       description = "Dark calibration step",
-      interfaces  = List(PossibleInterface.apply[OdbRepo[F], StepModel.Dark[A]](StepType[F, A](typePrefix, dynamicConfigType))),
+      interfaces  = List(PossibleInterface.apply[OdbRepo[F], StepModel.Dark[_]](StepConfigType[F])),
       fields      = Nil
     )
 
-  def ScienceType[F[_]: Effect, A](
-    typePrefix:        String,
-    dynamicConfigType: OutputType[A]
-  ): ObjectType[OdbRepo[F], StepModel.Science[A]] =
-    ObjectType[OdbRepo[F], StepModel.Science[A]] (
-      name        = s"${typePrefix}Science",
+  def ScienceType[F[_]: Effect]: ObjectType[OdbRepo[F], StepModel.Science[_]] =
+    ObjectType[OdbRepo[F], StepModel.Science[_]] (
+      name        = s"Science",
       description = "Science step",
-      interfaces  = List(PossibleInterface.apply[OdbRepo[F], StepModel.Science[A]](StepType[F, A](typePrefix, dynamicConfigType))),
+      interfaces  = List(PossibleInterface.apply[OdbRepo[F], StepModel.Science[_]](StepConfigType[F])),
       fields      = List(
 
         Field(
           name        = "offset",
           fieldType   = OffsetType[F],
           description = Some("Offset"),
-          resolve     = (ctx: Context[OdbRepo[F], StepModel.Science[A]]) => ctx.value.offset
+          resolve     = (ctx: Context[OdbRepo[F], StepModel.Science[_]]) => ctx.value.offset
         )
       )
 
