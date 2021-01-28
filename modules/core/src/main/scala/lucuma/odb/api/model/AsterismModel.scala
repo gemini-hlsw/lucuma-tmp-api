@@ -29,14 +29,6 @@ object AsterismModel extends AsterismOptics {
 
   sealed trait Type extends Product with Serializable
 
-//  object Type {
-//    case object Default extends Type
-//    case object Ghost   extends Type  // just to have a second one...
-//
-//    implicit val EnumeratedType: Enumerated[Type] =
-//      Enumerated.of(Default, Ghost)
-//  }
-
   implicit val TopLevelAsterism: TopLevelModel[Asterism.Id, AsterismModel] =
     TopLevelModel.instance(_.id, AsterismModel.existence)
 
