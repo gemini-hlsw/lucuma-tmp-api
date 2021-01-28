@@ -4,7 +4,7 @@
 package lucuma.odb.api.schema
 
 import lucuma.core.`enum`.Instrument
-import lucuma.odb.api.model.{ConfigModel, GmosModel}
+import lucuma.odb.api.model.{ConfigModel, GmosModel, ManualSequence}
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
 import sangria.schema._
@@ -13,7 +13,7 @@ import sangria.schema._
 object ConfigSchema {
 
   import GmosSchema._
-  import ManualSequenceSchema._
+  import InstrumentSequenceSchema._
   import syntax.`enum`._
 
   implicit val EnumTypeInstrument: EnumType[Instrument] =
@@ -44,6 +44,14 @@ object ConfigSchema {
       GmosSouthConfigType[F]
     )
 
+  def GmosNorthSequenceType[F[_]: Effect]: ObjectType[OdbRepo[F], ManualSequence[GmosModel.NorthStatic, GmosModel.NorthDynamic]] =
+    InstrumentSequenceType(
+      "GmosNorth",
+      "Instrument sequence",
+      GmosNorthStaticConfigType[F],
+      GmosNorthDynamicType[F]
+    )
+
   def GmosNorthConfigType[F[_]: Effect]: ObjectType[OdbRepo[F], ConfigModel.GmosNorth] =
     ObjectType(
       name        = "GmosNorthConfig",
@@ -53,16 +61,22 @@ object ConfigSchema {
 
         Field(
           name        = "manual",
-          fieldType   = ManualSequenceType[F, GmosModel.NorthStatic, GmosModel.NorthDynamic](
-            GmosNorthStaticConfigType[F],
-            GmosNorthDynamicType[F]
-          ),
+          fieldType   = GmosNorthSequenceType[F],
           description = Some("GMOS North manual sequence configuration"),
           resolve     = _.value.manual
         )
 
       )
     )
+
+  def GmosSouthSequenceType[F[_]: Effect]: ObjectType[OdbRepo[F], ManualSequence[GmosModel.SouthStatic, GmosModel.SouthDynamic]] =
+    InstrumentSequenceType(
+      "GmosSouth",
+      "Instrument sequence",
+      GmosSouthStaticConfigType[F],
+      GmosSouthDynamicType[F]
+    )
+
 
   def GmosSouthConfigType[F[_]: Effect]: ObjectType[OdbRepo[F], ConfigModel.GmosSouth] =
     ObjectType(
@@ -73,10 +87,7 @@ object ConfigSchema {
 
         Field(
           name        = "manual",
-          fieldType   = ManualSequenceType[F, GmosModel.SouthStatic, GmosModel.SouthDynamic](
-            GmosSouthStaticConfigType[F],
-            GmosSouthDynamicType[F]
-          ),
+          fieldType   = GmosSouthSequenceType[F],
           description = Some("GMOS South manual sequence configuration"),
           resolve     = _.value.manual
         )
