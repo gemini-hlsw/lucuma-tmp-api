@@ -119,6 +119,38 @@ trait SharingMutation {
       resolve   = c => c.asterism(_.unshareWithTargets(c.arg(ArgumentAsterismTargetLinks)))
     )
 
+  // ---- Target Asterisms
+
+  val InputObjectTargetAsterismLinks: InputObjectType[Sharing[Target.Id, Asterism.Id]] =
+    deriveInputObjectType[Sharing[Target.Id, Asterism.Id]](
+      InputObjectTypeName("TargetAsterismLinks"),
+      InputObjectTypeDescription("Targets and the asterisms with which they are associated"),
+      RenameInputField("one", "targetId"),
+      RenameInputField("many", "asterismIds")
+    )
+
+  val ArgumentTargetAsterismLinks: Argument[Sharing[Target.Id, Asterism.Id]] =
+    InputObjectTargetAsterismLinks.argument(
+      "input",
+      "Target/observation links"
+    )
+
+  def shareTargetWithAsterisms[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+    Field(
+      name      = "shareTargetWithAsterisms",
+      fieldType = TargetType[F],
+      arguments = List(ArgumentTargetAsterismLinks),
+      resolve   = c => c.target(_.shareWithAsterisms(c.arg(ArgumentTargetAsterismLinks)))
+    )
+
+  def unshareTargetWithAsterisms[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+    Field(
+      name      = "unshareTargetWithAsterisms",
+      fieldType = TargetType[F],
+      arguments = List(ArgumentTargetAsterismLinks),
+      resolve   = c => c.target(_.unshareWithAsterisms(c.arg(ArgumentTargetAsterismLinks)))
+    )
+
   // ---- Target Observations
 
   val InputObjectTargetObservationLinks: InputObjectType[Sharing[Target.Id, Observation.Id]] =
@@ -186,14 +218,17 @@ trait SharingMutation {
 
   def allFields[F[_]: Effect: Logger]: List[Field[OdbRepo[F], Unit]] =
     List(
+      shareAsterismWithObservations,
+      unshareAsterismWithObservations,
+
       shareAsterismWithPrograms,
       unshareAsterismWithPrograms,
 
       shareAsterismWithTargets,
       unshareAsterismWithTargets,
 
-      shareAsterismWithObservations,
-      unshareAsterismWithObservations,
+      shareTargetWithAsterisms,
+      unshareTargetWithAsterisms,
 
       shareTargetWithObservations,
       unshareTargetWithObservations,

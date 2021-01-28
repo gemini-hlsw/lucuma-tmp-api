@@ -45,26 +45,27 @@ trait OdbRepoTest {
 
     forAll { (t: Tables, is: List[Int]) =>
 
-      val (initial, shared, unshared, some) = runTest(t) { odb =>
-        val (repoA, repoB, share, unshare, lookup) = config(odb)
-        for {
-          as <- repoA.selectAll()
-          bs <- repoB.selectAll()
-          tp <- as.headOption.fold(IO((Set.empty[J], Set.empty[J], Set.empty[J], Set.empty[J]))) { a =>
+      val (initial, shared, unshared, some) =
+        runTest(t) { odb =>
+          val (repoA, repoB, share, unshare, lookup) = config(odb)
+          for {
+            as <- repoA.selectAll()
+            bs <- repoB.selectAll()
+            tp <- as.headOption.fold(IO((Set.empty[J], Set.empty[J], Set.empty[J], Set.empty[J]))) { a =>
 
-            val ia = TopLevelModel[I, A].id(a)
-            val some = subset(bs, is).map(b => TopLevelModel[J, B].id(b))
-            for {
-              initial  <- lookup(ia).map(_.map(TopLevelModel[J, B].id))
-              _        <- share(Sharing(ia, some))
-              shared   <- lookup(ia).map(_.map(TopLevelModel[J, B].id))
-              _        <- unshare(Sharing(ia, some))
-              unshared <- lookup(ia).map(_.map(TopLevelModel[J, B].id))
-            } yield (initial.toSet, shared.toSet, unshared.toSet, some.toSet)
+              val ia = TopLevelModel[I, A].id(a)
+              val some = subset(bs, is).map(b => TopLevelModel[J, B].id(b))
+              for {
+                initial  <- lookup(ia).map(_.map(TopLevelModel[J, B].id))
+                _        <- share(Sharing(ia, some))
+                shared   <- lookup(ia).map(_.map(TopLevelModel[J, B].id))
+                _        <- unshare(Sharing(ia, some))
+                unshared <- lookup(ia).map(_.map(TopLevelModel[J, B].id))
+              } yield (initial.toSet, shared.toSet, unshared.toSet, some.toSet)
 
-          }
-        } yield tp
-      }
+            }
+          } yield tp
+        }
 
       assertEquals(shared,   initial ++ some)
       assertEquals(unshared, initial -- some)
