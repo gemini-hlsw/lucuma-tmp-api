@@ -17,7 +17,6 @@ final case class CoAddsModel(
 
 object CoAddsModel {
 
-
   final val One: CoAddsModel =
     fromShort.getOption(1).get
 
