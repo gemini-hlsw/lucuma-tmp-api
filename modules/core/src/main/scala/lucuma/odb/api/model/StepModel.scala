@@ -82,6 +82,16 @@ object StepModel {
       )
     }
 
+  def gcalConfig[A]: Optional[StepModel[A], GcalModel] =
+    Optional[StepModel[A], GcalModel](_.gcal.map(_.gcalConfig)) { a =>
+      _.fold(
+        identity,
+        identity,
+        _.copy(gcalConfig = a),
+        identity
+      )
+    }
+
   def offset[A]: Optional[StepModel[A], Offset] =
     Optional[StepModel[A], Offset](_.science.map(_.offset)) { a =>
       _.fold(
