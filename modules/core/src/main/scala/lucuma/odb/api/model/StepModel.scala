@@ -10,13 +10,13 @@ import cats.Eq
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
-import monocle.{Lens, Optional, Setter}
+import monocle.{Lens, Optional}
 import monocle.macros.Lenses
 
 // For now, just bias, dark, and science.  Pending smart-gcal and gcal.
 
 sealed abstract class StepModel[A] extends Product with Serializable {
-  def dynamicConfig: A
+  def instrumentConfig: A
 
   def fold[B](
     biasFn:    StepModel.Bias[A]    => B,
@@ -67,18 +67,18 @@ sealed abstract class StepModel[A] extends Product with Serializable {
 
 object StepModel {
 
-  @Lenses final case class Bias   [A](dynamicConfig: A)                        extends StepModel[A]
-  @Lenses final case class Dark   [A](dynamicConfig: A)                        extends StepModel[A]
-  @Lenses final case class Gcal   [A](dynamicConfig: A, gcalConfig: GcalModel) extends StepModel[A]
-  @Lenses final case class Science[A](dynamicConfig: A, offset: Offset)        extends StepModel[A]
+  @Lenses final case class Bias   [A](instrumentConfig: A)                        extends StepModel[A]
+  @Lenses final case class Dark   [A](instrumentConfig: A)                        extends StepModel[A]
+  @Lenses final case class Gcal   [A](instrumentConfig: A, gcalConfig: GcalModel) extends StepModel[A]
+  @Lenses final case class Science[A](instrumentConfig: A, offset: Offset)        extends StepModel[A]
 
-  def dynamicConfig[A]: Lens[StepModel[A], A] =
-    Lens[StepModel[A], A](_.dynamicConfig) { a =>
+  def instrumentConfig[A]: Lens[StepModel[A], A] =
+    Lens[StepModel[A], A](_.instrumentConfig) { a =>
       _.fold(
-        _.copy(dynamicConfig = a),
-        _.copy(dynamicConfig = a),
-        _.copy(dynamicConfig = a),
-        _.copy(dynamicConfig = a)
+        _.copy(instrumentConfig = a),
+        _.copy(instrumentConfig = a),
+        _.copy(instrumentConfig = a),
+        _.copy(instrumentConfig = a)
       )
     }
 
@@ -102,17 +102,17 @@ object StepModel {
       )
     }
 
-  def bias[A](dynamicConfig: A): StepModel[A] =
-    Bias(dynamicConfig)
+  def bias[A](instrumentConfig: A): StepModel[A] =
+    Bias(instrumentConfig)
 
-  def dark[A](dynamicConfig: A): StepModel[A] =
-    Dark(dynamicConfig)
+  def dark[A](instrumentConfig: A): StepModel[A] =
+    Dark(instrumentConfig)
 
-  def gcal[A](dynamicConfig: A, gcalConfig: GcalModel): StepModel[A] =
-    Gcal(dynamicConfig, gcalConfig)
+  def gcal[A](instrumentConfig: A, gcalConfig: GcalModel): StepModel[A] =
+    Gcal(instrumentConfig, gcalConfig)
 
-  def science[A](dynamicConfig: A, offset: Offset): StepModel[A] =
-    Science(dynamicConfig, offset)
+  def science[A](instrumentConfig: A, offset: Offset): StepModel[A] =
+    Science(instrumentConfig, offset)
 
 
   implicit def EqStepModel[A: Eq]: Eq[StepModel[A]] =
@@ -258,31 +258,32 @@ object StepModel {
     implicit def ValidateCreateStep[A, B](implicit ev: InputValidator[A, B]): InputValidator[CreateStep[A], StepModel[B]] =
       (csa: CreateStep[A]) => csa.create[B]
 
-    def bias[A](b: CreateBias[A]): CreateStep[A] =
-      Empty[A].copy(bias = Some(b))
+    def bias[A](a: A): CreateStep[A] =
+      Empty[A].copy(bias = Some(CreateBias(a)))
 
-    def dark[A](d: CreateDark[A]): CreateStep[A] =
-      Empty[A].copy(dark = Some(d))
+    def dark[A](a: A): CreateStep[A] =
+      Empty[A].copy(dark = Some(CreateDark(a)))
 
-    def gcal[A](g: CreateGcal[A]): CreateStep[A] =
-      Empty[A].copy(gcal = Some(g))
+    def gcal[A](a: A, g: GcalModel.Create): CreateStep[A] =
+      Empty[A].copy(gcal = Some(CreateGcal(a, g)))
 
-    def science[A](s: CreateScience[A]): CreateStep[A] =
-      Empty[A].copy(science = Some(s))
+    def science[A](a: A, o: OffsetModel.Input): CreateStep[A] =
+      Empty[A].copy(science = Some(CreateScience(a, o)))
 
-    /**
-     * Sets the instrument configuration in the step, whether it is a bias,
-     * dark, etc.
-     */
-    def config[A]: Setter[CreateStep[A], A] =
-      Setter[CreateStep[A], A] { f => c =>
-        CreateStep(
-          c.bias.map(CreateBias.config.modify(f)),
-          c.dark.map(CreateDark.config.modify(f)),
-          c.gcal.map(CreateGcal.config.modify(f)),
-          c.science.map(CreateScience.config.modify(f))
-        )
-      }
+    def instrumentConfig[A]: Optional[CreateStep[A], A] =
+      Optional[CreateStep[A], A] {
+        case CreateStep(Some(CreateBias(a)), None, None, None)       => a.some
+        case CreateStep(None, Some(CreateDark(a)), None, None)       => a.some
+        case CreateStep(None, None, Some(CreateGcal(a, _)), None)    => a.some
+        case CreateStep(None, None, None, Some(CreateScience(a, _))) => a.some
+        case _                                                       => None
+      }{ a => {
+        case CreateStep(Some(CreateBias(_)), None, None, None)       => CreateStep.bias(a)
+        case CreateStep(None, Some(CreateDark(_)), None, None)       => CreateStep.dark(a)
+        case CreateStep(None, None, Some(CreateGcal(_, g)), None)    => CreateStep.gcal(a, g)
+        case CreateStep(None, None, None, Some(CreateScience(_, o))) => CreateStep.science(a, o)
+        case other                                                   => other
+      }}
 
     /**
      * Optional for gcal configuration.

@@ -42,7 +42,7 @@ object StepSchema {
           name        = "instrumentConfig",
           fieldType   = outputType,
           description = Some("Instrument configuration"),
-          resolve     = _.value.dynamicConfig
+          resolve     = _.value.instrumentConfig
         ),
 
         Field(

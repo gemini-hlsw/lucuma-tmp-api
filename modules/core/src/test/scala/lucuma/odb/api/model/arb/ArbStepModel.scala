@@ -22,7 +22,7 @@ trait ArbStepModel {
     }
 
   implicit def cogBias[A: Cogen]: Cogen[StepModel.Bias[A]] =
-    Cogen[A].contramap(_.dynamicConfig)
+    Cogen[A].contramap(_.instrumentConfig)
 
   implicit def arbDark[A: Arbitrary]: Arbitrary[StepModel.Dark[A]] =
     Arbitrary {
@@ -30,7 +30,7 @@ trait ArbStepModel {
     }
 
   implicit def cogDark[A: Cogen]: Cogen[StepModel.Dark[A]] =
-    Cogen[A].contramap(_.dynamicConfig)
+    Cogen[A].contramap(_.instrumentConfig)
 
   implicit def arbGcal[A: Arbitrary]: Arbitrary[StepModel.Gcal[A]] =
     Arbitrary {
@@ -42,7 +42,7 @@ trait ArbStepModel {
 
   implicit def cogGcal[A: Cogen]: Cogen[StepModel.Gcal[A]] =
     Cogen[(A, GcalModel)].contramap { in => (
-      in.dynamicConfig,
+      in.instrumentConfig,
       in.gcalConfig
     )}
 
@@ -56,7 +56,7 @@ trait ArbStepModel {
 
   implicit def cogScience[A: Cogen]: Cogen[StepModel.Science[A]] =
     Cogen[(A, Offset)].contramap { in => (
-      in.dynamicConfig,
+      in.instrumentConfig,
       in.offset
     )}
 
@@ -129,7 +129,10 @@ trait ArbStepModel {
         arbitrary[StepModel.CreateBias[A]].map(   b => StepModel.CreateStep(Some(b), None, None, None)),
         arbitrary[StepModel.CreateDark[A]].map(   d => StepModel.CreateStep(None, Some(d), None, None)),
         arbitrary[StepModel.CreateGcal[A]].map(   g => StepModel.CreateStep(None, None, Some(g), None)),
-        arbitrary[StepModel.CreateScience[A]].map(s => StepModel.CreateStep(None, None, None, Some(s)))
+        arbitrary[StepModel.CreateScience[A]].map(s => StepModel.CreateStep(None, None, None, Some(s))),
+        arbitrary[(StepModel.CreateGcal[A], StepModel.CreateScience[A])].map { case (g, s) =>
+          StepModel.CreateStep(None, None, Some(g), Some(s))  // invalid but possible input
+        }
       )
     }
 
