@@ -4,6 +4,7 @@
 package lucuma.odb.api.service
 
 import cats.Applicative
+import cats.data.State
 import lucuma.odb.api.model._
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.`enum`._
@@ -77,47 +78,109 @@ object Init {
   val targets: Either[Exception, List[TargetModel.CreateSidereal]] =
     targetsJson.traverse(decode[TargetModel.CreateSidereal])
 
-  import GmosModel.CreateSouthDynamic
+  import GmosModel.{CreateCcdReadout, CreateSouthDynamic}
+  import StepModel.CreateStep
 
-  val ac0: StepModel.CreateStep[CreateSouthDynamic] =
-    StepModel.CreateStep.science(
-      StepModel.CreateScience(
-        GmosModel.CreateSouthDynamic(
-          FiniteDurationModel.Input(10.seconds),
-          GmosModel.CreateCcdReadout(
-            GmosXBinning.Two,
-            GmosYBinning.Two,
-            GmosAmpCount.Twelve,
-            GmosAmpGain.Low,
-            GmosAmpReadMode.Fast
-          ),
-          GmosDtax.Zero,
-          GmosRoi.Ccd2,
-          None,
-          Some(GmosSouthFilter.RPrime),
-          None
-        ),
-        OffsetModel.Input.Zero
-      )
+  import CreateSouthDynamic.{exposure, filter, fpu, grating, readout, roi, step}
+  import CreateCcdReadout.{ampRead, xBin, yBin}
+
+  private def edit[A](start: A)(state: State[A, _]): A =
+    state.runS(start).value
+
+  val gmosAc: CreateSouthDynamic =
+    CreateSouthDynamic(
+      FiniteDurationModel.Input(10.seconds),
+      CreateCcdReadout(
+        GmosXBinning.Two,
+        GmosYBinning.Two,
+        GmosAmpCount.Twelve,
+        GmosAmpGain.Low,
+        GmosAmpReadMode.Fast
+      ),
+      GmosDtax.Zero,
+      GmosRoi.Ccd2,
+      None,
+      Some(GmosSouthFilter.RPrime),
+      None
     )
 
-  import GmosModel.CreateSouthDynamic.{readout, roi, step, fpu}
+  val ac1: CreateStep[CreateSouthDynamic] =
+    CreateStep.science(gmosAc, OffsetModel.Input.Zero)
 
-  val ac1: StepModel.CreateStep[CreateSouthDynamic] = {
-    import GmosModel.CreateCcdReadout.{xBin, yBin}
+  val ac2: CreateStep[CreateSouthDynamic] =
+    edit(ac1) {
+      for {
+        _ <- step.p                                         := ComponentInput(10.arcsec)
+        _ <- step.exposure                                  := FiniteDurationModel.Input(20.seconds)
+        _ <- (step.instrumentConfig ^|-> readout ^|-> xBin) := GmosXBinning.One
+        _ <- (step.instrumentConfig ^|-> readout ^|-> yBin) := GmosYBinning.One
+        _ <- (step.instrumentConfig ^|-> roi)               := GmosRoi.CentralStamp
+        _ <- (step.instrumentConfig ^|-> fpu)               := GmosSouthFpu.LongSlit_1_00.asRight.some
+      } yield ()
+    }
 
-    (for {
-      _ <- step.p                              := ComponentInput(10.arcsec)
-      _ <- step.exposure                       .assign_(FiniteDurationModel.Input(20.seconds))
-      _ <- (step.setter ^|-> readout ^|-> xBin).assign_(GmosXBinning.One)
-      _ <- (step.setter ^|-> readout ^|-> yBin).assign_(GmosYBinning.One)
-      _ <- (step.setter ^|-> roi)              .assign_(GmosRoi.CentralStamp)
-      _ <- (step.setter ^|-> fpu)              .assign_(Some(Right(GmosSouthFpu.LongSlit_1_00)))
-    } yield ()).runS(ac0).value
-  }
+  val ac3: CreateStep[CreateSouthDynamic] =
+    step.exposure.assign_(FiniteDurationModel.Input(30.seconds)).runS(ac2).value
 
-  val ac2: StepModel.CreateStep[CreateSouthDynamic] =
-    step.exposure.assign_(FiniteDurationModel.Input(30.seconds)).runS(ac1).value
+  val acquisitionSequence: List[CreateStep[CreateSouthDynamic]] =
+    List(ac1, ac2, ac3, ac3)
+
+  val gcal: GcalModel.Create =
+    GcalModel.Create(
+      GcalContinuum.QuartzHalogen.some,
+      List.empty[GcalArc],
+      GcalFilter.Gmos,
+      GcalDiffuser.Visible,
+      GcalShutter.Closed,
+      FiniteDurationModel.Input.fromSeconds(3.0),
+      CoAddsModel.Input(1)
+    )
+
+  val Q15: OffsetModel.Input =
+    OffsetModel.Input.fromArcseconds(0.0, 15.0)
+
+  val gmos520: CreateSouthDynamic =
+    edit(gmosAc) {
+      for {
+        _ <- exposure               := FiniteDurationModel.Input.fromSeconds(950.0)
+        _ <- (readout ^|-> ampRead) := GmosAmpReadMode.Slow
+        _ <- (readout ^|-> xBin)    := GmosXBinning.Two
+        _ <- (readout ^|-> yBin)    := GmosYBinning.Two
+        _ <- roi                    := GmosRoi.CentralSpectrum
+        _ <- grating                := GmosModel.CreateGrating[GmosSouthDisperser](GmosSouthDisperser.B600_G5323, GmosDisperserOrder.One, WavelengthModel.Input.fromNanometers(520.0)).some
+        _ <- filter                 := Option.empty[GmosSouthFilter]
+        _ <- fpu                    := GmosSouthFpu.LongSlit_1_00.asRight.some
+      } yield ()
+    }
+
+  val gmos525: CreateSouthDynamic =
+    edit(gmos520)(
+      CreateSouthDynamic.instrument.wavelength := WavelengthModel.Input.fromNanometers(525.0)
+    )
+
+  val flat_520: CreateStep[CreateSouthDynamic] =
+    CreateStep.gcal(gmos520, gcal)
+
+  val flat_525: CreateStep[CreateSouthDynamic] =
+    CreateStep.gcal(gmos525, gcal)
+
+  val sci0_520: CreateStep[CreateSouthDynamic] =
+    CreateStep.science(gmos520, OffsetModel.Input.Zero)
+
+  val sci15_520: CreateStep[CreateSouthDynamic] =
+    CreateStep.science(gmos520, Q15)
+
+  val sci0_525: CreateStep[CreateSouthDynamic] =
+    CreateStep.science(gmos525, OffsetModel.Input.Zero)
+
+  val sci15_525: CreateStep[CreateSouthDynamic] =
+    CreateStep.science(gmos525, Q15)
+
+  val scienceSequence: List[CreateStep[CreateSouthDynamic]] =
+    List(
+      flat_520, sci0_520, sci15_520, flat_520, sci15_520, sci0_520, flat_520, sci0_520, sci15_520, flat_520,
+      flat_525, sci15_525, sci0_525, flat_525, sci0_525, sci15_525, flat_525
+    )
 
   /**
    * Initializes a (presumably) empty ODB with some demo values.
@@ -159,8 +222,8 @@ object Init {
                     ConfigModel.CreateGmosSouth(
                       ManualSequence.Create(
                         GmosModel.CreateSouthStatic.Default,
-                        List(ac0, ac1, ac2, ac2),
-                        Nil
+                        acquisitionSequence,
+                        scienceSequence
                       )
                     )
                   )

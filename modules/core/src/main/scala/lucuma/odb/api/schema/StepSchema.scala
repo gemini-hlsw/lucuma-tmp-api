@@ -3,18 +3,48 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.core.`enum`.StepType
+import lucuma.core.`enum`._
 import lucuma.odb.api.model.StepModel
 import lucuma.odb.api.repo.OdbRepo
-
 import cats.effect.Effect
 import sangria.schema._
 
 
 object StepSchema {
 
+  import FiniteDurationSchema._
   import OffsetSchema._
   import syntax.`enum`._
+
+  implicit val EnumTypeGcalContinuum: EnumType[GcalContinuum] =
+    EnumType.fromEnumerated(
+      "GcalContinuum",
+      "GCAL continuum"
+    )
+
+  implicit val EnumTypeGcalArc: EnumType[GcalArc] =
+    EnumType.fromEnumerated(
+      "GcalArc",
+      "GCAL arc"
+    )
+
+  implicit val EnumTypeGcalFilter: EnumType[GcalFilter] =
+    EnumType.fromEnumerated(
+      "GcalFilter",
+      "GCAL filter"
+    )
+
+  implicit val EnumTypeGcalDiffuser: EnumType[GcalDiffuser] =
+    EnumType.fromEnumerated(
+      "GcalDiffuser",
+      "GCAL diffuser"
+    )
+
+  implicit val EnumTypeGcalShutter: EnumType[GcalShutter] =
+    EnumType.fromEnumerated(
+      "GcalShutter",
+      "GCAL shutter"
+    )
 
   implicit val EnumTypeStepType: EnumType[StepType] =
     EnumType.fromEnumerated(
@@ -42,7 +72,7 @@ object StepSchema {
           name        = "instrumentConfig",
           fieldType   = outputType,
           description = Some("Instrument configuration"),
-          resolve     = _.value.dynamicConfig
+          resolve     = _.value.instrumentConfig
         ),
 
         Field(
@@ -70,30 +100,89 @@ object StepSchema {
 
       )
     ).withPossibleTypes(() => List(
-      PossibleObject[OdbRepo[F], StepModel[_]](BiasType[F]),
-      PossibleObject[OdbRepo[F], StepModel[_]](DarkType[F]),
-      PossibleObject[OdbRepo[F], StepModel[_]](ScienceType[F])
+      PossibleObject[OdbRepo[F], StepModel[_]](BiasStepType[F]),
+      PossibleObject[OdbRepo[F], StepModel[_]](DarkStepType[F]),
+      PossibleObject[OdbRepo[F], StepModel[_]](GcalStepType[F]),
+      PossibleObject[OdbRepo[F], StepModel[_]](ScienceStepType[F])
     ))
 
-  def BiasType[F[_]: Effect]: ObjectType[OdbRepo[F], StepModel.Bias[_]] =
+  def BiasStepType[F[_]: Effect]: ObjectType[OdbRepo[F], StepModel.Bias[_]] =
     ObjectType[OdbRepo[F], StepModel.Bias[_]](
-      name        = s"Bias",
+      name        = "Bias",
       description = "Bias calibration step",
       interfaces  = List(PossibleInterface.apply[OdbRepo[F], StepModel.Bias[_]](StepConfigType[F])),
       fields      = Nil
     )
 
-  def DarkType[F[_]: Effect]: ObjectType[OdbRepo[F], StepModel.Dark[_]] =
+  def DarkStepType[F[_]: Effect]: ObjectType[OdbRepo[F], StepModel.Dark[_]] =
     ObjectType[OdbRepo[F], StepModel.Dark[_]](
-      name        = s"Dark",
+      name        = "Dark",
       description = "Dark calibration step",
       interfaces  = List(PossibleInterface.apply[OdbRepo[F], StepModel.Dark[_]](StepConfigType[F])),
       fields      = Nil
     )
 
-  def ScienceType[F[_]: Effect]: ObjectType[OdbRepo[F], StepModel.Science[_]] =
+  def GcalStepType[F[_]: Effect]: ObjectType[OdbRepo[F], StepModel.Gcal[_]] =
+    ObjectType[OdbRepo[F], StepModel.Gcal[_]](
+      name        = "Gcal",
+      description = "GCAL calibration step (flat / arc)",
+      interfaces  = List(PossibleInterface.apply[OdbRepo[F], StepModel.Gcal[_]](StepConfigType[F])),
+      fields      = List(
+
+        Field(
+          name        = "continuum",
+          fieldType   = OptionType(EnumTypeGcalContinuum),
+          description = Some("GCAL continuum, present if no arcs are used"),
+          resolve     = (ctx: Context[OdbRepo[F], StepModel.Gcal[_]]) => ctx.value.gcalConfig.lamp.swap.toOption
+        ),
+
+        Field(
+          name        = "arcs",
+          fieldType   = ListType(EnumTypeGcalArc),
+          description = Some("GCAL arcs, one or more present if no continuum is used"),
+          resolve     = (ctx: Context[OdbRepo[F], StepModel.Gcal[_]]) => ctx.value.gcalConfig.lamp.toOption.toList.flatMap(_.toList)
+        ),
+
+        Field(
+          name        = "filter",
+          fieldType   = EnumTypeGcalFilter,
+          description = Some("GCAL filter"),
+          resolve     = (ctx: Context[OdbRepo[F], StepModel.Gcal[_]]) => ctx.value.gcalConfig.filter
+        ),
+
+        Field(
+          name        = "diffuser",
+          fieldType   = EnumTypeGcalDiffuser,
+          description = Some("GCAL diffuser"),
+          resolve     = (ctx: Context[OdbRepo[F], StepModel.Gcal[_]]) => ctx.value.gcalConfig.diffuser
+        ),
+
+        Field(
+          name        = "shutter",
+          fieldType   = EnumTypeGcalShutter,
+          description = Some("GCAL shutter"),
+          resolve     = (ctx: Context[OdbRepo[F], StepModel.Gcal[_]]) => ctx.value.gcalConfig.shutter
+        ),
+
+        Field(
+          name        = "exposure",
+          fieldType   = DurationType[F],
+          description = Some("GCAL exposure time"),
+          resolve     = (ctx: Context[OdbRepo[F], StepModel.Gcal[_]]) => ctx.value.gcalConfig.exposureTime
+        ),
+
+        Field(
+          name        = "coadds",
+          fieldType   = IntType,
+          description = Some("GCAL coadds"),
+          resolve     = (ctx: Context[OdbRepo[F], StepModel.Gcal[_]]) => ctx.value.gcalConfig.coadds.toPosShort.value.toInt
+        )
+      )
+    )
+
+  def ScienceStepType[F[_]: Effect]: ObjectType[OdbRepo[F], StepModel.Science[_]] =
     ObjectType[OdbRepo[F], StepModel.Science[_]] (
-      name        = s"Science",
+      name        = "Science",
       description = "Science step",
       interfaces  = List(PossibleInterface.apply[OdbRepo[F], StepModel.Science[_]](StepConfigType[F])),
       fields      = List(

@@ -16,8 +16,9 @@ import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import io.circe.generic.extras.semiauto.deriveConfiguredDecoder
 import io.circe.generic.extras.Configuration
-import monocle.{Optional, Setter}
+import monocle.Optional
 import monocle.macros.Lenses
+import monocle.std.option.some
 
 import scala.concurrent.duration._
 
@@ -550,9 +551,9 @@ object GmosModel {
     readout:  CreateCcdReadout                               = CreateCcdReadout(),
     dtax:     GmosDtax                                       = GmosDtax.Zero,
     roi:      GmosRoi                                        = GmosRoi.FullFrame,
-    grating: Option[CreateGrating[GmosSouthDisperser]]       = None,
-    filter:  Option[GmosSouthFilter]                         = None,
-    fpu:     Option[Either[CreateCustomMask, GmosSouthFpu]]  = None
+    grating:  Option[CreateGrating[GmosSouthDisperser]]      = None,
+    filter:   Option[GmosSouthFilter]                        = None,
+    fpu:      Option[Either[CreateCustomMask, GmosSouthFpu]] = None
   ) {
 
     val create: ValidatedInput[SouthDynamic] =
@@ -584,18 +585,35 @@ object GmosModel {
     implicit def ValidatorSouthDynamic: InputValidator[CreateSouthDynamic, SouthDynamic] =
       InputValidator.by(_.create)
 
-    object step {
-      val setter: Setter[StepModel.CreateStep[CreateSouthDynamic], CreateSouthDynamic] =
-        StepModel.CreateStep.config[CreateSouthDynamic]
+    object instrument {
 
-      val exposure: Setter[StepModel.CreateStep[CreateSouthDynamic], FiniteDurationModel.Input] =
-        setter ^|-> CreateSouthDynamic.exposure
+      val grating: Optional[CreateSouthDynamic, CreateGrating[GmosSouthDisperser]] =
+        CreateSouthDynamic.grating ^<-? some
+
+      val wavelength: Optional[CreateSouthDynamic, WavelengthModel.Input] =
+        grating ^|-> CreateGrating.wavelength[GmosSouthDisperser]
+
+    }
+
+    object step {
+      val instrumentConfig: Optional[StepModel.CreateStep[CreateSouthDynamic], CreateSouthDynamic] =
+        StepModel.CreateStep.instrumentConfig[CreateSouthDynamic]
+
+      val exposure: Optional[StepModel.CreateStep[CreateSouthDynamic], FiniteDurationModel.Input] =
+        instrumentConfig ^|-> CreateSouthDynamic.exposure
 
       val p: Optional[StepModel.CreateStep[CreateSouthDynamic], OffsetModel.ComponentInput] =
         StepModel.CreateStep.p[CreateSouthDynamic]
 
       val q: Optional[StepModel.CreateStep[CreateSouthDynamic], OffsetModel.ComponentInput] =
         StepModel.CreateStep.q[CreateSouthDynamic]
+
+      val grating: Optional[StepModel.CreateStep[CreateSouthDynamic], CreateGrating[GmosSouthDisperser]] =
+        instrumentConfig ^|-? instrument.grating
+
+      val wavelength: Optional[StepModel.CreateStep[CreateSouthDynamic], WavelengthModel.Input] =
+        grating ^|-> CreateGrating.wavelength[GmosSouthDisperser]
+
     }
   }
 

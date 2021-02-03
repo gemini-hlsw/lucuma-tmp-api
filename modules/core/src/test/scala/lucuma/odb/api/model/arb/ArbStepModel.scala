@@ -12,6 +12,7 @@ import org.scalacheck.Arbitrary.arbitrary
 
 trait ArbStepModel {
 
+  import ArbGcalModel._
   import ArbOffset._
   import ArbOffsetModel._
 
@@ -21,7 +22,7 @@ trait ArbStepModel {
     }
 
   implicit def cogBias[A: Cogen]: Cogen[StepModel.Bias[A]] =
-    Cogen[A].contramap(_.dynamicConfig)
+    Cogen[A].contramap(_.instrumentConfig)
 
   implicit def arbDark[A: Arbitrary]: Arbitrary[StepModel.Dark[A]] =
     Arbitrary {
@@ -29,7 +30,21 @@ trait ArbStepModel {
     }
 
   implicit def cogDark[A: Cogen]: Cogen[StepModel.Dark[A]] =
-    Cogen[A].contramap(_.dynamicConfig)
+    Cogen[A].contramap(_.instrumentConfig)
+
+  implicit def arbGcal[A: Arbitrary]: Arbitrary[StepModel.Gcal[A]] =
+    Arbitrary {
+      for {
+        a <- arbitrary[A]
+        g <- arbitrary[GcalModel]
+      } yield StepModel.Gcal(a, g)
+    }
+
+  implicit def cogGcal[A: Cogen]: Cogen[StepModel.Gcal[A]] =
+    Cogen[(A, GcalModel)].contramap { in => (
+      in.instrumentConfig,
+      in.gcalConfig
+    )}
 
   implicit def arbScience[A: Arbitrary]: Arbitrary[StepModel.Science[A]] =
     Arbitrary {
@@ -41,7 +56,7 @@ trait ArbStepModel {
 
   implicit def cogScience[A: Cogen]: Cogen[StepModel.Science[A]] =
     Cogen[(A, Offset)].contramap { in => (
-      in.dynamicConfig,
+      in.instrumentConfig,
       in.offset
     )}
 
@@ -50,6 +65,7 @@ trait ArbStepModel {
       Gen.oneOf(
         arbitrary[StepModel.Bias[A]],
         arbitrary[StepModel.Dark[A]],
+        arbitrary[StepModel.Gcal[A]],
         arbitrary[StepModel.Science[A]]
       )
     }
@@ -58,8 +74,9 @@ trait ArbStepModel {
     Cogen[(
       Option[StepModel.Bias[A]],
       Option[StepModel.Dark[A]],
+      Option[StepModel.Gcal[A]],
       Option[StepModel.Science[A]]
-    )].contramap { in => (in.bias, in.dark, in.science) }
+    )].contramap { in => (in.bias, in.dark, in.gcal, in.science) }
 
 
   implicit def arbCreateBias[A: Arbitrary]: Arbitrary[StepModel.CreateBias[A]] =
@@ -78,6 +95,20 @@ trait ArbStepModel {
   implicit def cogCreateDark[A: Cogen]: Cogen[StepModel.CreateDark[A]] =
     Cogen[A].contramap(_.config)
 
+  implicit def arbCreateGcal[A: Arbitrary]: Arbitrary[StepModel.CreateGcal[A]] =
+    Arbitrary {
+      for {
+        a <- arbitrary[A]
+        g <- arbitrary[GcalModel.Create]
+      } yield StepModel.CreateGcal(a, g)
+    }
+
+  implicit def cogCreateGcal[A: Cogen]: Cogen[StepModel.CreateGcal[A]] =
+    Cogen[(A, GcalModel.Create)].contramap { in => (
+      in.config,
+      in.gcalConfig
+    )}
+
   implicit def arbCreateScience[A: Arbitrary]: Arbitrary[StepModel.CreateScience[A]] =
     Arbitrary {
       for {
@@ -95,9 +126,13 @@ trait ArbStepModel {
   implicit def arbCreateStep[A: Arbitrary]: Arbitrary[StepModel.CreateStep[A]] =
     Arbitrary {
       Gen.oneOf(
-        arbitrary[StepModel.CreateBias[A]].map(   b => StepModel.CreateStep(Some(b), None, None)),
-        arbitrary[StepModel.CreateDark[A]].map(   d => StepModel.CreateStep(None, Some(d), None)),
-        arbitrary[StepModel.CreateScience[A]].map(s => StepModel.CreateStep(None, None, Some(s)))
+        arbitrary[StepModel.CreateBias[A]].map(   b => StepModel.CreateStep(Some(b), None, None, None)),
+        arbitrary[StepModel.CreateDark[A]].map(   d => StepModel.CreateStep(None, Some(d), None, None)),
+        arbitrary[StepModel.CreateGcal[A]].map(   g => StepModel.CreateStep(None, None, Some(g), None)),
+        arbitrary[StepModel.CreateScience[A]].map(s => StepModel.CreateStep(None, None, None, Some(s))),
+        arbitrary[(StepModel.CreateGcal[A], StepModel.CreateScience[A])].map { case (g, s) =>
+          StepModel.CreateStep(None, None, Some(g), Some(s))  // invalid but possible input
+        }
       )
     }
 
@@ -105,10 +140,12 @@ trait ArbStepModel {
     Cogen[(
       Option[StepModel.CreateBias[A]],
       Option[StepModel.CreateDark[A]],
+      Option[StepModel.CreateGcal[A]],
       Option[StepModel.CreateScience[A]]
     )].contramap { in => (
       in.bias,
       in.dark,
+      in.gcal,
       in.science
     )}
 

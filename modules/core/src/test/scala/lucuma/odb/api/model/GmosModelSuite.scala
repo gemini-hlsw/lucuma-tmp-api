@@ -6,13 +6,19 @@ package lucuma.odb.api.model
 import lucuma.odb.api.model.arb._
 import lucuma.core.`enum`.GmosNorthDisperser
 import lucuma.core.util.arb.ArbEnumerated
+
 import cats.kernel.laws.discipline.EqTests
+import monocle.law.discipline.OptionalTests
 import munit.DisciplineSuite
 
 final class GmosModelSuite extends DisciplineSuite {
 
   import ArbEnumerated._
+  import ArbOffsetModel._
   import ArbGmosModel._
+  import ArbStepModel._
+  import ArbFiniteDurationModel._
+  import ArbWavelengthModel._
 
   checkAll("GmosModel.NodAndShuffle",               EqTests[GmosModel.NodAndShuffle].eqv)
   checkAll("GmosModel.CreateNodAndShuffle",         EqTests[GmosModel.CreateNodAndShuffle].eqv)
@@ -40,5 +46,11 @@ final class GmosModelSuite extends DisciplineSuite {
 
   checkAll("GmosModel.SouthDynamic",                EqTests[GmosModel.SouthDynamic].eqv)
   checkAll("GmosModel.CreateSouthDynamic",          EqTests[GmosModel.CreateSouthDynamic].eqv)
+
+  checkAll("GmosModel.CreateSouthDynamic.step.exposure",   OptionalTests(GmosModel.CreateSouthDynamic.step.exposure))
+  checkAll("GmosModel.CreateSouthDynamic.step.p",          OptionalTests(GmosModel.CreateSouthDynamic.step.p))
+  checkAll("GmosModel.CreateSouthDynamic.step.q",          OptionalTests(GmosModel.CreateSouthDynamic.step.q))
+  checkAll("GmosModel.CreateSouthDynamic.step.grating",    OptionalTests(GmosModel.CreateSouthDynamic.step.grating))
+  checkAll("GmosModel.CreateSouthDynamic.step.wavelength", OptionalTests(GmosModel.CreateSouthDynamic.step.wavelength))
 
 }

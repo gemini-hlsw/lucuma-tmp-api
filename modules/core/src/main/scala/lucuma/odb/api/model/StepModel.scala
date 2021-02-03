@@ -10,22 +10,24 @@ import cats.Eq
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
-import monocle.{Lens, Optional, Setter}
+import monocle.{Lens, Optional}
 import monocle.macros.Lenses
 
 // For now, just bias, dark, and science.  Pending smart-gcal and gcal.
 
 sealed abstract class StepModel[A] extends Product with Serializable {
-  def dynamicConfig: A
+  def instrumentConfig: A
 
   def fold[B](
     biasFn:    StepModel.Bias[A]    => B,
     darkFn:    StepModel.Dark[A]    => B,
+    gcalFn:    StepModel.Gcal[A]    => B,
     scienceFn: StepModel.Science[A] => B
   ): B =
     this match {
       case b @ StepModel.Bias(_)       => biasFn(b)
       case d @ StepModel.Dark(_)       => darkFn(d)
+      case g @ StepModel.Gcal(_, _)    => gcalFn(g)
       case s @ StepModel.Science(_, _) => scienceFn(s)
     }
 
@@ -41,6 +43,12 @@ sealed abstract class StepModel[A] extends Product with Serializable {
       case _                     => None
     }
 
+  def gcal: Option[StepModel.Gcal[A]] =
+    this match {
+      case g @ StepModel.Gcal(_, _) => Some(g)
+      case _                        => None
+    }
+
   def science: Option[StepModel.Science[A]] =
     this match {
       case s @ StepModel.Science(_, _) => Some(s)
@@ -51,6 +59,7 @@ sealed abstract class StepModel[A] extends Product with Serializable {
     fold(
       _ => StepType.Bias,
       _ => StepType.Dark,
+      _ => StepType.Gcal,
       _ => StepType.Science
     )
 
@@ -58,16 +67,28 @@ sealed abstract class StepModel[A] extends Product with Serializable {
 
 object StepModel {
 
-  @Lenses final case class Bias     [A](dynamicConfig: A)                 extends StepModel[A]
-  @Lenses final case class Dark     [A](dynamicConfig: A)                 extends StepModel[A]
-  @Lenses final case class Science  [A](dynamicConfig: A, offset: Offset) extends StepModel[A]
+  @Lenses final case class Bias   [A](instrumentConfig: A)                        extends StepModel[A]
+  @Lenses final case class Dark   [A](instrumentConfig: A)                        extends StepModel[A]
+  @Lenses final case class Gcal   [A](instrumentConfig: A, gcalConfig: GcalModel) extends StepModel[A]
+  @Lenses final case class Science[A](instrumentConfig: A, offset: Offset)        extends StepModel[A]
 
-  def dynamicConfig[A]: Lens[StepModel[A], A] =
-    Lens[StepModel[A], A](_.dynamicConfig) { a =>
+  def instrumentConfig[A]: Lens[StepModel[A], A] =
+    Lens[StepModel[A], A](_.instrumentConfig) { a =>
       _.fold(
-        _.copy(dynamicConfig = a),
-        _.copy(dynamicConfig = a),
-        _.copy(dynamicConfig = a)
+        _.copy(instrumentConfig = a),
+        _.copy(instrumentConfig = a),
+        _.copy(instrumentConfig = a),
+        _.copy(instrumentConfig = a)
+      )
+    }
+
+  def gcalConfig[A]: Optional[StepModel[A], GcalModel] =
+    Optional[StepModel[A], GcalModel](_.gcal.map(_.gcalConfig)) { a =>
+      _.fold(
+        identity,
+        identity,
+        _.copy(gcalConfig = a),
+        identity
       )
     }
 
@@ -76,24 +97,29 @@ object StepModel {
       _.fold(
         identity,
         identity,
+        identity,
         _.copy(offset = a)
       )
     }
 
-  def bias[A](dynamicConfig: A): StepModel[A] =
-    Bias(dynamicConfig)
+  def bias[A](instrumentConfig: A): StepModel[A] =
+    Bias(instrumentConfig)
 
-  def dark[A](dynamicConfig: A): StepModel[A] =
-    Dark(dynamicConfig)
+  def dark[A](instrumentConfig: A): StepModel[A] =
+    Dark(instrumentConfig)
 
-  def science[A](dynamicConfig: A, offset: Offset): StepModel[A] =
-    Science(dynamicConfig, offset)
+  def gcal[A](instrumentConfig: A, gcalConfig: GcalModel): StepModel[A] =
+    Gcal(instrumentConfig, gcalConfig)
+
+  def science[A](instrumentConfig: A, offset: Offset): StepModel[A] =
+    Science(instrumentConfig, offset)
 
 
   implicit def EqStepModel[A: Eq]: Eq[StepModel[A]] =
     Eq.instance {
       case (Bias(a), Bias(b))               => a === b
       case (Dark(a), Dark(b))               => a === b
+      case (Gcal(a, ga), Gcal(b, gb))       => (a === b) && (ga === gb)
       case (Science(a, oa), Science(b, ob)) => (a === b) && (oa === ob)
       case _                                => false
     }
@@ -164,9 +190,36 @@ object StepModel {
 
   }
 
+  @Lenses final case class CreateGcal[A](
+    config: A,
+    gcalConfig: GcalModel.Create
+  ) {
+
+    def create[B](implicit V: InputValidator[A, B]): ValidatedInput[Gcal[B]] =
+      (config.validateAndCreate, gcalConfig.create).mapN { (b, g) => Gcal(b, g) }
+  }
+
+  object CreateGcal {
+
+    implicit def EqCreateGcal[A: Eq]: Eq[CreateGcal[A]] =
+      Eq.by { a => (
+        a.config,
+        a.gcalConfig
+      )}
+
+    implicit def DecoderCreateGcal[A: Decoder]: Decoder[CreateGcal[A]] =
+      deriveDecoder[CreateGcal[A]]
+
+    implicit def ValidatorCreateScience[A, B](implicit V: InputValidator[A, B]): InputValidator[CreateGcal[A], Gcal[B]] =
+      (cga: CreateGcal[A]) => cga.create[B]
+
+  }
+
+
   @Lenses final case class CreateStep[A](
     bias:    Option[CreateBias[A]],
     dark:    Option[CreateDark[A]],
+    gcal:    Option[CreateGcal[A]],
     science: Option[CreateScience[A]]
   ) {
 
@@ -175,6 +228,7 @@ object StepModel {
         "step",
         bias.map    { _.validateAndCreate },
         dark.map    { _.validateAndCreate },
+        gcal.map    { _.validateAndCreate },
         science.map { _.validateAndCreate }
       )
 
@@ -186,6 +240,7 @@ object StepModel {
       CreateStep[A](
         None,
         None,
+        None,
         None
       )
 
@@ -193,6 +248,7 @@ object StepModel {
       Eq.by { a => (
         a.bias,
         a.dark,
+        a.gcal,
         a.science
       )}
 
@@ -202,26 +258,39 @@ object StepModel {
     implicit def ValidateCreateStep[A, B](implicit ev: InputValidator[A, B]): InputValidator[CreateStep[A], StepModel[B]] =
       (csa: CreateStep[A]) => csa.create[B]
 
-    def bias[A](b: CreateBias[A]): CreateStep[A] =
-      Empty[A].copy(bias = Some(b))
+    def bias[A](a: A): CreateStep[A] =
+      Empty[A].copy(bias = Some(CreateBias(a)))
 
-    def dark[A](d: CreateDark[A]): CreateStep[A] =
-      Empty[A].copy(dark = Some(d))
+    def dark[A](a: A): CreateStep[A] =
+      Empty[A].copy(dark = Some(CreateDark(a)))
 
-    def science[A](s: CreateScience[A]): CreateStep[A] =
-      Empty[A].copy(science = Some(s))
+    def gcal[A](a: A, g: GcalModel.Create): CreateStep[A] =
+      Empty[A].copy(gcal = Some(CreateGcal(a, g)))
+
+    def science[A](a: A, o: OffsetModel.Input): CreateStep[A] =
+      Empty[A].copy(science = Some(CreateScience(a, o)))
+
+    def instrumentConfig[A]: Optional[CreateStep[A], A] =
+      Optional[CreateStep[A], A] {
+        case CreateStep(Some(CreateBias(a)), None, None, None)       => a.some
+        case CreateStep(None, Some(CreateDark(a)), None, None)       => a.some
+        case CreateStep(None, None, Some(CreateGcal(a, _)), None)    => a.some
+        case CreateStep(None, None, None, Some(CreateScience(a, _))) => a.some
+        case _                                                       => None
+      }{ a => {
+        case CreateStep(Some(CreateBias(_)), None, None, None)       => CreateStep.bias(a)
+        case CreateStep(None, Some(CreateDark(_)), None, None)       => CreateStep.dark(a)
+        case CreateStep(None, None, Some(CreateGcal(_, g)), None)    => CreateStep.gcal(a, g)
+        case CreateStep(None, None, None, Some(CreateScience(_, o))) => CreateStep.science(a, o)
+        case other                                                   => other
+      }}
 
     /**
-     * Sets the instrument configuration in the step, whether it is a bias,
-     * dark, etc.
+     * Optional for gcal configuration.
      */
-    def config[A]: Setter[CreateStep[A], A] =
-      Setter[CreateStep[A], A] { f => c =>
-        CreateStep(
-          c.bias.map(CreateBias.config.modify(f)),
-          c.dark.map(CreateDark.config.modify(f)),
-          c.science.map(CreateScience.config.modify(f))
-        )
+    def gcalConfig[A]: Optional[CreateStep[A], GcalModel.Create] =
+      Optional[CreateStep[A], GcalModel.Create](_.gcal.map(_.gcalConfig)) { a => c =>
+        c.copy(gcal = c.gcal.map(CreateGcal.gcalConfig[A].set(a)))
       }
 
     /**
