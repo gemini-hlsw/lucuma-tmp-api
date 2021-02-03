@@ -47,6 +47,13 @@ object ObservationSchema {
       description  = "Observation ID"
     )
 
+  def ObservationTargetType[F[_]: Effect]: OutputType[Either[AsterismModel, TargetModel]] =
+    UnionType(
+      name        = "ObservationTarget",
+      description = Some("Either asterism or target"),
+      types       = List(AsterismType[F], TargetType[F])
+    ).mapValue[Either[AsterismModel, TargetModel]](_.merge)
+
   def ObservationType[F[_]](implicit F: Effect[F]): ObjectType[OdbRepo[F], ObservationModel] =
     ObjectType(
       name     = "Observation",
@@ -93,6 +100,19 @@ object ObservationSchema {
           description = Some("The program that contains this observation"),
           arguments   = List(ArgumentIncludeDeleted),
           resolve     = c => c.program(_.unsafeSelect(c.value.programId, c.includeDeleted))
+        ),
+
+        Field(
+          name        = "observationTarget",
+          fieldType   = OptionType(ObservationTargetType[F]),
+          description = Some("The observation's asterism or target (see also `asterism` and `target` fields)"),
+          arguments   = List(ArgumentIncludeDeleted),
+          resolve     = c => {
+            for {
+              a <- asterism[F](c)
+              t <- target[F](c)
+            } yield a.map(_.asLeft[TargetModel]) orElse t.map(_.asRight[AsterismModel])
+          }.toIO.unsafeToFuture()
         ),
 
         Field(
