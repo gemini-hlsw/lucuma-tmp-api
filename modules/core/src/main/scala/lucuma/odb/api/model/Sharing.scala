@@ -5,8 +5,7 @@ package lucuma.odb.api.model
 
 import cats.Eq
 import cats.syntax.all._
-import io.circe.Decoder
-import io.circe.generic.semiauto.deriveDecoder
+import io.circe.{Decoder, HCursor}
 
 /**
  * Input objects for sharing.
@@ -25,8 +24,12 @@ final case class Sharing[A, B](
 
 object Sharing {
 
-  implicit def DecoderSharing[A: Decoder, B: Decoder]: Decoder[Sharing[A, B]] =
-    deriveDecoder[Sharing[A, B]]
+  def customDecoder[A: Decoder, B: Decoder](aName: String, bName: String): Decoder[Sharing[A, B]] =
+    (c: HCursor) =>
+      for {
+        a  <- c.downField(aName).as[A]
+        bs <- c.downField(bName).as[List[B]]
+      } yield Sharing(a, bs)
 
   implicit def EqSharing[A: Eq, B: Eq]: Eq[Sharing[A, B]] =
     Eq.by { s => (

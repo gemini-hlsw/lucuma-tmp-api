@@ -8,7 +8,9 @@ import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.model.{Asterism, Observation, Program, Target}
 import cats.effect.Effect
 import io.chrisdavenport.log4cats.Logger
+import io.circe.Decoder
 import sangria.macros.derive._
+import sangria.marshalling.FromInput
 import sangria.marshalling.circe._
 import sangria.schema._
 
@@ -23,21 +25,34 @@ trait SharingMutation {
   import context._
   import syntax.inputobjecttype._
 
-  // ---- Asterism Observations
+  def linksArg[A: ScalarType: Decoder, B: ScalarType: Decoder](
+    aName:       String,
+    bName:       String
+  ): Argument[Sharing[A, B]] = {
 
-  val InputObjectAsterismObservationLinks: InputObjectType[Sharing[Asterism.Id, Observation.Id]] =
-    deriveInputObjectType[Sharing[Asterism.Id, Observation.Id]](
-      InputObjectTypeName("AsterismObservationLinks"),
-      InputObjectTypeDescription("Asterism and the observations with which they are associated"),
-      RenameInputField("one", "asterismId"),
-      RenameInputField("many", "observationIds")
-    )
+    val aField: String = s"${aName}Id"
+    val bField: String = s"${bName}Ids"
 
-  val ArgumentAsterismObservationLinks: Argument[Sharing[Asterism.Id, Observation.Id]] =
-    InputObjectAsterismObservationLinks.argument(
+    val iot: InputObjectType[Sharing[A, B]] =
+      deriveInputObjectType[Sharing[A, B]](
+        InputObjectTypeName(s"${aName.capitalize}${bName.capitalize}Links"),
+        InputObjectTypeDescription(s"${aName.capitalize} and the ${bName}s with which it is associated"),
+        RenameInputField("one", aField),
+        RenameInputField("many", bField)
+      )
+
+    val fi: FromInput[Sharing[A, B]] =
+      circeDecoderFromInput(Sharing.customDecoder[A, B](aField, bField))
+
+    toInputObjectTypeOps(iot)(fi).argument(
       "input",
-      "Asterism/observation links"
+      s"${aName.capitalize} / $bName links"
     )
+  }
+
+  // ---- Asterism Observations
+  val ArgumentAsterismObservationLinks: Argument[Sharing[Asterism.Id, Observation.Id]] =
+    linksArg[Asterism.Id, Observation.Id]("asterism", "observation")
 
   def shareAsterismWithObservations[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
@@ -57,19 +72,8 @@ trait SharingMutation {
 
   // ---- Asterism Programs
 
-  val InputObjectAsterismProgramLinks: InputObjectType[Sharing[Asterism.Id, Program.Id]] =
-    deriveInputObjectType[Sharing[Asterism.Id, Program.Id]](
-      InputObjectTypeName("AsterismProgramLinks"),
-      InputObjectTypeDescription("Asterism and the programs with which they are associated"),
-      RenameInputField("one", "asterismId"),
-      RenameInputField("many", "programIds")
-    )
-
   val ArgumentAsterismProgramLinks: Argument[Sharing[Asterism.Id, Program.Id]] =
-    InputObjectAsterismProgramLinks.argument(
-      "input",
-      "Asterism/program links"
-    )
+    linksArg[Asterism.Id, Program.Id]("asterism", "program")
 
   def shareAsterismWithPrograms[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
@@ -89,19 +93,8 @@ trait SharingMutation {
 
   // ---- Asterism Targets
 
-  val InputObjectAsterismTargetLinks: InputObjectType[Sharing[Asterism.Id, Target.Id]] =
-    deriveInputObjectType[Sharing[Asterism.Id, Target.Id]](
-      InputObjectTypeName("AsterismTargetLinks"),
-      InputObjectTypeDescription("Asterism and the targets with which they are associated"),
-      RenameInputField("one", "asterismId"),
-      RenameInputField("many", "targetIds")
-    )
-
   val ArgumentAsterismTargetLinks: Argument[Sharing[Asterism.Id, Target.Id]] =
-    InputObjectAsterismTargetLinks.argument(
-      "input",
-      "Asterism/target links"
-    )
+    linksArg[Asterism.Id, Target.Id]("asterism", "target")
 
   def shareAsterismWithTargets[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
@@ -120,20 +113,8 @@ trait SharingMutation {
     )
 
   // ---- Target Asterisms
-
-  val InputObjectTargetAsterismLinks: InputObjectType[Sharing[Target.Id, Asterism.Id]] =
-    deriveInputObjectType[Sharing[Target.Id, Asterism.Id]](
-      InputObjectTypeName("TargetAsterismLinks"),
-      InputObjectTypeDescription("Targets and the asterisms with which they are associated"),
-      RenameInputField("one", "targetId"),
-      RenameInputField("many", "asterismIds")
-    )
-
   val ArgumentTargetAsterismLinks: Argument[Sharing[Target.Id, Asterism.Id]] =
-    InputObjectTargetAsterismLinks.argument(
-      "input",
-      "Target/observation links"
-    )
+    linksArg[Target.Id, Asterism.Id]("target", "asterism")
 
   def shareTargetWithAsterisms[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
@@ -152,20 +133,8 @@ trait SharingMutation {
     )
 
   // ---- Target Observations
-
-  val InputObjectTargetObservationLinks: InputObjectType[Sharing[Target.Id, Observation.Id]] =
-    deriveInputObjectType[Sharing[Target.Id, Observation.Id]](
-      InputObjectTypeName("TargetObservationLinks"),
-      InputObjectTypeDescription("Targets and the observations with which they are associated"),
-      RenameInputField("one", "targetId"),
-      RenameInputField("many", "observationIds")
-    )
-
   val ArgumentTargetObservationLinks: Argument[Sharing[Target.Id, Observation.Id]] =
-    InputObjectTargetObservationLinks.argument(
-      "input",
-      "Target/observation links"
-    )
+    linksArg[Target.Id, Observation.Id]("target", "observation")
 
   def shareTargetWithObservations[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
@@ -184,20 +153,8 @@ trait SharingMutation {
     )
 
   // ---- Target Programs
-
-  val InputObjectTargetProgramLinks: InputObjectType[Sharing[Target.Id, Program.Id]] =
-    deriveInputObjectType[Sharing[Target.Id, Program.Id]](
-      InputObjectTypeName("TargetProgramLinks"),
-      InputObjectTypeDescription("Targets and the programs with which they are associated"),
-      RenameInputField("one", "targetId"),
-      RenameInputField("many", "programIds")
-    )
-
   val ArgumentTargetProgramLinks: Argument[Sharing[Target.Id, Program.Id]] =
-    InputObjectTargetProgramLinks.argument(
-      "input",
-      "Target/program links"
-    )
+    linksArg[Target.Id, Program.Id]("target", "program")
 
   def shareTargetWithPrograms[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
