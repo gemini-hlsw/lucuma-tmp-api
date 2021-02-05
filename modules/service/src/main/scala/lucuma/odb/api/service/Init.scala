@@ -13,7 +13,7 @@ import lucuma.core.math.syntax.int._
 import cats.effect.Sync
 import cats.syntax.all._
 import io.circe.parser.decode
-import lucuma.core.model.{Asterism, Target}
+import lucuma.core.model.Program
 import lucuma.odb.api.model.OffsetModel.ComponentInput
 import monocle.state.all._
 
@@ -24,25 +24,40 @@ object Init {
   val targetsJson = List(
 """
 {
-  "name":  "Rigel",
-  "ra":    { "hms":  "05:14:32.272" },
-  "dec":   { "dms": "-08:12:05.90"  },
+  "name":  "NGC 5949",
+  "ra":    { "hms":  "15:28:00.668" },
+  "dec":   { "dms": "64:45:47.4"  },
   "epoch": "J2000.000",
   "properMotion": {
-    "ra":  { "milliarcsecondsPerYear": 1.31 },
-    "dec": { "milliarcsecondsPerYear": 0.5  }
+    "ra":  { "milliarcsecondsPerYear": 0.0 },
+    "dec": { "milliarcsecondsPerYear": 0.0 }
   },
-  "radialVelocity": { "metersPerSecond": 17687 },
-  "parallax":       { "milliarcseconds":  6.55 },
+  "radialVelocity": { "metersPerSecond": 423607 },
+  "parallax":       { "milliarcseconds":  0.00 },
   "magnitudes": [
     {
-      "band": "R",
-      "value": 0.13,
+      "band": "B",
+      "value": 12.7,
       "system": "VEGA"
     },
     {
-      "band": "V",
-      "value": 0.13,
+      "band": "R",
+      "value": 12.252,
+      "system": "VEGA"
+    },
+    {
+      "band": "J",
+      "value": 10.279,
+      "system": "VEGA"
+    },
+    {
+      "band": "H",
+      "value": 9.649,
+      "system": "VEGA"
+    },
+    {
+      "band": "K",
+      "value": 9.425,
       "system": "VEGA"
     }
   ]
@@ -50,25 +65,86 @@ object Init {
 """,
 """
 {
-  "name":  "Betelgeuse",
-  "ra":    { "hms": "05:55:10.305" },
-  "dec":   { "dms": "07:24:25.43"  },
+  "name":  "NGC 3269",
+  "ra":    { "hms":  "10:29:57.070" },
+  "dec":   { "dms": "-35:13:27.8"  },
   "epoch": "J2000.000",
   "properMotion": {
-    "ra":  { "milliarcsecondsPerYear": 27.54 },
-    "dec": { "milliarcsecondsPerYear":  11.3 }
+    "ra":  { "milliarcsecondsPerYear": 0.0 },
+    "dec": { "milliarcsecondsPerYear": 0.0 }
   },
-  "radialVelocity": { "metersPerSecond": 21884 },
-  "parallax":       { "milliarcseconds":  3.78 },
+  "radialVelocity": { "metersPerSecond": 3753885 },
+  "parallax":       { "milliarcseconds":  0.00 },
   "magnitudes": [
     {
-      "band": "R",
-      "value": -1.17,
+      "band": "B",
+      "value": 13.24,
       "system": "VEGA"
     },
     {
       "band": "V",
-      "value": 0.42,
+      "value": 13.51,
+      "system": "VEGA"
+    },
+    {
+      "band": "R",
+      "value": 11.73,
+      "system": "VEGA"
+    },
+    {
+      "band": "J",
+      "value": 9.958,
+      "system": "VEGA"
+    },
+    {
+      "band": "H",
+      "value": 9.387,
+      "system": "VEGA"
+    },
+    {
+      "band": "K",
+      "value": 9.055,
+      "system": "VEGA"
+    }
+  ]
+}
+""",
+"""
+{
+  "name":  "NGC 3312",
+  "ra":    { "hms": "10:37:02.549" },
+  "dec":   { "dms": "-27:33:54.17"  },
+  "epoch": "J2000.000",
+  "properMotion": {
+    "ra":  { "milliarcsecondsPerYear": 0.0 },
+    "dec": { "milliarcsecondsPerYear":  0.0 }
+  },
+  "radialVelocity": { "metersPerSecond": 2826483 },
+  "parallax":       { "milliarcseconds":  0.0 },
+  "magnitudes": [
+    {
+      "band": "B",
+      "value": 12.63,
+      "system": "VEGA"
+    },
+    {
+      "band": "V",
+      "value": 13.96,
+      "system": "VEGA"
+    },
+    {
+      "band": "J",
+      "value": 9.552,
+      "system": "VEGA"
+    },
+    {
+      "band": "H",
+      "value": 8.907,
+      "system": "VEGA"
+    },
+    {
+      "band": "K",
+      "value": 8.665,
       "system": "VEGA"
     }
   ]
@@ -183,6 +259,30 @@ object Init {
       flat_525, sci15_525, sci0_525, flat_525, sci0_525, sci15_525, flat_525
     )
 
+  def obs(
+    pid:   Program.Id,
+    target: Option[TargetModel]
+  ): ObservationModel.Create =
+    ObservationModel.Create(
+      observationId = None,
+      programId     = pid,
+      name          = target.map(_.target.name.value) orElse Some("Observation"),
+      asterismId    = None,
+      targetId      = target.map(_.id),
+      status        = Some(ObsStatus.New),
+      config        = Some(
+        ConfigModel.Create.gmosSouth(
+          ConfigModel.CreateGmosSouth(
+            ManualSequence.Create(
+              GmosModel.CreateSouthStatic.Default,
+              acquisitionSequence,
+              scienceSequence
+            )
+          )
+        )
+      )
+    )
+
   /**
    * Initializes a (presumably) empty ODB with some demo values.
    */
@@ -191,7 +291,7 @@ object Init {
       p  <- repo.program.insert(
               ProgramModel.Create(
                 None,
-                Some("Observing Stars in Constellation Orion for No Particular Reason")
+                Some("The real dark matter was the friends we made along the way")
               )
             )
       _  <- repo.program.insert(
@@ -202,36 +302,18 @@ object Init {
             )
       cs <- targets.liftTo[F]
       ts <- cs.map(_.copy(programIds = Some(List(p.id)))).traverse(repo.target.insertSidereal)
-      a0 <- repo.asterism.insert(
-              AsterismModel.Create(
-                None,
-                Some("More Constellation Than Asterism"),
-                List(p.id),
-                None
-              )
-            )
-      _  <- repo.asterism.shareWithTargets(Sharing[Asterism.Id, Target.Id](a0.id, ts.take(2).map(_.id)))
-      _  <- repo.observation.insert(
-              ObservationModel.Create(
-                observationId = None,
-                programId     = p.id,
-                name          = Some("First Observation"),
-                asterismId    = Some(a0.id),
-                targetId      = None,
-                status        = Some(ObsStatus.New),
-                config        = Some(
-                  ConfigModel.Create.gmosSouth(
-                    ConfigModel.CreateGmosSouth(
-                      ManualSequence.Create(
-                        GmosModel.CreateSouthStatic.Default,
-                        acquisitionSequence,
-                        scienceSequence
-                      )
-                    )
-                  )
-                )
-              )
-            )
+//      a0 <- repo.asterism.insert(
+//              AsterismModel.Create(
+//                None,
+//                Some("More Constellation Than Asterism"),
+//                List(p.id),
+//                None
+//              )
+//            )
+//      _  <- repo.asterism.shareWithTargets(Sharing[Asterism.Id, Target.Id](a0.id, ts.take(2).map(_.id)))
+      _  <- repo.observation.insert(obs(p.id, ts.headOption))
+      _  <- repo.observation.insert(obs(p.id, ts.lastOption))
+      _  <- repo.observation.insert(obs(p.id, None))
     } yield ()
 
 }
