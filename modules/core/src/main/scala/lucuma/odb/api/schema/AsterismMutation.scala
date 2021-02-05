@@ -24,20 +24,20 @@ trait AsterismMutation extends TargetScalars {
 
   val InputObjectTypeAsterismCreate: InputObjectType[AsterismModel.Create] =
     deriveInputObjectType[AsterismModel.Create](
-      InputObjectTypeName("CreateDefaultAsterismInput"),
-      InputObjectTypeDescription("Default asterism parameters")
+      InputObjectTypeName("CreateAsterismInput"),
+      InputObjectTypeDescription("Asterism parameters")
     )
 
   val ArgumentAsterismCreate: Argument[AsterismModel.Create] =
     InputObjectTypeAsterismCreate.argument(
       "input",
-      "Default Asterism description"
+      "Asterism description"
     )
 
   val InputObjectTypeAsterismEdit: InputObjectType[AsterismModel.Edit] =
     deriveInputObjectType[AsterismModel.Edit](
-      InputObjectTypeName("EditDefaultAsterismInput"),
-      InputObjectTypeDescription("Default asterism edit"),
+      InputObjectTypeName("EditAsterismInput"),
+      InputObjectTypeDescription("Asterism edit"),
         ReplaceInputField("existence",    EnumTypeExistence.notNullableField("existence")),
         ReplaceInputField("name",         StringType.nullableField("name")),
         ReplaceInputField("explicitBase", InputObjectTypeCoordinates.nullableField("explicitBase"))
