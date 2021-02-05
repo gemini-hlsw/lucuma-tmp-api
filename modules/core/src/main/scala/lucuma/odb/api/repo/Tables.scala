@@ -15,13 +15,15 @@ import scala.collection.immutable.{SortedMap, TreeMap}
  * Simplistic immutable database "tables" of top-level types keyed by Id.
  */
 final case class Tables(
-  ids:              Ids,
-  asterisms:        SortedMap[Asterism.Id, AsterismModel],
-  observations:     SortedMap[Observation.Id, ObservationModel],
-  programs:         SortedMap[Program.Id, ProgramModel],
-  targets:          SortedMap[Target.Id, TargetModel],
-  programAsterisms: ManyToMany[Program.Id, Asterism.Id],
-  programTargets:   ManyToMany[Program.Id, Target.Id]
+  ids:             Ids,
+  asterisms:       SortedMap[Asterism.Id,    AsterismModel],
+  observations:    SortedMap[Observation.Id, ObservationModel],
+  programs:        SortedMap[Program.Id,     ProgramModel],
+  targets:         SortedMap[Target.Id,      TargetModel],
+
+  programAsterism: ManyToMany[Program.Id, Asterism.Id],
+  programTarget:   ManyToMany[Program.Id, Target.Id],
+  targetAsterism:  ManyToMany[Target.Id,  Asterism.Id]
 )
 
 object Tables extends TableOptics {
@@ -30,13 +32,14 @@ object Tables extends TableOptics {
     Tables(
       ids              = Ids.zero,
 
-      asterisms        = TreeMap.empty[Asterism.Id, AsterismModel],
+      asterisms        = TreeMap.empty[Asterism.Id,    AsterismModel],
       observations     = TreeMap.empty[Observation.Id, ObservationModel],
-      programs         = TreeMap.empty[Program.Id, ProgramModel],
-      targets          = TreeMap.empty[Target.Id, TargetModel],
+      programs         = TreeMap.empty[Program.Id,     ProgramModel],
+      targets          = TreeMap.empty[Target.Id,      TargetModel],
 
-      programAsterisms = ManyToMany.empty,
-      programTargets   = ManyToMany.empty
+      programAsterism = ManyToMany.empty,
+      programTarget   = ManyToMany.empty,
+      targetAsterism  = ManyToMany.empty
     )
 
 }
@@ -68,11 +71,13 @@ sealed trait TableOptics { self: Tables.type =>
   def asterism(aid: Asterism.Id): Lens[Tables, Option[AsterismModel]] =
     asterisms ^|-> At.at(aid)
 
+
   val observations: Lens[Tables, SortedMap[Observation.Id, ObservationModel]] =
     Lens[Tables, SortedMap[Observation.Id, ObservationModel]](_.observations)(b => a => a.copy(observations = b))
 
   def observation(oid: Observation.Id): Lens[Tables, Option[ObservationModel]] =
     observations ^|-> At.at(oid)
+
 
   val programs: Lens[Tables, SortedMap[Program.Id, ProgramModel]] =
     Lens[Tables, SortedMap[Program.Id, ProgramModel]](_.programs)(b => a => a.copy(programs = b))
@@ -80,16 +85,21 @@ sealed trait TableOptics { self: Tables.type =>
   def program(pid: Program.Id): Lens[Tables, Option[ProgramModel]] =
     programs ^|-> At.at(pid)
 
+
   val targets: Lens[Tables, SortedMap[Target.Id, TargetModel]] =
     Lens[Tables, SortedMap[Target.Id, TargetModel]](_.targets)(b => a => a.copy(targets = b))
 
   def target(tid: Target.Id): Lens[Tables, Option[TargetModel]] =
     targets ^|-> At.at(tid)
 
-  val programAsterisms: Lens[Tables, ManyToMany[Program.Id, Asterism.Id]] =
-    Lens[Tables, ManyToMany[Program.Id, Asterism.Id]](_.programAsterisms)(b => a => a.copy(programAsterisms = b))
 
-  val programTargets: Lens[Tables, ManyToMany[Program.Id, Target.Id]] =
-    Lens[Tables, ManyToMany[Program.Id, Target.Id]](_.programTargets)(b => a => a.copy(programTargets = b))
+  val programAsterism: Lens[Tables, ManyToMany[Program.Id, Asterism.Id]] =
+    Lens[Tables, ManyToMany[Program.Id, Asterism.Id]](_.programAsterism)(b => a => a.copy(programAsterism = b))
+
+  val programTarget: Lens[Tables, ManyToMany[Program.Id, Target.Id]] =
+    Lens[Tables, ManyToMany[Program.Id, Target.Id]](_.programTarget)(b => a => a.copy(programTarget = b))
+
+  val targetAsterism: Lens[Tables, ManyToMany[Target.Id, Asterism.Id]] =
+    Lens[Tables, ManyToMany[Target.Id, Asterism.Id]](_.targetAsterism)(b => a => a.copy(targetAsterism = b))
 
 }

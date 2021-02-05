@@ -3,24 +3,38 @@
 
 package lucuma.odb.api.model
 
-import lucuma.core.model.{Observation, Target}
-
-import io.circe.Decoder
-import io.circe.generic.semiauto.deriveDecoder
+import cats.Eq
+import cats.syntax.all._
+import io.circe.{Decoder, HCursor}
 
 /**
  * Input objects for sharing.
  */
+final case class Sharing[A, B](
+  one:  A,
+  many: List[B]
+) {
+
+  def tupleLeft: List[(A, B)] =
+    many.tupleLeft(one)
+
+  def tupleRight: List[(B, A)] =
+    many.tupleRight(one)
+}
+
 object Sharing {
 
-  final case class TargetObservationLinks(
-    targetIds:      List[Target.Id],
-    observationIds: List[Observation.Id]
-  )
+  def customDecoder[A: Decoder, B: Decoder](aName: String, bName: String): Decoder[Sharing[A, B]] =
+    (c: HCursor) =>
+      for {
+        a  <- c.downField(aName).as[A]
+        bs <- c.downField(bName).as[List[B]]
+      } yield Sharing(a, bs)
 
-  object TargetObservationLinks {
-    implicit val DecoderTargetObservationLinks: Decoder[TargetObservationLinks] =
-      deriveDecoder[TargetObservationLinks]
-  }
+  implicit def EqSharing[A: Eq, B: Eq]: Eq[Sharing[A, B]] =
+    Eq.by { s => (
+      s.one,
+      s.many
+    )}
 
 }

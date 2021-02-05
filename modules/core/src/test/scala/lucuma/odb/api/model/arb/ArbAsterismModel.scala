@@ -4,83 +4,102 @@
 package lucuma.odb.api.model
 package arb
 
-import lucuma.odb.api.model.AsterismModel.{CreateDefault, EditDefault}
-import lucuma.core.model.{Asterism, Program, Target}
+import lucuma.odb.api.model.AsterismModel.{Create, Edit}
+import lucuma.core.math.Coordinates
+import lucuma.core.math.arb.ArbCoordinates
+import lucuma.core.model.{Asterism, Program}
 import lucuma.core.util.arb.ArbEnumerated
 
 import clue.data.Input
+import eu.timepit.refined.types.all.NonEmptyString
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
 trait ArbAsterismModel {
 
+  import ArbCoordinates._
   import ArbCoordinatesModel._
   import ArbEnumerated._
   import lucuma.core.util.arb.ArbGid._
   import ArbInput._
 
-  implicit val arbCreateDefault: Arbitrary[CreateDefault] =
+  implicit val arbAsterismModel: Arbitrary[AsterismModel] =
+    Arbitrary {
+      for {
+        id <- arbitrary[Asterism.Id]
+        ex <- arbitrary[Existence]
+        nm <- Gen.option(Gen.alphaNumStr.suchThat(!_.isEmpty).map(NonEmptyString.unsafeFrom))
+        eb <- arbitrary[Option[Coordinates]]
+      } yield AsterismModel(id, ex, nm, eb)
+    }
+
+  implicit val cogAsterismModel: Cogen[AsterismModel] =
+    Cogen[(
+      Asterism.Id,
+      Existence,
+      Option[String],
+      Option[Coordinates]
+    )].contramap { in => (
+      in.id,
+      in.existence,
+      in.name.map(_.value),
+      in.explicitBase
+    )}
+
+  implicit val arbCreateDefault: Arbitrary[Create] =
     Arbitrary {
       for {
         id <- arbitrary[Option[Asterism.Id]]
         nm <- Gen.option(Gen.alphaNumStr.suchThat(!_.isEmpty))
         ps <- arbitrary[List[Program.Id]]
         eb <- arbitrary[Option[CoordinatesModel.Input]]
-        ts <- arbitrary[List[Target.Id]].map(_.toSet)
-      } yield CreateDefault(
+      } yield Create(
         id,
         nm,
         ps,
-        eb,
-        ts
+        eb
       )
     }
 
-  implicit val cogCreateDefault: Cogen[CreateDefault] =
+  implicit val cogCreateDefault: Cogen[Create] =
     Cogen[(
       Option[Asterism.Id],
       Option[String],
       List[Program.Id],
-      Option[CoordinatesModel.Input],
-      List[Target.Id]
+      Option[CoordinatesModel.Input]
     )].contramap { in => (
       in.asterismId,
       in.name,
       in.programIds,
-      in.explicitBase,
-      in.targetIds.toList
+      in.explicitBase
     )}
 
-  implicit val arbEditDefault: Arbitrary[EditDefault] =
+  implicit val arbEditDefault: Arbitrary[Edit] =
     Arbitrary {
       for {
         id <- arbitrary[Asterism.Id]
         ex <- arbNotNullableInput[Existence].arbitrary
         nm <- arbitrary[Input[String]]
         eb <- arbitrary[Input[CoordinatesModel.Input]]
-        ts <- arbitrary[Option[List[Target.Id]]].map(_.map(_.toSet))
-      } yield EditDefault(
+      } yield Edit(
         id,
         ex,
         nm,
-        eb,
-        ts
+        eb
       )
     }
 
-  implicit val cogEditDefault: Cogen[EditDefault] =
+  implicit val cogEditDefault: Cogen[Edit] =
     Cogen[(
       Asterism.Id,
       Input[Existence],
       Input[String],
-      Input[CoordinatesModel.Input],
-      Option[List[Target.Id]]
+      Input[CoordinatesModel.Input]
     )].contramap { in => (
       in.asterismId,
       in.existence,
       in.name,
-      in.explicitBase,
-      in.targetIds.map(_.toList)
+      in.explicitBase
     )}
 
 }

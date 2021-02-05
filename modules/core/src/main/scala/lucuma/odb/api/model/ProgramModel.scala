@@ -49,8 +49,11 @@ object ProgramModel extends ProgramOptics {
   ) extends Event.Edit[ProgramModel]
 
   object ProgramEvent {
-    def apply(editType: Event.EditType, value: ProgramModel)(id: Long): ProgramEvent =
-      ProgramEvent(id, editType, value)
+    def created(value: ProgramModel)(id: Long): ProgramEvent =
+      ProgramEvent(id, Event.EditType.Created, value)
+
+    def updated(value: ProgramModel)(id: Long): ProgramEvent =
+      ProgramEvent(id, Event.EditType.Updated, value)
   }
 
 

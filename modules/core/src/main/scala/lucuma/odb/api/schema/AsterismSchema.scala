@@ -8,7 +8,6 @@ import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.model.Asterism
 import cats.effect.Effect
 import cats.implicits._
-import cats.effect.implicits._
 import sangria.schema._
 
 object AsterismSchema {
@@ -36,10 +35,11 @@ object AsterismSchema {
       description  = "Asterism ID"
     )
 
-  def AsterismType[F[_]: Effect]: InterfaceType[OdbRepo[F], AsterismModel] =
-    InterfaceType[OdbRepo[F], AsterismModel](
+  def AsterismType[F[_]: Effect]: ObjectType[OdbRepo[F], AsterismModel] =
+    ObjectType[OdbRepo[F], AsterismModel](
       name        = "Asterism",
-      description = "Common fields shared by all asterisms",
+      description = "Collection of stars observed in a single observation",
+
       fields[OdbRepo[F], AsterismModel](
         Field(
           name        = "id",
@@ -87,15 +87,9 @@ object AsterismSchema {
           fieldType   = ListType(TargetType[F]),
           arguments   = List(ArgumentIncludeDeleted),
           description = Some("All asterism targets"),
-          resolve     = c =>
-            c.value
-             .targetIds
-             .iterator
-             .toList
-             .traverse(c.ctx.target.select(_, c.includeDeleted))
-             .map(_.flatMap(_.toList))
-             .toIO
-             .unsafeToFuture()
+          resolve     = c => c.target(
+            _.selectAllForAsterism(c.value.id, c.includeDeleted)
+          )
         ),
 
         Field(
@@ -107,14 +101,5 @@ object AsterismSchema {
         )
       )
     )
-
-  def DefaultAsterismType[F[_]: Effect]: ObjectType[OdbRepo[F], AsterismModel.Default] =
-    ObjectType[OdbRepo[F], AsterismModel.Default](
-      name        = "DefaultAsterism",
-      description = "Default asterism",
-      interfaces  = List(PossibleInterface.apply[OdbRepo[F], AsterismModel.Default](AsterismType[F])),
-      fields      = Nil
-    )
-
 
 }

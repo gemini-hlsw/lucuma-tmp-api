@@ -19,6 +19,7 @@ trait ObservationMutation {
   import GeneralSchema.EnumTypeExistence
   import ObservationSchema.{ObservationIdType, ObservationIdArgument, ObsStatusType, ObservationType}
   import ProgramSchema.ProgramIdType
+  import TargetSchema.TargetIdType
   import context._
   import syntax.inputobjecttype._
 
@@ -42,7 +43,8 @@ trait ObservationMutation {
       ReplaceInputField("existence",  EnumTypeExistence.notNullableField("existence")),
       ReplaceInputField("name",       StringType.nullableField("name")),
       ReplaceInputField("status",     ObsStatusType.notNullableField("status")),
-      ReplaceInputField("asterismId", AsterismIdType.nullableField("asterismId"))
+      ReplaceInputField("asterismId", AsterismIdType.nullableField("asterismId")),
+      ReplaceInputField("targetId",   TargetIdType.nullableField("targetId"))
     )
 
   val ArgumentObservationEdit: Argument[ObservationModel.Edit] =

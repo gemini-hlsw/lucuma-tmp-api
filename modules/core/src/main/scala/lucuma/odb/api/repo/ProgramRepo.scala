@@ -36,7 +36,7 @@ object ProgramRepo {
       eventService,
       Tables.lastProgramId,
       Tables.programs,
-      ProgramEvent.apply
+      (editType, model) => ProgramEvent(_, editType, model)
     ) with ProgramRepo[F]
       with LookupSupport {
 
@@ -52,10 +52,10 @@ object ProgramRepo {
         }.map(deletionFilter(includeDeleted))
 
       override def selectAllForAsterism(aid: Asterism.Id, includeDeleted: Boolean = false): F[List[ProgramModel]] =
-        selectAllFor(aid, _.programAsterisms, includeDeleted)
+        selectAllFor(aid, _.programAsterism, includeDeleted)
 
       override def selectAllForTarget(tid: Target.Id, includeDeleted: Boolean = false): F[List[ProgramModel]] =
-        selectAllFor(tid, _.programTargets, includeDeleted)
+        selectAllFor(tid, _.programTarget, includeDeleted)
 
       override def insert(input: ProgramModel.Create): F[ProgramModel] =
         constructAndPublish { t =>

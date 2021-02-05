@@ -34,14 +34,14 @@ object ObservationRepo {
       eventService,
       Tables.lastObservationId,
       Tables.observations,
-      ObservationEvent.apply
+      (editType, model) => ObservationEvent(_, editType, model)
     ) with ObservationRepo[F]
       with LookupSupport {
 
       override def selectAllForAsterism(aid: Asterism.Id, includeDeleted: Boolean): F[List[ObservationModel]] =
         tablesRef
           .get
-          .map(_.observations.values.filter(_.asterismId.contains(aid)).toList)
+          .map(_.observations.values.filter(_.targets.contains(Left(aid))).toList)
           .map(deletionFilter(includeDeleted))
 
       override def selectAllForProgram(pid: Program.Id, includeDeleted: Boolean): F[List[ObservationModel]] =
@@ -53,13 +53,9 @@ object ObservationRepo {
       override def selectAllForTarget(tid: Target.Id, includeDeleted: Boolean): F[List[ObservationModel]] =
         tablesRef
           .get
-          .map { tables =>
-            tables.observations.values.filter { obs =>
-              obs.asterismId.exists { aid =>
-                tables.asterisms.get(aid).exists(_.targetIds(tid))
-              }
-            }.toList
-          }
+          // this includes only observations that directly reference a target,
+          // but not those referencing an asterism that references the target
+          .map(_.observations.values.filter(_.targets.contains(Right(tid))).toList)
           .map(deletionFilter(includeDeleted))
 
       override def insert(newObs: ObservationModel.Create): F[ObservationModel] = {

@@ -7,9 +7,10 @@ import lucuma.odb.api.model.{AsterismModel, ObservationModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.`enum`.ObsStatus
 import lucuma.core.model.Observation
-import cats.implicits._
+import cats.data.OptionT
 import cats.effect.Effect
 import cats.effect.implicits._
+import cats.syntax.all._
 import sangria.schema._
 
 
@@ -45,6 +46,13 @@ object ObservationSchema {
       argumentType = OptionInputType(ObservationIdType),
       description  = "Observation ID"
     )
+
+  def ObservationTargetType[F[_]: Effect]: OutputType[Either[AsterismModel, TargetModel]] =
+    UnionType(
+      name        = "ObservationTarget",
+      description = Some("Either asterism or target"),
+      types       = List(AsterismType[F], TargetType[F])
+    ).mapValue[Either[AsterismModel, TargetModel]](_.merge)
 
   def ObservationType[F[_]](implicit F: Effect[F]): ObjectType[OdbRepo[F], ObservationModel] =
     ObjectType(
@@ -95,34 +103,33 @@ object ObservationSchema {
         ),
 
         Field(
+          name        = "observationTarget",
+          fieldType   = OptionType(ObservationTargetType[F]),
+          description = Some("The observation's asterism or target (see also `asterism` and `target` fields)"),
+          arguments   = List(ArgumentIncludeDeleted),
+          resolve     = c => {
+            for {
+              a <- asterism[F](c)
+              t <- target[F](c)
+            } yield a.map(_.asLeft[TargetModel]) orElse t.map(_.asRight[AsterismModel])
+          }.toIO.unsafeToFuture()
+        ),
+
+        Field(
           name        = "asterism",
           fieldType   = OptionType(AsterismType[F]),
-          description = Some("The observation's asterism, if any"),
+          description = Some("The observation's asterism, if a multi-target observation"),
           arguments   = List(ArgumentIncludeDeleted),
           resolve     = c => asterism[F](c).toIO.unsafeToFuture()
 
         ),
 
-        // Selects the observation's asterism's targets.  You can get this via
-        // the asterism, but it seems like it will be a common request to get
-        // the targets directly.
         Field(
-          name        = "targets",
-          fieldType   = ListType(TargetType),
-          description = Some("The observation's targets, if any"),
+          name        = "target",
+          fieldType   = OptionType(TargetType[F]),
+          description = Some("The observation's target, if a single-target observation"),
           arguments   = List(ArgumentIncludeDeleted),
-          resolve     = c =>
-            asterism[F](c).flatMap {
-              _.fold(F.pure(List.empty[TargetModel])) {
-                _.targetIds
-                 .iterator
-                 .toList
-                 .traverse(c.ctx.target.select(_, c.includeDeleted))
-                 .map(_.flatMap(_.toList))
-              }
-            }
-            .toIO
-            .unsafeToFuture()
+          resolve     = c => target[F](c).toIO.unsafeToFuture()
         ),
 
         Field(
@@ -138,10 +145,20 @@ object ObservationSchema {
   private def asterism[F[_]](
     c: Context[OdbRepo[F], ObservationModel]
   )(implicit F: Effect[F]): F[Option[AsterismModel]] =
-    c.value.asterismId.fold(F.pure(Option.empty[AsterismModel])) { aid =>
-      c.ctx
-       .asterism
-       .select(aid, c.includeDeleted)
+    c.value.targets.fold(F.pure(Option.empty[AsterismModel])) { e =>
+      OptionT(e.swap.toOption.pure[F]).flatMap { aid =>
+        OptionT(c.ctx.asterism.select(aid, c.includeDeleted))
+      }.value
     }
+
+  private def target[F[_]](
+    c: Context[OdbRepo[F], ObservationModel]
+  )(implicit F: Effect[F]): F[Option[TargetModel]] =
+    c.value.targets.fold(F.pure(Option.empty[TargetModel])) { e =>
+      OptionT(e.toOption.pure[F]).flatMap { tid =>
+        OptionT(c.ctx.target.select(tid, c.includeDeleted))
+      }.value
+    }
+
 
 }

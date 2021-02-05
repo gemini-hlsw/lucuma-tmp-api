@@ -8,12 +8,11 @@ import lucuma.odb.api.model.arb._
 import cats.kernel.laws.discipline.EqTests
 import munit.DisciplineSuite
 
-final class AsterismSuite extends DisciplineSuite {
 
-  import ArbAsterismModel._
+final class ObservationSuite extends DisciplineSuite {
 
-  checkAll("AsterismModel",        EqTests[AsterismModel].eqv)
-  checkAll("AsterismModel.Create", EqTests[AsterismModel.Create].eqv)
-  checkAll("AsterismModel.Edit",   EqTests[AsterismModel.Edit].eqv)
+  import ArbObservationModel._
+
+  checkAll("ObservationModel", EqTests[ObservationModel].eqv)
 
 }

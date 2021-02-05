@@ -3,13 +3,9 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{AsterismModel, InputError}
-import lucuma.odb.api.repo.{OdbRepo, Tables}
-import lucuma.core.model.Target
+import lucuma.odb.api.model.AsterismModel
+import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
-import cats.syntax.option._
-import cats.syntax.traverse._
-import lucuma.core.util.Gid
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -17,84 +13,59 @@ import sangria.schema._
 
 trait AsterismMutation extends TargetScalars {
 
-  import AsterismSchema.{AsterismIdType, AsterismIdArgument, AsterismType, DefaultAsterismType}
+  import AsterismSchema.{AsterismIdType, AsterismIdArgument, AsterismType}
   import GeneralSchema.EnumTypeExistence
   import ProgramSchema.ProgramIdType
-  import TargetSchema.TargetIdType
   import TargetMutation.InputObjectTypeCoordinates
 
   import context._
   import syntax.inputtype._
   import syntax.inputobjecttype._
 
-  val InputObjectTypeAsterismCreateDefault: InputObjectType[AsterismModel.CreateDefault] =
-    deriveInputObjectType[AsterismModel.CreateDefault](
-      InputObjectTypeName("CreateDefaultAsterismInput"),
-      InputObjectTypeDescription("Default asterism parameters"),
-      ReplaceInputField("targetIds",
-        InputField(
-          name        = "targetIds",
-          fieldType   = ListInputType(TargetIdType),
-          description = "Targets to include in default asterism"
-        )
-      )
+  val InputObjectTypeAsterismCreate: InputObjectType[AsterismModel.Create] =
+    deriveInputObjectType[AsterismModel.Create](
+      InputObjectTypeName("CreateAsterismInput"),
+      InputObjectTypeDescription("Asterism parameters")
     )
 
-  val ArgumentAsterismCreateDefault: Argument[AsterismModel.CreateDefault] =
-    InputObjectTypeAsterismCreateDefault.argument(
+  val ArgumentAsterismCreate: Argument[AsterismModel.Create] =
+    InputObjectTypeAsterismCreate.argument(
       "input",
-      "Default Asterism description"
+      "Asterism description"
     )
 
-  val InputObjectTypeAsterismEditDefault: InputObjectType[AsterismModel.EditDefault] =
-    deriveInputObjectType[AsterismModel.EditDefault](
-      InputObjectTypeName("EditDefaultAsterismInput"),
-      InputObjectTypeDescription("Default asterism edit"),
+  val InputObjectTypeAsterismEdit: InputObjectType[AsterismModel.Edit] =
+    deriveInputObjectType[AsterismModel.Edit](
+      InputObjectTypeName("EditAsterismInput"),
+      InputObjectTypeDescription("Asterism edit"),
         ReplaceInputField("existence",    EnumTypeExistence.notNullableField("existence")),
         ReplaceInputField("name",         StringType.nullableField("name")),
-        ReplaceInputField("explicitBase", InputObjectTypeCoordinates.nullableField("explicitBase")),
-        ReplaceInputField("targetIds",
-          InputField(
-            name        = "targetIds",
-            fieldType   = OptionInputType(ListInputType(TargetIdType)),
-            description = "Targets to include in the default asterism"
-          )
-        )
+        ReplaceInputField("explicitBase", InputObjectTypeCoordinates.nullableField("explicitBase"))
     )
 
-  val ArgumentAsterismEditDefault: Argument[AsterismModel.EditDefault] =
-    InputObjectTypeAsterismEditDefault.argument(
+  val ArgumentAsterismEdit: Argument[AsterismModel.Edit] =
+    InputObjectTypeAsterismEdit.argument(
       "input",
       "Edit default asterism"
     )
 
-  def createDefault[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def create[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
-      name      = "createDefaultAsterism",
-      fieldType = OptionType(DefaultAsterismType[F]),
-      arguments = List(ArgumentAsterismCreateDefault),
-      resolve   = c => c.asterism[AsterismModel.Default](_.insert(c.arg(ArgumentAsterismCreateDefault)))
+      name      = "createAsterism",
+      fieldType = OptionType(AsterismType[F]),
+      arguments = List(ArgumentAsterismCreate),
+      resolve   = c => c.asterism[AsterismModel](_.insert(c.arg(ArgumentAsterismCreate)))
     )
 
-  def updateDefault[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def update[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
-      name      = "updateDefaultAsterism",
-      fieldType = DefaultAsterismType[F],
-      arguments = List(ArgumentAsterismEditDefault),
-      resolve   = c => c.asterism[AsterismModel.Default] { r =>
-        val ed     = c.arg(ArgumentAsterismEditDefault)
+      name      = "updateAsterism",
+      fieldType = AsterismType[F],
+      arguments = List(ArgumentAsterismEdit),
+      resolve   = c => c.asterism[AsterismModel] { r =>
+        val ed  = c.arg(ArgumentAsterismEdit)
 
-        // Lookup all of the targets, producing a list of input errors for those
-        // that are not found.
-        val checks = (tables: Tables) => {
-          ed.targetIds.toList.flatMap(_.toList).traverse { id =>
-            tables.targets.get(id).toValidNec(
-              InputError.missingReference("target", Gid[Target.Id].show(id))
-            )
-          }.swap.toList.flatMap(_.toNonEmptyList.toList)
-        }
-
-        r.editSub(ed.id, ed.editor, checks) { case d: AsterismModel.Default => d }
+        r.editSub(ed.id, ed.editor, _ => Nil) { case d: AsterismModel => d }
       }
     )
 
@@ -116,8 +87,8 @@ trait AsterismMutation extends TargetScalars {
 
   def allFields[F[_]: Effect]: List[Field[OdbRepo[F], Unit]] =
     List(
-      createDefault,
-      updateDefault,
+      create,
+      update,
       delete,
       undelete
     )

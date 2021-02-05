@@ -13,6 +13,7 @@ import lucuma.core.math.syntax.int._
 import cats.effect.Sync
 import cats.syntax.all._
 import io.circe.parser.decode
+import lucuma.core.model.{Asterism, Target}
 import lucuma.odb.api.model.OffsetModel.ComponentInput
 import monocle.state.all._
 
@@ -202,22 +203,23 @@ object Init {
       cs <- targets.liftTo[F]
       ts <- cs.map(_.copy(programIds = Some(List(p.id)))).traverse(repo.target.insertSidereal)
       a0 <- repo.asterism.insert(
-              AsterismModel.CreateDefault(
+              AsterismModel.Create(
                 None,
                 Some("More Constellation Than Asterism"),
                 List(p.id),
-                None,
-                Set.from(ts.take(2).map(_.id))
+                None
               )
             )
+      _  <- repo.asterism.shareWithTargets(Sharing[Asterism.Id, Target.Id](a0.id, ts.take(2).map(_.id)))
       _  <- repo.observation.insert(
               ObservationModel.Create(
-                None,
-                p.id,
-                Some("First Observation"),
-                Some(a0.id),
-                Some(ObsStatus.New),
-                Some(
+                observationId = None,
+                programId     = p.id,
+                name          = Some("First Observation"),
+                asterismId    = Some(a0.id),
+                targetId      = None,
+                status        = Some(ObsStatus.New),
+                config        = Some(
                   ConfigModel.Create.gmosSouth(
                     ConfigModel.CreateGmosSouth(
                       ManualSequence.Create(
