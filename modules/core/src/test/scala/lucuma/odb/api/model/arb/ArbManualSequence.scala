@@ -7,24 +7,26 @@ package arb
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
-trait ArbManualSequence {
+trait ArbManualSequence extends Helper {
 
-  import ArbStepModel._
+  import ArbSequenceModel._
 
   implicit def arbManualSequence[S: Arbitrary, D: Arbitrary]: Arbitrary[ManualSequence[S, D]] =
     Arbitrary {
       for {
         st <- arbitrary[S]
-        aq <- arbitrary[List[StepModel[D]]]
-        sc <- arbitrary[List[StepModel[D]]]
+        a  <- smallSize
+        aq <- Gen.listOfN(a, arbitrary[SequenceModel.Atom[D]])
+        s  <- smallSize
+        sc <- Gen.listOfN(s, arbitrary[SequenceModel.Atom[D]])
       } yield ManualSequence(st, aq, sc)
     }
 
   implicit def cogManualSequence[S: Cogen, D: Cogen]: Cogen[ManualSequence[S, D]] =
     Cogen[(
       S,
-      List[StepModel[D]],
-      List[StepModel[D]]
+      List[SequenceModel.Atom[D]],
+      List[SequenceModel.Atom[D]]
     )].contramap { in => (
       in.static,
       in.acquisition,
@@ -35,16 +37,18 @@ trait ArbManualSequence {
     Arbitrary {
       for {
         st <- arbitrary[S]
-        aq <- arbitrary[List[StepModel.CreateStep[D]]]
-        sc <- arbitrary[List[StepModel.CreateStep[D]]]
+        a  <- smallSize
+        aq <- Gen.listOfN(a, arbitrary[SequenceModel.CreateAtom[D]])
+        s  <- smallSize
+        sc <- Gen.listOfN(s, arbitrary[SequenceModel.CreateAtom[D]])
       } yield ManualSequence.Create(st, aq, sc)
     }
 
   implicit def cogCreateManualSequence[S: Cogen, D: Cogen]: Cogen[ManualSequence.Create[S, D]] =
     Cogen[(
       S,
-      List[StepModel.CreateStep[D]],
-      List[StepModel.CreateStep[D]]
+      List[SequenceModel.CreateAtom[D]],
+      List[SequenceModel.CreateAtom[D]]
     )].contramap { in => (
       in.static,
       in.acquisition,
