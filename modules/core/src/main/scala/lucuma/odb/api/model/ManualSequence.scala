@@ -21,8 +21,8 @@ import monocle.Lens
  */
 final case class ManualSequence[S, D](
   static:      S,
-  acquisition: List[StepModel[D]],
-  science:     List[StepModel[D]]
+  acquisition: List[SequenceModel.Atom[D]],
+  science:     List[SequenceModel.Atom[D]]
 )
 
 object ManualSequence extends ManualSequenceOptics {
@@ -39,8 +39,8 @@ object ManualSequence extends ManualSequenceOptics {
    */
   final case class Create[CS, CD](
     static:      CS,
-    acquisition: List[StepModel.CreateStep[CD]],
-    science:     List[StepModel.CreateStep[CD]]
+    acquisition: List[SequenceModel.CreateAtom[CD]],
+    science:     List[SequenceModel.CreateAtom[CD]]
   ) {
 
     def create[S, D](
@@ -80,10 +80,10 @@ sealed trait ManualSequenceOptics { this: ManualSequence.type =>
   def static[S, D]: Lens[ManualSequence[S, D], S] =
     Lens[ManualSequence[S, D], S](_.static)(a => _.copy(static = a))
 
-  def acquisition[S, D]: Lens[ManualSequence[S, D], List[StepModel[D]]] =
-    Lens[ManualSequence[S, D], List[StepModel[D]]](_.acquisition)(a => _.copy(acquisition = a))
+  def acquisition[S, D]: Lens[ManualSequence[S, D], List[SequenceModel.Atom[D]]] =
+    Lens[ManualSequence[S, D], List[SequenceModel.Atom[D]]](_.acquisition)(a => _.copy(acquisition = a))
 
-  def science[S, D]: Lens[ManualSequence[S, D], List[StepModel[D]]] =
-    Lens[ManualSequence[S, D], List[StepModel[D]]](_.science)(a => _.copy(science = a))
+  def science[S, D]: Lens[ManualSequence[S, D], List[SequenceModel.Atom[D]]] =
+    Lens[ManualSequence[S, D], List[SequenceModel.Atom[D]]](_.science)(a => _.copy(science = a))
 
 }

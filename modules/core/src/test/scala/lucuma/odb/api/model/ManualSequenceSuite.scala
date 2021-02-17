@@ -13,7 +13,7 @@ import munit.DisciplineSuite
 final class ManualSequenceSuite extends DisciplineSuite {
 
   import ArbManualSequence._
-  import ArbStepModel._
+  import ArbSequenceModel._
 
   checkAll("ManualSequence",        EqTests[ManualSequence[Int, String]].eqv)
   checkAll("ManualSequence.Create", EqTests[ManualSequence.Create[Int, String]].eqv)
