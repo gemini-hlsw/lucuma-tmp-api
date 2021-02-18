@@ -12,7 +12,7 @@ import munit.DisciplineSuite
 final class ConfigModelSuite extends DisciplineSuite {
 
   import ArbConfigModel._
-  import ArbManualSequence._
+  import ArbSequenceModel._
   import ArbGmosModel._
 
   checkAll("ConfigModel",           EqTests[ConfigModel].eqv)

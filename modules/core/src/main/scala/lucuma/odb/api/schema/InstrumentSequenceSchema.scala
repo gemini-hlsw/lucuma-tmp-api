@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.ManualSequence
+import lucuma.odb.api.model.SequenceModel.Sequence
 import lucuma.odb.api.repo.OdbRepo
 
 import cats.effect.Effect
@@ -19,7 +19,7 @@ object InstrumentSequenceSchema {
     description: String,
     staticType:  OutputType[S],
     dynamicType: OutputType[D]
-  ): ObjectType[OdbRepo[F], ManualSequence[S, D]] =
+  ): ObjectType[OdbRepo[F], Sequence[S, D]] =
     ObjectType(
       name        = s"${typePrefix}Sequence",
       description = description,
