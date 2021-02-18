@@ -4,7 +4,8 @@
 package lucuma.odb.api.schema
 
 import lucuma.core.`enum`.Instrument
-import lucuma.odb.api.model.{ConfigModel, GmosModel, ManualSequence}
+import lucuma.odb.api.model.{ConfigModel, GmosModel}
+import lucuma.odb.api.model.SequenceModel._
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
 import sangria.schema._
@@ -44,7 +45,7 @@ object ConfigSchema {
       GmosSouthConfigType[F]
     )
 
-  def GmosNorthSequenceType[F[_]: Effect]: ObjectType[OdbRepo[F], ManualSequence[GmosModel.NorthStatic, GmosModel.NorthDynamic]] =
+  def GmosNorthSequenceType[F[_]: Effect]: ObjectType[OdbRepo[F], Sequence[GmosModel.NorthStatic, GmosModel.NorthDynamic]] =
     InstrumentSequenceType(
       "GmosNorth",
       "Instrument sequence",
@@ -69,7 +70,7 @@ object ConfigSchema {
       )
     )
 
-  def GmosSouthSequenceType[F[_]: Effect]: ObjectType[OdbRepo[F], ManualSequence[GmosModel.SouthStatic, GmosModel.SouthDynamic]] =
+  def GmosSouthSequenceType[F[_]: Effect]: ObjectType[OdbRepo[F], Sequence[GmosModel.SouthStatic, GmosModel.SouthDynamic]] =
     InstrumentSequenceType(
       "GmosSouth",
       "Instrument sequence",

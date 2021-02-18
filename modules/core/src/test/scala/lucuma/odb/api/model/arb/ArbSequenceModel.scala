@@ -4,6 +4,8 @@
 package lucuma.odb.api.model
 package arb
 
+import lucuma.odb.api.model.SequenceModel._
+
 import cats.data.NonEmptyList
 import lucuma.core.util.arb.ArbEnumerated
 import org.scalacheck._
@@ -14,58 +16,102 @@ trait ArbSequenceModel extends Helper {
   import ArbEnumerated._
   import ArbStepModel._
 
-  implicit def arbBreakpointStep[A: Arbitrary]: Arbitrary[SequenceModel.BreakpointStep[A]] =
+  implicit def arbBreakpointStep[A: Arbitrary]: Arbitrary[BreakpointStep[A]] =
     Arbitrary {
       for {
-        b <- arbitrary[SequenceModel.Breakpoint]
+        b <- arbitrary[Breakpoint]
         s <- arbitrary[StepModel[A]]
-      } yield SequenceModel.BreakpointStep(b, s)
+      } yield BreakpointStep(b, s)
     }
 
-  implicit def cogBreakpointStep[A: Cogen]: Cogen[SequenceModel.BreakpointStep[A]] =
-    Cogen[(SequenceModel.Breakpoint, StepModel[A])].contramap { in => (
+  implicit def cogBreakpointStep[A: Cogen]: Cogen[BreakpointStep[A]] =
+    Cogen[(Breakpoint, StepModel[A])].contramap { in => (
       in.breakpoint,
       in.step
     )}
 
-  implicit def arbCreateBreakpointStep[A: Arbitrary]: Arbitrary[SequenceModel.CreateBreakpointStep[A]] =
+  implicit def arbBreakpointStepCreate[A: Arbitrary]: Arbitrary[BreakpointStep.Create[A]] =
     Arbitrary {
       for {
-        b <- arbitrary[SequenceModel.Breakpoint]
+        b <- arbitrary[Breakpoint]
         s <- arbitrary[StepModel.CreateStep[A]]
-      } yield SequenceModel.CreateBreakpointStep(b, s)
+      } yield BreakpointStep.Create(b, s)
     }
 
-  implicit def cogCreateBreakpointStep[A: Cogen]: Cogen[SequenceModel.CreateBreakpointStep[A]] =
-    Cogen[(SequenceModel.Breakpoint, StepModel.CreateStep[A])].contramap { in => (
+  implicit def cogBreakpointStepCreate[A: Cogen]: Cogen[BreakpointStep.Create[A]] =
+    Cogen[(Breakpoint, StepModel.CreateStep[A])].contramap { in => (
       in.breakpoint,
       in.step
     )}
 
-  implicit def arbAtom[A: Arbitrary]: Arbitrary[SequenceModel.Atom[A]] =
+  implicit def arbAtom[A: Arbitrary]: Arbitrary[Atom[A]] =
     Arbitrary {
       for {
-        s0 <- arbitrary[SequenceModel.BreakpointStep[A]]
+        s0 <- arbitrary[BreakpointStep[A]]
         s  <- tinyPositiveSize
-        ss <- Gen.listOfN(s, arbitrary[SequenceModel.BreakpointStep[A]])
-      } yield SequenceModel.Atom(NonEmptyList(s0, ss))
+        ss <- Gen.listOfN(s, arbitrary[BreakpointStep[A]])
+      } yield Atom(NonEmptyList(s0, ss))
     }
 
-  implicit def cogAtom[A: Cogen]: Cogen[SequenceModel.Atom[A]] =
-    Cogen[List[SequenceModel.BreakpointStep[A]]].contramap(_.steps.toList)
+  implicit def cogAtom[A: Cogen]: Cogen[Atom[A]] =
+    Cogen[List[BreakpointStep[A]]].contramap(_.steps.toList)
 
 
-  implicit def arbCreateAtom[A: Arbitrary]: Arbitrary[SequenceModel.CreateAtom[A]] =
+  implicit def arbCreateAtom[A: Arbitrary]: Arbitrary[Atom.Create[A]] =
     Arbitrary {
       for {
-        s0 <- arbitrary[SequenceModel.CreateBreakpointStep[A]]
+        s0 <- arbitrary[BreakpointStep.Create[A]]
         s  <- tinyPositiveSize
-        ss <- Gen.listOfN(s, arbitrary[SequenceModel.CreateBreakpointStep[A]])
-      } yield SequenceModel.CreateAtom[A](s0 :: ss)
+        ss <- Gen.listOfN(s, arbitrary[BreakpointStep.Create[A]])
+      } yield Atom.Create[A](s0 :: ss)
     }
 
-  implicit def cogCreateAtom[A: Cogen]: Cogen[SequenceModel.CreateAtom[A]] =
-    Cogen[List[SequenceModel.CreateBreakpointStep[A]]].contramap(_.steps)
+  implicit def cogAtomCreate[A: Cogen]: Cogen[Atom.Create[A]] =
+    Cogen[List[BreakpointStep.Create[A]]].contramap(_.steps)
+
+  implicit def arbSequence[S: Arbitrary, D: Arbitrary]: Arbitrary[Sequence[S, D]] =
+    Arbitrary {
+      for {
+        st <- arbitrary[S]
+        a  <- smallSize
+        aq <- Gen.listOfN(a, arbitrary[Atom[D]])
+        s  <- smallSize
+        sc <- Gen.listOfN(s, arbitrary[Atom[D]])
+      } yield Sequence(st, aq, sc)
+    }
+
+  implicit def cogSequence[S: Cogen, D: Cogen]: Cogen[Sequence[S, D]] =
+    Cogen[(
+      S,
+      List[Atom[D]],
+      List[Atom[D]]
+    )].contramap { in => (
+      in.static,
+      in.acquisition,
+      in.science
+    )}
+
+  implicit def arbSequenceCreate[S: Arbitrary, D: Arbitrary]: Arbitrary[Sequence.Create[S, D]] =
+    Arbitrary {
+      for {
+        st <- arbitrary[S]
+        a  <- smallSize
+        aq <- Gen.listOfN(a, arbitrary[Atom.Create[D]])
+        s  <- smallSize
+        sc <- Gen.listOfN(s, arbitrary[Atom.Create[D]])
+      } yield Sequence.Create(st, aq, sc)
+    }
+
+  implicit def cogSequenceCreate[S: Cogen, D: Cogen]: Cogen[Sequence.Create[S, D]] =
+    Cogen[(
+      S,
+      List[Atom.Create[D]],
+      List[Atom.Create[D]]
+    )].contramap { in => (
+      in.static,
+      in.acquisition,
+      in.science
+    )}
 
 }
 

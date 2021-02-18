@@ -5,12 +5,14 @@ package lucuma.odb.api.model
 
 import lucuma.core.util.Enumerated
 import lucuma.odb.api.model.StepModel.CreateStep
+import lucuma.odb.api.model.syntax.inputvalidator._
+
 import cats.Eq
 import cats.data.NonEmptyList
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
-import monocle.Iso
+import monocle.{Iso, Lens}
 import monocle.macros.Lenses
 
 object SequenceModel {
@@ -60,38 +62,39 @@ object SequenceModel {
         a.step
       )}
 
+    @Lenses final case class Create[A](
+      breakpoint: Breakpoint,
+      step:       CreateStep[A]
+    ) {
+
+      def create[B](implicit V: InputValidator[A, B]): ValidatedInput[BreakpointStep[B]] =
+        step.create[B].map(s => BreakpointStep(breakpoint, s))
+
+    }
+
+    object Create {
+
+      def stopBefore[A](s: CreateStep[A]): Create[A] =
+        Create(Breakpoint.enabled, s)
+
+      def continueTo[A](s: CreateStep[A]): Create[A] =
+        Create(Breakpoint.disabled, s)
+
+      implicit def EqCreate[A: Eq]: Eq[Create[A]] =
+        Eq.by { a => (
+          a.breakpoint,
+          a.step
+        )}
+
+      implicit def DecoderCreate[A: Decoder]: Decoder[Create[A]] =
+        deriveDecoder[Create[A]]
+
+      implicit def ValidatorCreate[A, B](implicit V: InputValidator[A, B]): InputValidator[Create[A], BreakpointStep[B]] =
+        (cbs: Create[A]) => cbs.create[B]
+    }
+
   }
 
-  @Lenses final case class CreateBreakpointStep[A](
-    breakpoint: Breakpoint,
-    step:       CreateStep[A]
-  ) {
-
-    def create[B](implicit V: InputValidator[A, B]): ValidatedInput[BreakpointStep[B]] =
-      step.create[B].map(s => BreakpointStep(breakpoint, s))
-
-  }
-
-  object CreateBreakpointStep {
-
-    def stopBefore[A](s: CreateStep[A]): CreateBreakpointStep[A] =
-      CreateBreakpointStep(Breakpoint.enabled, s)
-
-    def continueTo[A](s: CreateStep[A]): CreateBreakpointStep[A] =
-      CreateBreakpointStep(Breakpoint.disabled, s)
-
-    implicit def EqCreateBreakpointStep[A: Eq]: Eq[CreateBreakpointStep[A]] =
-      Eq.by { a => (
-        a.breakpoint,
-        a.step
-      )}
-
-    implicit def DecoderCreateBreakpointStep[A: Decoder]: Decoder[CreateBreakpointStep[A]] =
-      deriveDecoder[CreateBreakpointStep[A]]
-
-    implicit def ValidatorCreateBreakpointStep[A, B](implicit V: InputValidator[A, B]): InputValidator[CreateBreakpointStep[A], BreakpointStep[B]] =
-      (cbs: CreateBreakpointStep[A]) => cbs.create[B]
-  }
 
   @Lenses final case class Atom[A](
     steps: NonEmptyList[BreakpointStep[A]]
@@ -112,46 +115,126 @@ object SequenceModel {
     implicit def EqSequenceAtom[A: Eq]: Eq[Atom[A]] =
       Eq.by(_.steps)
 
+
+    @Lenses final case class Create[A](
+      steps: List[BreakpointStep.Create[A]]
+    ) {
+
+      def create[B](implicit V: InputValidator[A, B]): ValidatedInput[Atom[B]] =
+        steps match {
+          case Nil    =>
+            InputError.fromMessage("Cannot create an empty sequence atom").invalidNec[Atom[B]]
+
+          case h :: t =>
+            (h.create[B], t.traverse(_.create[B])).mapN { (h0, t0) =>
+              Atom.fromNel.get(NonEmptyList(h0, t0))
+            }
+
+        }
+    }
+
+    object Create {
+
+      def singleton[A](step: BreakpointStep.Create[A]): Create[A] =
+        Create(List(step))
+
+      def stopBefore[A](step: CreateStep[A]): Create[A] =
+        singleton(BreakpointStep.Create.stopBefore(step))
+
+      def continueTo[A](step: CreateStep[A]): Create[A] =
+        singleton(BreakpointStep.Create.continueTo(step))
+
+      implicit def DecoderCreate[A: Decoder]: Decoder[Create[A]] =
+        deriveDecoder[Create[A]]
+
+      implicit def ValidatorCreate[A, B](implicit V: InputValidator[A, B]): InputValidator[Create[A], Atom[B]] =
+        (csa: Create[A]) => csa.create[B]
+
+      implicit def EqCreate[A: Eq]: Eq[Create[A]] =
+        Eq.by(_.steps)
+
+    }
+
+
   }
 
-  @Lenses final case class CreateAtom[A](
-    steps: List[CreateBreakpointStep[A]]
-  ) {
+  /**
+   * Sequence representation.
+   *
+   * @param static static configuration
+   * @param acquisition acquisition steps
+   * @param science science steps
+   *
+   * @tparam S static configuration type
+   * @tparam D dynamic (step) configuration type
+   */
+  final case class Sequence[S, D](
+    static:      S,
+    acquisition: List[Atom[D]],
+    science:     List[Atom[D]]
+  )
 
-    def create[B](implicit V: InputValidator[A, B]): ValidatedInput[Atom[B]] =
-      steps match {
-        case Nil    =>
-          InputError.fromMessage("Cannot create an empty SequenceAtom").invalidNec[Atom[B]]
+  object Sequence extends SequenceOptics {
 
-        case h :: t =>
-          (h.create[B], t.traverse(_.create[B])).mapN { (h0, t0) =>
-            Atom.fromNel.get(NonEmptyList(h0, t0))
-          }
+    implicit def EqSequence[S: Eq, D: Eq]: Eq[Sequence[S, D]] =
+      Eq.by { a => (
+        a.static,
+        a.acquisition,
+        a.science
+      )}
 
-      }
+    /**
+     * Input for sequence creation.
+     */
+    final case class Create[CS, CD](
+      static:      CS,
+      acquisition: List[Atom.Create[CD]],
+      science:     List[Atom.Create[CD]]
+    ) {
+
+      def create[S, D](
+        implicit ev1: InputValidator[CS, S], ev2: InputValidator[CD, D]
+      ): ValidatedInput[Sequence[S, D]] =
+        (
+          static.validateAndCreate[S],
+          acquisition.traverse(_.create),
+          science.traverse(_.create)
+        ).mapN { (st, aq, sc) => Sequence(st, aq, sc) }
+
+    }
+
+    object Create {
+
+      implicit def EdCreate[S: Eq, D: Eq]: Eq[Create[S, D]] =
+        Eq.by { a => (
+          a.static,
+          a.acquisition,
+          a.science
+        )}
+
+      implicit def DecoderCreate[S: Decoder, D: Decoder]:Decoder[Create[S, D]] =
+        deriveDecoder[Create[S, D]]
+
+      implicit def ValidatorCreate[CS, S, CD, D](
+        implicit ev1: InputValidator[CS, S], ev2: InputValidator[CD, D]
+      ): InputValidator[Create[CS, CD], Sequence[S, D]] =
+        InputValidator.by[Create[CS, CD], Sequence[S, D]](_.create)
+
+    }
+
   }
 
-  object CreateAtom {
+  sealed trait SequenceOptics { this: Sequence.type =>
 
-    def singleton[A](step: CreateBreakpointStep[A]): CreateAtom[A] =
-      CreateAtom(List(step))
+    def static[S, D]: Lens[Sequence[S, D], S] =
+      Lens[Sequence[S, D], S](_.static)(a => _.copy(static = a))
 
-    def stopBefore[A](step: CreateStep[A]): CreateAtom[A] =
-      singleton(CreateBreakpointStep.stopBefore(step))
+    def acquisition[S, D]: Lens[Sequence[S, D], List[Atom[D]]] =
+      Lens[Sequence[S, D], List[Atom[D]]](_.acquisition)(a => _.copy(acquisition = a))
 
-    def continueTo[A](step: CreateStep[A]): CreateAtom[A] =
-      singleton(CreateBreakpointStep.continueTo(step))
-
-    implicit def DecoderCreateSequenceAtom[A: Decoder]: Decoder[CreateAtom[A]] =
-      deriveDecoder[CreateAtom[A]]
-
-    implicit def ValidatorCreateSequenceAtom[A, B](implicit V: InputValidator[A, B]): InputValidator[CreateAtom[A], Atom[B]] =
-      (csa: CreateAtom[A]) => csa.create[B]
-
-    implicit def EqCreateSequenceAtom[A: Eq]: Eq[CreateAtom[A]] =
-      Eq.by(_.steps)
+    def science[S, D]: Lens[Sequence[S, D], List[Atom[D]]] =
+      Lens[Sequence[S, D], List[Atom[D]]](_.science)(a => _.copy(science = a))
 
   }
-
 
 }

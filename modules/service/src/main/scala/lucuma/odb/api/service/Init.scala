@@ -6,6 +6,7 @@ package lucuma.odb.api.service
 import cats.Applicative
 import cats.data.State
 import lucuma.odb.api.model._
+import lucuma.odb.api.model.SequenceModel._
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.`enum`._
 import lucuma.core.optics.syntax.all._
@@ -199,9 +200,9 @@ object Init {
   val ac3: CreateStep[CreateSouthDynamic] =
     step.exposure.assign_(FiniteDurationModel.Input(30.seconds)).runS(ac2).value
 
-  val acquisitionSequence: List[SequenceModel.CreateAtom[CreateSouthDynamic]] =
-    List(ac1, ac2, ac3).map(SequenceModel.CreateAtom.continueTo) ++
-      List.fill(10)(SequenceModel.CreateAtom.stopBefore(ac3))
+  val acquisitionSequence: List[Atom.Create[CreateSouthDynamic]] =
+    List(ac1, ac2, ac3).map(Atom.Create.continueTo) ++
+      List.fill(10)(Atom.Create.stopBefore(ac3))
 
   val gcal: GcalModel.Create =
     GcalModel.Create(
@@ -254,7 +255,7 @@ object Init {
   val sci15_525: CreateStep[CreateSouthDynamic] =
     CreateStep.science(gmos525, Q15)
 
-  val scienceSequence: List[SequenceModel.CreateAtom[CreateSouthDynamic]] =
+  val scienceSequence: List[Atom.Create[CreateSouthDynamic]] =
     List(
       flat_520,  sci0_520,
       sci15_520, flat_520,
@@ -267,10 +268,10 @@ object Init {
       sci0_525,  flat_525,
       flat_525,  sci0_525,
       sci15_525, flat_525
-    ).map(SequenceModel.CreateBreakpointStep.continueTo)
+    ).map(BreakpointStep.Create.continueTo)
      .grouped(2) // pairs flat and science steps
      .toList
-     .map(SequenceModel.CreateAtom(_))
+     .map(Atom.Create(_))
 
   def obs(
     pid:   Program.Id,
@@ -286,7 +287,7 @@ object Init {
       config        = Some(
         ConfigModel.Create.gmosSouth(
           ConfigModel.CreateGmosSouth(
-            ManualSequence.Create(
+            Sequence.Create(
               GmosModel.CreateSouthStatic.Default,
               acquisitionSequence,
               scienceSequence
