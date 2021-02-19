@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.ManualSequence
+import lucuma.odb.api.model.SequenceModel.Sequence
 import lucuma.odb.api.repo.OdbRepo
 
 import cats.effect.Effect
@@ -12,14 +12,14 @@ import sangria.schema._
 
 object InstrumentSequenceSchema {
 
-  import StepSchema._
+  import SequenceSchema._
 
   def InstrumentSequenceType[F[_]: Effect, S, D](
     typePrefix:  String,
     description: String,
     staticType:  OutputType[S],
     dynamicType: OutputType[D]
-  ): ObjectType[OdbRepo[F], ManualSequence[S, D]] =
+  ): ObjectType[OdbRepo[F], Sequence[S, D]] =
     ObjectType(
       name        = s"${typePrefix}Sequence",
       description = description,
@@ -34,16 +34,16 @@ object InstrumentSequenceSchema {
 
         Field(
           name        = "acquisition",
-          fieldType   = ListType(StepType[F, D](typePrefix, dynamicType)),
-          description = Some("Acquisition sequence"),
-          resolve     = _.value.acquisition
+          fieldType   = ListType(ListType(BreakpointStepType[F, D](typePrefix, dynamicType))),
+          description = Some("Acquisition sequence. Each inner list of steps comprise an unsplittable scheduling unit."),
+          resolve     = _.value.acquisition.map(_.steps.toList)
         ),
 
         Field(
           name        = "science",
-          fieldType   = ListType(StepType[F, D](typePrefix, dynamicType)),
-          description = Some("Science sequence"),
-          resolve     = _.value.science
+          fieldType   = ListType(ListType(BreakpointStepType[F, D](typePrefix, dynamicType))),
+          description = Some("Science sequence. Each inner list of steps comprise an unsplittable scheduling unit."),
+          resolve     = _.value.science.map(_.steps.toList)
         )
 
       )

@@ -4,6 +4,7 @@
 package lucuma.odb.api.model
 
 import lucuma.core.`enum`.Instrument
+import lucuma.odb.api.model.SequenceModel.Sequence
 
 import cats.Eq
 import cats.syntax.all._
@@ -47,10 +48,10 @@ object ConfigModel {
   // least it gives a GmosNorth-specific ManualSequence type.  Perhaps there
   // are better ideas?
 
-  type GmosNorthManualSequence = ManualSequence[GmosModel.NorthStatic, GmosModel.NorthDynamic]
+  type GmosNorthSequence = Sequence[GmosModel.NorthStatic, GmosModel.NorthDynamic]
 
   final case class GmosNorth(
-    manual: GmosNorthManualSequence
+    manual: GmosNorthSequence
   ) extends ConfigModel(Instrument.GmosN)
 
   object GmosNorth extends GmosNorthOptics {
@@ -62,15 +63,15 @@ object ConfigModel {
 
   sealed trait GmosNorthOptics { this: GmosNorth.type =>
 
-    val manual: Lens[GmosNorth, GmosNorthManualSequence] =
-      Lens[GmosNorth, GmosNorthManualSequence](_.manual)(a => _.copy(manual = a))
+    val manual: Lens[GmosNorth, GmosNorthSequence] =
+      Lens[GmosNorth, GmosNorthSequence](_.manual)(a => _.copy(manual = a))
 
   }
 
-  type GmosSouthManualSequence = ManualSequence[GmosModel.SouthStatic, GmosModel.SouthDynamic]
+  type GmosSouthSequence = Sequence[GmosModel.SouthStatic, GmosModel.SouthDynamic]
 
   final case class GmosSouth(
-    manual: GmosSouthManualSequence
+    manual: GmosSouthSequence
   ) extends ConfigModel(Instrument.GmosS)
 
   object GmosSouth extends GmosSouthOptics {
@@ -82,8 +83,8 @@ object ConfigModel {
 
   sealed trait GmosSouthOptics { this: GmosSouth.type =>
 
-    val manual: Lens[GmosSouth, GmosSouthManualSequence] =
-      Lens[GmosSouth, GmosSouthManualSequence](_.manual)(a => _.copy(manual = a))
+    val manual: Lens[GmosSouth, GmosSouthSequence] =
+      Lens[GmosSouth, GmosSouthSequence](_.manual)(a => _.copy(manual = a))
 
   }
 
@@ -133,7 +134,7 @@ object ConfigModel {
   }
 
   final case class CreateGmosNorth(
-    manual: ManualSequence.Create[GmosModel.CreateNorthStatic, GmosModel.CreateNorthDynamic]
+    manual: Sequence.Create[GmosModel.CreateNorthStatic, GmosModel.CreateNorthDynamic]
   ) {
 
     def create: ValidatedInput[GmosNorth] =
@@ -155,7 +156,7 @@ object ConfigModel {
 
 
   final case class CreateGmosSouth(
-    manual: ManualSequence.Create[GmosModel.CreateSouthStatic, GmosModel.CreateSouthDynamic]
+    manual: Sequence.Create[GmosModel.CreateSouthStatic, GmosModel.CreateSouthDynamic]
   ) {
 
     def create: ValidatedInput[GmosSouth] =
