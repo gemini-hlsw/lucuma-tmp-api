@@ -7,15 +7,15 @@ import lucuma.odb.api.model.AsterismModel
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.model.Asterism
 import cats.effect.Effect
-import cats.implicits._
 import sangria.schema._
 
 object AsterismSchema {
 
   import GeneralSchema.{EnumTypeExistence, ArgumentIncludeDeleted}
-  import ObservationSchema.ObservationType
-  import ProgramSchema.{OptionalProgramIdArgument, ProgramType}
-  import TargetSchema.{CoordinateType, TargetType}
+  import ObservationSchema.ObservationConnectionType
+  import Paging._
+  import ProgramSchema.{OptionalProgramIdArgument, ProgramConnectionType}
+  import TargetSchema.{CoordinateType, TargetConnectionType}
   import context._
 
   implicit val AsterismIdType: ScalarType[Asterism.Id] =
@@ -71,35 +71,65 @@ object AsterismSchema {
 
         Field(
           name        = "observations",
-          fieldType   = ListType(ObservationType[F]),
-          arguments   = List(OptionalProgramIdArgument, ArgumentIncludeDeleted),
+          fieldType   = ObservationConnectionType[F],
+          arguments   = List(
+            OptionalProgramIdArgument,
+            ArgumentPagingFirst,
+            ArgumentPagingCursor,
+            ArgumentIncludeDeleted
+          ),
           description = Some("All observations associated with the asterism."),
-          resolve     = c => c.observation(
-            _.selectAllForAsterism(c.value.id, c.includeDeleted)
-             .map { obsList =>
-               c.optionalProgramId.fold(obsList) { pid => obsList.filter(_.programId === pid) }
-             }
-          )
+          resolve     = c =>
+            unsafeSelectPageFuture(c.pagingObservationId) { gid =>
+              c.ctx.observation.selectAllForAsterism(c.value.id, c.optionalProgramId, c.pagingFirst, gid, c.includeDeleted)
+            }
         ),
 
         Field(
           name        = "targets",
-          fieldType   = ListType(TargetType[F]),
-          arguments   = List(ArgumentIncludeDeleted),
+          fieldType   = TargetConnectionType[F],
+          arguments   = List(
+            ArgumentPagingFirst,
+            ArgumentPagingCursor,
+            ArgumentIncludeDeleted
+          ),
           description = Some("All asterism targets"),
-          resolve     = c => c.target(
-            _.selectAllForAsterism(c.value.id, c.includeDeleted)
-          )
+          resolve     = c =>
+            unsafeSelectPageFuture(c.pagingTargetId) { gid =>
+              c.ctx.target.selectAllForAsterism(c.value.id, c.pagingFirst, gid, c.includeDeleted)
+            }
         ),
 
         Field(
           name        = "programs",
-          fieldType   = ListType(ProgramType[F]),
-          arguments   = List(ArgumentIncludeDeleted),
+          fieldType   = ProgramConnectionType[F],
+          arguments   = List(
+            ArgumentPagingFirst,
+            ArgumentPagingCursor,
+            ArgumentIncludeDeleted
+          ),
           description = Some("The programs associated with the asterism."),
-          resolve     = c => c.program(_.selectAllForAsterism(c.value.id, c.includeDeleted))
+          resolve     = c =>
+            unsafeSelectPageFuture(c.pagingProgramId) { gid =>
+              c.ctx.program.selectAllForAsterism(c.value.id, c.pagingFirst, gid, c.includeDeleted)
+            }
         )
       )
+    )
+
+  def AsterismEdgeType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Edge[AsterismModel]] =
+    Paging.EdgeType(
+      "AsterismEdge",
+      "An Asterism and its cursor",
+      AsterismType[F]
+    )
+
+  def AsterismConnectionType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Connection[AsterismModel]] =
+    Paging.ConnectionType(
+      "AsterismConnection",
+      "Asterisms in the current page",
+      AsterismType[F],
+      AsterismEdgeType[F]
     )
 
 }

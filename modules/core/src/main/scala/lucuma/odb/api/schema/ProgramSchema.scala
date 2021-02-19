@@ -9,15 +9,15 @@ import lucuma.core.model.Program
 import cats.effect.Effect
 import cats.syntax.foldable._
 import cats.syntax.functor._
-import lucuma.odb.api.schema.GeneralSchema.PlannedTimeSummaryType
 import sangria.schema._
 
 object ProgramSchema {
 
-  import AsterismSchema.AsterismType
-  import GeneralSchema.{EnumTypeExistence, ArgumentIncludeDeleted}
-  import ObservationSchema.ObservationType
-  import TargetSchema.TargetType
+  import AsterismSchema.AsterismConnectionType
+  import GeneralSchema.{EnumTypeExistence, ArgumentIncludeDeleted, PlannedTimeSummaryType}
+  import ObservationSchema.ObservationConnectionType
+  import Paging._
+  import TargetSchema.TargetConnectionType
   import context._
 
   implicit val ProgramIdType: ScalarType[Program.Id] =
@@ -72,26 +72,47 @@ object ProgramSchema {
 
         Field(
           name        = "asterisms",
-          fieldType   = ListType(AsterismType[F]),
+          fieldType   = AsterismConnectionType[F],
           description = Some("All asterisms associated with the program (needs pagination)."),
-          arguments   = List(ArgumentIncludeDeleted),
-          resolve     = c => c.asterism(_.selectAllForProgram(c.value.id, c.includeDeleted))
+          arguments   = List(
+            ArgumentPagingFirst,
+            ArgumentPagingCursor,
+            ArgumentIncludeDeleted
+          ),
+          resolve     = c =>
+            unsafeSelectPageFuture(c.pagingAsterismId) { gid =>
+              c.ctx.asterism.selectAllForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
+            }
         ),
 
         Field(
           name        = "observations",
-          fieldType   = ListType(ObservationType[F]),
+          fieldType   = ObservationConnectionType[F],
           description = Some("All observations associated with the program (needs pagination)."),
-          arguments   = List(ArgumentIncludeDeleted),
-          resolve     = c => c.observation(_.selectAllForProgram(c.value.id, c.includeDeleted))
+          arguments   = List(
+            ArgumentPagingFirst,
+            ArgumentPagingCursor,
+            ArgumentIncludeDeleted
+          ),
+          resolve     = c =>
+            unsafeSelectPageFuture(c.pagingObservationId) { gid =>
+              c.ctx.observation.selectAllForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
+            }
         ),
 
         Field(
           name        = "targets",
-          fieldType   = ListType(TargetType[F]),
+          fieldType   = TargetConnectionType[F],
           description = Some("All targets associated with the program (needs pagination)."),
-          arguments   = List(ArgumentIncludeDeleted),
-          resolve     = c => c.target(_.selectAllForProgram(c.value.id, c.includeDeleted))
+          arguments   = List(
+            ArgumentPagingFirst,
+            ArgumentPagingCursor,
+            ArgumentIncludeDeleted
+          ),
+          resolve     = c =>
+            unsafeSelectPageFuture(c.pagingTargetId) { gid =>
+              c.ctx.target.selectAllForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
+            }
         ),
 
         Field(
@@ -100,12 +121,28 @@ object ProgramSchema {
           description = Some("Program planned time calculation."),
           arguments   = List(ArgumentIncludeDeleted),
           resolve     = c => c.observation {
-            _.selectAllForProgram(c.value.id, c.includeDeleted)
-              .map(_.foldMap(_.plannedTimeSummary))
+            _.selectAllForProgram(c.value.id, Integer.MAX_VALUE, None, c.includeDeleted)
+             .map(_._1.foldMap(_.plannedTimeSummary))
           }
         )
 
 
       )
     )
+
+  def ProgramEdgeType[F[_]: Effect]: ObjectType[OdbRepo[F], Edge[ProgramModel]] =
+    EdgeType(
+      "ProgramEdge",
+      "A Program node and its cursor",
+      ProgramType[F]
+    )
+
+  def ProgramConnectionType[F[_]: Effect]: ObjectType[OdbRepo[F], Connection[ProgramModel]] =
+    ConnectionType(
+      "ProgramConnection",
+      "Programs in the current page",
+      ProgramType[F],
+      ProgramEdgeType[F]
+    )
+
 }

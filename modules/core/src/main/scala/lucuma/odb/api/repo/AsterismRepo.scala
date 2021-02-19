@@ -13,11 +13,24 @@ import cats.effect.concurrent.Ref
 import cats.syntax.all._
 import monocle.state.all._
 
+import scala.collection.immutable.SortedSet
+
 sealed trait AsterismRepo[F[_]] extends TopLevelRepo[F, Asterism.Id, AsterismModel] {
 
-  def selectAllForProgram(pid: Program.Id, includeDeleted: Boolean = false): F[List[AsterismModel]]
+  def selectAllForProgram(
+    pid:            Program.Id,
+    count:          Int                 = Integer.MAX_VALUE,
+    afterGid:       Option[Asterism.Id] = None,
+    includeDeleted: Boolean             = false
+  ): F[(List[AsterismModel], Boolean)]
 
-  def selectAllForTarget(tid: Target.Id, includeDeleted: Boolean = false): F[List[AsterismModel]]
+  def selectAllForTarget(
+    tid:            Target.Id,
+    pid:            Option[Program.Id],
+    count:          Int                 = Integer.MAX_VALUE,
+    afterGid:       Option[Asterism.Id] = None,
+    includeDeleted: Boolean             = false
+  ): F[(List[AsterismModel], Boolean)]
 
   def selectForObservation(oid: Observation.Id, includeDeleted: Boolean = false): F[Option[AsterismModel]]
 
@@ -53,31 +66,44 @@ object AsterismRepo {
     ) with AsterismRepo[F]
       with LookupSupport {
 
-      private def lookupAll(t: Tables, as: Iterable[Asterism.Id]): List[AsterismModel] =
-        as.foldLeft(List.empty[AsterismModel]) { (lst, id) =>
-          t.asterisms.get(id).fold(lst)(_ :: lst)
+      private def asterismIdsForProgram(
+        tables: Tables,
+        pid:    Program.Id
+      ): SortedSet[Asterism.Id] = {
+        val fromObs = tables
+                       .observations
+                       .values
+                       .filter(_.programId === pid)
+                       .map(_.targets)
+                       .collect { case Some(Left(aid)) => aid }
+                       .toSet
+
+        val fromProg = tables.programAsterism.selectRight(pid)
+
+        fromProg ++ fromObs
+      }
+
+
+      override def selectAllForProgram(
+        pid:            Program.Id,
+        count:          Int,
+        afterGid:       Option[Asterism.Id],
+        includeDeleted: Boolean
+      ): F[(List[AsterismModel], Boolean)] =
+        selectPageFromIds(count, afterGid, includeDeleted)(asterismIdsForProgram(_, pid))
+
+      override def selectAllForTarget(
+        tid:            Target.Id,
+        pid:            Option[Program.Id], // limit to this program
+        count:          Int,
+        afterGid:       Option[Asterism.Id],
+        includeDeleted: Boolean
+      ): F[(List[AsterismModel], Boolean)] =
+
+        selectPageFromIds(count, afterGid, includeDeleted) { tables =>
+          val ids = tables.targetAsterism.selectRight(tid)
+          pid.fold(ids) { p => asterismIdsForProgram(tables, p).intersect(ids) }
         }
-
-
-      override def selectAllForProgram(pid: Program.Id, includeDeleted: Boolean): F[List[AsterismModel]] =
-        tablesRef.get.map { t =>
-
-          val fromObs = t.observations
-                         .values
-                         .filter(_.programId === pid)
-                         .map(_.targets)
-                         .collect { case Some(Left(aid)) => aid }
-                         .toSet
-
-          val fromProg = t.programAsterism.selectRight(pid)
-
-          lookupAll(t, fromObs ++ fromProg)
-        }.map(deletionFilter(includeDeleted))
-
-      override def selectAllForTarget(tid: Target.Id, includeDeleted: Boolean): F[List[AsterismModel]] =
-        tablesRef.get.map { t =>
-          lookupAll(t, t.targetAsterism.selectRight(tid))
-        }.map(deletionFilter(includeDeleted))
 
       override def selectForObservation(oid: Observation.Id, includeDeleted: Boolean): F[Option[AsterismModel]] =
         tablesRef.get.map { t =>

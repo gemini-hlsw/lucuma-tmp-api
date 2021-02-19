@@ -50,8 +50,8 @@ trait OdbRepoTest {
         runTest(t) { odb =>
           val (repoA, repoB, share, unshare, lookup) = config(odb)
           for {
-            as <- repoA.selectAll()
-            bs <- repoB.selectAll()
+            as <- repoA.selectPage()
+            bs <- repoB.selectPage()
             tp <- as.headOption.fold(IO((Set.empty[J], Set.empty[J], Set.empty[J], Set.empty[J]))) { a =>
 
               val ia = TopLevelModel[I, A].id(a)

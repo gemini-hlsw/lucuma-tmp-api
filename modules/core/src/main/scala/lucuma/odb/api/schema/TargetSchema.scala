@@ -10,15 +10,15 @@ import lucuma.core.`enum`.{CatalogName, EphemerisKeyType, MagnitudeBand, Magnitu
 import lucuma.core.math.{Coordinates, Declination, MagnitudeValue, Parallax, ProperMotion, RadialVelocity, RightAscension, VelocityAxis}
 import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, SiderealTracking, Target}
 import cats.effect.Effect
-import cats.syntax.all._
 import sangria.schema._
 
 object TargetSchema extends TargetScalars {
 
-  import AsterismSchema.AsterismType
+  import AsterismSchema.AsterismConnectionType
   import GeneralSchema.{EnumTypeExistence, ArgumentIncludeDeleted}
-  import ObservationSchema.ObservationType
-  import ProgramSchema.{OptionalProgramIdArgument, ProgramType}
+  import ObservationSchema.ObservationConnectionType
+  import Paging._
+  import ProgramSchema.{OptionalProgramIdArgument, ProgramConnectionType}
   import context._
 
   implicit val TargetIdType: ScalarType[Target.Id] =
@@ -397,42 +397,49 @@ object TargetSchema extends TargetScalars {
 
         Field(
           name        = "asterisms",
-          fieldType   = ListType(AsterismType[F]),
-          arguments   = List(OptionalProgramIdArgument, ArgumentIncludeDeleted),
+          fieldType   = AsterismConnectionType[F],
+          arguments   = List(
+            OptionalProgramIdArgument,
+            ArgumentPagingFirst,
+            ArgumentPagingCursor,
+            ArgumentIncludeDeleted
+          ),
           description = Some("The asterisms associated with the target."),
           resolve     = c =>
-            c.asterism { repo =>
-              repo.selectAllForTarget(c.value.id, c.includeDeleted).flatMap { as =>
-                c.optionalProgramId.fold(as.pure[F]) { pid =>
-                  repo.selectAllForProgram(pid, c.includeDeleted)
-                    .map(_.map(_.id).toSet)
-                    .map { ids => as.filter(a => ids(a.id)) }
-                }
-              }
+            unsafeSelectPageFuture(c.pagingAsterismId) { gid =>
+              c.ctx.asterism.selectAllForTarget(c.value.id, c.optionalProgramId, c.pagingFirst, gid, c.includeDeleted)
             }
         ),
 
         Field(
           name        = "observations",
-          fieldType   = ListType(ObservationType[F]),
-          arguments   = List(OptionalProgramIdArgument, ArgumentIncludeDeleted),
+          fieldType   = ObservationConnectionType[F],
+          arguments   = List(
+            OptionalProgramIdArgument,
+            ArgumentPagingFirst,
+            ArgumentPagingCursor,
+            ArgumentIncludeDeleted
+          ),
           description = Some("The observations associated with the target."),
-          resolve     = c => c.observation(
-            _.selectAllForTarget(c.value.id, c.includeDeleted)
-             .map { obsList =>
-               c.optionalProgramId.fold(obsList) { pid =>
-                 obsList.filter(_.programId === pid)
-               }
-             }
-          )
+          resolve     = c =>
+            unsafeSelectPageFuture(c.pagingObservationId) { gid =>
+              c.ctx.observation.selectAllForTarget(c.value.id, c.optionalProgramId, c.pagingFirst, gid, c.includeDeleted)
+            }
         ),
 
         Field(
           name        = "programs",
-          fieldType   = ListType(ProgramType[F]),
-          arguments   = List(ArgumentIncludeDeleted),
+          fieldType   = ProgramConnectionType[F],
+          arguments   = List(
+            ArgumentPagingFirst,
+            ArgumentPagingCursor,
+            ArgumentIncludeDeleted
+          ),
           description = Some("The programs associated with the target."),
-          resolve     = c => c.program(_.selectAllForTarget(c.value.id, c.includeDeleted))
+          resolve     = c =>
+            unsafeSelectPageFuture(c.pagingProgramId) { gid =>
+              c.ctx.program.selectAllForTarget(c.value.id, c.pagingFirst, gid, c.includeDeleted)
+            }
         ),
 
         Field(
@@ -456,6 +463,21 @@ object TargetSchema extends TargetScalars {
           resolve     = _.value.target.magnitudes.values.toList
         )
       )
+    )
+
+  def TargetEdgeType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Edge[TargetModel]] =
+    Paging.EdgeType(
+      "TargetEdge",
+      "A Target and its cursor",
+      TargetType[F]
+    )
+
+  def TargetConnectionType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Connection[TargetModel]] =
+    Paging.ConnectionType(
+      "TargetConnection",
+      "Targets in the current page",
+      TargetType[F],
+      TargetEdgeType[F]
     )
 
 }

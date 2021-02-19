@@ -160,5 +160,19 @@ object ObservationSchema {
       }.value
     }
 
+  def ObservationEdgeType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Edge[ObservationModel]] =
+    Paging.EdgeType[F, ObservationModel](
+      "ObservationEdge",
+      "An observation and its cursor",
+      ObservationType[F]
+    )
+
+  def ObservationConnectionType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Connection[ObservationModel]] =
+    Paging.ConnectionType[F, ObservationModel](
+      "ObservationConnection",
+      "Matching observations",
+      ObservationType[F],
+      ObservationEdgeType[F]
+    )
 
 }

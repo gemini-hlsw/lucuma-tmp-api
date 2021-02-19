@@ -10,16 +10,24 @@ import sangria.schema._
 trait ProgramQuery {
 
   import GeneralSchema.ArgumentIncludeDeleted
-  import ProgramSchema.{ProgramIdArgument, ProgramType}
+  import Paging._
+  import ProgramSchema.{ProgramIdArgument, ProgramType, ProgramConnectionType}
   import context._
 
   def all[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
       name        = "programs",
-      fieldType   = ListType(ProgramType[F]),
-      description = Some("Returns all programs (needs pagination)."),
-      arguments   = List(ArgumentIncludeDeleted),
-      resolve     = c => c.program(_.selectAll(c.includeDeleted))
+      fieldType   = ProgramConnectionType[F],
+      description = Some("Pages through all programs."),
+      arguments   = List(
+        ArgumentPagingFirst,
+        ArgumentPagingCursor,
+        ArgumentIncludeDeleted
+      ),
+      resolve = c =>
+        unsafeSelectPageFuture(c.pagingProgramId) { gid =>
+          c.ctx.program.selectPage(c.pagingFirst, gid, c.includeDeleted)
+        }
     )
 
   def forId[F[_]: Effect]: Field[OdbRepo[F], Unit] =

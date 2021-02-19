@@ -10,17 +10,26 @@ import sangria.schema._
 trait ObservationQuery {
 
   import GeneralSchema.ArgumentIncludeDeleted
+  import Paging._
   import ProgramSchema.ProgramIdArgument
-  import ObservationSchema.{ObservationIdArgument, ObservationType}
+  import ObservationSchema.{ObservationIdArgument, ObservationType, ObservationConnectionType}
   import context._
 
   def allForProgram[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
       name        = "observations",
-      fieldType   = ListType(ObservationType[F]),
+      fieldType   = ObservationConnectionType[F],
       description = Some("Returns all observations associated with the given program."),
-      arguments   = List(ProgramIdArgument, ArgumentIncludeDeleted),
-      resolve     = c => c.observation(_.selectAllForProgram(c.programId, c.includeDeleted))
+      arguments   = List(
+        ProgramIdArgument,
+        ArgumentPagingFirst,
+        ArgumentPagingCursor,
+        ArgumentIncludeDeleted
+      ),
+      resolve     = c =>
+        unsafeSelectPageFuture(c.pagingObservationId) { gid =>
+          c.ctx.observation.selectAllForProgram(c.programId, c.pagingFirst, gid, c.includeDeleted)
+        }
     )
 
   def forId[F[_]: Effect]: Field[OdbRepo[F], Unit] =

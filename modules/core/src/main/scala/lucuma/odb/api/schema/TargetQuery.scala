@@ -10,8 +10,9 @@ import sangria.schema._
 trait TargetQuery {
 
   import GeneralSchema.ArgumentIncludeDeleted
+  import Paging._
   import ProgramSchema.ProgramIdArgument
-  import TargetSchema.{TargetIdArgument, TargetType}
+  import TargetSchema.{TargetIdArgument, TargetType, TargetConnectionType}
   import context._
 
   def forId[F[_]: Effect]: Field[OdbRepo[F], Unit] =
@@ -26,10 +27,18 @@ trait TargetQuery {
   def allForProgram[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
       name        = "targets",
-      fieldType   = ListType(TargetSchema.TargetType[F]),
+      fieldType   = TargetConnectionType[F],
       description = Some("Return all targets associated with the given program."),
-      arguments   = List(ProgramIdArgument, ArgumentIncludeDeleted),
-      resolve     = c => c.target(_.selectAllForProgram(c.programId, c.includeDeleted))
+      arguments   = List(
+        ProgramIdArgument,
+        ArgumentPagingFirst,
+        ArgumentPagingCursor,
+        ArgumentIncludeDeleted
+      ),
+      resolve     = c =>
+        unsafeSelectPageFuture(c.pagingTargetId) { gid =>
+          c.ctx.target.selectAllForProgram(c.programId, c.pagingFirst, gid, c.includeDeleted)
+        }
     )
 
   def allFields[F[_]: Effect]: List[Field[OdbRepo[F], Unit]] =

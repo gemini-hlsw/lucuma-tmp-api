@@ -17,9 +17,19 @@ import monocle.state.all._
 
 sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
 
-  def selectAllForProgram(pid: Program.Id, includeDeleted: Boolean = false): F[List[TargetModel]]
+  def selectAllForProgram(
+    pid:            Program.Id,
+    count:          Int               = Integer.MAX_VALUE,
+    afterGid:       Option[Target.Id] = None,
+    includeDeleted: Boolean           = false
+  ): F[(List[TargetModel], Boolean)]
 
-  def selectAllForAsterism(aid: Asterism.Id, includeDeleted: Boolean = false): F[List[TargetModel]]
+  def selectAllForAsterism(
+    aid:            Asterism.Id,
+    count:          Int               = Integer.MAX_VALUE,
+    afterGid:       Option[Target.Id] = None,
+    includeDeleted: Boolean           = false
+  ): F[(List[TargetModel], Boolean)]
 
   def insertNonsidereal(input: CreateNonsidereal): F[TargetModel]
 
@@ -57,23 +67,25 @@ object TargetRepo {
 
       override def selectAllForProgram(
         pid:            Program.Id,
-        includeDeleted: Boolean = false
-      ): F[List[TargetModel]] =
-        tablesRef.get.flatMap { tables =>
-          tables.programTarget.selectRight(pid).toList.traverse { tid =>
-            tryFindTarget(tables, tid).liftTo[F]
-          }
-        }.map(deletionFilter(includeDeleted))
+        count:          Int               = Integer.MAX_VALUE,
+        afterGid:       Option[Target.Id] = None,
+        includeDeleted: Boolean           = false
+      ): F[(List[TargetModel], Boolean)] =
+
+        selectPageFromIds(count, afterGid, includeDeleted) { tables =>
+          tables.programTarget.selectRight(pid)
+        }
 
       override def selectAllForAsterism(
         aid:            Asterism.Id,
-        includeDeleted: Boolean = false
-      ): F[List[TargetModel]] =
-        tablesRef.get.flatMap { tables =>
-          tables.targetAsterism.selectLeft(aid).toList.traverse { tid =>
-            tryFindTarget(tables, tid).liftTo[F]
-          }
-        }.map(deletionFilter(includeDeleted))
+        count:          Int               = Integer.MAX_VALUE,
+        afterGid:       Option[Target.Id] = None,
+        includeDeleted: Boolean           = false
+      ): F[(List[TargetModel], Boolean)] =
+
+        selectPageFromIds(count, afterGid, includeDeleted) { tables =>
+          tables.targetAsterism.selectLeft(aid)
+        }
 
       def addAndShare(id: Option[Target.Id], g: Target, pids: Set[Program.Id]): State[Tables, TargetModel] =
         for {

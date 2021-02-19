@@ -1,0 +1,282 @@
+// Copyright (c) 2016-2020 Association of Universities for Research in Astronomy, Inc. (AURA)
+// For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
+
+package lucuma.odb.api.schema
+
+import lucuma.odb.api.repo.OdbRepo
+import lucuma.core.util.Gid
+import lucuma.odb.api.model.{InputError, TopLevelModel}
+import cats.effect.Effect
+import cats.effect.implicits._
+import cats.{Eq, Order}
+import cats.syntax.all._
+import io.circe.Decoder
+
+import java.nio.charset.Charset
+import java.util.Base64
+import sangria.schema._
+import sangria.validation.ValueCoercionViolation
+
+import scala.concurrent.Future
+import scala.util.Try
+
+object Paging {
+
+  /**
+   * Giving a type to an opaque String.
+   */
+  final class Cursor(override val toString: String) extends AnyVal {
+
+    def toBase64: String =
+      Base64.getEncoder.encodeToString(toString.getBytes(Cursor.CharacterSet))
+
+    def asGid[A: Gid]: Option[A] =
+      Gid[A].fromString.getOption(toString)
+
+  }
+
+  object Cursor {
+    val CharacterSet: Charset =
+      Charset.forName("UTF-8")
+
+    def tryDecode(s: String): Try[Cursor] =
+      Try {
+        new Cursor(new String(Base64.getDecoder.decode(s), CharacterSet))
+      }
+
+    def decode(s: String): Option[Cursor] =
+      tryDecode(s).toOption
+
+    def fromGid[A: Gid](a: A): Cursor =
+      new Cursor(Gid[A].show(a))
+
+    implicit val OrderCursor: Order[Cursor] =
+      Order.by(_.toString)
+
+    implicit val DecoderCursor: Decoder[Cursor] =
+      Decoder[String].emapTry(tryDecode)
+
+  }
+
+  case object CursorViolation extends ValueCoercionViolation("Expected a base-64 encoded value")
+
+  implicit val CursorType: ScalarType[Cursor] =
+    ScalarType[Cursor](
+      name          = "Cursor",
+      description   = Some("Opaque object cursor"),
+      coerceUserInput = {
+        case s: String => Cursor.tryDecode(s).toEither.left.map(_ => CursorViolation)
+        case _         => Left(CursorViolation)
+      },
+      coerceOutput     = (a, _) => a.toBase64,
+      coerceInput      = {
+        case sangria.ast.StringValue(s, _, _, _, _) => Cursor.tryDecode(s).toEither.left.map(_ => CursorViolation)
+        case _                                      => Left(CursorViolation)
+      }
+    )
+
+  val ArgumentPagingFirst: Argument[Int] =
+    Argument(
+      name         = "first",
+      argumentType = IntType,
+      description  = "Retrieve `first` values after the given cursor"
+    )
+
+  val ArgumentPagingCursor: Argument[Option[Cursor]] =
+    Argument(
+      name         = "after",
+      argumentType = OptionInputType(CursorType),
+      description  = "Retrieve values after the one associated with this cursor"
+    )
+
+  final case class PageInfo(
+    startCursor:     Option[Cursor],
+    endCursor:       Option[Cursor],
+    hasNextPage:     Boolean
+  )
+
+  object PageInfo {
+
+    val Empty: PageInfo =
+      PageInfo(
+        startCursor     = None,
+        endCursor       = None,
+        hasNextPage     = false
+      )
+
+    implicit val EqPageInfo: Eq[PageInfo] =
+      Eq.by { a => (
+        a.startCursor,
+        a.endCursor,
+        a.hasNextPage
+      )}
+
+  }
+
+  def PageInfoType[F[_]: Effect]: ObjectType[OdbRepo[F], PageInfo] =
+    ObjectType(
+      name        = "PageInfo",
+      description = "Information that supports paging through a list of elements",
+      fieldsFn    = () => fields(
+
+        Field(
+          name        = "startCursor",
+          fieldType   = OptionType(CursorType),
+          description = Some("Cursor pointing to the first element in the result set, if any"),
+          resolve     = _.value.startCursor
+        ),
+
+        Field(
+          name        = "endCursor",
+          fieldType   = OptionType(CursorType),
+          description = Some("Cursor pointing to the last element in the result set, if any"),
+          resolve     = _.value.endCursor
+        ),
+
+        Field(
+          name        = "hasNextPage",
+          fieldType   = BooleanType,
+          description = Some("Whether there are any pages left to retrieve"),
+          resolve     = _.value.hasNextPage
+        )
+
+
+      )
+    )
+
+  final case class Edge[A](
+    node:   A,
+    cursor: Cursor
+  )
+
+  object Edge {
+
+    implicit def EqEdge[A: Eq]: Eq[Edge[A]] =
+      Eq.by { a => (
+        a.node,
+        a.cursor
+      )}
+
+  }
+
+  /**
+   * Simple edge type consisting of a node and a cursor.
+   */
+  def EdgeType[F[_]: Effect, A](
+    name:        String,
+    description: String,
+    nodeType:    OutputType[A]
+  ): ObjectType[OdbRepo[F], Edge[A]] =
+
+    ObjectType(
+      name        = name,
+      description = description,
+      fieldsFn    = () => fields(
+
+        Field(
+          name        = "node",
+          fieldType   = nodeType,
+          description = Some(s"$name element"),
+          resolve     = _.value.node
+        ),
+
+        Field(
+          name        = "cursor",
+          fieldType   = CursorType,
+          description = Some(s"$name element cursor"),
+          resolve     = _.value.cursor
+        )
+      )
+    )
+
+  final case class Connection[A](
+    edges:    List[Edge[A]],
+    pageInfo: PageInfo
+  )
+
+  object Connection {
+
+    def empty[A]: Connection[A] =
+      Connection(Nil, PageInfo.Empty)
+
+    implicit def EqConnection[A: Eq](implicit ev: Eq[Edge[A]]): Eq[Connection[A]] =
+      Eq.by { a => (
+        a.edges,
+        a.pageInfo
+      )}
+
+    def page[A](
+      nodes:   List[A],
+      hasNext: Boolean
+    )(
+      cursorFor: A => Cursor
+    ): Connection[A] =
+      Connection(
+        nodes.map(a => Edge(a, cursorFor(a))),
+        PageInfo(
+          startCursor     = nodes.headOption.map(cursorFor),
+          endCursor       = nodes.lastOption.map(cursorFor),
+          hasNextPage     = hasNext
+        )
+      )
+
+  }
+
+  def ConnectionType[F[_]: Effect, A](
+    name:        String,
+    description: String,
+    nodeType:    ObjectType[OdbRepo[F], A],
+    edgeType:    ObjectType[OdbRepo[F], Edge[A]]
+  ): ObjectType[OdbRepo[F], Connection[A]] =
+
+    ObjectType(
+      name        = name,
+      description = description,
+      fieldsFn    = () => fields(
+
+        // A convenience field that drills down into the edges and extracts
+        // just the nodes.
+        Field(
+          name        = "nodes",
+          fieldType   = ListType(nodeType),
+          resolve     = _.value.edges.map(_.node)
+        ),
+
+        Field(
+          name        = "edges",
+          fieldType   = ListType(edgeType),
+          description = Some("Edges in the current page"),
+          resolve     = _.value.edges
+        ),
+
+        Field(
+          name        = "pageInfo",
+          fieldType   = PageInfoType[F],
+          description = Some("Paging information"),
+          resolve     = _.value.pageInfo
+        )
+
+      )
+    )
+
+  def selectPage[F[_]: Effect, I: Gid, T](
+    afterGid: Either[InputError, Option[I]],
+  )(
+    select: Option[I] => F[(List[T], Boolean)]
+  )(implicit ev: TopLevelModel[I, T]): F[Connection[T]] =
+    afterGid.fold(
+      e => Effect[F].raiseError[Connection[T]](e.toException), // if not a valid GID
+      g => select(g).map { case (lst, hasNext) =>
+        Connection.page(lst, hasNext) { t => Cursor.fromGid(TopLevelModel[I, T].id(t)) }
+      }
+    )
+
+  def unsafeSelectPageFuture[F[_]: Effect, I: Gid, T](
+    afterGid: Either[InputError, Option[I]],
+  )(
+    select: Option[I] => F[(List[T], Boolean)]
+  )(implicit ev: TopLevelModel[I, T]): Future[Connection[T]] =
+    selectPage[F, I, T](afterGid)(select).toIO.unsafeToFuture()
+
+
+}
