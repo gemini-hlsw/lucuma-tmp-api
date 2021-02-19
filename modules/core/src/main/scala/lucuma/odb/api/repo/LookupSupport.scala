@@ -3,8 +3,16 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{AsterismModel, InputError, ObservationModel, ProgramModel, TargetModel, ValidatedInput}
-import lucuma.core.model.{Asterism, Observation, Program, Target}
+import lucuma.odb.api.model.{
+  AsterismModel,
+  ConstraintSetModel,
+  InputError,
+  ObservationModel,
+  ProgramModel,
+  TargetModel,
+  ValidatedInput
+}
+import lucuma.core.model.{ Asterism, ConstraintSet, Observation, Program, Target }
 import lucuma.core.util.Gid
 import cats.implicits._
 
@@ -17,6 +25,9 @@ trait LookupSupport {
 
   def tryFindAsterism(t: Tables, aid: Asterism.Id): ValidatedInput[AsterismModel] =
     tryFind(t.asterisms, aid, "asterism")
+
+  def tryFindConstraintSet(t: Tables, csid: ConstraintSet.Id): ValidatedInput[ConstraintSetModel] =
+    tryFind(t.constraintSets, csid, "constraintSet")
 
   def tryFindObservation(t: Tables, oid: Observation.Id): ValidatedInput[ObservationModel] =
     tryFind(t.observations, oid, "observation")
@@ -38,6 +49,9 @@ trait LookupSupport {
 
   def tryNotFindAsterism(t: Tables, aid: Option[Asterism.Id]): ValidatedInput[Unit] =
     tryNotFind(t.asterisms, aid, "asterism")
+
+  def tryNotFindConstraintSet(t: Tables, csid: Option[ConstraintSet.Id]): ValidatedInput[Unit] =
+    tryNotFind(t.constraintSets, csid, "constraintSet")
 
   def tryNotFindObservation(t: Tables, oid: Option[Observation.Id]): ValidatedInput[Unit] =
     tryNotFind(t.observations, oid, "observation")
