@@ -294,7 +294,7 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
   ): F[T] = 
     share[Id, J, M](name, id, oneId, findM, editedM){ vtm =>
       vtm.traverse { _ => 
-        eitherUpdate[Id, OneToManyUnique, Tables, J, I, InputError]((oneId, id), linkLens)(_ + _)}
+        eitherUpdate[Id, J, I]((oneId, id), linkLens)(_ + _)}
           .map(_.andThen(identity))
     }
   
@@ -332,12 +332,12 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
       vtm.traverse_ { _ => linkLens.mod_(links => links -- input.tupleLeft) }.map(_.validNec[InputError].void)
     }
 
-  private def eitherUpdate[G[_] : Traverse, H[_, _], S, A, B, E](
-    ab: G[(A, B)], lens: Lens[S, H[A, B]]
+  private def eitherUpdate[G[_] : Traverse, A, B](
+    ab: G[(A, B)], lens: Lens[Tables, OneToManyUnique[A, B]]
   )(
-    update: (H[A, B], G[(A, B)]) => Either[E, H[A, B]]
-  ): State[S, ValidatedNec[E, Unit]] = {
-    IndexedStateT[Eval, S, S, Either[E, H[A, B]]] { s =>
+    update: (OneToManyUnique[A, B], G[(A, B)]) => Either[InputError, OneToManyUnique[A, B]]
+  ): State[Tables, ValidatedNec[InputError, Unit]] = {
+    IndexedStateT[Eval, Tables, Tables, Either[InputError, OneToManyUnique[A, B]]] { s =>
       val gab = lens.get(s)
       update(gab, ab) match {
         case err @ Left(_) => Now((s, err))
