@@ -8,7 +8,7 @@ import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.core.util.Gid
 
-import cats._ //{Eq, FunctorFilter, Monad, MonadError}
+import cats._
 import cats.data._
 import cats.effect.concurrent.Ref
 import cats.kernel.BoundedEnumerable
@@ -203,29 +203,31 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
   def undelete(id: I): F[T] =
     setExistence(id, Existence.Present)
 
-  private def share[J, M](
+  private def share[G[_] : Traverse, J, M](
     name:    String,
-    input:   Sharing[I, J],
+    one:     I,
+    many:    G[J],
     findM:   J => State[Tables, ValidatedInput[M]],
     editedM: M => Long => Event.Edit[M]
   )(
-    update:  ValidatedInput[(T, List[M])] => State[Tables, Unit],
+    update:  ValidatedInput[(T, G[M])] => State[Tables, ValidatedInput[Unit]],
   ): F[T] = {
-
+    
     val link = tablesRef.modifyState {
       for {
-        vo <- focusOn(input.one).st.map(_.toValidNec(InputError.missingReference(name, Gid[I].show(input.one))))
-        vm <- input.many.traverse(findM).map(_.sequence)
-        vtm = (vo, vm).mapN { (o, m) => (o, m) }
-        _  <- update(vtm)
-      } yield vtm
+        vo  <- focusOn(one).st.map(_.toValidNec(InputError.missingReference(name, Gid[I].show(one))))
+        vm  <- many.traverse(findM).map(_.sequence)
+        vtm  = (vo, vm).tupled
+        r   <- update(vtm)
+        vtmr = (vo, vm, r).tupled
+      } yield vtmr
     }
 
     for {
-      tm <- link.flatMap(_.liftTo[F])
-      (t, ms) = tm
+      tmr <- link.flatMap(_.liftTo[F])
+      (t, gm, _) = tmr
       _ <- eventService.publish(edited(Event.EditType.Updated, t)) // publish one
-      _ <- ms.traverse_(m => eventService.publish(editedM(m)))     // publish many
+      _ <- gm.traverse_(m => eventService.publish(editedM(m)))     // publish many
     } yield t
   }
 
@@ -238,8 +240,8 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
  )(
     update:   (ManyToMany[J, I], IterableOnce[(J, I)]) => ManyToMany[J, I]
  ): F[T] =
-    share(name, input, findM, editedM) { vtm =>
-      vtm.traverse_ { _ => linkLens.mod_(links => update(links, input.tupleRight)) }
+    share(name, input.one, input.many, findM, editedM) { vtm =>
+      vtm.traverse_ { _ => linkLens.mod_(links => update(links, input.tupleRight)) }.map(_.validNec[InputError].void)
     }
 
   protected def shareRight[J, M](
@@ -251,8 +253,97 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
   )(
     update:   (ManyToMany[I, J], IterableOnce[(I, J)]) => ManyToMany[I, J]
   ): F[T] =
-    share(name, input, findM, editedM) { vtm =>
-      vtm.traverse_ { _ => linkLens.mod_(links => update(links, input.tupleLeft)) }
+    share(name, input.one, input.many, findM, editedM) { vtm =>
+      vtm.traverse_ { _ => linkLens.mod_(links => update(links, input.tupleLeft)) }.map(_.validNec[InputError].void)
     }
+
+  protected def shareWithOne[J, M](
+    name: String,
+    id: I,
+    oneId: J,
+    findM: J => State[Tables, ValidatedInput[M]],
+    linkLens: Lens[Tables, OneToMany[J, I]],
+    editedM: M => Long => Event.Edit[M]
+  )(
+    update: (OneToMany[J, I], (J, I)) => OneToMany[J, I]
+  ): F[T] =
+    share[Id, J, M](name, id, oneId, findM, editedM) { vtm =>
+      vtm.traverse_ { _ => linkLens.mod_(links => update(links, (oneId, id))) }.map(_.validNec[InputError].void)
+    }
+
+  protected def shareOneWithMany[J, M](
+    name:     String,
+    input:    Sharing[I, J],
+    findM:    J => State[Tables, ValidatedInput[M]],
+    linkLens: Lens[Tables, OneToMany[I, J]],
+    editedM:  M => Long => Event.Edit[M]
+  )(
+    update:   (OneToMany[I, J], IterableOnce[(I, J)]) => OneToMany[I, J]
+  ): F[T] =
+    share(name, input.one, input.many, findM, editedM) { vtm =>
+      vtm.traverse_ { _ => linkLens.mod_(links => update(links, input.tupleLeft)) }.map(_.validNec[InputError].void)
+    }
+
+  protected def shareWithOneUnique[J, M](
+    name: String,
+    id: I,
+    oneId: J,
+    findM: J => State[Tables,ValidatedInput[M]],
+    linkLens: Lens[Tables, OneToManyUnique[J, I]],
+    editedM: M => Long => Event.Edit[M]
+  ): F[T] = 
+    share[Id, J, M](name, id, oneId, findM, editedM){ vtm =>
+      vtm.traverse { _ => 
+        eitherUpdate[Id, J, I]((oneId, id), linkLens)(_ + _)}
+          .map(_.andThen(identity))
+    }
+  
+  protected def unshareWithOneUnique[J, M](
+    name: String,
+    id: I,
+    oneId: J,
+    findM: J => State[Tables,ValidatedInput[M]],
+    linkLens: Lens[Tables, OneToManyUnique[J, I]],
+    editedM: M => Long => Event.Edit[M]
+  ): F[T] = 
+    share[Id, J, M](name, id, oneId, findM, editedM) { vtm =>
+      vtm.traverse_ { _ => linkLens.mod_(links => links - ((oneId, id))) }.map(_.validNec[InputError].void)
+    }
+
+  protected def shareOneWithManyUnique[J, M](
+    name: String,
+    input: Sharing[I, J],
+    findM: J => State[Tables, ValidatedInput[M]],
+    linkLens: Lens[Tables, OneToManyUnique[I, J]],
+    editedM: M => Long => Event.Edit[M]
+  ): F[T] = 
+    share(name, input.one, input.many, findM, editedM){ vtm =>
+      vtm.traverse { _ => eitherUpdate(input.tupleLeft, linkLens)(_ ++ _)}.map(_.andThen(identity))
+    }
+
+  protected def unshareOneWithManyUnique[J, M](
+    name: String,
+    input: Sharing[I, J],
+    findM: J => State[Tables, ValidatedInput[M]],
+    linkLens: Lens[Tables, OneToManyUnique[I, J]],
+    editedM: M => Long => Event.Edit[M]
+  ): F[T] = 
+    share(name, input.one, input.many, findM, editedM) { vtm =>
+      vtm.traverse_ { _ => linkLens.mod_(links => links -- input.tupleLeft) }.map(_.validNec[InputError].void)
+    }
+
+  private def eitherUpdate[G[_] : Traverse, A, B](
+    ab: G[(A, B)], lens: Lens[Tables, OneToManyUnique[A, B]]
+  )(
+    update: (OneToManyUnique[A, B], G[(A, B)]) => Either[InputError, OneToManyUnique[A, B]]
+  ): State[Tables, ValidatedNec[InputError, Unit]] = {
+    IndexedStateT[Eval, Tables, Tables, Either[InputError, OneToManyUnique[A, B]]] { s =>
+      val gab = lens.get(s)
+      update(gab, ab) match {
+        case err @ Left(_) => Now((s, err))
+        case ok @ Right(aa) => Now((lens.set(aa)(s), ok))
+      }
+    }.map(_.toValidatedNec.void)
+  }
 
 }

@@ -4,8 +4,8 @@
 package lucuma.odb.api.repo
 
 import lucuma.core.util.Gid
-import lucuma.odb.api.model.{AsterismModel, InputError, ObservationModel, ProgramModel, TargetModel, ValidatedInput}
-import lucuma.core.model.{Asterism, Observation, Program, Target}
+import lucuma.odb.api.model.{AsterismModel, ConstraintSetModel, InputError, ObservationModel, ProgramModel, TargetModel, ValidatedInput}
+import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
 
 import cats.data.State
 import cats.kernel.BoundedEnumerable
@@ -20,6 +20,9 @@ trait TableState {
 
   val nextAsterismId: State[Tables, Asterism.Id] =
     Tables.lastAsterismId.mod(BoundedEnumerable[Asterism.Id].cycleNext)
+
+  val nextConstraintSetId: State[Tables, ConstraintSet.Id] =
+    Tables.lastConstraintSetId.mod(BoundedEnumerable[ConstraintSet.Id].cycleNext)
 
   val nextObservationId: State[Tables, Observation.Id] =
     Tables.lastObservationId.mod(BoundedEnumerable[Observation.Id].cycleNext)
@@ -36,6 +39,9 @@ trait TableState {
   def asterism(aid: Asterism.Id): State[Tables, ValidatedInput[AsterismModel]] =
     tryFind("asterism", aid, Tables.asterism)
 
+    def constraintSet(csid: ConstraintSet.Id): State[Tables, ValidatedInput[ConstraintSetModel]] =
+    tryFind("constraintSet", csid, Tables.constraintSet)
+
   def observation(oid: Observation.Id): State[Tables, ValidatedInput[ObservationModel]] =
     tryFind("observation", oid, Tables.observation)
 
@@ -51,6 +57,9 @@ trait TableState {
 
   def requireAsterism(aid: Asterism.Id): State[Tables, AsterismModel] =
     require(asterism(aid))
+
+  def requireConstraintSet(csid: ConstraintSet.Id): State[Tables, ConstraintSetModel] =
+    require(constraintSet(csid))
 
   def requireObservation(oid: Observation.Id): State[Tables, ObservationModel] =
     require(observation(oid))

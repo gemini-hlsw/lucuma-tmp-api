@@ -3,8 +3,14 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, TargetModel}
-import lucuma.core.model.{Asterism, Observation, Program, Target}
+import lucuma.odb.api.model.{
+  AsterismModel,
+  ConstraintSetModel,
+  ObservationModel,
+  ProgramModel,
+  TargetModel
+}
+import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
 import cats.instances.order._
 import monocle.Lens
 import monocle.function.At
@@ -15,31 +21,35 @@ import scala.collection.immutable.{SortedMap, TreeMap}
  * Simplistic immutable database "tables" of top-level types keyed by Id.
  */
 final case class Tables(
-  ids:             Ids,
-  asterisms:       SortedMap[Asterism.Id,    AsterismModel],
-  observations:    SortedMap[Observation.Id, ObservationModel],
-  programs:        SortedMap[Program.Id,     ProgramModel],
-  targets:         SortedMap[Target.Id,      TargetModel],
+  ids:                      Ids,
+  asterisms:                SortedMap[Asterism.Id, AsterismModel],
+  constraintSets:           SortedMap[ConstraintSet.Id, ConstraintSetModel],
+  observations:             SortedMap[Observation.Id, ObservationModel],
+  programs:                 SortedMap[Program.Id, ProgramModel],
+  targets:                  SortedMap[Target.Id, TargetModel],
 
-  programAsterism: ManyToMany[Program.Id, Asterism.Id],
-  programTarget:   ManyToMany[Program.Id, Target.Id],
-  targetAsterism:  ManyToMany[Target.Id,  Asterism.Id]
+  programAsterism:          ManyToMany[Program.Id, Asterism.Id],
+  programTarget:            ManyToMany[Program.Id, Target.Id],
+  targetAsterism:           ManyToMany[Target.Id, Asterism.Id],
+  constraintSetObservation: OneToManyUnique[ConstraintSet.Id, Observation.Id]
 )
 
 object Tables extends TableOptics {
 
   val empty: Tables =
     Tables(
-      ids              = Ids.zero,
+      ids                      = Ids.zero,
 
-      asterisms        = TreeMap.empty[Asterism.Id,    AsterismModel],
-      observations     = TreeMap.empty[Observation.Id, ObservationModel],
-      programs         = TreeMap.empty[Program.Id,     ProgramModel],
-      targets          = TreeMap.empty[Target.Id,      TargetModel],
+      asterisms                = TreeMap.empty[Asterism.Id, AsterismModel],
+      constraintSets           = TreeMap.empty[ConstraintSet.Id, ConstraintSetModel],
+      observations             = TreeMap.empty[Observation.Id, ObservationModel],
+      programs                 = TreeMap.empty[Program.Id, ProgramModel],
+      targets                  = TreeMap.empty[Target.Id, TargetModel],
 
-      programAsterism = ManyToMany.empty,
-      programTarget   = ManyToMany.empty,
-      targetAsterism  = ManyToMany.empty
+      programAsterism          = ManyToMany.empty,
+      programTarget            = ManyToMany.empty,
+      targetAsterism           = ManyToMany.empty,
+      constraintSetObservation = OneToManyUnique.empty
     )
 
 }
@@ -54,6 +64,9 @@ sealed trait TableOptics { self: Tables.type =>
 
   val lastAsterismId: Lens[Tables, Asterism.Id] =
     ids ^|-> Ids.lastAsterism
+
+  val lastConstraintSetId: Lens[Tables, ConstraintSet.Id] =
+    ids ^|-> Ids.lastConstraintSet
 
   val lastObservationId: Lens[Tables, Observation.Id] =
     ids ^|-> Ids.lastObservation
@@ -71,6 +84,13 @@ sealed trait TableOptics { self: Tables.type =>
   def asterism(aid: Asterism.Id): Lens[Tables, Option[AsterismModel]] =
     asterisms ^|-> At.at(aid)
 
+  def constraintSets: Lens[Tables, SortedMap[ConstraintSet.Id, ConstraintSetModel]] =
+    Lens[Tables, SortedMap[ConstraintSet.Id, ConstraintSetModel]](_.constraintSets)(b =>
+      a => a.copy(constraintSets = b)
+    )
+
+  def constraintSet(csid: ConstraintSet.Id): Lens[Tables, Option[ConstraintSetModel]] =
+    constraintSets ^|-> At.at(csid)
 
   val observations: Lens[Tables, SortedMap[Observation.Id, ObservationModel]] =
     Lens[Tables, SortedMap[Observation.Id, ObservationModel]](_.observations)(b => a => a.copy(observations = b))
@@ -101,5 +121,8 @@ sealed trait TableOptics { self: Tables.type =>
 
   val targetAsterism: Lens[Tables, ManyToMany[Target.Id, Asterism.Id]] =
     Lens[Tables, ManyToMany[Target.Id, Asterism.Id]](_.targetAsterism)(b => a => a.copy(targetAsterism = b))
+
+  val constraintSetObservation: Lens[Tables, OneToManyUnique[ConstraintSet.Id, Observation.Id]] =
+    Lens[Tables, OneToManyUnique[ConstraintSet.Id, Observation.Id]](_.constraintSetObservation)(b => a => a.copy(constraintSetObservation = b))
 
 }

@@ -4,8 +4,14 @@
 package lucuma.odb.api.repo
 package arb
 
-import lucuma.core.model.{Asterism, Observation, Program, Target}
-import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, TargetModel}
+import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
+import lucuma.odb.api.model.{
+  AsterismModel,
+  ConstraintSetModel,
+  ObservationModel,
+  ProgramModel,
+  TargetModel
+}
 import lucuma.odb.api.model.arb._
 import lucuma.core.util.Gid
 
@@ -18,10 +24,10 @@ import org.scalacheck.Arbitrary.arbitrary
 
 import scala.collection.immutable.SortedMap
 
-
-trait ArbTables {
+trait ArbTables extends SplitSetHelper {
 
   import ArbAsterismModel._
+  import ArbConstraintSetModel._
   import ArbObservationModel._
   import ArbProgramModel._
   import ArbTargetModel._
@@ -40,7 +46,10 @@ trait ArbTables {
       }
 
   private def mapAsterisms: Gen[SortedMap[Asterism.Id, AsterismModel]] =
-    map[Asterism.Id, AsterismModel]((a,i) => a.copy(id = i))
+    map[Asterism.Id, AsterismModel]((a, i) => a.copy(id = i))
+
+  private def mapConstraintSets: Gen[SortedMap[ConstraintSet.Id, ConstraintSetModel]] =
+    map[ConstraintSet.Id, ConstraintSetModel]((cs, i) => cs.copy(id = i))
 
   private def mapObservations(
     pids: List[Program.Id],
@@ -89,16 +98,32 @@ trait ArbTables {
       someBs <- Gen.someOf(bs)
     } yield ManyToMany((for(a <- someAs; b <- someBs) yield (a, b)).toSeq: _*)
 
+  private def oneToManyUnique[A: Order, B: Order](
+    as: Iterable[A],
+    bs: Iterable[B]
+  ): Gen[OneToManyUnique[A, B]] =
+    for {
+      someAs <- Gen.someOf(as)
+      someBs <- Gen.someOf(bs)
+      len     = someAs.length
+      bList  <- splitSetIntoN(len, someBs.toSet)
+    } yield {
+      val tuples = someAs.zip(bList).flatMap{ case (a, bs) => bs.map((a, _))}.toList
+      OneToManyUnique[A, B](tuples: _*).toOption.get
+    }
+
   implicit val arbTables: Arbitrary[Tables] =
     Arbitrary {
       for {
         ps <- mapPrograms
         as <- mapAsterisms
+        cs <- mapConstraintSets
         ts <- mapTargets
         os <- mapObservations(ps.keys.toList, as.keys.toList, ts.keys.toList)
         ids = Ids(
           0L,
           lastGid[Asterism.Id](as),
+          lastGid[ConstraintSet.Id](cs),
           lastGid[Observation.Id](os),
           lastGid[Program.Id](ps),
           lastGid[Target.Id](ts)
@@ -106,9 +131,9 @@ trait ArbTables {
         pa <- manyToMany(ps.keys, as.keys)
         pt <- manyToMany(ps.keys, ts.keys)
         ta <- manyToMany(ts.keys, as.keys)
-      } yield Tables(ids, as, os, ps, ts, pa, pt, ta)
+        co <- oneToManyUnique(cs.keys, os.keys)
+      } yield Tables(ids, as, cs, os, ps, ts, pa, pt, ta, co)
     }
-
 }
 
 object ArbTables extends ArbTables
