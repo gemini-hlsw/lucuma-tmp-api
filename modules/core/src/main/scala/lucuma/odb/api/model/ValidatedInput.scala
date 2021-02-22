@@ -4,6 +4,9 @@
 package lucuma.odb.api.model
 
 import cats.syntax.all._
+import eu.timepit.refined._
+import eu.timepit.refined.api._
+import eu.timepit.refined.numeric.Interval
 import eu.timepit.refined.types.string._
 
 object ValidatedInput {
@@ -29,5 +32,17 @@ object ValidatedInput {
     NonEmptyString
       .from(s)
       .leftMap(err => InputError.fromMessage(s"'$name' may not be empty: $err"))
+      .toValidatedNec
+
+  def closedInterval[T](
+    name:  String, 
+    value: T, 
+    low:   T, 
+    high:  T
+  )(implicit
+    v:     Validate[T, Interval.Closed[low.type, high.type]]
+  ): ValidatedInput[T Refined Interval.Closed[low.type, high.type]] =
+    refineV[Interval.Closed[low.type, high.type]](value)
+      .leftMap(_ => InputError.fromMessage(s"'$name' out of range: must be $low<= $name <= $high "))
       .toValidatedNec
 }
