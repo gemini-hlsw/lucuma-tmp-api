@@ -10,7 +10,7 @@ import eu.timepit.refined.numeric.Interval
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import lucuma.core.math._
-import monocle.{ Getter, Prism }
+import monocle.{Getter, Prism}
 import monocle.macros.GenPrism
 
 /**
@@ -63,41 +63,40 @@ object ElevationRangeModel {
 
 /**
  * Elevation range defined as an airmass range.
- * deciMin must be <= deciMax
+ * min must be <= max
  */
 sealed abstract case class AirmassRange protected (
-  deciMin: AirmassRange.IntDeciValue,
-  deciMax: AirmassRange.IntDeciValue
-) extends ElevationRangeModel {
-  def min: Double = deciMin.value / 10.0
-  def max: Double = deciMax.value / 10.0
-}
+  min: AirmassRange.DecimalValue,
+  max: AirmassRange.DecimalValue
+) extends ElevationRangeModel
 
 object AirmassRange extends AirmassRangeOptics {
-  type DeciValue    = Interval.Closed[10, 30]
-  type IntDeciValue = Int Refined DeciValue
+  val MinValue = BigDecimal(1.0)
+  val MaxValue = BigDecimal(3.0)
+  type Value        = Interval.Closed[MinValue.type, MaxValue.type]
+  type DecimalValue = BigDecimal Refined Value
 
   /**
    * Construct a new AirmassRange.
-   * deciMin must be <= deciMax.
+   * min must be <= max.
    * @group Optics
    */
-  def apply(deciMin: IntDeciValue, deciMax: IntDeciValue): Option[AirmassRange] =
-    fromOrderedDeciVals.getOption((deciMin, deciMax))
+  def apply(min: DecimalValue, max: DecimalValue): Option[AirmassRange] =
+    fromOrderedDecimalValues.getOption((min, max))
 
   implicit val EqAirmassRange: Eq[AirmassRange] = Eq.fromUniversalEquals
 
   /**
    * Input parameter used to create an airmass range. Parameter ranges
-   * are validated and deciMin must be <= deciMax
+   * are validated and min must be <= max
    */
-  final case class Create(deciMin: Int, deciMax: Int) {
+  final case class Create(min: BigDecimal, max: BigDecimal) {
     def create: ValidatedInput[AirmassRange] =
-      (ValidatedInput.closedInterval("deciMin", deciMin, 10, 30),
-       ValidatedInput.closedInterval("deciMax", deciMax, 10, 30)
+      (ValidatedInput.closedInterval("min", min, MinValue, MaxValue),
+       ValidatedInput.closedInterval("max", max, MinValue, MaxValue)
       ).tupled.andThen { case (min, max) =>
         apply(min, max).toValidNec(
-          InputError.fromMessage(s"Invalid AirmassRange: 'deciMin' must be <= 'deciMax'")
+          InputError.fromMessage(s"Invalid AirmassRange: 'min' must be <= 'max'")
         )
       }
   }
@@ -115,39 +114,36 @@ object AirmassRange extends AirmassRangeOptics {
 }
 
 trait AirmassRangeOptics {
-  import AirmassRange.IntDeciValue
+  import AirmassRange.DecimalValue
 
   /** @group Optics */
-  lazy val fromOrderedDeciVals: Prism[(IntDeciValue, IntDeciValue), AirmassRange] =
-    Prism[(IntDeciValue, IntDeciValue), AirmassRange] { case (min, max) =>
+  lazy val fromOrderedDecimalValues: Prism[(DecimalValue, DecimalValue), AirmassRange] =
+    Prism[(DecimalValue, DecimalValue), AirmassRange] { case (min, max) =>
       if (min.value <= max.value) (new AirmassRange(min, max) {}).some
       else none
     } { a =>
-      (a.deciMin, a.deciMax)
+      (a.min, a.max)
     }
 
   /** @group Optics */
-  lazy val deciMin: Getter[AirmassRange, IntDeciValue] =
-    Getter(_.deciMin)
+  lazy val min: Getter[AirmassRange, DecimalValue] =
+    Getter(_.min)
 
   /** @group Optics */
-  lazy val deciMax: Getter[AirmassRange, IntDeciValue] =
-    Getter(_.deciMax)
+  lazy val max: Getter[AirmassRange, DecimalValue] =
+    Getter(_.max)
 }
 
 /**
  * Elevation range defined as an hour angle range.
- * deciMin must be <= deciMax
+ * minHours must be <= maxHours
  */
 sealed abstract case class HourAngleRange protected (
-  deciMin: HourAngleRange.IntDeciHour,
-  deciMax: HourAngleRange.IntDeciHour
+  minHours: HourAngleRange.DecimalHour,
+  maxHours: HourAngleRange.DecimalHour
 ) extends ElevationRangeModel {
-  def minDoubleHours: Double = deciMin.value / 10.0
-  def maxDoubleHours: Double = deciMax.value / 10.0
-
-  def minHourAngle: HourAngle = HourAngle.fromDoubleHours(minDoubleHours)
-  def maxHourAngle: HourAngle = HourAngle.fromDoubleDegrees(maxDoubleHours)
+  def minHourAngle: HourAngle = HourAngle.fromDoubleHours(minHours.value.toDouble)
+  def maxHourAngle: HourAngle = HourAngle.fromDoubleDegrees(maxHours.value.toDouble)
 
   def minAngle: Angle = HourAngle.angle.get(minHourAngle)
   def maxAngle: Angle = HourAngle.angle.get(maxHourAngle)
@@ -158,30 +154,32 @@ sealed abstract case class HourAngleRange protected (
 }
 
 object HourAngleRange extends HourAngleRangeOptics {
-  type DeciHour    = Interval.Closed[-50, 50]
-  type IntDeciHour = Int Refined DeciHour
+  val MinHour = BigDecimal(-5.0)
+  val MaxHour = BigDecimal(5.0)
+  type DeciHour    = Interval.Closed[MinHour.type, MaxHour.type]
+  type DecimalHour = BigDecimal Refined DeciHour
 
   /**
    * Construct a new HourAngleRange.
-   * deciMin must be <= deciMax.
+   * minHours must be <= maxHours.
    * @group Optics
    */
-  def apply(deciMin: IntDeciHour, deciMax: IntDeciHour): Option[HourAngleRange] =
-    fromOrderedDeciHours.getOption((deciMin, deciMax))
+  def apply(minHours: DecimalHour, maxHours: DecimalHour): Option[HourAngleRange] =
+    fromOrderedDecimalHours.getOption((minHours, maxHours))
 
   implicit val EqHourAngleRange: Eq[HourAngleRange] = Eq.fromUniversalEquals
 
   /**
    * Input parameter used to create an hour angle range. Parameter ranges
-   * are validated and deciMin must be <= deciMax
+   * are validated and minHours must be <= maxHours
    */
-  final case class Create(deciMin: Int, deciMax: Int) {
+  final case class Create(minHours: BigDecimal, maxHours: BigDecimal) {
     def create: ValidatedInput[HourAngleRange] =
-      (ValidatedInput.closedInterval("deciMin", deciMin, -50, 50),
-       ValidatedInput.closedInterval("deciMax", deciMax, -50, 50)
+      (ValidatedInput.closedInterval("minHours", minHours, MinHour, MaxHour),
+       ValidatedInput.closedInterval("maxHours", maxHours, MinHour, MaxHour)
       ).tupled.andThen { case (min, max) =>
         apply(min, max).toValidNec(
-          InputError.fromMessage(s"Invalid HourAngleRange: 'deciMin' must be <= 'deciMax'")
+          InputError.fromMessage(s"Invalid HourAngleRange: 'minHours' must be <= 'maxHours'")
         )
       }
   }
@@ -199,21 +197,21 @@ object HourAngleRange extends HourAngleRangeOptics {
 }
 
 trait HourAngleRangeOptics {
-  import HourAngleRange.IntDeciHour
+  import HourAngleRange.DecimalHour
 
-  lazy val fromOrderedDeciHours: Prism[(IntDeciHour, IntDeciHour), HourAngleRange] =
-    Prism[(IntDeciHour, IntDeciHour), HourAngleRange] { case (min, max) =>
-      if (min.value <= max.value) (new HourAngleRange(min, max) {}).some
+  lazy val fromOrderedDecimalHours: Prism[(DecimalHour, DecimalHour), HourAngleRange] =
+    Prism[(DecimalHour, DecimalHour), HourAngleRange] { case (minHours, maxHours) =>
+      if (minHours.value <= maxHours.value) (new HourAngleRange(minHours, maxHours) {}).some
       else none
     } { a =>
-      (a.deciMin, a.deciMax)
+      (a.minHours, a.maxHours)
     }
 
   /** @group Optics */
-  lazy val deciMin: Getter[HourAngleRange, IntDeciHour] =
-    Getter(_.deciMin)
+  lazy val minHours: Getter[HourAngleRange, DecimalHour] =
+    Getter(_.minHours)
 
   /** @group Optics */
-  lazy val deciMax: Getter[HourAngleRange, IntDeciHour] =
-    Getter(_.deciMax)
+  lazy val maxHours: Getter[HourAngleRange, DecimalHour] =
+    Getter(_.maxHours)
 }

@@ -14,72 +14,72 @@ trait ArbElevationRange {
   import ArbEnumerated._
 
   // needed to prevent diverging implicits.
-  implicit val arbIntDeciValue: Arbitrary[AirmassRange.IntDeciValue] = intervalClosedArbitrary
-  implicit val arbIntDeciHour: Arbitrary[HourAngleRange.IntDeciHour] = intervalClosedArbitrary
+  implicit val arbDecimalValue: Arbitrary[AirmassRange.DecimalValue] = intervalClosedArbitrary
+  implicit val arbDecimalHour: Arbitrary[HourAngleRange.DecimalHour] = intervalClosedArbitrary
 
   implicit val arbAirmassRange: Arbitrary[AirmassRange] =
     Arbitrary {
       for {
-        val1 <- arbitrary[AirmassRange.IntDeciValue]
-        val2 <- arbitrary[AirmassRange.IntDeciValue]
+        val1 <- arbitrary[AirmassRange.DecimalValue]
+        val2 <- arbitrary[AirmassRange.DecimalValue]
       } yield
         if (val1.value < val2.value) AirmassRange(val1, val2).get
         else AirmassRange(val2, val1).get
     }
 
   implicit val cogAirmassRange: Cogen[AirmassRange] =
-    Cogen[(AirmassRange.IntDeciValue, AirmassRange.IntDeciValue)].contramap(amr =>
-      (amr.deciMin, amr.deciMax)
+    Cogen[(AirmassRange.DecimalValue, AirmassRange.DecimalValue)].contramap(amr =>
+      (amr.min, amr.max)
     )
 
   implicit val arbAirmassRangeCreate: Arbitrary[AirmassRange.Create] =
     Arbitrary {
       for {
-        min        <- arbitrary[Int]
-        max        <- arbitrary[Int]
+        min        <- arbitrary[BigDecimal]
+        max        <- arbitrary[BigDecimal]
         arc1        = AirmassRange.Create(min, max)
         // make at least some of them valid
-        minInRange <- arbitrary[AirmassRange.IntDeciValue]
-        maxInRange <- arbitrary[AirmassRange.IntDeciValue]
+        minInRange <- arbitrary[AirmassRange.DecimalValue]
+        maxInRange <- arbitrary[AirmassRange.DecimalValue]
         arc2        = AirmassRange.Create(minInRange.value, maxInRange.value)
         arc        <- Gen.oneOf(arc1, arc2)
       } yield arc
     }
 
   implicit val cogAirmassRangeCreate: Cogen[AirmassRange.Create] =
-    Cogen[(Int, Int)].contramap(c => (c.deciMin, c.deciMax))
+    Cogen[(BigDecimal, BigDecimal)].contramap(c => (c.min, c.max))
 
   implicit val arbHourAngleRange: Arbitrary[HourAngleRange] =
     Arbitrary {
       for {
-        val1 <- arbitrary[HourAngleRange.IntDeciHour]
-        val2 <- arbitrary[HourAngleRange.IntDeciHour]
+        val1 <- arbitrary[HourAngleRange.DecimalHour]
+        val2 <- arbitrary[HourAngleRange.DecimalHour]
       } yield
         if (val1.value < val2.value) HourAngleRange(val1, val2).get
         else HourAngleRange(val2, val1).get
     }
 
   implicit val cogHourAngleRange: Cogen[HourAngleRange] =
-    Cogen[(HourAngleRange.IntDeciHour, HourAngleRange.IntDeciHour)].contramap(har =>
-      (har.deciMin, har.deciMax)
+    Cogen[(HourAngleRange.DecimalHour, HourAngleRange.DecimalHour)].contramap(har =>
+      (har.minHours, har.maxHours)
     )
 
   implicit val arbHourAngleRangeCreate: Arbitrary[HourAngleRange.Create] =
     Arbitrary {
       for {
-        min        <- arbitrary[Int]
-        max        <- arbitrary[Int]
+        min        <- arbitrary[BigDecimal]
+        max        <- arbitrary[BigDecimal]
         harc1       = HourAngleRange.Create(min, max)
         // make at least some of them valid
-        minInRange <- arbitrary[HourAngleRange.IntDeciHour]
-        maxInRange <- arbitrary[HourAngleRange.IntDeciHour]
+        minInRange <- arbitrary[HourAngleRange.DecimalHour]
+        maxInRange <- arbitrary[HourAngleRange.DecimalHour]
         harc2       = HourAngleRange.Create(minInRange.value, maxInRange.value)
         harc       <- Gen.oneOf(harc1, harc2)
       } yield harc
     }
 
   implicit val cogHourAngleRangeCreate: Cogen[HourAngleRange.Create] =
-    Cogen[(Int, Int)].contramap(c => (c.deciMin, c.deciMax))
+    Cogen[(BigDecimal, BigDecimal)].contramap(c => (c.minHours, c.maxHours))
 
   implicit val arbElevationRange: Arbitrary[ElevationRangeModel] =
     Arbitrary {

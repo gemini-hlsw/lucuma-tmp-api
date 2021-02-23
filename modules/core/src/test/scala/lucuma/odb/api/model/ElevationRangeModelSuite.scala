@@ -16,36 +16,36 @@ final class ElevationRangeModelSuite extends DisciplineSuite {
   // Laws
   checkAll("Eq[AirmassRange]", EqTests[AirmassRange].eqv)
   checkAll("Eq[AirmassRange.Create]", EqTests[AirmassRange.Create].eqv)
-  checkAll("AirmassRange.fromOrderedDeciVals", PrismTests(AirmassRange.fromOrderedDeciVals))
+  checkAll("AirmassRange.fromOrderedDecimalValues", PrismTests(AirmassRange.fromOrderedDecimalValues))
   checkAll("Eq[HourAngleRange]", EqTests[HourAngleRange].eqv)
   checkAll("Eq[HourAngleRange.Create]", EqTests[HourAngleRange.Create].eqv)
-  checkAll("HourAngleRange.fromDeciHours", PrismTests(HourAngleRange.fromOrderedDeciHours))
+  checkAll("HourAngleRange.fromDecimalHours", PrismTests(HourAngleRange.fromOrderedDecimalHours))
   checkAll("Eq[ElevationRangeModel]", EqTests[ElevationRangeModel].eqv)
   checkAll("ElevationRangeModel.airmassRange", PrismTests(ElevationRangeModel.airmassRange))
   checkAll("ElevationRangeModel.hourAngleRange", PrismTests(ElevationRangeModel.hourAngleRange))
   checkAll("Eq[ElevationRangeModel.Create]", EqTests[ElevationRangeModel.Create].eqv)
 
-  test("AirmassRange.deciMin") {
+  test("AirmassRange.min") {
     forAll { range: AirmassRange =>
-      assertEquals(AirmassRange.deciMin.get(range), range.deciMin)
+      assertEquals(AirmassRange.min.get(range), range.min)
     }
   }
 
-  test("AirmassRange.deciMax") {
+  test("AirmassRange.max") {
     forAll { range: AirmassRange =>
-      assertEquals(AirmassRange.deciMax.get(range), range.deciMax)
+      assertEquals(AirmassRange.max.get(range), range.max)
     }
   }
 
-  test("HourAngleRange.deciMin") {
+  test("HourAngleRange.minHours") {
     forAll { range: HourAngleRange =>
-      assertEquals(HourAngleRange.deciMin.get(range), range.deciMin)
+      assertEquals(HourAngleRange.minHours.get(range), range.minHours)
     }
   }
 
-  test("HourAngleRange.deciMax") {
+  test("HourAngleRange.maxHours") {
     forAll { range: HourAngleRange =>
-      assertEquals(HourAngleRange.deciMax.get(range), range.deciMax)
+      assertEquals(HourAngleRange.maxHours.get(range), range.maxHours)
     }
   }
 }
