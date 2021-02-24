@@ -17,19 +17,19 @@ import monocle.state.all._
 
 sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
 
-  def selectAllForProgram(
+  def selectPageForProgram(
     pid:            Program.Id,
     count:          Int               = Integer.MAX_VALUE,
     afterGid:       Option[Target.Id] = None,
     includeDeleted: Boolean           = false
-  ): F[(List[TargetModel], Boolean)]
+  ): F[ResultPage[TargetModel]]
 
-  def selectAllForAsterism(
+  def selectPageForAsterism(
     aid:            Asterism.Id,
     count:          Int               = Integer.MAX_VALUE,
     afterGid:       Option[Target.Id] = None,
     includeDeleted: Boolean           = false
-  ): F[(List[TargetModel], Boolean)]
+  ): F[ResultPage[TargetModel]]
 
   def insertNonsidereal(input: CreateNonsidereal): F[TargetModel]
 
@@ -65,23 +65,23 @@ object TargetRepo {
     ) with TargetRepo[F]
       with LookupSupport {
 
-      override def selectAllForProgram(
+      override def selectPageForProgram(
         pid:            Program.Id,
         count:          Int               = Integer.MAX_VALUE,
         afterGid:       Option[Target.Id] = None,
         includeDeleted: Boolean           = false
-      ): F[(List[TargetModel], Boolean)] =
+      ): F[ResultPage[TargetModel]] =
 
         selectPageFromIds(count, afterGid, includeDeleted) { tables =>
           tables.programTarget.selectRight(pid)
         }
 
-      override def selectAllForAsterism(
+      override def selectPageForAsterism(
         aid:            Asterism.Id,
         count:          Int               = Integer.MAX_VALUE,
         afterGid:       Option[Target.Id] = None,
         includeDeleted: Boolean           = false
-      ): F[(List[TargetModel], Boolean)] =
+      ): F[ResultPage[TargetModel]] =
 
         selectPageFromIds(count, afterGid, includeDeleted) { tables =>
           tables.targetAsterism.selectLeft(aid)

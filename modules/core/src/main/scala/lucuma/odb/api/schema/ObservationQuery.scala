@@ -28,7 +28,7 @@ trait ObservationQuery {
       ),
       resolve     = c =>
         unsafeSelectPageFuture(c.pagingObservationId) { gid =>
-          c.ctx.observation.selectAllForProgram(c.programId, c.pagingFirst, gid, c.includeDeleted)
+          c.ctx.observation.selectPageForProgram(c.programId, c.pagingFirst, gid, c.includeDeleted)
         }
     )
 

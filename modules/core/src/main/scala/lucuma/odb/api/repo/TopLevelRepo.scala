@@ -38,7 +38,7 @@ trait TopLevelRepo[F[_], I, T] {
     count:          Int       = Integer.MAX_VALUE,
     afterGid:       Option[I] = None,
     includeDeleted: Boolean   = false
-  ): F[(List[T], Boolean)] =
+  ): F[ResultPage[T]] =
     selectPageFiltered(count, afterGid, includeDeleted) { _ => Function.const(true) }
 
   def selectPageFiltered(
@@ -47,7 +47,7 @@ trait TopLevelRepo[F[_], I, T] {
     includeDeleted: Boolean   = false
   )(
     filterFunction: Tables => T => Boolean
-  ): F[(List[T], Boolean)]
+  ): F[ResultPage[T]]
 
   def selectPageFromIds(
     count:          Int       = Integer.MAX_VALUE,
@@ -55,7 +55,7 @@ trait TopLevelRepo[F[_], I, T] {
     includeDeleted: Boolean   = false
   )(
     ids: Tables => scala.collection.immutable.SortedSet[I]
-  ): F[(List[T], Boolean)]
+  ): F[ResultPage[T]]
 
   /**
    * Edits the top-level item identified by the given `Editor`.
@@ -139,7 +139,7 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
   override def selectAll(
     includeDeleted: Boolean
   ): F[List[T]] =
-    selectPage(includeDeleted = includeDeleted).map(_._1)
+    selectPage(includeDeleted = includeDeleted).map(_.nodes)
 
   def selectPageFiltered(
     count:          Int,
@@ -147,7 +147,7 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
     includeDeleted: Boolean
   )(
     filterFunction: Tables => T => Boolean
-  ): F[(List[T], Boolean)] =
+  ): F[ResultPage[T]] =
 
     tablesRef.get.map { tables =>
       val filter = filterFunction(tables)
@@ -167,7 +167,7 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
     includeDeleted: Boolean
   )(
     ids: Tables => scala.collection.immutable.SortedSet[I]
-  ): F[(List[T], Boolean)] =
+  ): F[ResultPage[T]] =
 
     tablesRef.get.map { tables =>
       val all = ids(tables)
@@ -184,10 +184,10 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
   private def page(
     count: Int,
     it:    Iterator[T]
-  ): (List[T], Boolean) = {
+  ): ResultPage[T] = {
     val res = mutable.Buffer.empty[T]
     while (it.hasNext && (res.size < count)) res += it.next()
-    (res.toList, it.hasNext)
+    ResultPage(res.toList, it.hasNext)
   }
 
   def constructAndPublish[U <: T](

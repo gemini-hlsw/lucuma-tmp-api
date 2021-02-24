@@ -407,7 +407,7 @@ object TargetSchema extends TargetScalars {
           description = Some("The asterisms associated with the target."),
           resolve     = c =>
             unsafeSelectPageFuture(c.pagingAsterismId) { gid =>
-              c.ctx.asterism.selectAllForTarget(c.value.id, c.optionalProgramId, c.pagingFirst, gid, c.includeDeleted)
+              c.ctx.asterism.selectPageForTarget(c.value.id, c.optionalProgramId, c.pagingFirst, gid, c.includeDeleted)
             }
         ),
 
@@ -423,7 +423,7 @@ object TargetSchema extends TargetScalars {
           description = Some("The observations associated with the target."),
           resolve     = c =>
             unsafeSelectPageFuture(c.pagingObservationId) { gid =>
-              c.ctx.observation.selectAllForTarget(c.value.id, c.optionalProgramId, c.pagingFirst, gid, c.includeDeleted)
+              c.ctx.observation.selectPageForTarget(c.value.id, c.optionalProgramId, c.pagingFirst, gid, c.includeDeleted)
             }
         ),
 
@@ -438,7 +438,7 @@ object TargetSchema extends TargetScalars {
           description = Some("The programs associated with the target."),
           resolve     = c =>
             unsafeSelectPageFuture(c.pagingProgramId) { gid =>
-              c.ctx.program.selectAllForTarget(c.value.id, c.pagingFirst, gid, c.includeDeleted)
+              c.ctx.program.selectPageForTarget(c.value.id, c.pagingFirst, gid, c.includeDeleted)
             }
         ),
 

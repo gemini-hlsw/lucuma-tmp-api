@@ -81,7 +81,7 @@ object ProgramSchema {
           ),
           resolve     = c =>
             unsafeSelectPageFuture(c.pagingAsterismId) { gid =>
-              c.ctx.asterism.selectAllForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
+              c.ctx.asterism.selectPageForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
             }
         ),
 
@@ -96,7 +96,7 @@ object ProgramSchema {
           ),
           resolve     = c =>
             unsafeSelectPageFuture(c.pagingObservationId) { gid =>
-              c.ctx.observation.selectAllForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
+              c.ctx.observation.selectPageForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
             }
         ),
 
@@ -111,7 +111,7 @@ object ProgramSchema {
           ),
           resolve     = c =>
             unsafeSelectPageFuture(c.pagingTargetId) { gid =>
-              c.ctx.target.selectAllForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
+              c.ctx.target.selectPageForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
             }
         ),
 
@@ -121,8 +121,8 @@ object ProgramSchema {
           description = Some("Program planned time calculation."),
           arguments   = List(ArgumentIncludeDeleted),
           resolve     = c => c.observation {
-            _.selectAllForProgram(c.value.id, Integer.MAX_VALUE, None, c.includeDeleted)
-             .map(_._1.foldMap(_.plannedTimeSummary))
+            _.selectPageForProgram(c.value.id, Integer.MAX_VALUE, None, c.includeDeleted)
+             .map(_.nodes.foldMap(_.plannedTimeSummary))
           }
         )
 

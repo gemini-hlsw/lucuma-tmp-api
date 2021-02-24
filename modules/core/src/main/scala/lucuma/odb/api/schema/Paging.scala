@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.repo.OdbRepo
+import lucuma.odb.api.repo.{OdbRepo, ResultPage}
 import lucuma.core.util.Gid
 import lucuma.odb.api.model.{InputError, TopLevelModel}
 import cats.effect.Effect
@@ -205,18 +205,13 @@ object Paging {
         a.pageInfo
       )}
 
-    def page[A](
-      nodes:   List[A],
-      hasNext: Boolean
-    )(
-      cursorFor: A => Cursor
-    ): Connection[A] =
+    def page[A](page: ResultPage[A])(cursorFor: A => Cursor): Connection[A] =
       Connection(
-        nodes.map(a => Edge(a, cursorFor(a))),
+        page.nodes.map(a => Edge(a, cursorFor(a))),
         PageInfo(
-          startCursor     = nodes.headOption.map(cursorFor),
-          endCursor       = nodes.lastOption.map(cursorFor),
-          hasNextPage     = hasNext
+          startCursor     = page.nodes.headOption.map(cursorFor),
+          endCursor       = page.nodes.lastOption.map(cursorFor),
+          hasNextPage     = page.hasNextPage
         )
       )
 
@@ -262,19 +257,19 @@ object Paging {
   def selectPage[F[_]: Effect, I: Gid, T](
     afterGid: Either[InputError, Option[I]],
   )(
-    select: Option[I] => F[(List[T], Boolean)]
+    select: Option[I] => F[ResultPage[T]]
   )(implicit ev: TopLevelModel[I, T]): F[Connection[T]] =
     afterGid.fold(
       e => Effect[F].raiseError[Connection[T]](e.toException), // if not a valid GID
-      g => select(g).map { case (lst, hasNext) =>
-        Connection.page(lst, hasNext) { t => Cursor.fromGid(TopLevelModel[I, T].id(t)) }
+      g => select(g).map { page =>
+        Connection.page(page) { t => Cursor.fromGid(TopLevelModel[I, T].id(t)) }
       }
     )
 
   def unsafeSelectPageFuture[F[_]: Effect, I: Gid, T](
     afterGid: Either[InputError, Option[I]],
   )(
-    select: Option[I] => F[(List[T], Boolean)]
+    select: Option[I] => F[ResultPage[T]]
   )(implicit ev: TopLevelModel[I, T]): Future[Connection[T]] =
     selectPage[F, I, T](afterGid)(select).toIO.unsafeToFuture()
 

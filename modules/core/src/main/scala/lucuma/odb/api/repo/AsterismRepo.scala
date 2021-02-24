@@ -17,20 +17,20 @@ import scala.collection.immutable.SortedSet
 
 sealed trait AsterismRepo[F[_]] extends TopLevelRepo[F, Asterism.Id, AsterismModel] {
 
-  def selectAllForProgram(
+  def selectPageForProgram(
     pid:            Program.Id,
     count:          Int                 = Integer.MAX_VALUE,
     afterGid:       Option[Asterism.Id] = None,
     includeDeleted: Boolean             = false
-  ): F[(List[AsterismModel], Boolean)]
+  ): F[ResultPage[AsterismModel]]
 
-  def selectAllForTarget(
+  def selectPageForTarget(
     tid:            Target.Id,
     pid:            Option[Program.Id],
     count:          Int                 = Integer.MAX_VALUE,
     afterGid:       Option[Asterism.Id] = None,
     includeDeleted: Boolean             = false
-  ): F[(List[AsterismModel], Boolean)]
+  ): F[ResultPage[AsterismModel]]
 
   def selectForObservation(oid: Observation.Id, includeDeleted: Boolean = false): F[Option[AsterismModel]]
 
@@ -84,21 +84,21 @@ object AsterismRepo {
       }
 
 
-      override def selectAllForProgram(
+      override def selectPageForProgram(
         pid:            Program.Id,
         count:          Int,
         afterGid:       Option[Asterism.Id],
         includeDeleted: Boolean
-      ): F[(List[AsterismModel], Boolean)] =
+      ): F[ResultPage[AsterismModel]] =
         selectPageFromIds(count, afterGid, includeDeleted)(asterismIdsForProgram(_, pid))
 
-      override def selectAllForTarget(
+      override def selectPageForTarget(
         tid:            Target.Id,
         pid:            Option[Program.Id], // limit to this program
         count:          Int,
         afterGid:       Option[Asterism.Id],
         includeDeleted: Boolean
-      ): F[(List[AsterismModel], Boolean)] =
+      ): F[ResultPage[AsterismModel]] =
 
         selectPageFromIds(count, afterGid, includeDeleted) { tables =>
           val ids = tables.targetAsterism.selectRight(tid)

@@ -38,7 +38,7 @@ trait OdbRepoTest {
       TopLevelRepo[IO, J, B],
       Sharing[I, J] => IO[A],
       Sharing[I, J] => IO[A],
-      I => IO[(List[B], Boolean)]
+      I => IO[ResultPage[B]]
     )
   )(
     implicit ev0: TopLevelModel[I, A], ev1: TopLevelModel[J, B]
@@ -57,11 +57,11 @@ trait OdbRepoTest {
               val ia = TopLevelModel[I, A].id(a)
               val some = subset(bs, is).map(b => TopLevelModel[J, B].id(b))
               for {
-                initial  <- lookup(ia).map(_._1.map(TopLevelModel[J, B].id))
+                initial  <- lookup(ia).map(_.nodes.map(TopLevelModel[J, B].id))
                 _        <- share(Sharing(ia, some))
-                shared   <- lookup(ia).map(_._1.map(TopLevelModel[J, B].id))
+                shared   <- lookup(ia).map(_.nodes.map(TopLevelModel[J, B].id))
                 _        <- unshare(Sharing(ia, some))
-                unshared <- lookup(ia).map(_._1.map(TopLevelModel[J, B].id))
+                unshared <- lookup(ia).map(_.nodes.map(TopLevelModel[J, B].id))
               } yield (initial.toSet, shared.toSet, unshared.toSet, some.toSet)
 
             }
@@ -161,7 +161,7 @@ trait OdbRepoTest {
       TopLevelRepo[IO, I, A],
       TopLevelRepo[IO, J, B],
       Sharing[I, J] => IO[A],
-      I => IO[(List[B], Boolean)]
+      I => IO[ResultPage[B]]
     )
   )(
     implicit modelA: TopLevelModel[I, A], modelB: TopLevelModel[J, B]
@@ -181,10 +181,10 @@ trait OdbRepoTest {
               val otherIs = as.map(modelA.id).filter(_ != i)
               val someJs = subset(bs, selectors).map(modelB.id)
               for {
-                initial  <- lookup(i).map(_._1.map(modelB.id))
+                initial  <- lookup(i).map(_.nodes.map(modelB.id))
                 // We will get a constraint violation if any of the Bs we selected
                 // are currently mapped to another A
-                mappedBs <- otherIs.traverse(lookup(_).map(_._1)).map(_.flatten)
+                mappedBs <- otherIs.traverse(lookup(_).map(_.nodes)).map(_.flatten)
                 shouldError = mappedBs.map(modelB.id).exists(someJs.contains)
                 // allIs = as.map(modelA.id)
                 // allJs = bs.map(modelB.id)
@@ -201,7 +201,7 @@ trait OdbRepoTest {
 
             for {
               _      <- share(Sharing(i, someBs))
-              shared <- lookup(i).map(_._1.map(modelB.id))
+              shared <- lookup(i).map(_.nodes.map(modelB.id))
             } yield shared.toSet
           }
 
@@ -221,7 +221,7 @@ trait OdbRepoTest {
       TopLevelRepo[IO, I, A],
       TopLevelRepo[IO, J, B],
       Sharing[I, J] => IO[A],
-      I => IO[(List[B], Boolean)]
+      I => IO[ResultPage[B]]
     )
   )(
     implicit modelA: TopLevelModel[I, A], modelB: TopLevelModel[J, B]
@@ -240,9 +240,9 @@ trait OdbRepoTest {
               val ia = modelA.id(a)
               val some = subset(bs, is).map(b => modelB.id(b))
               for {
-                initial  <- lookup(ia).map(_._1.map(modelB.id))
+                initial  <- lookup(ia).map(_.nodes.map(modelB.id))
                 _        <- unshare(Sharing(ia, some))
-                unshared <- lookup(ia).map(_._1.map(modelB.id))
+                unshared <- lookup(ia).map(_.nodes.map(modelB.id))
               } yield (initial.toSet, unshared.toSet, some.toSet)
 
             }

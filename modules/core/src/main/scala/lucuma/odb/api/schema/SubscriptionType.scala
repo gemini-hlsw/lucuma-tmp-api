@@ -152,10 +152,10 @@ object SubscriptionType {
 
   def apply[F[_]: ConcurrentEffect]: ObjectType[OdbRepo[F], Unit] = {
     def programsForAsterism(c: Context[OdbRepo[F], Unit], aid: Asterism.Id): F[Set[Program.Id]] =
-      c.ctx.program.selectAllForAsterism(aid).map(_._1.map(_.id).toSet)
+      c.ctx.program.selectPageForAsterism(aid).map(_.nodes.map(_.id).toSet)
 
     def programsForTarget(c: Context[OdbRepo[F], Unit], tid: Target.Id): F[Set[Program.Id]] =
-      c.ctx.program.selectAllForTarget(tid).map(_._1.map(_.id).toSet)
+      c.ctx.program.selectPageForTarget(tid).map(_.nodes.map(_.id).toSet)
 
     ObjectType(
       name   = "Subscription",

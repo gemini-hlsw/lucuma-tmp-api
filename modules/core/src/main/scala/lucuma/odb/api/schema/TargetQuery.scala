@@ -37,7 +37,7 @@ trait TargetQuery {
       ),
       resolve     = c =>
         unsafeSelectPageFuture(c.pagingTargetId) { gid =>
-          c.ctx.target.selectAllForProgram(c.programId, c.pagingFirst, gid, c.includeDeleted)
+          c.ctx.target.selectPageForProgram(c.programId, c.pagingFirst, gid, c.includeDeleted)
         }
     )
 

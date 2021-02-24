@@ -15,19 +15,19 @@ import cats.effect.concurrent.Ref
 
 trait ProgramRepo[F[_]] extends TopLevelRepo[F, Program.Id, ProgramModel] {
 
-  def selectAllForAsterism(
+  def selectPageForAsterism(
     aid:            Asterism.Id,
     count:          Int                = Integer.MAX_VALUE,
     afterGid:       Option[Program.Id] = None,
     includeDeleted: Boolean            = false
-  ): F[(List[ProgramModel], Boolean)]
+  ): F[ResultPage[ProgramModel]]
 
-  def selectAllForTarget(
+  def selectPageForTarget(
     tid:            Target.Id,
     count:          Int                = Integer.MAX_VALUE,
     afterGid:       Option[Program.Id] = None,
     includeDeleted: Boolean            = false
-  ): F[(List[ProgramModel], Boolean)]
+  ): F[ResultPage[ProgramModel]]
 
   def insert(input: ProgramModel.Create): F[ProgramModel]
 
@@ -49,23 +49,23 @@ object ProgramRepo {
     ) with ProgramRepo[F]
       with LookupSupport {
 
-      override def selectAllForAsterism(
+      override def selectPageForAsterism(
         aid:            Asterism.Id,
         count:          Int,
         afterGid:       Option[Program.Id],
         includeDeleted: Boolean
-      ): F[(List[ProgramModel], Boolean)] =
+      ): F[ResultPage[ProgramModel]] =
 
         selectPageFromIds(count, afterGid, includeDeleted) { tables =>
           tables.programAsterism.selectLeft(aid)
         }
 
-      override def selectAllForTarget(
+      override def selectPageForTarget(
         tid:            Target.Id,
         count:          Int                = Integer.MAX_VALUE,
         afterGid:       Option[Program.Id] = None,
         includeDeleted: Boolean            = false
-      ): F[(List[ProgramModel], Boolean)] =
+      ): F[ResultPage[ProgramModel]] =
 
         selectPageFromIds(count, afterGid, includeDeleted) { tables =>
           tables.programTarget.selectLeft(tid)

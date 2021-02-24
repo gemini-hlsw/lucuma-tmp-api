@@ -81,7 +81,7 @@ object AsterismSchema {
           description = Some("All observations associated with the asterism."),
           resolve     = c =>
             unsafeSelectPageFuture(c.pagingObservationId) { gid =>
-              c.ctx.observation.selectAllForAsterism(c.value.id, c.optionalProgramId, c.pagingFirst, gid, c.includeDeleted)
+              c.ctx.observation.selectPageForAsterism(c.value.id, c.optionalProgramId, c.pagingFirst, gid, c.includeDeleted)
             }
         ),
 
@@ -96,7 +96,7 @@ object AsterismSchema {
           description = Some("All asterism targets"),
           resolve     = c =>
             unsafeSelectPageFuture(c.pagingTargetId) { gid =>
-              c.ctx.target.selectAllForAsterism(c.value.id, c.pagingFirst, gid, c.includeDeleted)
+              c.ctx.target.selectPageForAsterism(c.value.id, c.pagingFirst, gid, c.includeDeleted)
             }
         ),
 
@@ -111,7 +111,7 @@ object AsterismSchema {
           description = Some("The programs associated with the asterism."),
           resolve     = c =>
             unsafeSelectPageFuture(c.pagingProgramId) { gid =>
-              c.ctx.program.selectAllForAsterism(c.value.id, c.pagingFirst, gid, c.includeDeleted)
+              c.ctx.program.selectPageForAsterism(c.value.id, c.pagingFirst, gid, c.includeDeleted)
             }
         )
       )
