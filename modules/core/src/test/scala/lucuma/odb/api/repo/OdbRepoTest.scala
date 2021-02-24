@@ -116,7 +116,7 @@ trait OdbRepoTest {
         // returning false fails the test
         result match {
           case Left(_)    => shouldError
-          case Right(opt) => opt.exists(_ == j)
+          case Right(opt) => opt.contains(j)
         }
       }
     }
@@ -141,7 +141,7 @@ trait OdbRepoTest {
           bs <- repoB.selectAll()
           ab = (as.headOption, bs.headOption).tupled
 
-          tp <- ab.headOption.fold(IO(true)) { case (a, b) =>
+          tp <- ab.fold(IO(true)) { case (a, b) =>
 
             val i = modelA.id(a)
             val j = modelB.id(b)
@@ -150,7 +150,7 @@ trait OdbRepoTest {
               _        <- unshare(i, j)
               unshared <- lookup(i).map(_.map(modelB.id))
               passed = unshared.toSet == initial.toSet - j
-            } yield (passed)
+            } yield passed
           }
         } yield tp
       }
