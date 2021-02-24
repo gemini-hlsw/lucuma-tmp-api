@@ -39,14 +39,14 @@ trait TopLevelRepo[F[_], I, T] {
     afterGid:       Option[I] = None,
     includeDeleted: Boolean   = false
   ): F[ResultPage[T]] =
-    selectPageFiltered(count, afterGid, includeDeleted) { _ => Function.const(true) }
+    selectPageFiltered(count, afterGid, includeDeleted) { Function.const(true) }
 
   def selectPageFiltered(
     count:          Int       = Integer.MAX_VALUE,
     afterGid:       Option[I] = None,
     includeDeleted: Boolean   = false
   )(
-    filterFunction: Tables => T => Boolean
+    predicate: T => Boolean
   ): F[ResultPage[T]]
 
   def selectPageFromIds(
@@ -146,18 +146,17 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
     afterGid:       Option[I],
     includeDeleted: Boolean
   )(
-    filterFunction: Tables => T => Boolean
+    predicate: T => Boolean
   ): F[ResultPage[T]] =
 
     tablesRef.get.map { tables =>
-      val filter = filterFunction(tables)
       val all    = mapLens.get(tables)
 
       page(
         count,
         afterGid
           .fold(all.valuesIterator)(gid => all.valuesIteratorFrom(gid).dropWhile(t => TopLevelModel[I, T].id(t) === gid))
-          .filter(t => (includeDeleted || t.isPresent) && filter(t))
+          .filter(t => (includeDeleted || t.isPresent) && predicate(t))
       )
     }
 

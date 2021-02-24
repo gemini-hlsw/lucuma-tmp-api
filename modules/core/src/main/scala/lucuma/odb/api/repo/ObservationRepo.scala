@@ -74,7 +74,7 @@ object ObservationRepo {
         includeDeleted: Boolean
       ): F[ResultPage[ObservationModel]] =
 
-        selectPageFiltered(count, afterGid, includeDeleted) { _ => obs =>
+        selectPageFiltered(count, afterGid, includeDeleted) { obs =>
           obs.targets.contains(aid.asLeft[Target.Id]) && pid.forall(_ === obs.programId)
         }
 
@@ -96,9 +96,7 @@ object ObservationRepo {
         includeDeleted: Boolean
       ): F[ResultPage[ObservationModel]] =
 
-        selectPageFiltered(count, afterGid, includeDeleted) { _ => obs =>
-          obs.programId === pid
-        }
+        selectPageFiltered(count, afterGid, includeDeleted) { _.programId === pid }
 
       override def selectPageForTarget(
         tid:            Target.Id,
@@ -108,7 +106,7 @@ object ObservationRepo {
         includeDeleted: Boolean
       ): F[ResultPage[ObservationModel]] =
 
-        selectPageFiltered(count, afterGid, includeDeleted) { _ => obs =>
+        selectPageFiltered(count, afterGid, includeDeleted) { obs =>
           // this includes only observations that directly reference a target,
           // but not those referencing an asterism that references the target
           obs.targets.contains(tid.asRight[Asterism.Id]) && pid.forall(_ === obs.programId)

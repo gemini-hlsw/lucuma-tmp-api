@@ -68,9 +68,7 @@ object ConstraintSetRepo {
         includeDeleted: Boolean
       ): F[ResultPage[ConstraintSetModel]] =
 
-        selectPageFiltered(count, afterGid, includeDeleted) { _ => cs =>
-          cs.programId === pid
-        }
+        selectPageFiltered(count, afterGid, includeDeleted) { _.programId === pid }
 
       override def insert(newCs: ConstraintSetModel.Create): F[ConstraintSetModel] =
         constructAndPublish { t =>
