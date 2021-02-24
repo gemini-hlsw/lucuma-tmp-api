@@ -26,7 +26,7 @@ sealed trait AsterismRepo[F[_]] extends TopLevelRepo[F, Asterism.Id, AsterismMod
 
   def selectPageForTarget(
     tid:            Target.Id,
-    pid:            Option[Program.Id],
+    pid:            Option[Program.Id]  = None,
     count:          Int                 = Integer.MAX_VALUE,
     afterGid:       Option[Asterism.Id] = None,
     includeDeleted: Boolean             = false
@@ -76,7 +76,6 @@ object AsterismRepo {
                        .filter(_.programId === pid)
                        .map(_.targets)
                        .collect { case Some(Left(aid)) => aid }
-                       .toSet
 
         val fromProg = tables.programAsterism.selectRight(pid)
 
@@ -94,7 +93,7 @@ object AsterismRepo {
 
       override def selectPageForTarget(
         tid:            Target.Id,
-        pid:            Option[Program.Id], // limit to this program
+        pid:            Option[Program.Id],
         count:          Int,
         afterGid:       Option[Asterism.Id],
         includeDeleted: Boolean

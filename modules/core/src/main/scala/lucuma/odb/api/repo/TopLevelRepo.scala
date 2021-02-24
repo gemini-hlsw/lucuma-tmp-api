@@ -139,7 +139,11 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
   override def selectAll(
     includeDeleted: Boolean
   ): F[List[T]] =
-    selectPage(includeDeleted = includeDeleted).map(_.nodes)
+    selectPage(
+      count          = Integer.MAX_VALUE,
+      afterGid       = None,
+      includeDeleted = includeDeleted
+    ).map(_.nodes)
 
   def selectPageFiltered(
     count:          Int,
