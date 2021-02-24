@@ -19,7 +19,7 @@ class ConstraintSetRepoSpec extends ScalaCheckSuite with OdbRepoTest {
         odb.constraintSet,
         odb.observation,
         odb.constraintSet.shareWithObservations,
-        odb.observation.selectAllForConstraintSet(_, true)
+        odb.observation.selectAllForConstraintSet(_, includeDeleted = true)
       )
     }
   }
@@ -34,7 +34,7 @@ class ConstraintSetRepoSpec extends ScalaCheckSuite with OdbRepoTest {
         odb.constraintSet,
         odb.observation,
         odb.constraintSet.unshareWithObservations,
-        odb.observation.selectAllForConstraintSet(_, true)
+        odb.observation.selectAllForConstraintSet(_, includeDeleted = true)
       )
     }
   }

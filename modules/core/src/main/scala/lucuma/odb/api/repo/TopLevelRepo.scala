@@ -30,6 +30,10 @@ trait TopLevelRepo[F[_], I, T] {
 
   def unsafeSelect(id: I, includeDeleted: Boolean = false): F[T]
 
+  def selectAll(
+    includeDeleted: Boolean = false
+  ): F[List[T]]
+
   def selectPage(
     count:          Int       = Integer.MAX_VALUE,
     afterGid:       Option[I] = None,
@@ -131,6 +135,11 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
 
   def selectUnconditional(id: I): F[Option[T]] =
     tablesRef.get.map(focusOn(id).get)
+
+  override def selectAll(
+    includeDeleted: Boolean
+  ): F[List[T]] =
+    selectPage(includeDeleted = includeDeleted).map(_._1)
 
   def selectPageFiltered(
     count:          Int,
