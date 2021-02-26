@@ -7,7 +7,7 @@ import lucuma.odb.api.model.{Sharing, TopLevelModel}
 import lucuma.odb.api.repo.arb._
 import cats.effect.{Concurrent, ContextShift, IO}
 import cats.syntax.all._
-import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 import munit.Assertions.assertEquals
 import org.scalacheck.Prop
 import org.scalacheck.Prop.forAll
