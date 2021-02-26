@@ -5,9 +5,10 @@ package lucuma.odb.api.repo
 
 import lucuma.odb.api.model.{Sharing, TopLevelModel}
 import lucuma.odb.api.repo.arb._
-import cats.effect.{Concurrent, ContextShift, IO}
+import cats.effect.{Concurrent, ContextShift, IO, Sync}
 import cats.syntax.all._
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+import eu.timepit.refined.types.all.PosInt
+import fs2.Stream
 import munit.Assertions.assertEquals
 import org.scalacheck.Prop
 import org.scalacheck.Prop.forAll
@@ -25,6 +26,31 @@ trait OdbRepoTest {
       log <- Slf4jLogger.create[IO]
       odb <- OdbRepo.fromTables[IO](t)(Concurrent[IO], log)
     } yield odb
+
+  protected def allPages[F[_]: Sync, I, T: TopLevelModel[I, *]](
+    pageSize: PosInt,
+    afterGid: Option[I],
+    repo:     TopLevelRepo[F, I, T]
+  ): F[List[ResultPage[T]]] =
+    allPagesFiltered[F, I, T](pageSize, afterGid, repo)(Function.const(true))
+
+  protected def allPagesFiltered[F[_]: Sync, I, T: TopLevelModel[I, *]](
+    pageSize: PosInt,
+    afterGid: Option[I],
+    repo:     TopLevelRepo[F, I, T]
+  )(
+    predicate: T => Boolean
+  ): F[List[ResultPage[T]]] =
+    Stream.unfoldLoopEval(afterGid) { gid =>
+      repo.selectPageFiltered(pageSize.value, gid)(predicate).map { page =>
+        val next =
+          if (page.hasNextPage)
+            page.nodes.lastOption.map(t => Option(TopLevelModel[I, T].id(t)))
+          else
+            None
+        (page, next)
+      }
+    }.compile.toList
 
   private def subset[A](as: List[A], is: List[Int]): List[A] = {
     val len = as.length

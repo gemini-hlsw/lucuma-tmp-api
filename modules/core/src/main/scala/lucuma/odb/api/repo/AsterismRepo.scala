@@ -82,13 +82,13 @@ object AsterismRepo {
         fromProg ++ fromObs
       }
 
-
       override def selectPageForProgram(
         pid:            Program.Id,
         count:          Int,
         afterGid:       Option[Asterism.Id],
         includeDeleted: Boolean
       ): F[ResultPage[AsterismModel]] =
+
         selectPageFromIds(count, afterGid, includeDeleted)(asterismIdsForProgram(_, pid))
 
       override def selectPageForTarget(

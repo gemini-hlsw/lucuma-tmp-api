@@ -73,7 +73,10 @@ object TargetRepo {
       ): F[ResultPage[TargetModel]] =
 
         selectPageFromIds(count, afterGid, includeDeleted) { tables =>
-          tables.programTarget.selectRight(pid)
+          tables.programTarget.selectRight(pid) ++
+            tables.observations.values.filter(_.programId === pid).map(_.targets).collect {
+              case Some(Right(tid)) => tid
+            }
         }
 
       override def selectPageForAsterism(

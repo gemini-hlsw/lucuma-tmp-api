@@ -49,6 +49,12 @@ object ProgramRepo {
     ) with ProgramRepo[F]
       with LookupSupport {
 
+      private def havingObservationsOf(
+        tables:  Tables,
+        targets: Either[Asterism.Id, Target.Id]
+      ): Iterable[Program.Id] =
+        tables.observations.values.filter(_.targets.contains(targets)).map(_.programId)
+
       override def selectPageForAsterism(
         aid:            Asterism.Id,
         count:          Int,
@@ -57,7 +63,8 @@ object ProgramRepo {
       ): F[ResultPage[ProgramModel]] =
 
         selectPageFromIds(count, afterGid, includeDeleted) { tables =>
-          tables.programAsterism.selectLeft(aid)
+          tables.programAsterism.selectLeft(aid) ++
+            havingObservationsOf(tables, aid.asLeft)
         }
 
       override def selectPageForTarget(
@@ -68,7 +75,8 @@ object ProgramRepo {
       ): F[ResultPage[ProgramModel]] =
 
         selectPageFromIds(count, afterGid, includeDeleted) { tables =>
-          tables.programTarget.selectLeft(tid)
+          tables.programTarget.selectLeft(tid) ++
+            havingObservationsOf(tables, tid.asRight)
         }
 
       override def insert(input: ProgramModel.Create): F[ProgramModel] =

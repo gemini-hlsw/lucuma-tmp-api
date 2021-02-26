@@ -12,6 +12,9 @@ final case class ResultPage[A](
 
 object ResultPage {
 
+  def empty[A]: ResultPage[A] =
+    ResultPage(Nil, hasNextPage = false)
+
   def EqResultPage[A: Eq]: Eq[ResultPage[A]] =
     Eq.by { p => (
       p.nodes,
