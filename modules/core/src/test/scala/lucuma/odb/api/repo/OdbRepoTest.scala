@@ -213,9 +213,6 @@ trait OdbRepoTest {
                 // are currently mapped to another A
                 mappedBs <- otherIs.traverse(lookup(_).map(_.nodes)).map(_.flatten)
                 shouldError = mappedBs.map(modelB.id).exists(someJs.contains)
-                // allIs = as.map(modelA.id)
-                // allJs = bs.map(modelB.id)
-                // _ = println(s"selectors: $selectors, \n\tmappedBs: $mappedBs, \n\tallIs: $allIs, \n\tallJs: $allJs, \n\totherIs: $otherIs")
               } yield (i, someJs, initial, shouldError).some
 
             }
@@ -232,10 +229,6 @@ trait OdbRepoTest {
             } yield shared.toSet
           }
 
-          // val links = t.constraintSetObservation.all
-          // val allIs = t.constraintSetObservation.allLeft
-          // val allJs = t.constraintSetObservation.allRight
-          // println(s"selectors: $selectors\n\tshouldError: $shouldError, i: $i, bs: $someBs, \n\tinitial: $initial, \n\tresult: $result, \n\tlinks: $links, \n\ti links: $allIs, \n\tj links: $allJs")
           result match {
             case Left(_)          => shouldError
             case Right(sharedSet) => sharedSet == initial.toSet ++ someBs

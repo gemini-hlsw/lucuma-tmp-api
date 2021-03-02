@@ -5,7 +5,7 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.Sharing
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.core.model.{Asterism, Observation, Program, Target}
+import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
 import cats.effect.Effect
 import org.typelevel.log4cats.Logger
 import io.circe.Decoder
@@ -18,6 +18,7 @@ import sangria.schema._
 trait SharingMutation {
 
   import AsterismSchema.{AsterismIdType, AsterismType}
+  import ConstraintSetSchema.{ConstraintSetIdType, ConstraintSetType}
   import ObservationSchema.ObservationIdType
   import ProgramSchema.ProgramIdType
   import TargetSchema.{TargetIdType, TargetType}
@@ -172,6 +173,25 @@ trait SharingMutation {
       resolve   = c => c.target(_.unshareWithPrograms(c.arg(ArgumentTargetProgramLinks)))
     )
 
+  // ---- ConstraintSet Observations
+  val ArgumentConstraintSetObservationLinks: Argument[Sharing[ConstraintSet.Id, Observation.Id]] =
+    linksArg[ConstraintSet.Id, Observation.Id]("constraintSet", "observation")
+
+  def shareConstraintSetWithObservations[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+    Field(
+      name      = "shareConstraintSetWithObservations",
+      fieldType = ConstraintSetType[F],
+      arguments = List(ArgumentConstraintSetObservationLinks),
+      resolve   = c => c.constraintSet(_.shareWithObservations(c.arg(ArgumentConstraintSetObservationLinks)))
+    )
+
+  def unshareConstraintSetWithObservations[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+    Field(
+      name      = "unshareConstraintSetWithObservations",
+      fieldType = ConstraintSetType[F],
+      arguments = List(ArgumentConstraintSetObservationLinks),
+      resolve   = c => c.constraintSet(_.unshareWithObservations(c.arg(ArgumentConstraintSetObservationLinks)))
+    )
 
   def allFields[F[_]: Effect: Logger]: List[Field[OdbRepo[F], Unit]] =
     List(
@@ -191,7 +211,10 @@ trait SharingMutation {
       unshareTargetWithObservations,
 
       shareTargetWithPrograms,
-      unshareTargetWithPrograms
+      unshareTargetWithPrograms,
+
+      shareConstraintSetWithObservations,
+      unshareConstraintSetWithObservations
     )
 
 }
