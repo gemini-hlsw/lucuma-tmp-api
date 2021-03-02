@@ -111,7 +111,7 @@ object AsterismSchema {
           description = Some("The programs associated with the asterism."),
           resolve     = c =>
             unsafeSelectPageFuture(c.pagingProgramId) { gid =>
-              c.ctx.program.selectPageForAsterism(c.value.id, c.pagingFirst, gid, c.includeDeleted)
+              c.ctx.program.selectPageForAsterism(c.value.id, includeObservations = true, c.pagingFirst, gid, c.includeDeleted)
             }
         )
       )

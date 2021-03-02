@@ -10,6 +10,7 @@ import cats.syntax.all._
 import eu.timepit.refined.types.all.PosInt
 import fs2.Stream
 import munit.Assertions.assertEquals
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 import org.scalacheck.Prop
 import org.scalacheck.Prop.forAll
 
@@ -123,7 +124,7 @@ trait OdbRepoTest {
           oj = bs.headOption.map(modelB.id)
           oInitB <- oi.traverse(i => lookup(i)).map(_.flatten)
           // if the current mapping from A -> B is different than the selected B,
-          // there will be a constraint violiation.
+          // there will be a constraint violation.
           shouldError = (oj, oInitB).tupled.exists{case (j, b) => j != modelB.id(b)}
         }  yield (oi, oj, shouldError)
       }

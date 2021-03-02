@@ -438,7 +438,7 @@ object TargetSchema extends TargetScalars {
           description = Some("The programs associated with the target."),
           resolve     = c =>
             unsafeSelectPageFuture(c.pagingProgramId) { gid =>
-              c.ctx.program.selectPageForTarget(c.value.id, c.pagingFirst, gid, c.includeDeleted)
+              c.ctx.program.selectPageForTarget(c.value.id, includeObservations = true, c.pagingFirst, gid, c.includeDeleted)
             }
         ),
 

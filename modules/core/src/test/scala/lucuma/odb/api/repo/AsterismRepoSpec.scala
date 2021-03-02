@@ -29,7 +29,7 @@ final class AsterismRepoSpec extends DisciplineSuite with OdbRepoTest {
         odb.program,
         odb.asterism.shareWithPrograms,
         odb.asterism.unshareWithPrograms,
-        odb.program.selectPageForAsterism(_)
+        odb.program.selectPageForAsterism(_, includeObservations = false)
     )}
 
   }
