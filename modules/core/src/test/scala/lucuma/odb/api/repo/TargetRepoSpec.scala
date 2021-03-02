@@ -17,7 +17,7 @@ final class TargetRepoSpec extends DisciplineSuite with OdbRepoTest {
         odb.observation,
         odb.target.shareWithObservations,
         odb.target.unshareWithObservations,
-        odb.observation.selectAllForTarget(_)
+        odb.observation.selectPageForTarget(_)
     )}
 
   }
@@ -29,7 +29,7 @@ final class TargetRepoSpec extends DisciplineSuite with OdbRepoTest {
         odb.program,
         odb.target.shareWithPrograms,
         odb.target.unshareWithPrograms,
-        odb.program.selectAllForTarget(_)
+        odb.program.selectPageForTarget(_, includeObservations = false)
     )}
 
   }

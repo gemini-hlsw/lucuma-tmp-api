@@ -18,7 +18,12 @@ trait ConstraintSetRepo[F[_]] extends TopLevelRepo[F, ConstraintSet.Id, Constrai
     includeDeleted: Boolean = false
   ): F[Option[ConstraintSetModel]]
 
-  def selectAllForProgram(pid: Program.Id, includeDeleted: Boolean): F[List[ConstraintSetModel]]
+  def selectPageForProgram(
+    pid:            Program.Id,
+    count:          Int                      = Integer.MAX_VALUE,
+    afterGid:       Option[ConstraintSet.Id] = None,
+    includeDeleted: Boolean                  = false
+  ): F[ResultPage[ConstraintSetModel]]
 
   def insert(input: ConstraintSetModel.Create): F[ConstraintSetModel]
 
@@ -56,13 +61,14 @@ object ConstraintSetRepo {
           }
           .map(x => deletionFilter(includeDeleted)(x))
 
-      override def selectAllForProgram(
+      override def selectPageForProgram(
         pid:            Program.Id,
+        count:          Int,
+        afterGid:       Option[ConstraintSet.Id],
         includeDeleted: Boolean
-      ): F[List[ConstraintSetModel]] =
-        tablesRef.get
-          .map(_.constraintSets.values.filter(_.programId == pid).toList)
-          .map(deletionFilter(includeDeleted))
+      ): F[ResultPage[ConstraintSetModel]] =
+
+        selectPageFiltered(count, afterGid, includeDeleted) { _.programId === pid }
 
       override def insert(newCs: ConstraintSetModel.Create): F[ConstraintSetModel] =
         constructAndPublish { t =>

@@ -17,7 +17,7 @@ final class AsterismRepoSpec extends DisciplineSuite with OdbRepoTest {
         odb.observation,
         odb.asterism.shareWithObservations,
         odb.asterism.unshareWithObservations,
-        odb.observation.selectAllForAsterism(_)
+        odb.observation.selectPageForAsterism(_)
     )}
 
   }
@@ -29,7 +29,7 @@ final class AsterismRepoSpec extends DisciplineSuite with OdbRepoTest {
         odb.program,
         odb.asterism.shareWithPrograms,
         odb.asterism.unshareWithPrograms,
-        odb.program.selectAllForAsterism(_)
+        odb.program.selectPageForAsterism(_, includeObservations = false)
     )}
 
   }
@@ -41,7 +41,7 @@ final class AsterismRepoSpec extends DisciplineSuite with OdbRepoTest {
         odb.target,
         odb.asterism.shareWithTargets,
         odb.asterism.unshareWithTargets,
-        odb.target.selectAllForAsterism(_)
+        odb.target.selectPageForAsterism(_)
     )}
 
   }
