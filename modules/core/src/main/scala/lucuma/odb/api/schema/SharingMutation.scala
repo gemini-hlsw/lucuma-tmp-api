@@ -7,7 +7,7 @@ import lucuma.odb.api.model.Sharing
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.model.{Asterism, Observation, Program, Target}
 import cats.effect.Effect
-import io.chrisdavenport.log4cats.Logger
+import org.typelevel.log4cats.Logger
 import io.circe.Decoder
 import sangria.macros.derive._
 import sangria.marshalling.FromInput
