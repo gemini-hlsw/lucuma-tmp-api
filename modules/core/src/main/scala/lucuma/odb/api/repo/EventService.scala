@@ -8,7 +8,7 @@ import lucuma.odb.api.model.Event
 import cats.effect.Concurrent
 import cats.implicits._
 import cats.effect.concurrent.Ref
-import io.chrisdavenport.log4cats.Logger
+import org.typelevel.log4cats.Logger
 
 
 import fs2.Stream

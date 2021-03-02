@@ -13,8 +13,8 @@ import org.http4s.HttpApp
 import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.server.middleware.Logger
 import org.http4s.server.staticcontent._
-import io.chrisdavenport.log4cats.{Logger => Log4CatsLogger}
-import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
+import org.typelevel.log4cats.{Logger => Log4CatsLogger}
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 import lucuma.core.model.User
 import lucuma.sso.client.SsoClient
 

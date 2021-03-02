@@ -6,7 +6,7 @@ package lucuma.odb.api.repo
 import cats.implicits._
 import cats.effect.Concurrent
 import cats.effect.concurrent.Ref
-import io.chrisdavenport.log4cats.Logger
+import org.typelevel.log4cats.Logger
 
 /**
  * The main "repository" for the API server.  It is simply a collection of
@@ -56,7 +56,7 @@ object OdbRepo {
       override def asterism: AsterismRepo[F] =
         AsterismRepo.create(r, s)
 
-      override def constraintSet: ConstraintSetRepo[F] = 
+      override def constraintSet: ConstraintSetRepo[F] =
         ConstraintSetRepo.create(r, s)
 
       override def observation: ObservationRepo[F] =

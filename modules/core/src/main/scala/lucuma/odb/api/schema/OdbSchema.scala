@@ -7,7 +7,7 @@ import lucuma.odb.api.model.InputError
 import lucuma.odb.api.repo.OdbRepo
 
 import cats.effect.ConcurrentEffect
-import io.chrisdavenport.log4cats.Logger
+import org.typelevel.log4cats.Logger
 import sangria.execution.{ExceptionHandler, HandledException}
 import sangria.schema.Schema
 

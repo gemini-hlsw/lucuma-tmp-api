@@ -8,7 +8,7 @@ import lucuma.odb.api.repo.OdbRepo
 import cats.implicits._
 import cats.effect.{Async, ConcurrentEffect, ContextShift, IO}
 import fs2.Stream
-import io.chrisdavenport.log4cats.Logger
+import org.typelevel.log4cats.Logger
 import io.circe._
 import lucuma.core.model.User
 import sangria.execution._

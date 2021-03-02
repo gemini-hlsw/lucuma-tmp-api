@@ -7,7 +7,7 @@ import lucuma.odb.api.model.{Sharing, TopLevelModel}
 import lucuma.odb.api.repo.arb._
 import cats.effect.{Concurrent, ContextShift, IO}
 import cats.syntax.all._
-import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 import munit.Assertions.assertEquals
 import org.scalacheck.Prop
 import org.scalacheck.Prop.forAll
@@ -84,11 +84,11 @@ trait OdbRepoTest {
   )(
     implicit modelA: TopLevelModel[I, A], modelB: TopLevelModel[J, B]
   ): Prop =
-  
+
     forAll { t: Tables =>
 
-      val (oi, oj, shouldError) = runTest(t) { odb => 
-        val (repoA, repoB, _, lookup) = config(odb) 
+      val (oi, oj, shouldError) = runTest(t) { odb =>
+        val (repoA, repoB, _, lookup) = config(odb)
 
         for {
           as <- repoA.selectAll()
@@ -100,7 +100,7 @@ trait OdbRepoTest {
           // there will be a constraint violiation.
           shouldError = (oj, oInitB).tupled.exists{case (j, b) => j != modelB.id(b)}
         }  yield (oi, oj, shouldError)
-      } 
+      }
 
       // if we don't have an a and a b, there is nothing to test
       (oi, oj).tupled.forall{ case (i, j) =>
@@ -155,7 +155,7 @@ trait OdbRepoTest {
         } yield tp
       }
     }
-    
+
   def shareOneWithManyUniqueTest[I, A, J, B](
     config: OdbRepo[IO] => (
       TopLevelRepo[IO, I, A],
@@ -165,18 +165,18 @@ trait OdbRepoTest {
     )
   )(
     implicit modelA: TopLevelModel[I, A], modelB: TopLevelModel[J, B]
-  ): Prop = 
+  ): Prop =
 
-    forAll { (t: Tables, selectors: List[Int]) => 
+    forAll { (t: Tables, selectors: List[Int]) =>
 
-      val setupInfo = 
+      val setupInfo =
         runTest(t) { odb =>
           val (repoA, repoB, _, lookup) = config(odb)
           for {
             as <- repoA.selectAll(true)
             bs <- repoB.selectAll(true)
             tp <- as.headOption.fold(IO(none[(I, List[J], List[J], Boolean)])) { a =>
-              
+
               val i = modelA.id(a)
               val otherIs = as.map(modelA.id).filter(_ != i)
               val someJs = subset(bs, selectors).map(modelB.id)
@@ -194,9 +194,9 @@ trait OdbRepoTest {
             }
           } yield tp
         }
-      
+
         setupInfo.forall { case (i, someBs, initial, shouldError) =>
-          val result = attemptAndRunTest(t) { odb => 
+          val result = attemptAndRunTest(t) { odb =>
             val (_, _, share, lookup) = config(odb)
 
             for {
