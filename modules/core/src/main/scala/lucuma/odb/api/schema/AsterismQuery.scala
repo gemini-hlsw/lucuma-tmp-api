@@ -9,18 +9,27 @@ import sangria.schema._
 
 trait AsterismQuery {
 
+  import AsterismSchema.{AsterismConnectionType, AsterismIdArgument, AsterismType}
   import GeneralSchema.ArgumentIncludeDeleted
+  import Paging._
   import ProgramSchema.ProgramIdArgument
-  import AsterismSchema.{AsterismIdArgument, AsterismType}
   import context._
 
   def allForProgram[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
       name        = "asterisms",
-      fieldType   = ListType(AsterismType[F]),
+      fieldType   = AsterismConnectionType[F],
       description = Some("Returns all asterisms associated with the given program."),
-      arguments   = List(ProgramIdArgument, ArgumentIncludeDeleted),
-      resolve     = c => c.asterism(_.selectAllForProgram(c.programId, c.includeDeleted))
+      arguments   = List(
+        ProgramIdArgument,
+        ArgumentPagingFirst,
+        ArgumentPagingCursor,
+        ArgumentIncludeDeleted
+      ),
+      resolve     = c =>
+        unsafeSelectPageFuture(c.pagingAsterismId) { gid =>
+          c.ctx.asterism.selectPageForProgram(c.programId, c.pagingFirst, gid, c.includeDeleted)
+        }
     )
 
   def forId[F[_]: Effect]: Field[OdbRepo[F], Unit] =

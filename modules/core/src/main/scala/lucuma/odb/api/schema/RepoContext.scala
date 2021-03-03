@@ -7,11 +7,14 @@ import lucuma.odb.api.repo.{AsterismRepo, ObservationRepo, OdbRepo, ProgramRepo,
 import lucuma.core.model.{Asterism, Observation, Program, Target}
 import cats.effect.Effect
 import cats.effect.implicits._
+import cats.syntax.all._
+import lucuma.core.util.Gid
+import lucuma.odb.api.model.InputError
 import sangria.schema.Context
 
 import scala.concurrent.Future
 
-final class RepoContextOps[F[_]: Effect, A](val self: Context[OdbRepo[F], A]) {
+final class RepoContextOps[F[_]: Effect](val self: Context[OdbRepo[F], _]) {
 
   def asterismId: Asterism.Id =
     self.arg(AsterismSchema.AsterismIdArgument)
@@ -40,6 +43,35 @@ final class RepoContextOps[F[_]: Effect, A](val self: Context[OdbRepo[F], A]) {
   def includeDeleted: Boolean =
     self.arg(GeneralSchema.ArgumentIncludeDeleted)
 
+  def pagingFirst: Int =
+    self.arg(Paging.ArgumentPagingFirst)
+
+  def pagingCursor: Option[Paging.Cursor] =
+    self.arg(Paging.ArgumentPagingCursor)
+
+  /** Treats the cursor as a Gid, decoding through Cursor to its Gid representation. */
+  def pagingGid[A: Gid](name: String): Either[InputError, Option[A]] = {
+
+    type E[X] = Either[InputError, X]
+
+    pagingCursor.traverse { cursor =>
+      cursor.asGid[A].toRight(
+        InputError.fromMessage(s"Cannot read ${cursor.toString} (${cursor.toBase64}) as $name.`")
+      ): E[A]
+    }
+  }
+
+  def pagingAsterismId: Either[InputError, Option[Asterism.Id]] =
+    pagingGid[Asterism.Id]("AsterismId")
+
+  def pagingObservationId: Either[InputError, Option[Observation.Id]] =
+    pagingGid[Observation.Id]("ObservationId")
+
+  def pagingProgramId: Either[InputError, Option[Program.Id]] =
+    pagingGid[Program.Id]("ProgramId")
+
+  def pagingTargetId: Either[InputError, Option[Target.Id]] =
+    pagingGid[Target.Id]("TargetId")
 
   def asterism[B](f: AsterismRepo[F] => F[B]): Future[B] =
     f(self.ctx.asterism).toIO.unsafeToFuture()
@@ -56,8 +88,8 @@ final class RepoContextOps[F[_]: Effect, A](val self: Context[OdbRepo[F], A]) {
 }
 
 trait ToRepoContextOps {
-  implicit def toRepoContextOps[F[_]: Effect, A](self: Context[OdbRepo[F], A]): RepoContextOps[F, A] =
-    new RepoContextOps[F, A](self)
+  implicit def toRepoContextOps[F[_]: Effect](self: Context[OdbRepo[F], _]): RepoContextOps[F] =
+    new RepoContextOps[F](self)
 }
 
 object context extends ToRepoContextOps

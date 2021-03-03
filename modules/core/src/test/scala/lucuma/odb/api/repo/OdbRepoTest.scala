@@ -5,10 +5,12 @@ package lucuma.odb.api.repo
 
 import lucuma.odb.api.model.{Sharing, TopLevelModel}
 import lucuma.odb.api.repo.arb._
-import cats.effect.{Concurrent, ContextShift, IO}
+import cats.effect.{Concurrent, ContextShift, IO, Sync}
 import cats.syntax.all._
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+import eu.timepit.refined.types.all.PosInt
+import fs2.Stream
 import munit.Assertions.assertEquals
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 import org.scalacheck.Prop
 import org.scalacheck.Prop.forAll
 
@@ -26,6 +28,31 @@ trait OdbRepoTest {
       odb <- OdbRepo.fromTables[IO](t)(Concurrent[IO], log)
     } yield odb
 
+  protected def allPages[F[_]: Sync, I, T: TopLevelModel[I, *]](
+    pageSize: PosInt,
+    afterGid: Option[I],
+    repo:     TopLevelRepo[F, I, T]
+  ): F[List[ResultPage[T]]] =
+    allPagesFiltered[F, I, T](pageSize, afterGid, repo)(Function.const(true))
+
+  protected def allPagesFiltered[F[_]: Sync, I, T: TopLevelModel[I, *]](
+    pageSize: PosInt,
+    afterGid: Option[I],
+    repo:     TopLevelRepo[F, I, T]
+  )(
+    predicate: T => Boolean
+  ): F[List[ResultPage[T]]] =
+    Stream.unfoldLoopEval(afterGid) { gid =>
+      repo.selectPageFiltered(pageSize.value, gid)(predicate).map { page =>
+        val next =
+          if (page.hasNextPage)
+            page.nodes.lastOption.map(t => Option(TopLevelModel[I, T].id(t)))
+          else
+            None
+        (page, next)
+      }
+    }.compile.toList
+
   private def subset[A](as: List[A], is: List[Int]): List[A] = {
     val len = as.length
     val inc = if (len == 0) Set.empty[Int] else is.map(i => (i % len).abs).toSet
@@ -38,7 +65,7 @@ trait OdbRepoTest {
       TopLevelRepo[IO, J, B],
       Sharing[I, J] => IO[A],
       Sharing[I, J] => IO[A],
-      I => IO[List[B]]
+      I => IO[ResultPage[B]]
     )
   )(
     implicit ev0: TopLevelModel[I, A], ev1: TopLevelModel[J, B]
@@ -57,11 +84,11 @@ trait OdbRepoTest {
               val ia = TopLevelModel[I, A].id(a)
               val some = subset(bs, is).map(b => TopLevelModel[J, B].id(b))
               for {
-                initial  <- lookup(ia).map(_.map(TopLevelModel[J, B].id))
+                initial  <- lookup(ia).map(_.nodes.map(TopLevelModel[J, B].id))
                 _        <- share(Sharing(ia, some))
-                shared   <- lookup(ia).map(_.map(TopLevelModel[J, B].id))
+                shared   <- lookup(ia).map(_.nodes.map(TopLevelModel[J, B].id))
                 _        <- unshare(Sharing(ia, some))
-                unshared <- lookup(ia).map(_.map(TopLevelModel[J, B].id))
+                unshared <- lookup(ia).map(_.nodes.map(TopLevelModel[J, B].id))
               } yield (initial.toSet, shared.toSet, unshared.toSet, some.toSet)
 
             }
@@ -97,7 +124,7 @@ trait OdbRepoTest {
           oj = bs.headOption.map(modelB.id)
           oInitB <- oi.traverse(i => lookup(i)).map(_.flatten)
           // if the current mapping from A -> B is different than the selected B,
-          // there will be a constraint violiation.
+          // there will be a constraint violation.
           shouldError = (oj, oInitB).tupled.exists{case (j, b) => j != modelB.id(b)}
         }  yield (oi, oj, shouldError)
       }
@@ -116,7 +143,7 @@ trait OdbRepoTest {
         // returning false fails the test
         result match {
           case Left(_)    => shouldError
-          case Right(opt) => opt.exists(_ == j)
+          case Right(opt) => opt.contains(j)
         }
       }
     }
@@ -141,7 +168,7 @@ trait OdbRepoTest {
           bs <- repoB.selectAll()
           ab = (as.headOption, bs.headOption).tupled
 
-          tp <- ab.headOption.fold(IO(true)) { case (a, b) =>
+          tp <- ab.fold(IO(true)) { case (a, b) =>
 
             val i = modelA.id(a)
             val j = modelB.id(b)
@@ -150,7 +177,7 @@ trait OdbRepoTest {
               _        <- unshare(i, j)
               unshared <- lookup(i).map(_.map(modelB.id))
               passed = unshared.toSet == initial.toSet - j
-            } yield (passed)
+            } yield passed
           }
         } yield tp
       }
@@ -161,7 +188,7 @@ trait OdbRepoTest {
       TopLevelRepo[IO, I, A],
       TopLevelRepo[IO, J, B],
       Sharing[I, J] => IO[A],
-      I => IO[List[B]]
+      I => IO[ResultPage[B]]
     )
   )(
     implicit modelA: TopLevelModel[I, A], modelB: TopLevelModel[J, B]
@@ -181,10 +208,10 @@ trait OdbRepoTest {
               val otherIs = as.map(modelA.id).filter(_ != i)
               val someJs = subset(bs, selectors).map(modelB.id)
               for {
-                initial  <- lookup(i).map(_.map(modelB.id))
+                initial  <- lookup(i).map(_.nodes.map(modelB.id))
                 // We will get a constraint violation if any of the Bs we selected
                 // are currently mapped to another A
-                mappedBs <- otherIs.traverse(lookup).map(_.flatten)
+                mappedBs <- otherIs.traverse(lookup(_).map(_.nodes)).map(_.flatten)
                 shouldError = mappedBs.map(modelB.id).exists(someJs.contains)
                 // allIs = as.map(modelA.id)
                 // allJs = bs.map(modelB.id)
@@ -201,7 +228,7 @@ trait OdbRepoTest {
 
             for {
               _      <- share(Sharing(i, someBs))
-              shared <- lookup(i).map(_.map(modelB.id))
+              shared <- lookup(i).map(_.nodes.map(modelB.id))
             } yield shared.toSet
           }
 
@@ -221,7 +248,7 @@ trait OdbRepoTest {
       TopLevelRepo[IO, I, A],
       TopLevelRepo[IO, J, B],
       Sharing[I, J] => IO[A],
-      I => IO[List[B]]
+      I => IO[ResultPage[B]]
     )
   )(
     implicit modelA: TopLevelModel[I, A], modelB: TopLevelModel[J, B]
@@ -240,9 +267,9 @@ trait OdbRepoTest {
               val ia = modelA.id(a)
               val some = subset(bs, is).map(b => modelB.id(b))
               for {
-                initial  <- lookup(ia).map(_.map(modelB.id))
+                initial  <- lookup(ia).map(_.nodes.map(modelB.id))
                 _        <- unshare(Sharing(ia, some))
-                unshared <- lookup(ia).map(_.map(modelB.id))
+                unshared <- lookup(ia).map(_.nodes.map(modelB.id))
               } yield (initial.toSet, unshared.toSet, some.toSet)
 
             }

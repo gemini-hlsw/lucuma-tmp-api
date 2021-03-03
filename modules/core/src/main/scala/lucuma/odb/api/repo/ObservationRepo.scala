@@ -13,13 +13,35 @@ import lucuma.odb.api.model.ConstraintSetModel
 
 sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, ObservationModel] {
 
-  def selectAllForAsterism(aid: Asterism.Id, includeDeleted: Boolean = false): F[List[ObservationModel]]
+  def selectPageForAsterism(
+    aid:            Asterism.Id,
+    pid:            Option[Program.Id]     = None,
+    count:          Int                    = Integer.MAX_VALUE,
+    afterGid:       Option[Observation.Id] = None,
+    includeDeleted: Boolean                = false
+  ): F[ResultPage[ObservationModel]]
 
-  def selectAllForConstraintSet(csid: ConstraintSet.Id, includeDeleted: Boolean = false): F[List[ObservationModel]]
+  def selectPageForConstraintSet(
+    csid:           ConstraintSet.Id,
+    count:          Int                    = Integer.MAX_VALUE,
+    afterGid:       Option[Observation.Id] = None,
+    includeDeleted: Boolean                = false
+  ): F[ResultPage[ObservationModel]]
 
-  def selectAllForProgram(pid: Program.Id, includeDeleted: Boolean = false): F[List[ObservationModel]]
+  def selectPageForProgram(
+    pid:            Program.Id,
+    count:          Int                    = Integer.MAX_VALUE,
+    afterGid:       Option[Observation.Id] = None,
+    includeDeleted: Boolean                = false
+  ): F[ResultPage[ObservationModel]]
 
-  def selectAllForTarget(tid: Target.Id, includeDeleted: Boolean = false): F[List[ObservationModel]]
+  def selectPageForTarget(
+    tid:            Target.Id,
+    pid:            Option[Program.Id]     = None,
+    count:          Int                    = Integer.MAX_VALUE,
+    afterGid:       Option[Observation.Id] = None,
+    includeDeleted: Boolean                = false
+  ): F[ResultPage[ObservationModel]]
 
   def insert(input: ObservationModel.Create): F[ObservationModel]
 
@@ -44,35 +66,52 @@ object ObservationRepo {
     ) with ObservationRepo[F]
       with LookupSupport {
 
-      private def lookupAll(t: Tables, as: Iterable[Observation.Id]): List[ObservationModel] =
-        as.foldLeft(List.empty[ObservationModel]) { (lst, id) =>
-          t.observations.get(id).fold(lst)(_ :: lst)
+      override def selectPageForAsterism(
+        aid:            Asterism.Id,
+        pid:            Option[Program.Id],
+        count:          Int,
+        afterGid:       Option[Observation.Id],
+        includeDeleted: Boolean
+      ): F[ResultPage[ObservationModel]] =
+
+        selectPageFiltered(count, afterGid, includeDeleted) { obs =>
+          obs.targets.contains(aid.asLeft[Target.Id]) && pid.forall(_ === obs.programId)
         }
 
-      override def selectAllForAsterism(aid: Asterism.Id, includeDeleted: Boolean): F[List[ObservationModel]] =
-        tablesRef
-          .get
-          .map(_.observations.values.filter(_.targets.contains(Left(aid))).toList)
-          .map(deletionFilter(includeDeleted))
+      override def selectPageForConstraintSet(
+        csid:           ConstraintSet.Id,
+        count:          Int,
+        afterGid:       Option[Observation.Id],
+        includeDeleted: Boolean
+      ): F[ResultPage[ObservationModel]] =
 
-      override def selectAllForConstraintSet(csid: ConstraintSet.Id, includeDeleted: Boolean): F[List[ObservationModel]] = 
-        tablesRef.get.map { t => 
-          lookupAll(t, t.constraintSetObservation.selectRight(csid))
-        }.map(deletionFilter(includeDeleted))
+        selectPageFromIds(count, afterGid, includeDeleted) { tables =>
+          tables.constraintSetObservation.selectRight(csid)
+        }
 
-      override def selectAllForProgram(pid: Program.Id, includeDeleted: Boolean): F[List[ObservationModel]] =
-        tablesRef
-          .get
-          .map(_.observations.values.filter(_.programId === pid).toList)
-          .map(deletionFilter(includeDeleted))
+      override def selectPageForProgram(
+        pid:            Program.Id,
+        count:          Int,
+        afterGid:       Option[Observation.Id],
+        includeDeleted: Boolean
+      ): F[ResultPage[ObservationModel]] =
 
-      override def selectAllForTarget(tid: Target.Id, includeDeleted: Boolean): F[List[ObservationModel]] =
-        tablesRef
-          .get
+        selectPageFiltered(count, afterGid, includeDeleted) { _.programId === pid }
+
+      override def selectPageForTarget(
+        tid:            Target.Id,
+        pid:            Option[Program.Id],
+        count:          Int,
+        afterGid:       Option[Observation.Id],
+        includeDeleted: Boolean
+      ): F[ResultPage[ObservationModel]] =
+
+        selectPageFiltered(count, afterGid, includeDeleted) { obs =>
           // this includes only observations that directly reference a target,
           // but not those referencing an asterism that references the target
-          .map(_.observations.values.filter(_.targets.contains(Right(tid))).toList)
-          .map(deletionFilter(includeDeleted))
+          obs.targets.contains(tid.asRight[Asterism.Id]) && pid.forall(_ === obs.programId)
+        }
+
 
       override def insert(newObs: ObservationModel.Create): F[ObservationModel] = {
 
@@ -91,9 +130,9 @@ object ObservationRepo {
       }
 
       override def shareWithConstraintSet(
-        oid:  Observation.Id, 
+        oid:  Observation.Id,
         csid: ConstraintSet.Id
-      ): F[ObservationModel] = 
+      ): F[ObservationModel] =
         shareWithOneUnique(
           "constraintSet",
           oid,
@@ -106,7 +145,7 @@ object ObservationRepo {
       override def unshareWithConstraintSet(
         oid:  Observation.Id,
         csid: ConstraintSet.Id
-      ): F[ObservationModel] = 
+      ): F[ObservationModel] =
         unshareWithOneUnique(
           "constraintSet",
           oid,

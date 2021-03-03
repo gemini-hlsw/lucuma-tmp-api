@@ -13,14 +13,13 @@ import cats.data._
 import cats.effect.concurrent.Ref
 import cats.kernel.BoundedEnumerable
 import cats.syntax.all._
-
 import monocle.Lens
 import monocle.function.At
 import monocle.state.all._
 
 import Function.unlift
-import scala.Function.const
 import scala.collection.immutable.SortedMap
+import scala.collection.mutable
 
 
 trait TopLevelRepo[F[_], I, T] {
@@ -31,9 +30,32 @@ trait TopLevelRepo[F[_], I, T] {
 
   def unsafeSelect(id: I, includeDeleted: Boolean = false): F[T]
 
-  def selectAll(includeDeleted: Boolean = false): F[List[T]]
+  def selectAll(
+    includeDeleted: Boolean = false
+  ): F[List[T]]
 
-  def selectAllWhere(f: Tables => T => Boolean, includeDeleted: Boolean = false): F[List[T]]
+  def selectPage(
+    count:          Int       = Integer.MAX_VALUE,
+    afterGid:       Option[I] = None,
+    includeDeleted: Boolean   = false
+  ): F[ResultPage[T]] =
+    selectPageFiltered(count, afterGid, includeDeleted) { Function.const(true) }
+
+  def selectPageFiltered(
+    count:          Int       = Integer.MAX_VALUE,
+    afterGid:       Option[I] = None,
+    includeDeleted: Boolean   = false
+  )(
+    predicate: T => Boolean
+  ): F[ResultPage[T]]
+
+  def selectPageFromIds(
+    count:          Int       = Integer.MAX_VALUE,
+    afterGid:       Option[I] = None,
+    includeDeleted: Boolean   = false
+  )(
+    ids: Tables => scala.collection.immutable.SortedSet[I]
+  ): F[ResultPage[T]]
 
   /**
    * Edits the top-level item identified by the given `Editor`.
@@ -114,16 +136,62 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
   def selectUnconditional(id: I): F[Option[T]] =
     tablesRef.get.map(focusOn(id).get)
 
-  def selectAll(includeDeleted: Boolean = false): F[List[T]] =
-    selectAllWhere(const(const(true)), includeDeleted)
+  override def selectAll(
+    includeDeleted: Boolean
+  ): F[List[T]] =
+    selectPage(
+      count          = Integer.MAX_VALUE,
+      afterGid       = None,
+      includeDeleted = includeDeleted
+    ).map(_.nodes)
 
-  def selectAllWhere(f: Tables => T => Boolean, includeDeleted: Boolean = false): F[List[T]] =
-    selectAllWhereUnconditional(f).map(deletionFilter(includeDeleted))
+  def selectPageFiltered(
+    count:          Int,
+    afterGid:       Option[I],
+    includeDeleted: Boolean
+  )(
+    predicate: T => Boolean
+  ): F[ResultPage[T]] =
 
-  def selectAllWhereUnconditional(f: Tables => T => Boolean): F[List[T]] =
     tablesRef.get.map { tables =>
-      mapLens.get(tables).values.toList.filter(f(tables))
+      val all    = mapLens.get(tables)
+
+      page(
+        count,
+        afterGid
+          .fold(all.valuesIterator)(gid => all.valuesIteratorFrom(gid).dropWhile(t => TopLevelModel[I, T].id(t) === gid))
+          .filter(t => (includeDeleted || t.isPresent) && predicate(t))
+      )
     }
+
+  def selectPageFromIds(
+    count:          Int,
+    afterGid:       Option[I],
+    includeDeleted: Boolean
+  )(
+    ids: Tables => scala.collection.immutable.SortedSet[I]
+  ): F[ResultPage[T]] =
+
+    tablesRef.get.map { tables =>
+      val all = ids(tables)
+
+      page(
+        count,
+        afterGid
+          .fold(all.iterator)(gid => all.iteratorFrom(gid).dropWhile(_ === gid))
+          .map(k => mapLens.get(tables).apply(k))
+          .filter(t => includeDeleted || t.isPresent)
+      )
+    }
+
+  private def page(
+    count: Int,
+    it:    Iterator[T]
+  ): ResultPage[T] = {
+    val res = mutable.Buffer.empty[T]
+    while (it.hasNext && (res.size < count)) res += it.next()
+    ResultPage(res.toList, it.hasNext)
+  }
 
   def constructAndPublish[U <: T](
     cons: Tables => ValidatedInput[State[Tables, U]]
@@ -212,7 +280,7 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
   )(
     update:  ValidatedInput[(T, G[M])] => State[Tables, ValidatedInput[Unit]],
   ): F[T] = {
-    
+
     val link = tablesRef.modifyState {
       for {
         vo  <- focusOn(one).st.map(_.toValidNec(InputError.missingReference(name, Gid[I].show(one))))
@@ -291,13 +359,13 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
     findM: J => State[Tables,ValidatedInput[M]],
     linkLens: Lens[Tables, OneToManyUnique[J, I]],
     editedM: M => Long => Event.Edit[M]
-  ): F[T] = 
+  ): F[T] =
     share[Id, J, M](name, id, oneId, findM, editedM){ vtm =>
-      vtm.traverse { _ => 
+      vtm.traverse { _ =>
         eitherUpdate[Id, J, I]((oneId, id), linkLens)(_ + _)}
           .map(_.andThen(identity))
     }
-  
+
   protected def unshareWithOneUnique[J, M](
     name: String,
     id: I,
@@ -305,7 +373,7 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
     findM: J => State[Tables,ValidatedInput[M]],
     linkLens: Lens[Tables, OneToManyUnique[J, I]],
     editedM: M => Long => Event.Edit[M]
-  ): F[T] = 
+  ): F[T] =
     share[Id, J, M](name, id, oneId, findM, editedM) { vtm =>
       vtm.traverse_ { _ => linkLens.mod_(links => links - ((oneId, id))) }.map(_.validNec[InputError].void)
     }
@@ -316,7 +384,7 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
     findM: J => State[Tables, ValidatedInput[M]],
     linkLens: Lens[Tables, OneToManyUnique[I, J]],
     editedM: M => Long => Event.Edit[M]
-  ): F[T] = 
+  ): F[T] =
     share(name, input.one, input.many, findM, editedM){ vtm =>
       vtm.traverse { _ => eitherUpdate(input.tupleLeft, linkLens)(_ ++ _)}.map(_.andThen(identity))
     }
@@ -327,7 +395,7 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
     findM: J => State[Tables, ValidatedInput[M]],
     linkLens: Lens[Tables, OneToManyUnique[I, J]],
     editedM: M => Long => Event.Edit[M]
-  ): F[T] = 
+  ): F[T] =
     share(name, input.one, input.many, findM, editedM) { vtm =>
       vtm.traverse_ { _ => linkLens.mod_(links => links -- input.tupleLeft) }.map(_.validNec[InputError].void)
     }
