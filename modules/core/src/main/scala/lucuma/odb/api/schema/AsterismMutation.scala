@@ -7,7 +7,6 @@ import lucuma.odb.api.model.AsterismModel
 import lucuma.odb.api.repo.OdbRepo
 
 import cats.effect.Effect
-import cats.syntax.all._
 
 import sangria.macros.derive._
 import sangria.marshalling.circe._
@@ -60,7 +59,7 @@ trait AsterismMutation extends TargetScalars {
       arguments = List(ArgumentAsterismCreate),
       resolve   = c =>
         c.asterism(
-          _.insert(c.arg(ArgumentAsterismCreate)).map(_.toEither)
+          _.insert(c.arg(ArgumentAsterismCreate))
         )
     )
 

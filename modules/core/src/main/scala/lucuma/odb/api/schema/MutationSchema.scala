@@ -3,9 +3,9 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.InputError
+import lucuma.odb.api.model.{InputError, ValidatedInput}
 import lucuma.odb.api.repo.OdbRepo
-import cats.data.{Chain, NonEmptyChain}
+import cats.data.Chain
 import cats.effect.Effect
 import sangria.schema._
 
@@ -67,13 +67,13 @@ object MutationSchema {
   def SimpleCreatePayloadUnionType[F[_]: Effect, T: ClassTag](
     name:       String,
     resultType: ObjectType[OdbRepo[F], T]
-  ): OutputType[Either[NonEmptyChain[InputError], T]] =
+  ): OutputType[ValidatedInput[T]] =
 
     UnionType(
       name        = s"Create${name.capitalize}Payload",
       description = Some(s"Result of calling create${name.capitalize}"),
       types       = List(SimpleCreateSuccessType[F, T](name, resultType), InputErrorType[F])
-    ).mapValue[Either[NonEmptyChain[InputError], T]](
+    ).mapValue[ValidatedInput[T]](
       _.fold(
         nec => nec: Any,
         suc => suc: Any

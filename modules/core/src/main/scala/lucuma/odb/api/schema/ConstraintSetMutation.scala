@@ -9,7 +9,6 @@ import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.inputtype._
 
 import cats.effect.Effect
-import cats.syntax.all._
 
 import sangria.macros.derive._
 import sangria.marshalling.circe._
@@ -85,7 +84,7 @@ trait ConstraintSetMutation {
       arguments = List(ArgumentConstraintSetCreate),
       resolve   = c =>
         c.constraintSet(
-          _.insert(c.arg(ArgumentConstraintSetCreate)).map(_.toEither)
+          _.insert(c.arg(ArgumentConstraintSetCreate))
         )
     )
 

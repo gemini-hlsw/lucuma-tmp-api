@@ -9,7 +9,6 @@ import lucuma.odb.api.schema.syntax.`enum`._
 import lucuma.core.`enum`.MagnitudeSystem
 
 import cats.effect.Effect
-import cats.syntax.all._
 
 import sangria.macros.derive._
 import sangria.marshalling.circe._
@@ -177,7 +176,7 @@ trait TargetMutation extends TargetScalars {
       arguments = List(ArgumentTargetCreateNonsidereal),
       resolve   = c =>
         c.target(
-          _.insertNonsidereal(c.arg(ArgumentTargetCreateNonsidereal)).map(_.toEither)
+          _.insertNonsidereal(c.arg(ArgumentTargetCreateNonsidereal))
         )
     )
 
@@ -188,7 +187,7 @@ trait TargetMutation extends TargetScalars {
       arguments = List(ArgumentTargetCreateSidereal),
       resolve   = c =>
         c.target(
-          _.insertSidereal(c.arg(ArgumentTargetCreateSidereal)).map(_.toEither)
+          _.insertSidereal(c.arg(ArgumentTargetCreateSidereal))
         )
     )
 

@@ -9,7 +9,6 @@ import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.inputtype._
 
 import cats.effect.Effect
-import cats.syntax.all._
 
 import sangria.macros.derive._
 import sangria.marshalling.circe._
@@ -63,7 +62,7 @@ trait ObservationMutation {
       arguments = List(ArgumentObservationCreate),
       resolve   = c =>
         c.observation(
-          _.insert(c.arg(ArgumentObservationCreate)).map(_.toEither)
+          _.insert(c.arg(ArgumentObservationCreate))
         )
     )
 
