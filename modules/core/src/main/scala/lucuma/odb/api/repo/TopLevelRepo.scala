@@ -287,15 +287,15 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
         vm  <- many.traverse(findM).map(_.sequence)
         vtm  = (vo, vm).tupled
         r   <- update(vtm)
-        vtmr = (vo, vm, r).tupled
-      } yield vtmr
+      } yield (vtm, r)
     }
 
     for {
-      tmr <- link.flatMap(_.liftTo[F])
-      (t, gm, _) = tmr
-      _ <- eventService.publish(edited(Event.EditType.Updated, t)) // publish one
-      _ <- gm.traverse_(m => eventService.publish(editedM(m)))     // publish many
+      tm      <- link.flatMap(_._1.liftTo[F])
+      _       <- link.flatMap(_._2.liftTo[F])  // this would be a duplicate error if tm was a failure
+      (t, gm)  = tm
+      _       <- eventService.publish(edited(Event.EditType.Updated, t)) // publish one
+      _       <- gm.traverse_(m => eventService.publish(editedM(m)))     // publish many
     } yield t
   }
 

@@ -34,44 +34,44 @@ final class ConstraintSetModelSuite extends DisciplineSuite {
   checkAll("Eq[ConstraintSet.Create]", EqTests[ConstraintSetModel.Create].eqv)
   checkAll("Eq[ConstraintSet.Edit]", EqTests[ConstraintSetModel.Edit].eqv)
 
-  test("ConstraintSet.AirmassDeciMin") {
+  test("ConstraintSet.AirmassMin") {
     forAll { constraints: ConstraintSetModel =>
-      val headOption = ConstraintSetModel.airMassDeciMin.headOption(constraints)
+      val headOption = ConstraintSetModel.airMassMin.headOption(constraints)
       val expected   = constraints.elevationRange match {
-        case amr: AirmassRange => amr.deciMin.some
+        case amr: AirmassRange => amr.min.some
         case _: HourAngleRange => none
       }
       assertEquals(headOption, expected)
     }
   }
 
-  test("ConstraintSet.AirmassDeciMax") {
+  test("ConstraintSet.AirmassMax") {
     forAll { constraints: ConstraintSetModel =>
-      val headOption = ConstraintSetModel.airMassDeciMax.headOption(constraints)
+      val headOption = ConstraintSetModel.airMassMax.headOption(constraints)
       val expected   = constraints.elevationRange match {
-        case amr: AirmassRange => amr.deciMax.some
+        case amr: AirmassRange => amr.max.some
         case _: HourAngleRange => none
       }
       assertEquals(headOption, expected)
     }
   }
 
-  test("ConstraintSet.HourAngleDeciMin") {
+  test("ConstraintSet.HourAngleMin") {
     forAll { constraints: ConstraintSetModel =>
-      val headOption = ConstraintSetModel.hourAngleDeciMin.headOption(constraints)
+      val headOption = ConstraintSetModel.hourAngleMin.headOption(constraints)
       val expected   = constraints.elevationRange match {
-        case har: HourAngleRange => har.deciMin.some
+        case har: HourAngleRange => har.minHours.some
         case _: AirmassRange     => none
       }
       assertEquals(headOption, expected)
     }
   }
 
-  test("ConstraintSet.HourAngleDeciMax") {
+  test("ConstraintSet.HourAngleMax") {
     forAll { constraints: ConstraintSetModel =>
-      val headOption = ConstraintSetModel.hourAngleDeciMax.headOption(constraints)
+      val headOption = ConstraintSetModel.hourAngleMax.headOption(constraints)
       val expected   = constraints.elevationRange match {
-        case har: HourAngleRange => har.deciMax.some
+        case har: HourAngleRange => har.maxHours.some
         case _: AirmassRange     => none
       }
       assertEquals(headOption, expected)

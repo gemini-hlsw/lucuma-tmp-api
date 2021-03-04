@@ -16,9 +16,10 @@ object QueryType {
     ObjectType(
       name   = "Query",
       fields =
-        AsterismQuery.allFields[F]    ++
-        ObservationQuery.allFields[F] ++
-        ProgramQuery.allFields[F]     ++
+        AsterismQuery.allFields[F]      ++
+        ConstraintSetQuery.allFields[F] ++
+        ObservationQuery.allFields[F]   ++
+        ProgramQuery.allFields[F]       ++
         TargetQuery.allFields[F]
     )
 

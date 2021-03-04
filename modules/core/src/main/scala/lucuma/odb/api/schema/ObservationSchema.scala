@@ -17,6 +17,7 @@ import sangria.schema._
 object ObservationSchema {
 
   import AsterismSchema.AsterismType
+  import ConstraintSetSchema.ConstraintSetType
   import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, PlannedTimeSummaryType}
   import ProgramSchema.ProgramType
   import TargetSchema.TargetType
@@ -100,6 +101,14 @@ object ObservationSchema {
           description = Some("The program that contains this observation"),
           arguments   = List(ArgumentIncludeDeleted),
           resolve     = c => c.program(_.unsafeSelect(c.value.programId, c.includeDeleted))
+        ),
+
+        Field(
+          name        = "constraintSet",
+          fieldType   = OptionType(ConstraintSetType[F]),
+          description = Some("The constraint set for the observation, if any"),
+          arguments   = List(ArgumentIncludeDeleted),
+          resolve     = c => c.constraintSet(_.selectForObservation(c.value.id))
         ),
 
         Field(
