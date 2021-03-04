@@ -9,6 +9,8 @@ import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.inputtype._
 
 import cats.effect.Effect
+import cats.syntax.all._
+
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -17,6 +19,7 @@ trait ObservationMutation {
 
   import AsterismSchema.AsterismIdType
   import GeneralSchema.EnumTypeExistence
+  import MutationSchema._
   import ObservationSchema.{ObservationIdType, ObservationIdArgument, ObsStatusType, ObservationType}
   import ProgramSchema.ProgramIdType
   import TargetSchema.TargetIdType
@@ -56,9 +59,12 @@ trait ObservationMutation {
   def create[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
       name      = "createObservation",
-      fieldType = OptionType(ObservationType[F]),
+      fieldType = SimpleCreatePayloadUnionType[F, ObservationModel]("observation", ObservationType[F]),
       arguments = List(ArgumentObservationCreate),
-      resolve   = c => c.observation(_.insert(c.arg(ArgumentObservationCreate)))
+      resolve   = c =>
+        c.observation(
+          _.insert(c.arg(ArgumentObservationCreate)).map(_.toEither)
+        )
     )
 
   def update[F[_]: Effect]: Field[OdbRepo[F], Unit] =

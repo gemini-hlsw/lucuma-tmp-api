@@ -3,13 +3,15 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{ObservationModel, PlannedTimeSummaryModel}
+import lucuma.odb.api.model.{ConstraintSetModel, ObservationModel, PlannedTimeSummaryModel, ValidatedInput}
 import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
 import lucuma.odb.api.model.ObservationModel.ObservationEvent
+import lucuma.odb.api.model.syntax.validatedinput._
+
+import cats.Monad
 import cats.effect.Sync
 import cats.effect.concurrent.Ref
 import cats.implicits._
-import lucuma.odb.api.model.ConstraintSetModel
 
 sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, ObservationModel] {
 
@@ -43,7 +45,9 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
     includeDeleted: Boolean                = false
   ): F[ResultPage[ObservationModel]]
 
-  def insert(input: ObservationModel.Create): F[ObservationModel]
+  def insert(input: ObservationModel.Create): F[ValidatedInput[ObservationModel]]
+
+  def unsafeInsert(input: ObservationModel.Create): F[ObservationModel]
 
   def shareWithConstraintSet(oid: Observation.Id, csid: ConstraintSet.Id): F[ObservationModel]
 
@@ -52,7 +56,7 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
 
 object ObservationRepo {
 
-  def create[F[_]: Sync](
+  def create[F[_]: Monad: Sync](
     tablesRef:    Ref[F, Tables],
     eventService: EventService[F]
   ): ObservationRepo[F] =
@@ -113,13 +117,15 @@ object ObservationRepo {
         }
 
 
-      override def insert(newObs: ObservationModel.Create): F[ObservationModel] = {
+      override def insert(newObs: ObservationModel.Create): F[ValidatedInput[ObservationModel]] = {
 
-        def construct(s: PlannedTimeSummaryModel): F[ObservationModel] =
+        def construct(s: PlannedTimeSummaryModel): F[ValidatedInput[ObservationModel]] =
           constructAndPublish { t =>
-            (tryNotFindObservation(t, newObs.observationId) *>
-             tryFindProgram(t, newObs.programId)            *>
-              newObs.withId(s)
+            (tryNotFindObservation(t, newObs.observationId)    *>
+             tryFindProgram(t, newObs.programId)               *>
+             newObs.asterismId.traverse(tryFindAsterism(t, _)) *>
+             newObs.targetId.traverse(tryFindTarget(t, _))     *>
+             newObs.withId(s)
             ).map(createAndInsert(newObs.observationId, _))
           }
 
@@ -128,6 +134,9 @@ object ObservationRepo {
           o <- construct(s)
         } yield o
       }
+
+      def unsafeInsert(input: ObservationModel.Create): F[ObservationModel] =
+        insert(input) >>= (_.liftTo[F])
 
       override def shareWithConstraintSet(
         oid:  Observation.Id,

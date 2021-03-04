@@ -195,20 +195,19 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
 
   def constructAndPublish[U <: T](
     cons: Tables => ValidatedInput[State[Tables, U]]
-  ): F[U] = {
-    val fu = EitherT(
+  ): F[ValidatedInput[U]] = {
+    val fvu =
       tablesRef.modify { tables =>
         cons(tables).fold(
-          err => (tables, InputError.Exception(err).asLeft[U]),
-          _.run(tables).value.map(_.asRight)
+          err => (tables,  err.invalid[U]),
+          _.run(tables).value.map(_.validNec[InputError])
         )
       }
-    ).rethrowT
 
     for {
-      u <- fu
-      _ <- eventService.publish(edited(Event.EditType.Created, u))
-    } yield u
+      vu <- fvu
+      _  <- vu.traverse_(u => eventService.publish(edited(Event.EditType.Created, u)))
+    } yield vu
   }
 
   def createAndInsert[U <: T](id: Option[I], f: I => U): State[Tables, U] =

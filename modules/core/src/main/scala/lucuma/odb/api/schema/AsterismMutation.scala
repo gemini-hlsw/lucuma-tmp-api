@@ -5,7 +5,10 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.AsterismModel
 import lucuma.odb.api.repo.OdbRepo
+
 import cats.effect.Effect
+import cats.syntax.all._
+
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -15,6 +18,7 @@ trait AsterismMutation extends TargetScalars {
 
   import AsterismSchema.{AsterismIdType, AsterismIdArgument, AsterismType}
   import GeneralSchema.EnumTypeExistence
+  import MutationSchema._
   import ProgramSchema.ProgramIdType
   import TargetMutation.InputObjectTypeCoordinates
 
@@ -52,9 +56,12 @@ trait AsterismMutation extends TargetScalars {
   def create[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
       name      = "createAsterism",
-      fieldType = OptionType(AsterismType[F]),
+      fieldType = SimpleCreatePayloadUnionType[F, AsterismModel]("asterism", AsterismType[F]),
       arguments = List(ArgumentAsterismCreate),
-      resolve   = c => c.asterism[AsterismModel](_.insert(c.arg(ArgumentAsterismCreate)))
+      resolve   = c =>
+        c.asterism(
+          _.insert(c.arg(ArgumentAsterismCreate)).map(_.toEither)
+        )
     )
 
   def update[F[_]: Effect]: Field[OdbRepo[F], Unit] =

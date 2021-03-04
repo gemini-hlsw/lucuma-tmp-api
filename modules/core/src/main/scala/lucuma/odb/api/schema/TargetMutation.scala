@@ -7,7 +7,10 @@ import lucuma.odb.api.model.{CatalogIdModel, CoordinatesModel, DeclinationModel,
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
 import lucuma.core.`enum`.MagnitudeSystem
+
 import cats.effect.Effect
+import cats.syntax.all._
+
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -15,6 +18,7 @@ import sangria.schema._
 trait TargetMutation extends TargetScalars {
 
   import GeneralSchema.EnumTypeExistence
+  import MutationSchema._
   import NumericUnitsSchema._
   import ProgramSchema.ProgramIdType
   import TargetSchema.{EnumTypeCatalogName, EphemerisKeyType, EnumTypeMagnitudeBand, EnumTypeMagnitudeSystem, TargetIdArgument, TargetIdType, TargetType}
@@ -169,17 +173,23 @@ trait TargetMutation extends TargetScalars {
   def createNonsidereal[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
       name      = "createNonsiderealTarget",
-      fieldType = OptionType(TargetType[F]),
+      fieldType = SimpleCreatePayloadUnionType[F, TargetModel]("nonsiderealTarget", TargetType[F]),
       arguments = List(ArgumentTargetCreateNonsidereal),
-      resolve   = c => c.target(_.insertNonsidereal(c.arg(ArgumentTargetCreateNonsidereal)))
+      resolve   = c =>
+        c.target(
+          _.insertNonsidereal(c.arg(ArgumentTargetCreateNonsidereal)).map(_.toEither)
+        )
     )
 
   def createSidereal[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
       name      = "createSiderealTarget",
-      fieldType = OptionType(TargetType[F]),
+      fieldType = SimpleCreatePayloadUnionType[F, TargetModel]("siderealTarget", TargetType[F]),
       arguments = List(ArgumentTargetCreateSidereal),
-      resolve   = c => c.target(_.insertSidereal(c.arg(ArgumentTargetCreateSidereal)))
+      resolve   = c =>
+        c.target(
+          _.insertSidereal(c.arg(ArgumentTargetCreateSidereal)).map(_.toEither)
+        )
     )
 
   //noinspection MutatorLikeMethodIsParameterless

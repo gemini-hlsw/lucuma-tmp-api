@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, Sharing, TargetModel}
+import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, Sharing, TargetModel, ValidatedInput}
 import lucuma.odb.api.model.AsterismModel.{AsterismEvent, Create}
 import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.core.model.{Asterism, Observation, Program, Target}
@@ -34,7 +34,9 @@ sealed trait AsterismRepo[F[_]] extends TopLevelRepo[F, Asterism.Id, AsterismMod
 
   def selectForObservation(oid: Observation.Id, includeDeleted: Boolean = false): F[Option[AsterismModel]]
 
-  def insert(input: AsterismModel.Create): F[AsterismModel]
+  def insert(input: AsterismModel.Create): F[ValidatedInput[AsterismModel]]
+
+  def unsafeInsert(input: AsterismModel.Create): F[AsterismModel]
 
   def shareWithObservations(input: Sharing[Asterism.Id, Observation.Id]): F[AsterismModel]
 
@@ -121,7 +123,7 @@ object AsterismRepo {
           _   <- Tables.programAsterism.mod_(_ ++ programs.toList.tupleRight(a.id))
         } yield a
 
-      override def insert(input: Create): F[AsterismModel] =
+      override def insert(input: Create): F[ValidatedInput[AsterismModel]] =
         constructAndPublish { t =>
           val existing = tryNotFindAsterism(t, input.asterismId)
           val programs = input.programIds.traverse(tryFindProgram(t, _))
@@ -130,6 +132,9 @@ object AsterismRepo {
             addAsterism(input.asterismId, input.programIds.toSet, f)
           )
         }
+
+      override def unsafeInsert(input: Create): F[AsterismModel] =
+        insert(input) >>= (_.liftTo[F])
 
       def obsSharing(
         input:   Sharing[Asterism.Id, Observation.Id],

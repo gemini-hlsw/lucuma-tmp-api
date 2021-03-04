@@ -31,9 +31,13 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
     includeDeleted: Boolean           = false
   ): F[ResultPage[TargetModel]]
 
-  def insertNonsidereal(input: CreateNonsidereal): F[TargetModel]
+  def insertNonsidereal(input: CreateNonsidereal): F[ValidatedInput[TargetModel]]
 
-  def insertSidereal(input: CreateSidereal): F[TargetModel]
+  def unsafeInsertNonsidereal(input: CreateNonsidereal): F[TargetModel]
+
+  def insertSidereal(input: CreateSidereal): F[ValidatedInput[TargetModel]]
+
+  def unsafeInsertSidereal(input: CreateSidereal): F[TargetModel]
 
   def shareWithAsterisms(input: Sharing[Target.Id, Asterism.Id]): F[TargetModel]
 
@@ -96,18 +100,24 @@ object TargetRepo {
           _ <- Tables.programTarget.mod_(_ ++ pids.toList.tupleRight(t.id))
         } yield t
 
-      private def insertTarget(id: Option[Target.Id], pids: List[Program.Id], vt: ValidatedInput[Target]): F[TargetModel] =
+      private def insertTarget(id: Option[Target.Id], pids: List[Program.Id], vt: ValidatedInput[Target]): F[ValidatedInput[TargetModel]] =
         constructAndPublish { t =>
           (vt, tryNotFindTarget(t, id), pids.traverse(tryFindProgram(t, _))).mapN((g, _, _) =>
             addAndShare(id, g, pids.toSet)
           )
         }
 
-      override def insertNonsidereal(input: CreateNonsidereal): F[TargetModel] =
+      override def insertNonsidereal(input: CreateNonsidereal): F[ValidatedInput[TargetModel]] =
         insertTarget(input.targetId, input.programIds.toList.flatten, input.toGemTarget)
 
-      override def insertSidereal(input: CreateSidereal): F[TargetModel] =
+      override def unsafeInsertNonsidereal(input: CreateNonsidereal): F[TargetModel] =
+        insertNonsidereal(input) >>= (_.liftTo[F])
+
+      override def insertSidereal(input: CreateSidereal): F[ValidatedInput[TargetModel]] =
         insertTarget(input.targetId, input.programIds.toList.flatten, input.toGemTarget)
+
+      override def unsafeInsertSidereal(input: CreateSidereal): F[TargetModel] =
+        insertSidereal(input) >>= (_.liftTo[F])
 
       private def asterismSharing(
         input: Sharing[Target.Id, Asterism.Id]
