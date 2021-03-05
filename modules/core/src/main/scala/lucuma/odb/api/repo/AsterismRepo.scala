@@ -3,9 +3,8 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, Sharing, TargetModel}
+import lucuma.odb.api.model.{AsterismModel, ProgramModel, Sharing, TargetModel}
 import lucuma.odb.api.model.AsterismModel.{AsterismEvent, Create}
-import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.core.model.{Asterism, Observation, Program, Target}
 import cats._
 import cats.data.State
@@ -35,10 +34,6 @@ sealed trait AsterismRepo[F[_]] extends TopLevelRepo[F, Asterism.Id, AsterismMod
   def selectForObservation(oid: Observation.Id, includeDeleted: Boolean = false): F[Option[AsterismModel]]
 
   def insert(input: AsterismModel.Create): F[AsterismModel]
-
-  def shareWithObservations(input: Sharing[Asterism.Id, Observation.Id]): F[AsterismModel]
-
-  def unshareWithObservations(input: Sharing[Asterism.Id, Observation.Id]): F[AsterismModel]
 
   def shareWithPrograms(input: Sharing[Asterism.Id, Program.Id]): F[AsterismModel]
 
@@ -74,7 +69,7 @@ object AsterismRepo {
                        .observations
                        .values
                        .filter(_.programId === pid)
-                       .map(_.targets)
+                       .map(_.subject)
                        .collect { case Some(Left(aid)) => aid }
 
         val fromProg = tables.programAsterism.selectRight(pid)
@@ -106,7 +101,7 @@ object AsterismRepo {
 
       override def selectForObservation(oid: Observation.Id, includeDeleted: Boolean): F[Option[AsterismModel]] =
         tablesRef.get.map { t =>
-          t.observations.get(oid).flatMap(_.targets).collect {
+          t.observations.get(oid).flatMap(_.subject).collect {
             case Left(aid) => aid
           }.flatMap(t.asterisms.get)
         }
@@ -130,35 +125,6 @@ object AsterismRepo {
             addAsterism(input.asterismId, input.programIds.toSet, f)
           )
         }
-
-      def obsSharing(
-        input:   Sharing[Asterism.Id, Observation.Id],
-        targets: Option[Either[Asterism.Id, Target.Id]]
-      ): F[AsterismModel] = {
-        val link = tablesRef.modifyState {
-          for {
-            a  <- TableState.asterism(input.one)
-            os <- input.many.traverse(TableState.observation).map(_.sequence)
-            r  <- (a, os).traverseN { (am, oms) =>
-              val updates = oms.map(om => (om.id, ObservationModel.targets.set(targets)(om)))
-              Tables.observations.mod(_ ++ updates).as((am, oms))
-            }
-          } yield r
-        }.flatMap(_.liftTo[F])
-
-        for {
-          aos    <- link
-          (a, os) = aos
-          _      <- eventService.publish(AsterismModel.AsterismEvent.updated(a))
-          _      <- os.traverse_(o => eventService.publish(ObservationModel.ObservationEvent.updated(o)))
-        } yield a
-      }
-
-      override def shareWithObservations(input: Sharing[Asterism.Id, Observation.Id]): F[AsterismModel] =
-        obsSharing(input, input.one.asLeft[Target.Id].some)
-
-      override def unshareWithObservations(input: Sharing[Asterism.Id, Observation.Id]): F[AsterismModel] =
-        obsSharing(input, Option.empty)
 
       def programSharing(
         input: Sharing[Asterism.Id, Program.Id]

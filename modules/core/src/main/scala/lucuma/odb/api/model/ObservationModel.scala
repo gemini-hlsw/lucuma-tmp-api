@@ -16,8 +16,7 @@ import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string._
 import io.circe.Decoder
 import io.circe.generic.semiauto._
-import monocle.Lens
-import monocle.state.all._
+import monocle.{Lens, Optional}
 
 
 final case class ObservationModel(
@@ -26,7 +25,7 @@ final case class ObservationModel(
   programId:          Program.Id,
   name:               Option[NonEmptyString],
   status:             ObsStatus,
-  targets:            Option[Either[Asterism.Id, Target.Id]],
+  subject:            Option[Either[Asterism.Id, Target.Id]],
   plannedTimeSummary: PlannedTimeSummaryModel,
   config:             Option[ConfigModel]
 )
@@ -37,7 +36,7 @@ object ObservationModel extends ObservationOptics {
     TopLevelModel.instance(_.id, ObservationModel.existence)
 
   implicit val EqObservation: Eq[ObservationModel] =
-    Eq.by(o => (o.id, o.existence, o.programId, o.name, o.status, o.targets, o.plannedTimeSummary, o.config))
+    Eq.by(o => (o.id, o.existence, o.programId, o.name, o.status, o.subject, o.plannedTimeSummary, o.config))
 
 
   final case class Create(
@@ -91,9 +90,7 @@ object ObservationModel extends ObservationOptics {
     observationId: Observation.Id,
     existence:     Input[Existence]   = Input.ignore,
     name:          Input[String]      = Input.ignore,
-    status:        Input[ObsStatus]   = Input.ignore,
-    asterismId:    Input[Asterism.Id] = Input.ignore,
-    targetId:      Input[Target.Id]   = Input.ignore
+    status:        Input[ObsStatus]   = Input.ignore
   ) extends Editor[Observation.Id, ObservationModel] {
 
     override def id: Observation.Id =
@@ -102,14 +99,12 @@ object ObservationModel extends ObservationOptics {
     override def editor: ValidatedInput[State[ObservationModel, Unit]] =
       (existence.validateIsNotNull("existence"),
        name     .validateNullable(n => ValidatedInput.nonEmptyString("name", n)),
-       status   .validateIsNotNull("status"),
-       Input.validateNullableEither("asterismId", "targetId", asterismId, targetId)
-      ).mapN { (e, n, s, f) =>
+       status   .validateIsNotNull("status")
+      ).mapN { (e, n, s) =>
         for {
           _ <- ObservationModel.existence  := e
           _ <- ObservationModel.name       := n
           _ <- ObservationModel.status     := s
-          _ <- ObservationModel.targets.mod_(f)
         } yield ()
       }
 
@@ -130,7 +125,36 @@ object ObservationModel extends ObservationOptics {
         a.existence,
         a.name,
         a.status,
-        a.asterismId
+      )}
+
+  }
+
+  final case class EditSubject(
+    observationIds: List[Observation.Id],
+    asterismId:     Option[Asterism.Id],
+    targetId:       Option[Target.Id]
+  ) {
+
+    def subject: ValidatedInput[Option[Either[Asterism.Id, Target.Id]]] =
+      (asterismId, targetId) match {
+        case (Some(_), Some(_)) => InputError.fromMessage("Cannot assign both an asterism and a target to the observation").invalidNec[Option[Either[Asterism.Id, Target.Id]]]
+        case (Some(a), None)    => a.asLeft[Target.Id].some.validNec[InputError]
+        case (None,    Some(t)) => t.asRight[Asterism.Id].some.validNec[InputError]
+        case (None,    None)    => Option.empty[Either[Asterism.Id, Target.Id]].validNec
+      }
+
+  }
+
+  object EditSubject {
+
+    implicit val DecoderEditSubject: Decoder[EditSubject] =
+      deriveDecoder[EditSubject]
+
+    implicit val EqEditSubject: Eq[EditSubject] =
+      Eq.by { a => (
+        a.observationIds,
+        a.asterismId,
+        a.targetId
       )}
 
   }
@@ -165,8 +189,18 @@ trait ObservationOptics { self: ObservationModel.type =>
   val status: Lens[ObservationModel, ObsStatus] =
     Lens[ObservationModel, ObsStatus](_.status)(a => _.copy(status = a))
 
-  val targets: Lens[ObservationModel, Option[Either[Asterism.Id, Target.Id]]] =
-    Lens[ObservationModel, Option[Either[Asterism.Id, Target.Id]]](_.targets)(a => _.copy(targets = a))
+  val subject: Lens[ObservationModel, Option[Either[Asterism.Id, Target.Id]]] =
+    Lens[ObservationModel, Option[Either[Asterism.Id, Target.Id]]](_.subject)(a => _.copy(subject = a))
+
+  val asterism: Optional[ObservationModel, Asterism.Id] =
+    Optional[ObservationModel, Asterism.Id](_.subject.flatMap(_.swap.toOption)) { a =>
+      _.copy(subject = a.asLeft[Target.Id].some)
+    }
+
+  val target: Optional[ObservationModel, Target.Id] =
+    Optional[ObservationModel, Target.Id](_.subject.flatMap(_.toOption)) { t =>
+      _.copy(subject = t.asRight[Asterism.Id].some)
+    }
 
   val config: Lens[ObservationModel, Option[ConfigModel]] =
     Lens[ObservationModel, Option[ConfigModel]](_.config)(a => _.copy(config = a))

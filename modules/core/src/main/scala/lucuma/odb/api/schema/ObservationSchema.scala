@@ -154,7 +154,7 @@ object ObservationSchema {
   private def asterism[F[_]](
     c: Context[OdbRepo[F], ObservationModel]
   )(implicit F: Effect[F]): F[Option[AsterismModel]] =
-    c.value.targets.fold(F.pure(Option.empty[AsterismModel])) { e =>
+    c.value.subject.fold(F.pure(Option.empty[AsterismModel])) { e =>
       OptionT(e.swap.toOption.pure[F]).flatMap { aid =>
         OptionT(c.ctx.asterism.select(aid, c.includeDeleted))
       }.value
@@ -163,7 +163,7 @@ object ObservationSchema {
   private def target[F[_]](
     c: Context[OdbRepo[F], ObservationModel]
   )(implicit F: Effect[F]): F[Option[TargetModel]] =
-    c.value.targets.fold(F.pure(Option.empty[TargetModel])) { e =>
+    c.value.subject.fold(F.pure(Option.empty[TargetModel])) { e =>
       OptionT(e.toOption.pure[F]).flatMap { tid =>
         OptionT(c.ctx.target.select(tid, c.includeDeleted))
       }.value

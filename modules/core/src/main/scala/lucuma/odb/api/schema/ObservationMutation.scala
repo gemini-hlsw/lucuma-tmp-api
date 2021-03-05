@@ -5,10 +5,11 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.ObservationModel
 import lucuma.odb.api.repo.OdbRepo
-
+import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.odb.api.schema.syntax.inputtype._
 
 import cats.effect.Effect
+import cats.syntax.all._
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -42,15 +43,25 @@ trait ObservationMutation {
       InputObjectTypeDescription("Edit observation"),
       ReplaceInputField("existence",  EnumTypeExistence.notNullableField("existence")),
       ReplaceInputField("name",       StringType.nullableField("name")),
-      ReplaceInputField("status",     ObsStatusType.notNullableField("status")),
-      ReplaceInputField("asterismId", AsterismIdType.nullableField("asterismId")),
-      ReplaceInputField("targetId",   TargetIdType.nullableField("targetId"))
+      ReplaceInputField("status",     ObsStatusType.notNullableField("status"))
     )
 
   val ArgumentObservationEdit: Argument[ObservationModel.Edit] =
     InputObjectTypeObservationEdit.argument(
       "input",
       "Edit observation"
+    )
+
+  val InputObjectObservationEditSubject: InputObjectType[ObservationModel.EditSubject] =
+    deriveInputObjectType[ObservationModel.EditSubject](
+      InputObjectTypeName("EditObservationSubjectInput"),
+      InputObjectTypeDescription("Edit the target or asterism for a set of observations")
+    )
+
+  val ArgumentObservationEditSubject: Argument[ObservationModel.EditSubject] =
+    InputObjectObservationEditSubject.argument(
+      "input",
+      "Edit observation asterism / target"
     )
 
   def create[F[_]: Effect]: Field[OdbRepo[F], Unit] =
@@ -67,6 +78,22 @@ trait ObservationMutation {
       fieldType = ObservationType[F],
       arguments = List(ArgumentObservationEdit),
       resolve   = c => c.observation(_.edit(c.arg(ArgumentObservationEdit)))
+    )
+
+  def updateSubject[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+    Field(
+      name      = "updateSubject",
+      fieldType = ListType(ObservationType[F]), // Should change to a Payload where the observations and asterisms and targets, etc. can be included
+      arguments = List(ArgumentObservationEditSubject),
+      resolve   = c => {
+        val edit = c.arg(ArgumentObservationEditSubject)
+        c.observation { repo =>
+          for {
+            s  <- edit.subject.liftTo[F]
+            os <- repo.setSubject(edit.observationIds, s)
+          } yield os
+        }
+      }
     )
 
   def delete[F[_]: Effect]: Field[OdbRepo[F], Unit] =
@@ -97,6 +124,7 @@ trait ObservationMutation {
     List(
       create,
       update,
+      updateSubject,
       delete,
       undelete,
       unsetConstraintSet
