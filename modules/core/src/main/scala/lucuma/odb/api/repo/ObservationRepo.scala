@@ -4,12 +4,15 @@
 package lucuma.odb.api.repo
 
 import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
-import lucuma.odb.api.model.{AsterismModel, ConstraintSetModel, InputError, ObservationModel, PlannedTimeSummaryModel, TargetModel}
+
+import lucuma.odb.api.model.{AsterismModel, ConstraintSetModel, Event, InputError, ObservationModel, PlannedTimeSummaryModel, TargetModel}
+import lucuma.odb.api.model.AsterismModel.AsterismEvent
 import lucuma.odb.api.model.ObservationModel.ObservationEvent
+import lucuma.odb.api.model.TargetModel.TargetEvent
 import lucuma.odb.api.model.syntax.validatedinput._
 
 import cats.MonadError
-import cats.data.State
+import cats.data.{EitherT, State}
 import cats.effect.Sync
 import cats.effect.concurrent.Ref
 import cats.implicits._
@@ -127,20 +130,36 @@ object ObservationRepo {
 
       override def insert(newObs: ObservationModel.Create): F[ObservationModel] = {
 
-        def construct(s: PlannedTimeSummaryModel): F[ObservationModel] =
-          constructAndPublish { t =>
-            (tryNotFindObservation(t, newObs.observationId)     *>
-             tryFindProgram(t, newObs.programId)                *>
-              newObs.asterismId.traverse(tryFindAsterism(t, _)) *>
-              newObs.targetId.traverse(tryFindTarget(t, _))     *>
-              newObs.withId(s)
-            ).map(createAndInsert(newObs.observationId, _))
-          }
+        // Create the observation, keeping track of the asterism or target (if
+        // either) that will be linked.
+        def create(s: PlannedTimeSummaryModel): F[(Option[AsterismModel], Option[TargetModel], ObservationModel)] =
+          EitherT(
+            tablesRef.modify { tables =>
+              {
+                tryNotFindObservation(tables, newObs.observationId)     *>
+                tryFindProgram(tables, newObs.programId)                *>
+                (newObs.asterismId.traverse(tryFindAsterism(tables, _)),
+                 newObs.targetId.traverse(tryFindTarget(tables, _)),
+                 newObs.withId(s)
+                ).mapN { case (oa, ot, f) =>
+                  createAndInsert(newObs.observationId, f).map{o => (oa, ot, o)}
+                }
+              }.fold(
+                err => (tables, InputError.Exception(err).asLeft),
+                _.run(tables).value.map(_.asRight)
+              )
+            }
+          ).rethrowT
 
         for {
-          s <- PlannedTimeSummaryModel.random[F]
-          o <- construct(s)
-        } yield o
+          s   <- PlannedTimeSummaryModel.random[F]
+          tup <- create(s)
+          (oasterism, otarget, obs) = tup
+          _   <- oasterism.traverse_(a => eventService.publish(AsterismEvent(_, Event.EditType.Updated, a)))
+          _   <- otarget.traverse_(t => eventService.publish(TargetEvent(_, Event.EditType.Updated, t)))
+          _   <- eventService.publish(ObservationEvent(_, Event.EditType.Created, obs))
+        } yield obs
+
       }
 
       override def shareWithConstraintSet(
