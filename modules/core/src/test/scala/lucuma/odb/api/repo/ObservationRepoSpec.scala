@@ -11,7 +11,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import org.scalacheck.Prop.forAll
 import munit.ScalaCheckSuite
 
-class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
+final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
 
   import arb.ArbTables._
 
