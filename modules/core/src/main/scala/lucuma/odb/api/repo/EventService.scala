@@ -3,7 +3,6 @@
 
 package lucuma.odb.api.repo
 
-import cats.FlatMap
 import lucuma.odb.api.model.Event
 import cats.effect.Concurrent
 import cats.implicits._
@@ -29,7 +28,7 @@ final class EventService[F[_]: Logger](
       }
       .map(_._1)
 
-  def publish(f: Long => Event)(implicit F: FlatMap[F]): F[Unit] =
+  def publish(f: Long => Event): F[Unit] =
     for {
       n <- refTables.modifyState(TableState.nextEventId)
       _ <- topic.publish1(f(n))
