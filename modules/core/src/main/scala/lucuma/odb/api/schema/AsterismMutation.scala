@@ -64,8 +64,7 @@ trait AsterismMutation extends TargetScalars {
       arguments = List(ArgumentAsterismEdit),
       resolve   = c => c.asterism[AsterismModel] { r =>
         val ed  = c.arg(ArgumentAsterismEdit)
-
-        r.editSub(ed.id, ed.editor, _ => Nil) { case d: AsterismModel => d }
+        r.edit(ed.id, ed.editor)
       }
     )
 

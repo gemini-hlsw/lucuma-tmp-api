@@ -17,7 +17,6 @@ import monocle.Lens
 import monocle.function.At
 import monocle.state.all._
 
-import Function.unlift
 import scala.collection.immutable.SortedMap
 import scala.collection.mutable
 
@@ -63,7 +62,7 @@ trait TopLevelRepo[F[_], I, T] {
    * @return updated item
    */
   def edit(editor: Editor[I, T]): F[T] =
-    edit(editor.id, editor.editor, _ => Nil)
+    edit(editor.id, editor.editor)
 
   /**
    * Edits the top-level item identified by the given id and editor
@@ -71,35 +70,13 @@ trait TopLevelRepo[F[_], I, T] {
    * @param id id of the top level item
    * @param editor state program that edits the associated top-level item, or else
    *          any input validation errors
-   * @param checks additional checks that require accessing database tables
    * @return updated item, but raises an error and does nothing if any checks
    *         fail
    */
   def edit(
     id:     I,
-    editor: ValidatedInput[State[T, Unit]],
-    checks: Tables => List[InputError]
+    editor: ValidatedInput[State[T, Unit]]
   ): F[T]
-
-  /**
-   * Edits a top-level item identified by the given id, assuming it is of type
-   * `U <: T`.
-   *
-   * @param id id of the top level item (of type T)
-   * @param editor state program that edits the associated top-level item, or else
-   *               any input validation errors
-   * @param checks additional checks that require accessing database tables
-   * @param f a partial function defined when the item is of type U
-   * @return updated item, but raises an error and does nothing if any checks
-   *         fail
-   */
-  def editSub[U <: T: Eq](
-    id:     I,
-    editor: ValidatedInput[State[U, Unit]],
-    checks: Tables => List[InputError]
-  )(
-    f: PartialFunction[T, U]
-  ): F[U]
 
   def delete(id: I): F[T]
 
@@ -221,49 +198,35 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
   override def edit(
     id:     I,
     editor: ValidatedInput[State[T, Unit]],
-    checks: Tables => List[InputError]
-  ): F[T] =
-    editSub[T](id, editor, checks)(unlift(_.some))
+  ): F[T] = {
 
-  override def editSub[U <: T: Eq](
-    id:     I,
-    editor: ValidatedInput[State[U, Unit]],
-    checks: Tables => List[InputError]
-  )(
-    f: PartialFunction[T, U]
-  ): F[U] = {
+    val lens = focusOn(id)
 
-    val lensT = focusOn(id)
-
-    val lens: Lens[Tables, Option[U]] =
-      Lens[Tables, Option[U]](lensT.get(_).flatMap(f.unapply))(ou => lensT.set(ou))
-
-    val doUpdate: F[Either[U, U]] =
+    val doUpdate: F[Either[T, T]] =
       tablesRef.modify { oldTables =>
 
         val item   = lens.get(oldTables).toValidNec(InputError.missingReference("id", Gid[I].show(id)))
-        val errors = NonEmptyChain.fromSeq(checks(oldTables))
-        val result = (item, editor, errors.toInvalid(())).mapN { (oldU, state, _) =>
-          val newU = state.runS(oldU).value
-          Either.cond(oldU =!= newU, newU, oldU) // Right => updated, Left => no update
+        val result = (item, editor).mapN { (oldT, state) =>
+          val newT = state.runS(oldT).value
+          Either.cond(oldT =!= newT, newT, oldT) // Right => updated, Left => no update
         }
 
-        val tables = result.fold(_ => oldTables, {
-          _.fold(_ => oldTables, newU => lens.set(Some(newU))(oldTables))
-        })
+        val tables = result.toOption.flatMap(_.toOption)
+                       .map(t => lens.set(t.some)(oldTables))
+                       .getOrElse(oldTables)
 
         (tables, result)
       }.flatMap(_.liftTo[F])
 
     for {
       e <- doUpdate
-      _ <- e.fold(_ => M.unit, u => eventService.publish(edited(Event.EditType.Updated, u)))
+      _ <- e.fold(_ => M.unit, t => eventService.publish(edited(Event.EditType.Updated, t)))
     } yield e.merge
 
   }
 
   private def setExistence(id: I, newState: Existence): F[T] =
-    edit(id, TopLevelModel[I, T].existenceEditor(newState).validNec, _ => Nil)
+    edit(id, TopLevelModel[I, T].existenceEditor(newState).validNec)
 
   def delete(id: I): F[T] =
     setExistence(id, Existence.Deleted)
