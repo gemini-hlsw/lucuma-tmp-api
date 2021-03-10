@@ -52,14 +52,14 @@ trait ObservationMutation {
       "Edit observation"
     )
 
-  val InputObjectObservationEditSubject: InputObjectType[ObservationModel.EditSubject] =
-    deriveInputObjectType[ObservationModel.EditSubject](
-      InputObjectTypeName("EditObservationSubjectInput"),
+  val InputObjectObservationEditPointing: InputObjectType[ObservationModel.EditPointing] =
+    deriveInputObjectType[ObservationModel.EditPointing](
+      InputObjectTypeName("EditObservationPointingInput"),
       InputObjectTypeDescription("Edit the target or asterism for a set of observations")
     )
 
-  val ArgumentObservationEditSubject: Argument[ObservationModel.EditSubject] =
-    InputObjectObservationEditSubject.argument(
+  val ArgumentObservationEditPointing: Argument[ObservationModel.EditPointing] =
+    InputObjectObservationEditPointing.argument(
       "input",
       "Edit observation asterism / target"
     )
@@ -80,17 +80,17 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.edit(c.arg(ArgumentObservationEdit)))
     )
 
-  def updateSubject[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def updatePointing[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
-      name      = "updateSubject",
+      name      = "updatePointing",
       fieldType = ListType(ObservationType[F]), // Should change to a Payload where the observations and asterisms and targets, etc. can be included
-      arguments = List(ArgumentObservationEditSubject),
+      arguments = List(ArgumentObservationEditPointing),
       resolve   = c => {
-        val edit = c.arg(ArgumentObservationEditSubject)
+        val edit = c.arg(ArgumentObservationEditPointing)
         c.observation { repo =>
           for {
-            s  <- edit.subject.liftTo[F]
-            os <- repo.setSubject(edit.observationIds, s)
+            s  <- edit.pointing.liftTo[F]
+            os <- repo.setPointing(edit.observationIds, s)
           } yield os
         }
       }
@@ -124,7 +124,7 @@ trait ObservationMutation {
     List(
       create,
       update,
-      updateSubject,
+      updatePointing,
       delete,
       undelete,
       unsetConstraintSet

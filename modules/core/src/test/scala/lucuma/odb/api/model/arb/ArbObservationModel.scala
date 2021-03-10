@@ -50,7 +50,7 @@ trait ArbObservationModel {
       in.programId,
       in.name.map(_.value),
       in.status,
-      in.subject
+      in.pointing
     )}
 
 }

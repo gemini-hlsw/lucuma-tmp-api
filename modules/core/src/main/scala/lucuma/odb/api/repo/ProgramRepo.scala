@@ -83,7 +83,7 @@ object ProgramRepo {
         tables:  Tables,
         targets: Either[Asterism.Id, Target.Id]
       ): Iterable[Program.Id] =
-        tables.observations.values.filter(_.subject.contains(targets)).map(_.programId)
+        tables.observations.values.filter(_.pointing.contains(targets)).map(_.programId)
 
       override def selectPageForAsterism(
         aid:                 Asterism.Id,

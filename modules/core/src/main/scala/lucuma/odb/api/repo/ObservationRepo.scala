@@ -57,9 +57,9 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
 
   def unsetConstraintSet(oid: Observation.Id)(implicit F: MonadError[F, Throwable]): F[ObservationModel]
 
-  def setSubject(
-    oids:    List[Observation.Id],
-    subject: Option[Either[Asterism.Id, Target.Id]]
+  def setPointing(
+    oids:     List[Observation.Id],
+    pointing: Option[Either[Asterism.Id, Target.Id]]
   ): F[List[ObservationModel]]
 
 }
@@ -89,7 +89,7 @@ object ObservationRepo {
       ): F[ResultPage[ObservationModel]] =
 
         selectPageFiltered(count, afterGid, includeDeleted) { obs =>
-          obs.subject.contains(aid.asLeft[Target.Id]) && pid.forall(_ === obs.programId)
+          obs.pointing.contains(aid.asLeft[Target.Id]) && pid.forall(_ === obs.programId)
         }
 
       override def selectPageForConstraintSet(
@@ -123,7 +123,7 @@ object ObservationRepo {
         selectPageFiltered(count, afterGid, includeDeleted) { obs =>
           // this includes only observations that directly reference a target,
           // but not those referencing an asterism that references the target
-          obs.subject.contains(tid.asRight[Asterism.Id]) && pid.forall(_ === obs.programId)
+          obs.pointing.contains(tid.asRight[Asterism.Id]) && pid.forall(_ === obs.programId)
         }
 
 
@@ -207,7 +207,7 @@ object ObservationRepo {
           } yield obs
       }
 
-      override def setSubject(
+      override def setPointing(
         oids:     List[Observation.Id],
         pointing: Option[Either[Asterism.Id, Target.Id]]
       ): F[List[ObservationModel]] =
@@ -230,7 +230,7 @@ object ObservationRepo {
             os.foldLeft((List.empty[ObservationModel], a.map(_.id).toSet, t.map(_.id).toSet)) {
               case ((osʹ, aids, tids), o) =>
                 (
-                  ObservationModel.subject.set(pointing)(o) :: osʹ,
+                  ObservationModel.pointing.set(pointing)(o) :: osʹ,
                   ObservationModel.asterism.getOption(o).fold(aids)(aids + _),
                   ObservationModel.target.getOption(o).fold(tids)(tids + _)
                 )

@@ -69,7 +69,7 @@ object AsterismRepo {
                        .observations
                        .values
                        .filter(_.programId === pid)
-                       .map(_.subject)
+                       .map(_.pointing)
                        .collect { case Some(Left(aid)) => aid }
 
         val fromProg = tables.programAsterism.selectRight(pid)
@@ -101,7 +101,7 @@ object AsterismRepo {
 
       override def selectForObservation(oid: Observation.Id, includeDeleted: Boolean): F[Option[AsterismModel]] =
         tablesRef.get.map { t =>
-          t.observations.get(oid).flatMap(_.subject).collect {
+          t.observations.get(oid).flatMap(_.pointing).collect {
             case Left(aid) => aid
           }.flatMap(t.asterisms.get)
         }

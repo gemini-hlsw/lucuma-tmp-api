@@ -75,7 +75,7 @@ trait ArbTables extends SplitSetHelper {
       } yield
         SortedMap.from(
           om.toList.zip(ps).zip(ts).map { case (((i, o), pid), t) =>
-            (i, o.copy(programId = pid, subject = t))
+            (i, o.copy(programId = pid, pointing = t))
           }
         )
   }

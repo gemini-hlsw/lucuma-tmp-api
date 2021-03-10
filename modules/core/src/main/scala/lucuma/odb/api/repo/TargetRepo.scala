@@ -69,7 +69,7 @@ object TargetRepo {
 
         selectPageFromIds(count, afterGid, includeDeleted) { tables =>
           tables.programTarget.selectRight(pid) ++
-            tables.observations.values.filter(_.programId === pid).map(_.subject).collect {
+            tables.observations.values.filter(_.programId === pid).map(_.pointing).collect {
               case Some(Right(tid)) => tid
             }
         }
