@@ -4,8 +4,7 @@
 package lucuma.odb.api.repo
 
 import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
-
-import lucuma.odb.api.model.{AsterismModel, ConstraintSetModel, Event, InputError, ObservationModel, PlannedTimeSummaryModel, TargetModel}
+import lucuma.odb.api.model.{AsterismModel, ConstraintSetModel, Event, InputError, ObservationModel, PlannedTimeSummaryModel, TargetModel, ValidatedInput}
 import lucuma.odb.api.model.AsterismModel.AsterismEvent
 import lucuma.odb.api.model.ObservationModel.ObservationEvent
 import lucuma.odb.api.model.TargetModel.TargetEvent
@@ -209,48 +208,64 @@ object ObservationRepo {
       }
 
       override def setSubject(
-        oids:    List[Observation.Id],
-        subject: Option[Either[Asterism.Id, Target.Id]]
-      ): F[List[ObservationModel]] = {
+        oids:     List[Observation.Id],
+        pointing: Option[Either[Asterism.Id, Target.Id]]
+      ): F[List[ObservationModel]] =
 
-        val update = tablesRef.modifyState {
-          for {
-            a  <- subject.flatMap(_.swap.toOption).traverse(TableState.asterism).map(_.sequence)
-            t  <- subject.flatMap(_.toOption).traverse(TableState.target).map(_.sequence)
-            os <- oids.traverse(TableState.observation).map(_.sequence)
-            tb <- State.get
-            r  <- (a, t, os).traverseN { (am, tm, oms) =>
+        megaEdit(oids, pointing, State.pure[ObservationModel, Unit](()).validNec)
 
-              val initialAsterisms = am.fold(Set.empty[Asterism.Id])(m => Set(m.id))
-              val initialTargets   = tm.fold(Set.empty[Target.Id])(m => Set(m.id))
-
-              val (updatedAids, updatedTids, observationUpdates) =
-                oms.foldLeft((initialAsterisms, initialTargets, List.empty[ObservationModel])) {
-                  case ((aids, tids, oms), om) =>
-                    (
-                      ObservationModel.asterism.getOption(om).fold(aids)(aids + _),  // include any asterism that was there before
-                      ObservationModel.target.getOption(om).fold(tids)(tids + _),    // include any target that was there before
-                      ObservationModel.subject.set(subject)(om) :: oms
-                    )
-                }
-
-              val updatedAsterisms = updatedAids.map(tb.asterisms.apply).toList
-              val updatedTargets   = updatedTids.map(tb.targets.apply).toList
-
-              Tables.observations
-                .mod(_ ++ observationUpdates.map(om => (om.id, om)))
-                .as((updatedAsterisms, updatedTargets, observationUpdates))
-            }
-          } yield r
-        }.flatMap(_.liftTo[F])
+      private def pointingUpdate(
+        oids:     List[Observation.Id],
+        pointing: Option[Either[Asterism.Id, Target.Id]]
+      ): State[Tables, ValidatedInput[(List[ObservationModel], List[AsterismModel], List[TargetModel])]] =
 
         for {
-          ato <- update
-          (as, ts, os) = ato
+          vos <- oids.traverse(TableState.observation).map(_.sequence)
+          va  <- pointing.flatMap(_.swap.toOption).traverse(TableState.asterism).map(_.sequence)
+          vt  <- pointing.flatMap(_.toOption).traverse(TableState.target).map(_.sequence)
+          tb  <- State.get
+        } yield (vos, va, vt).mapN { (os, a, t) =>
+
+          val (updatedOs, updatedAids, updatedTids) =
+            os.foldLeft((List.empty[ObservationModel], a.map(_.id).toSet, t.map(_.id).toSet)) {
+              case ((osʹ, aids, tids), o) =>
+                (
+                  ObservationModel.subject.set(pointing)(o) :: osʹ,
+                  ObservationModel.asterism.getOption(o).fold(aids)(aids + _),
+                  ObservationModel.target.getOption(o).fold(tids)(tids + _)
+                )
+            }
+
+          (
+           updatedOs,
+           updatedAids.toList.map(tb.asterisms.apply),
+           updatedTids.toList.map(tb.targets.apply)
+          )
+        }
+
+      def megaEdit(
+        oids:     List[Observation.Id],
+        pointing: Option[Either[Asterism.Id, Target.Id]],
+        editor:   ValidatedInput[State[ObservationModel, Unit]]
+      ): F[List[ObservationModel]] = {
+
+        val update: State[Tables, ValidatedInput[(List[ObservationModel], List[AsterismModel], List[TargetModel])]] =
+          for {
+            voat  <- pointingUpdate(oids, pointing)
+            voatʹ <- (voat, editor).mapN { case ((os, as, ts), e) =>
+              val os2 = os.map(o => e.runS(o).value)
+              Tables.observations.mod(_ ++ os2.map(o => o.id -> o)).as((os2, as, ts))
+            }.sequence
+          } yield voatʹ
+
+        for {
+          oat <- tablesRef.modifyState(update).flatMap(_.liftTo[F])
+          (os, as, ts) = oat
+          _ <- os.traverse_(o => eventService.publish(ObservationModel.ObservationEvent.updated(o)))
           _ <- as.traverse_(a => eventService.publish(AsterismModel.AsterismEvent.updated(a)))
           _ <- ts.traverse_(t => eventService.publish(TargetModel.TargetEvent.updated(t)))
-          _ <- os.traverse_(o => eventService.publish(ObservationModel.ObservationEvent.updated(o)))
         } yield os
+
       }
 
     }
