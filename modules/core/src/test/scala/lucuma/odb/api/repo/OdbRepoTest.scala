@@ -4,6 +4,7 @@
 package lucuma.odb.api.repo
 
 import lucuma.odb.api.model.{Sharing, TopLevelModel}
+import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.repo.arb._
 import cats.effect.{Concurrent, ContextShift, IO, Sync}
 import cats.syntax.all._
@@ -14,6 +15,7 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import org.scalacheck.Prop
 import org.scalacheck.Prop.forAll
 
+import scala.collection.immutable.SortedMap
 import scala.concurrent.ExecutionContext.global
 
 trait OdbRepoTest {
@@ -57,6 +59,15 @@ trait OdbRepoTest {
     val len = as.length
     val inc = if (len == 0) Set.empty[Int] else is.map(i => (i % len).abs).toSet
     as.zipWithIndex.collect { case (a, i) if inc(i) => a }
+  }
+
+  protected def selectOne[I, T: TopLevelModel[I, *]](
+    m: SortedMap[I, T],
+    rnd: PosInt,
+    includeDeleted: Boolean = false
+  ): Option[T] = {
+    val v = m.values.filter(t => includeDeleted || t.isPresent).toVector
+    if (v.isEmpty) none[T] else v.get((rnd.value % v.size).toLong)
   }
 
   def sharingTest[I, A, J, B](
