@@ -5,10 +5,8 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.ObservationModel
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.odb.api.schema.syntax.inputtype._
 import cats.effect.Effect
-import cats.syntax.all._
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -86,15 +84,7 @@ trait ObservationMutation {
       name      = "updatePointing",
       fieldType = ListType(ObservationType[F]), // Should change to a Payload where the observations and asterisms and targets, etc. can be included
       arguments = List(ArgumentObservationEditPointing),
-      resolve   = c => {
-        val edit = c.arg(ArgumentObservationEditPointing)
-        c.observation { repo =>
-          for {
-            s  <- edit.pointing.liftTo[F]
-            os <- repo.editPointing(edit.observationIds, s)
-          } yield os
-        }
-      }
+      resolve   = c => c.observation(_.editPointing(c.arg(ArgumentObservationEditPointing)))
     )
 
   def delete[F[_]: Effect]: Field[OdbRepo[F], Unit] =

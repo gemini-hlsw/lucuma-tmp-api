@@ -54,16 +54,13 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
 
   def edit(edit: ObservationModel.Edit): F[ObservationModel]
 
+  def editPointing(edit: ObservationModel.EditPointing): F[List[ObservationModel]]
+
   def shareWithConstraintSet(oid: Observation.Id, csid: ConstraintSet.Id): F[ObservationModel]
 
   def unshareWithConstraintSet(oid: Observation.Id, csid: ConstraintSet.Id): F[ObservationModel]
 
   def unsetConstraintSet(oid: Observation.Id)(implicit F: MonadError[F, Throwable]): F[ObservationModel]
-
-  def editPointing(
-    oids:     List[Observation.Id],
-    pointing: Option[Either[Asterism.Id, Target.Id]]
-  ): F[List[ObservationModel]]
 
 }
 
@@ -287,16 +284,18 @@ object ObservationRepo {
       }
 
       override def editPointing(
-        oids:     List[Observation.Id],
-        pointing: Option[Either[Asterism.Id, Target.Id]]
+        edit: ObservationModel.EditPointing
       ): F[List[ObservationModel]] =
 
-        doEdit(
-          oids,
-          State.pure[ObservationModel, Unit](()),
-          pointing.fold(Input.unassign[Asterism.Id])(p => p.fold(aid => Input(aid), _ => Input.ignore[Asterism.Id])),
-          pointing.fold(Input.unassign[Target.Id])(p => p.fold(_ => Input.ignore[Target.Id], tid => Input(tid)))
-        )
+        for {
+          e  <- edit.pointing.liftTo[F]
+          os <- doEdit(
+              edit.observationIds,
+              State.pure[ObservationModel, Unit](()),
+              e.fold(Input.unassign[Asterism.Id])(p => p.fold(aid => Input(aid), _ => Input.ignore[Asterism.Id])),
+              e.fold(Input.unassign[Target.Id])(p => p.fold(_ => Input.ignore[Target.Id], tid => Input(tid)))
+            )
+        } yield os
 
       override def edit(
         edit: ObservationModel.Edit
