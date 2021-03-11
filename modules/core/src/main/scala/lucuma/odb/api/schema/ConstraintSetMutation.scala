@@ -9,6 +9,7 @@ import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.inputtype._
 
 import cats.effect.Effect
+
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -18,6 +19,7 @@ trait ConstraintSetMutation {
 
   import GeneralSchema.EnumTypeExistence
   import ConstraintSetSchema._
+  import MutationSchema._
   import ProgramSchema.ProgramIdType
   import context._
   import syntax.inputobjecttype._
@@ -78,9 +80,12 @@ trait ConstraintSetMutation {
   def create[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
       name      = "createConstraintSet",
-      fieldType = OptionType(ConstraintSetType[F]),
+      fieldType = SimpleCreatePayloadUnionType[F, ConstraintSetModel]("constraintSet", ConstraintSetType[F]),
       arguments = List(ArgumentConstraintSetCreate),
-      resolve   = c => c.constraintSet(_.insert(c.arg(ArgumentConstraintSetCreate)))
+      resolve   = c =>
+        c.constraintSet(
+          _.insert(c.arg(ArgumentConstraintSetCreate))
+        )
     )
 
   def update[F[_]: Effect]: Field[OdbRepo[F], Unit] =

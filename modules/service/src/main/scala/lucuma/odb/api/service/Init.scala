@@ -302,20 +302,20 @@ object Init {
    */
   def initialize[F[_]: Sync: Applicative](repo: OdbRepo[F]): F[Unit] =
     for {
-      p  <- repo.program.insert(
+      p  <- repo.program.unsafeInsert(
               ProgramModel.Create(
                 None,
                 Some("The real dark matter was the friends we made along the way")
               )
             )
-      _  <- repo.program.insert(
+      _  <- repo.program.unsafeInsert(
               ProgramModel.Create(
                 None,
                 Some("An Empty Placeholder Program")
               )
             )
       cs <- targets.liftTo[F]
-      ts <- cs.map(_.copy(programIds = Some(List(p.id)))).traverse(repo.target.insertSidereal)
+      ts <- cs.map(_.copy(programIds = Some(List(p.id)))).traverse(repo.target.unsafeInsertSidereal)
 //      a0 <- repo.asterism.insert(
 //              AsterismModel.Create(
 //                None,

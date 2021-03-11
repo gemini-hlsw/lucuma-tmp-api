@@ -6,8 +6,9 @@ package lucuma.odb.api.repo
 import cats._
 import cats.effect.concurrent.Ref
 import cats.syntax.all._
+
 import lucuma.core.model.{ConstraintSet, Observation, Program}
-import lucuma.odb.api.model.{ConstraintSetModel, ObservationModel, Sharing}
+import lucuma.odb.api.model.{ConstraintSetModel, ObservationModel, Sharing, ValidatedInput}
 import lucuma.odb.api.model.ConstraintSetModel.ConstraintSetEvent
 import lucuma.odb.api.model.syntax.validatedinput._
 
@@ -25,7 +26,9 @@ trait ConstraintSetRepo[F[_]] extends TopLevelRepo[F, ConstraintSet.Id, Constrai
     includeDeleted: Boolean                  = false
   ): F[ResultPage[ConstraintSetModel]]
 
-  def insert(input: ConstraintSetModel.Create): F[ConstraintSetModel]
+  def insert(input: ConstraintSetModel.Create): F[ValidatedInput[ConstraintSetModel]]
+
+  def unsafeInsert(input: ConstraintSetModel.Create): F[ConstraintSetModel]
 
   def shareWithObservations(input: Sharing[ConstraintSet.Id, Observation.Id]): F[ConstraintSetModel]
 
@@ -70,12 +73,15 @@ object ConstraintSetRepo {
 
         selectPageFiltered(count, afterGid, includeDeleted) { _.programId === pid }
 
-      override def insert(newCs: ConstraintSetModel.Create): F[ConstraintSetModel] =
+      override def insert(newCs: ConstraintSetModel.Create): F[ValidatedInput[ConstraintSetModel]] =
         constructAndPublish { t =>
           (tryNotFindConstraintSet(t, newCs.constraintSetId) *>
             tryFindProgram(t, newCs.programId) *>
             newCs.withId).map(createAndInsert(newCs.constraintSetId, _))
         }
+
+      override def unsafeInsert(input: ConstraintSetModel.Create): F[ConstraintSetModel] =
+        insert(input) >>= (_.liftTo[F])
 
       override def shareWithObservations(
         input: Sharing[ConstraintSet.Id, Observation.Id]

@@ -3,13 +3,14 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.ProgramModel
+import lucuma.odb.api.model.{ProgramModel, ValidatedInput}
 import lucuma.odb.api.model.ProgramModel.ProgramEvent
 import lucuma.odb.api.model.Existence._
 import lucuma.core.model.{Asterism, Program, Target}
-import cats.Monad
+import lucuma.odb.api.model.syntax.validatedinput._
+
+import cats.{Monad, MonadError}
 import cats.implicits._
-import cats.MonadError
 import cats.effect.concurrent.Ref
 
 
@@ -59,7 +60,9 @@ trait ProgramRepo[F[_]] extends TopLevelRepo[F, Program.Id, ProgramModel] {
     includeDeleted:      Boolean            = false
   ): F[ResultPage[ProgramModel]]
 
-  def insert(input: ProgramModel.Create): F[ProgramModel]
+  def insert(input: ProgramModel.Create): F[ValidatedInput[ProgramModel]]
+
+  def unsafeInsert(input: ProgramModel.Create): F[ProgramModel]
 
 }
 
@@ -113,12 +116,15 @@ object ProgramRepo {
             else Iterable.empty[Program.Id])
         }
 
-      override def insert(input: ProgramModel.Create): F[ProgramModel] =
+      override def insert(input: ProgramModel.Create): F[ValidatedInput[ProgramModel]] =
         constructAndPublish { t =>
           tryNotFindProgram(t, input.programId).as(
             createAndInsert(input.programId, ProgramModel(_, Present, input.name))
           )
         }
+
+      override def unsafeInsert(input: ProgramModel.Create): F[ProgramModel] =
+        insert(input) >>= (_.liftTo[F])
 
     }
 
