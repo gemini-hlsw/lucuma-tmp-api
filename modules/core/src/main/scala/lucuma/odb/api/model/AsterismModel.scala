@@ -71,12 +71,12 @@ object AsterismModel extends AsterismOptics {
     existence:    Input[Existence]              = Input.ignore,
     name:         Input[String]                 = Input.ignore,
     explicitBase: Input[CoordinatesModel.Input] = Input.ignore
-  ) extends Editor[Asterism.Id, AsterismModel] {
+  ) {
 
-    override def id: Asterism.Id =
+    def id: Asterism.Id =
       asterismId
 
-    override def editor: ValidatedInput[State[AsterismModel, Unit]] = {
+    def editor: ValidatedInput[State[AsterismModel, Unit]] = {
       (existence   .validateIsNotNull("existence"),
        name        .validateNullable(n => ValidatedInput.nonEmptyString("name", n)),
        explicitBase.validateNullable(_.toCoordinates)

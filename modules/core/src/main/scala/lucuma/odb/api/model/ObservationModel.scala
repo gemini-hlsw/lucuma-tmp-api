@@ -11,7 +11,7 @@ import lucuma.core.model.{Asterism, Observation, Program, Target}
 import cats.Eq
 import cats.data.State
 import cats.syntax.all._
-import clue.data.Input
+import clue.data.{Assign, Input}
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string._
 import io.circe.Decoder
@@ -90,13 +90,21 @@ object ObservationModel extends ObservationOptics {
     observationId: Observation.Id,
     existence:     Input[Existence]   = Input.ignore,
     name:          Input[String]      = Input.ignore,
-    status:        Input[ObsStatus]   = Input.ignore
-  ) extends Editor[Observation.Id, ObservationModel] {
+    status:        Input[ObsStatus]   = Input.ignore,
+    asterismId:    Input[Asterism.Id] = Input.ignore,
+    targetId:      Input[Target.Id]   = Input.ignore
+  ) {
 
-    override def id: Observation.Id =
+    def id: Observation.Id =
       observationId
 
-    override def editor: ValidatedInput[State[ObservationModel, Unit]] =
+    def pointing: ValidatedInput[(Input[Asterism.Id], Input[Target.Id])] =
+      (asterismId, targetId) match {
+        case (Assign(_), Assign(_)) => InputError.fromMessage(s"Cannot assign both an asterism and a target to the observation").invalidNec
+        case _                      => (asterismId, targetId).validNec
+      }
+
+    def editor: ValidatedInput[State[ObservationModel, Unit]] =
       (existence.validateIsNotNull("existence"),
        name     .validateNullable(n => ValidatedInput.nonEmptyString("name", n)),
        status   .validateIsNotNull("status")

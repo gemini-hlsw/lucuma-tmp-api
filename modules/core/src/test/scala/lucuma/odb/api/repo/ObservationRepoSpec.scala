@@ -46,7 +46,7 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
           ObservationModel.Edit(o.id, name = Input("Biff"))
         }
 
-        edit.traverse(odb.observation.edit)
+        edit.traverse { e => odb.observation.edit(e.id, e.editor) }
       }
 
       assert(obs.forall(_.name.contains(NonEmptyString.unsafeFrom("Biff"))))
@@ -63,7 +63,7 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
           ObservationModel.Edit(o.id, name = o.name.fold(Input.ignore[String])(n => Input(n.value)))
         }
 
-        edit.traverse(odb.observation.edit)
+        edit.traverse { e => odb.observation.edit(e.id, e.editor) }
       }
 
       assertEquals(obs, t.observations.values.headOption)

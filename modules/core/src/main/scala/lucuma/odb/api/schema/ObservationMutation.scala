@@ -7,7 +7,6 @@ import lucuma.odb.api.model.ObservationModel
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.odb.api.schema.syntax.inputtype._
-
 import cats.effect.Effect
 import cats.syntax.all._
 import sangria.macros.derive._
@@ -43,7 +42,9 @@ trait ObservationMutation {
       InputObjectTypeDescription("Edit observation"),
       ReplaceInputField("existence",  EnumTypeExistence.notNullableField("existence")),
       ReplaceInputField("name",       StringType.nullableField("name")),
-      ReplaceInputField("status",     ObsStatusType.notNullableField("status"))
+      ReplaceInputField("status",     ObsStatusType.notNullableField("status")),
+      ReplaceInputField("asterismId", AsterismIdType.nullableField("asterismId")),
+      ReplaceInputField("targetId",   TargetIdType.nullableField("targetId"))
     )
 
   val ArgumentObservationEdit: Argument[ObservationModel.Edit] =
@@ -90,7 +91,7 @@ trait ObservationMutation {
         c.observation { repo =>
           for {
             s  <- edit.pointing.liftTo[F]
-            os <- repo.setPointing(edit.observationIds, s)
+            os <- repo.editPointing(edit.observationIds, s)
           } yield os
         }
       }

@@ -79,11 +79,11 @@ object ConstraintSetModel extends ConstraintSetModelOptics {
     skyBackground:   Input[SkyBackground] = Input.ignore,
     waterVapor:      Input[WaterVapor] = Input.ignore,
     elevationRange:  Input[ElevationRangeModel.Create] = Input.ignore
-  ) extends Editor[ConstraintSet.Id, ConstraintSetModel] {
+  ) {
 
-    override def id: ConstraintSet.Id = constraintSetId
+    def id: ConstraintSet.Id = constraintSetId
 
-    override def editor: ValidatedInput[State[ConstraintSetModel, Unit]] =
+    def editor: ValidatedInput[State[ConstraintSetModel, Unit]] =
       (existence.validateIsNotNull("existence"),
        name.validateNotNullable("name")(n => ValidatedInput.nonEmptyString("name", n)),
        imageQuality.validateIsNotNull("imageQuality"),

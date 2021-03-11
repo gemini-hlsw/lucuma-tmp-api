@@ -15,6 +15,7 @@ import cats.data.{EitherT, State}
 import cats.effect.Sync
 import cats.effect.concurrent.Ref
 import cats.implicits._
+import clue.data.{Assign, Ignore, Input, Unassign}
 import monocle.state.all._
 
 sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, ObservationModel] {
@@ -51,13 +52,15 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
 
   def insert(input: ObservationModel.Create): F[ObservationModel]
 
+  def edit(edit: ObservationModel.Edit): F[ObservationModel]
+
   def shareWithConstraintSet(oid: Observation.Id, csid: ConstraintSet.Id): F[ObservationModel]
 
   def unshareWithConstraintSet(oid: Observation.Id, csid: ConstraintSet.Id): F[ObservationModel]
 
   def unsetConstraintSet(oid: Observation.Id)(implicit F: MonadError[F, Throwable]): F[ObservationModel]
 
-  def setPointing(
+  def editPointing(
     oids:     List[Observation.Id],
     pointing: Option[Either[Asterism.Id, Target.Id]]
   ): F[List[ObservationModel]]
@@ -207,22 +210,35 @@ object ObservationRepo {
           } yield obs
       }
 
-      override def setPointing(
-        oids:     List[Observation.Id],
-        pointing: Option[Either[Asterism.Id, Target.Id]]
-      ): F[List[ObservationModel]] =
+      type Pointing = Option[Either[Asterism.Id, Target.Id]]
+      private val noPointing: Pointing = Option.empty
 
-        megaEdit(oids, pointing, State.pure[ObservationModel, Unit](()).validNec)
-
-      private def pointingUpdate(
+      private def updatePointing(
         oids:     List[Observation.Id],
-        pointing: Option[Either[Asterism.Id, Target.Id]]
-      ): State[Tables, ValidatedInput[(List[ObservationModel], List[AsterismModel], List[TargetModel])]] =
+        asterism: Input[Asterism.Id],
+        target:   Input[Target.Id]
+      ): State[Tables, ValidatedInput[(List[ObservationModel], List[AsterismModel], List[TargetModel])]] = {
+
+        val updateAsterism: Pointing => Pointing = in =>
+          asterism match {
+            case Ignore      => in
+            case Unassign    => in.flatMap(_.fold(_ => noPointing, _ => in))
+            case Assign(aid) => aid.asLeft[Target.Id].some
+          }
+
+        val updateTarget: Pointing => Pointing = in =>
+          target match {
+            case Ignore      => in
+            case Unassign    => in.flatMap(_.fold(_ => in, _ => noPointing))
+            case Assign(tid) => tid.asRight[Asterism.Id].some
+          }
+
+        val updatePointing = updateAsterism andThen updateTarget
 
         for {
           vos <- oids.traverse(TableState.observation).map(_.sequence)
-          va  <- pointing.flatMap(_.swap.toOption).traverse(TableState.asterism).map(_.sequence)
-          vt  <- pointing.flatMap(_.toOption).traverse(TableState.target).map(_.sequence)
+          va  <- asterism.toOption.traverse(TableState.asterism).map(_.sequence)
+          vt  <- target.toOption.traverse(TableState.target).map(_.sequence)
           tb  <- State.get
         } yield (vos, va, vt).mapN { (os, a, t) =>
 
@@ -230,7 +246,7 @@ object ObservationRepo {
             os.foldLeft((List.empty[ObservationModel], a.map(_.id).toSet, t.map(_.id).toSet)) {
               case ((osʹ, aids, tids), o) =>
                 (
-                  ObservationModel.pointing.set(pointing)(o) :: osʹ,
+                  ObservationModel.pointing.modify(updatePointing)(o) :: osʹ,
                   ObservationModel.asterism.getOption(o).fold(aids)(aids + _),
                   ObservationModel.target.getOption(o).fold(tids)(tids + _)
                 )
@@ -242,18 +258,20 @@ object ObservationRepo {
            updatedTids.toList.map(tb.targets.apply)
           )
         }
+      }
 
-      def megaEdit(
+      private def doEdit(
         oids:     List[Observation.Id],
-        pointing: Option[Either[Asterism.Id, Target.Id]],
-        editor:   ValidatedInput[State[ObservationModel, Unit]]
+        editor:   State[ObservationModel, Unit],
+        asterism: Input[Asterism.Id],
+        target:   Input[Target.Id]
       ): F[List[ObservationModel]] = {
 
         val update: State[Tables, ValidatedInput[(List[ObservationModel], List[AsterismModel], List[TargetModel])]] =
           for {
-            voat  <- pointingUpdate(oids, pointing)
-            voatʹ <- (voat, editor).mapN { case ((os, as, ts), e) =>
-              val os2 = os.map(o => e.runS(o).value)
+            voat  <- updatePointing(oids, asterism, target)
+            voatʹ <- voat.map { case (os, as, ts) =>
+              val os2 = os.map(o => editor.runS(o).value)
               Tables.observations.mod(_ ++ os2.map(o => o.id -> o)).as((os2, as, ts))
             }.sequence
           } yield voatʹ
@@ -267,6 +285,26 @@ object ObservationRepo {
         } yield os
 
       }
+
+      override def editPointing(
+        oids:     List[Observation.Id],
+        pointing: Option[Either[Asterism.Id, Target.Id]]
+      ): F[List[ObservationModel]] =
+
+        doEdit(
+          oids,
+          State.pure[ObservationModel, Unit](()),
+          pointing.fold(Input.unassign[Asterism.Id])(p => p.fold(aid => Input(aid), _ => Input.ignore[Asterism.Id])),
+          pointing.fold(Input.unassign[Target.Id])(p => p.fold(_ => Input.ignore[Target.Id], tid => Input(tid)))
+        )
+
+      override def edit(
+        edit: ObservationModel.Edit
+      ): F[ObservationModel] =
+
+        (edit.editor, edit.pointing).mapN { case (e, (a, t)) =>
+          doEdit(List(edit.observationId), e, a, t)
+        }.liftTo[F].flatten.map(_.head)
 
     }
 }
