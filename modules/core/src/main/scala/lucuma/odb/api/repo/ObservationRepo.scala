@@ -12,7 +12,6 @@ import cats.effect.Sync
 import cats.effect.concurrent.Ref
 import cats.implicits._
 import lucuma.odb.api.model.ConstraintSetModel
-import monocle.Lens
 
 sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, ObservationModel] {
 
@@ -161,22 +160,16 @@ object ObservationRepo {
         )
 
       override def unsetConstraintSet(oid: Observation.Id)(implicit F: MonadError[F, Throwable]): F[ObservationModel] = {
-        val focusObsLens = focusOn(oid)
-
-        val obsLens: Lens[Tables, Option[ObservationModel]] =
-          Lens[Tables, Option[ObservationModel]](focusObsLens.get)(oo => focusObsLens.set(oo))
-
-
         val doUpdate: F[(ObservationModel, Option[ConstraintSetModel])] = 
           tablesRef.modify { oldTables => 
-            val obs = obsLens.get(oldTables).toValidNec(InputError.missingReference("id", oid.show))
+            val obs = focusOn(oid).get(oldTables).toValidNec(InputError.missingReference("id", oid.show))
             val cs  = 
               obs.fold(
                 _ => None,
                 o => oldTables.constraintSetObservation.selectLeft(o.id).flatMap(csId => Tables.constraintSet(csId).get(oldTables))
               )
             val tables = cs.fold(oldTables)(_ => Tables.constraintSetObservation.modify(_.removeRight(oid))(oldTables))
-            (tables, obs.map(o => (o, cs)))
+            (tables, obs.tupleRight(cs))
           }.flatMap(_.liftTo[F])
           
           for {
