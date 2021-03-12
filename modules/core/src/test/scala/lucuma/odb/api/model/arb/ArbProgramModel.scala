@@ -35,6 +35,22 @@ trait ArbProgramModel {
       in.name
     )}
 
+  implicit val arbProgramModelCreate: Arbitrary[ProgramModel.Create] =
+    Arbitrary {
+      for {
+        id <- arbitrary[Option[Program.Id]]
+        nm <- arbitrary[Option[String]]
+      } yield ProgramModel.Create(id, nm)
+    }
+
+  implicit val cogProgramModelCreate: Cogen[ProgramModel.Create] =
+    Cogen[(
+      Option[Program.Id],
+      Option[String]
+    )].contramap { in => (
+      in.programId,
+      in.name
+    )}
 }
 
 object ArbProgramModel extends ArbProgramModel

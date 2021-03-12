@@ -28,7 +28,15 @@ final case class ObservationModel(
   pointing:           Option[Either[Asterism.Id, Target.Id]],
   plannedTimeSummary: PlannedTimeSummaryModel,
   config:             Option[ConfigModel]
-)
+) {
+
+  def asterismId: Option[Asterism.Id] =
+    pointing.flatMap(_.swap.toOption)
+
+  def targetId: Option[Target.Id] =
+    pointing.flatMap(_.toOption)
+
+}
 
 object ObservationModel extends ObservationOptics {
 
