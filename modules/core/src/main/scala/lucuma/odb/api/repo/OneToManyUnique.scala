@@ -49,17 +49,15 @@ object OneToManyUnique {
     bToA:  SortedMap[B, A]
   ): OneToManyUnique[A, B] = new OneToManyUnique[A, B] {
 
+    // "Overwrites" existing links - there is no notification for the elements that are unlinked
     override def +(link: (A, B)): Either[InputError, OneToManyUnique[A, B]] =
       bToA.get(link._2) match {
-        case None                    => fromOneToManyAndMap(aToBs + link, bToA + link.swap).asRight
         case Some(a) if a == link._1 => this.asRight
-        case Some(a)                 =>
-          (InputError(
-            s"Uniqueness constraint violation: ${link._2} already shared with $a"
-          )).asLeft
+        case Some(a)                 => fromOneToManyAndMap(aToBs + link - ((a, link._2)), bToA + link.swap).asRight
+        case _                       => fromOneToManyAndMap(aToBs + link, bToA + link.swap).asRight
       }
 
-    // Note: Fails fast. Errors/successes after the 1st error would be increasingly meaningless
+    // "Overwrites" existing links - there is no notification for the elements that are unlinked
     override def ++(links: IterableOnce[(A, B)]): Either[InputError, OneToManyUnique[A, B]] = {
       @annotation.tailrec
       def loop(
@@ -75,7 +73,7 @@ object OneToManyUnique {
       }
       loop(links.iterator.toList, this)
     }
-
+    
     override def -(link: (A, B)): OneToManyUnique[A, B] = bToA.get(link._2) match {
       case Some(a) if a == link._1 => fromOneToManyAndMap(aToBs - link, bToA - link._2)
       case _                       => this

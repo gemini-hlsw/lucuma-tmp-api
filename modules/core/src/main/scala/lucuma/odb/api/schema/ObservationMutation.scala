@@ -85,12 +85,21 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.undelete(c.observationId))
     )
 
+  def unsetConstraintSet[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+    Field(
+      name      = "unsetConstraintSet",
+      fieldType = ObservationType[F],
+      arguments = List(ObservationIdArgument),
+      resolve   = c => c.observation(_.unsetConstraintSet(c.observationId))
+    )
+
   def allFields[F[_]: Effect]: List[Field[OdbRepo[F], Unit]] =
     List(
       create,
       update,
       delete,
-      undelete
+      undelete,
+      unsetConstraintSet
     )
 
 }

@@ -93,7 +93,7 @@ trait ConstraintSetMutation {
 
   def delete[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
-      name      = "deleteContraintSet",
+      name      = "deleteConstraintSet",
       fieldType = ConstraintSetType[F],
       arguments = List(ConstraintSetIdArgument),
       resolve   = c => c.constraintSet(_.delete(c.constraintSetId))

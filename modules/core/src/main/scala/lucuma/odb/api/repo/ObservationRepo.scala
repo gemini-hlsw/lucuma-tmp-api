@@ -3,13 +3,16 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{ObservationModel, PlannedTimeSummaryModel}
+import lucuma.odb.api.model.{InputError, ObservationModel, PlannedTimeSummaryModel}
+import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
 import lucuma.odb.api.model.ObservationModel.ObservationEvent
+import cats.MonadError
 import cats.effect.Sync
 import cats.effect.concurrent.Ref
 import cats.implicits._
 import lucuma.odb.api.model.ConstraintSetModel
+import monocle.Lens
 
 sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, ObservationModel] {
 
@@ -48,6 +51,8 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
   def shareWithConstraintSet(oid: Observation.Id, csid: ConstraintSet.Id): F[ObservationModel]
 
   def unshareWithConstraintSet(oid: Observation.Id, csid: ConstraintSet.Id): F[ObservationModel]
+
+  def unsetConstraintSet(oid: Observation.Id)(implicit F: MonadError[F, Throwable]): F[ObservationModel]
 }
 
 object ObservationRepo {
@@ -154,5 +159,31 @@ object ObservationRepo {
           Tables.constraintSetObservation,
           ConstraintSetModel.ConstraintSetEvent.updated
         )
+
+      override def unsetConstraintSet(oid: Observation.Id)(implicit F: MonadError[F, Throwable]): F[ObservationModel] = {
+        val focusObsLens = focusOn(oid)
+
+        val obsLens: Lens[Tables, Option[ObservationModel]] =
+          Lens[Tables, Option[ObservationModel]](focusObsLens.get)(oo => focusObsLens.set(oo))
+
+
+        val doUpdate: F[(ObservationModel, Option[ConstraintSetModel])] = 
+          tablesRef.modify { oldTables => 
+            val obs = obsLens.get(oldTables).toValidNec(InputError.missingReference("id", oid.show))
+            val cs  = 
+              obs.fold(
+                _ => None,
+                o => oldTables.constraintSetObservation.selectLeft(o.id).flatMap(csId => Tables.constraintSet(csId).get(oldTables))
+              )
+            val tables = cs.fold(oldTables)(_ => Tables.constraintSetObservation.modify(_.removeRight(oid))(oldTables))
+            (tables, obs.map(o => (o, cs)))
+          }.flatMap(_.liftTo[F])
+          
+          for {
+            t         <- doUpdate
+            (obs, cs)  = t
+            _         <- cs.fold(F.unit)(c => eventService.publish(ConstraintSetModel.ConstraintSetEvent.updated(c)))
+          } yield obs
+      }
     }
 }
