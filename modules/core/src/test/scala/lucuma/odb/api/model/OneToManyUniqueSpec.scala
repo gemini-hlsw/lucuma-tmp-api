@@ -16,23 +16,14 @@ final class OneToManyUniqueSpec extends CatsSuite {
   test("two way linking") {
     forAll { o: OneToManyUnique[A, B] =>
       assert(o.all.forall { case (a, b) =>
-        o.selectRight(a).contains(b) && o.selectLeft(b).nonEmpty
+        o.selectRight(a).contains(b) && o.selectLeft(b).exists(_ === a)
       })
     }
   }
 
   test("+ link") {
     forAll { (o: OneToManyUnique[A, B], link: (A, B)) =>
-      assert(
-        (o.selectLeft(link._2), (o + link)) match {
-          case (Some(a), Right(oo)) if a == link._1 => oo.contains(link)
-          case (Some(_), Right(_))                  => false
-          case (Some(a), Left(_)) if a != link._1   => true
-          case (Some(_), Left(_))                   => false
-          case (None, Right(oo))                    => oo.contains(link)
-          case (None, Left(_))                      => false
-        }
-      )
+      assert((o + link).exists(_.contains(link)))
     }
   }
 
@@ -40,16 +31,6 @@ final class OneToManyUniqueSpec extends CatsSuite {
     forAll { o: OneToManyUnique[A, B] =>
       assert(o.all.headOption.forall { link =>
         (o + link).exists(_.contains(link))
-      })
-    }
-  }
-
-  test("+ link uniqueness violation") {
-    forAll { (o: OneToManyUnique[A, B], a: A) =>
-      assert(o.all.headOption.forall { link =>
-        val oo = o + ((a, link._2))
-        if (a == link._1) oo.exists(_.contains(link))
-        else oo.isLeft
       })
     }
   }
@@ -78,13 +59,10 @@ final class OneToManyUniqueSpec extends CatsSuite {
   test("++ links") {
     forAll { (o: OneToManyUnique[A, B], links: List[(A, B)]) =>
       val oo                = o ++ links
-      val linksInconsistent = links.groupMap(_._2)(_._1).exists { case (_, v) => v.toSet.size > 1 }
-      val violation         = links.exists { case (a, b) => o.selectLeft(b).exists(_ != a) }
-      if (linksInconsistent || violation) assert(oo.isLeft)
-      else
-        assert(oo.exists { ooo =>
-          (ooo.all & links.toSet) == links.toSet
-        })
+      val uniqueLinks = links.map(_.swap).toMap.toList.map(_.swap).toSet
+      assert(oo.exists { ooo =>
+        (ooo.all & uniqueLinks) == uniqueLinks
+      })
     }
   }
 
