@@ -4,10 +4,12 @@
 package lucuma.odb.api.model
 package arb
 
+import lucuma.core.`enum`.ObsStatus
 import lucuma.core.model.{Asterism, Observation, Program, Target}
 import lucuma.core.util.arb.{ArbEnumerated, ArbGid}
+
+import eu.timepit.refined.scalacheck.all._
 import eu.timepit.refined.types.all.NonEmptyString
-import lucuma.core.`enum`.ObsStatus
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
@@ -22,7 +24,7 @@ trait ArbObservationModel {
       for {
         id <- arbitrary[Observation.Id]
         ex <- arbitrary[Existence]
-        nm <- Gen.option(Gen.alphaNumStr.suchThat(!_.isEmpty).map(NonEmptyString.unsafeFrom))
+        nm <- arbitrary[Option[NonEmptyString]]
         os <- arbitrary[ObsStatus]
         ts <- arbitrary[Option[Either[Asterism.Id, Target.Id]]]
       } yield ObservationModel(id, ex, pid, nm, os, ts, PlannedTimeSummaryModel.Zero, None)
@@ -50,7 +52,41 @@ trait ArbObservationModel {
       in.programId,
       in.name.map(_.value),
       in.status,
-      in.targets
+      in.pointing
+    )}
+
+  implicit val arbObservationModelCreate: Arbitrary[ObservationModel.Create] =
+    Arbitrary {
+      for {
+        id <- arbitrary[Option[Observation.Id]]
+        pd <- arbitrary[Program.Id]
+        nm <- arbitrary[Option[NonEmptyString]]
+        ts <- arbitrary[Option[Either[Asterism.Id, Target.Id]]]
+        st <- arbitrary[Option[ObsStatus]]
+      } yield ObservationModel.Create(
+        id,
+        pd,
+        nm.map(_.value),
+        ts.flatMap(_.swap.toOption),
+        ts.flatMap(_.toOption),
+        st,
+        None
+      )
+    }
+
+  implicit val cogObservationModelCreate: Cogen[ObservationModel.Create] =
+    Cogen[(
+      Option[Observation.Id],
+      Program.Id,
+      Option[String],
+      Option[Asterism.Id],
+      Option[Target.Id]
+    )].contramap { in => (
+      in.observationId,
+      in.programId,
+      in.name,
+      in.asterismId,
+      in.targetId,
     )}
 
 }

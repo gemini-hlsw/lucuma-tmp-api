@@ -3,11 +3,10 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, Sharing, TargetModel, ValidatedInput}
+import lucuma.odb.api.model.{AsterismModel, ProgramModel, Sharing, TargetModel, ValidatedInput}
 import lucuma.odb.api.model.TargetModel.{CreateNonsidereal, CreateSidereal, TargetEvent}
 import lucuma.odb.api.model.Existence._
-import lucuma.odb.api.model.syntax.validatedinput._
-import lucuma.core.model.{Asterism, Observation, Program, Target}
+import lucuma.core.model.{Asterism, Program, Target}
 import cats._
 import cats.data.State
 import cats.effect.concurrent.Ref
@@ -38,10 +37,6 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
   def shareWithAsterisms(input: Sharing[Target.Id, Asterism.Id]): F[TargetModel]
 
   def unshareWithAsterisms(input: Sharing[Target.Id, Asterism.Id]): F[TargetModel]
-
-  def shareWithObservations(input: Sharing[Target.Id, Observation.Id]): F[TargetModel]
-
-  def unshareWithObservations(input: Sharing[Target.Id, Observation.Id]): F[TargetModel]
 
   def shareWithPrograms(input: Sharing[Target.Id, Program.Id]): F[TargetModel]
 
@@ -74,7 +69,7 @@ object TargetRepo {
 
         selectPageFromIds(count, afterGid, includeDeleted) { tables =>
           tables.programTarget.selectRight(pid) ++
-            tables.observations.values.filter(_.programId === pid).map(_.targets).collect {
+            tables.observations.values.filter(_.programId === pid).map(_.pointing).collect {
               case Some(Right(tid)) => tid
             }
         }
@@ -123,35 +118,6 @@ object TargetRepo {
 
       override def unshareWithAsterisms(input: Sharing[Target.Id, Asterism.Id]): F[TargetModel] =
         asterismSharing(input)(_ -- _)
-
-      def observationSharing(
-        input:   Sharing[Target.Id, Observation.Id],
-        targets: Option[Either[Asterism.Id, Target.Id]]
-      ): F[TargetModel] = {
-        val link = tablesRef.modifyState {
-          for {
-            t  <- TableState.target(input.one)
-            os <- input.many.traverse(TableState.observation).map(_.sequence)
-            r  <- (t, os).traverseN { (tm, oms) =>
-              val updates = oms.map(om => (om.id, ObservationModel.targets.set(targets)(om)))
-              Tables.observations.mod(_ ++ updates).as((tm, oms))
-            }
-          } yield r
-        }.flatMap(_.liftTo[F])
-
-        for {
-          tos    <- link
-          (t, os) = tos
-          _      <- eventService.publish(TargetModel.TargetEvent.updated(t))
-          _      <- os.traverse_(o => eventService.publish(ObservationModel.ObservationEvent.updated(o)))
-        } yield t
-      }
-
-      override def shareWithObservations(input: Sharing[Target.Id, Observation.Id]): F[TargetModel] =
-        observationSharing(input, input.one.asRight[Asterism.Id].some)
-
-      override def unshareWithObservations(input: Sharing[Target.Id, Observation.Id]): F[TargetModel] =
-        observationSharing(input, Option.empty)
 
       private def programSharing(
         input: Sharing[Target.Id, Program.Id],

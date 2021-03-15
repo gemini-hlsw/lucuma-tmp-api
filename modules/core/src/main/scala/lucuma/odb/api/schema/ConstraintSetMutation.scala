@@ -88,7 +88,11 @@ trait ConstraintSetMutation {
       name      = "updateConstraintSet",
       fieldType = ConstraintSetType[F],
       arguments = List(ArgumentConstraintSetEdit),
-      resolve   = c => c.constraintSet(_.edit(c.arg(ArgumentConstraintSetEdit)))
+      resolve   = c =>
+        c.constraintSet {
+          val e = c.arg(ArgumentConstraintSetEdit)
+          _.edit(e.id, e.editor)
+        }
     )
 
   def delete[F[_]: Effect]: Field[OdbRepo[F], Unit] =

@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{Editor, Event, Existence, InputError, Sharing, TopLevelModel, ValidatedInput}
+import lucuma.odb.api.model.{Event, Existence, InputError, Sharing, TopLevelModel, ValidatedInput}
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.core.util.Gid
@@ -55,14 +55,6 @@ trait TopLevelRepo[F[_], I, T] {
   )(
     ids: Tables => scala.collection.immutable.SortedSet[I]
   ): F[ResultPage[T]]
-
-  /**
-   * Edits the top-level item identified by the given `Editor`.
-   * @param editor editor instance
-   * @return updated item
-   */
-  def edit(editor: Editor[I, T]): F[T] =
-    edit(editor.id, editor.editor)
 
   /**
    * Edits the top-level item identified by the given id and editor

@@ -3,24 +3,12 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, TargetModel}
-import lucuma.core.model.{Asterism, Observation, Program, Target}
+import lucuma.odb.api.model.{AsterismModel, ProgramModel, TargetModel}
+import lucuma.core.model.{Asterism, Program, Target}
 
 import munit.DisciplineSuite
 
 final class AsterismRepoSpec extends DisciplineSuite with OdbRepoTest {
-
-  test("shareWithObservations") {
-
-    sharingTest[Asterism.Id, AsterismModel, Observation.Id, ObservationModel] { odb => (
-        odb.asterism,
-        odb.observation,
-        odb.asterism.shareWithObservations,
-        odb.asterism.unshareWithObservations,
-        odb.observation.selectPageForAsterism(_)
-    )}
-
-  }
 
   test("shareWithPrograms") {
 

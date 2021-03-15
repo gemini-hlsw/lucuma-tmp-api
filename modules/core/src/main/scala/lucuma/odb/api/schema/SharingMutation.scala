@@ -51,26 +51,6 @@ trait SharingMutation {
     )
   }
 
-  // ---- Asterism Observations
-  val ArgumentAsterismObservationLinks: Argument[Sharing[Asterism.Id, Observation.Id]] =
-    linksArg[Asterism.Id, Observation.Id]("asterism", "observation")
-
-  def shareAsterismWithObservations[F[_]: Effect]: Field[OdbRepo[F], Unit] =
-    Field(
-      name      = "shareAsterismWithObservations",
-      fieldType = AsterismType[F],
-      arguments = List(ArgumentAsterismObservationLinks),
-      resolve   = c => c.asterism(_.shareWithObservations(c.arg(ArgumentAsterismObservationLinks)))
-    )
-
-  def unshareAsterismWithObservations[F[_]: Effect]: Field[OdbRepo[F], Unit] =
-    Field(
-      name      = "unshareAsterismWithObservations",
-      fieldType = AsterismType[F],
-      arguments = List(ArgumentAsterismObservationLinks),
-      resolve   = c => c.asterism(_.unshareWithObservations(c.arg(ArgumentAsterismObservationLinks)))
-    )
-
   // ---- Asterism Programs
 
   val ArgumentAsterismProgramLinks: Argument[Sharing[Asterism.Id, Program.Id]] =
@@ -133,26 +113,6 @@ trait SharingMutation {
       resolve   = c => c.target(_.unshareWithAsterisms(c.arg(ArgumentTargetAsterismLinks)))
     )
 
-  // ---- Target Observations
-  val ArgumentTargetObservationLinks: Argument[Sharing[Target.Id, Observation.Id]] =
-    linksArg[Target.Id, Observation.Id]("target", "observation")
-
-  def shareTargetWithObservations[F[_]: Effect]: Field[OdbRepo[F], Unit] =
-    Field(
-      name      = "shareTargetWithObservations",
-      fieldType = TargetType[F],
-      arguments = List(ArgumentTargetObservationLinks),
-      resolve   = c => c.target(_.shareWithObservations(c.arg(ArgumentTargetObservationLinks)))
-    )
-
-  def unshareTargetWithObservations[F[_]: Effect]: Field[OdbRepo[F], Unit] =
-    Field(
-      name      = "unshareTargetWithObservations",
-      fieldType = TargetType[F],
-      arguments = List(ArgumentTargetObservationLinks),
-      resolve   = c => c.target(_.unshareWithObservations(c.arg(ArgumentTargetObservationLinks)))
-    )
-
   // ---- Target Programs
   val ArgumentTargetProgramLinks: Argument[Sharing[Target.Id, Program.Id]] =
     linksArg[Target.Id, Program.Id]("target", "program")
@@ -195,9 +155,6 @@ trait SharingMutation {
 
   def allFields[F[_]: Effect: Logger]: List[Field[OdbRepo[F], Unit]] =
     List(
-      shareAsterismWithObservations,
-      unshareAsterismWithObservations,
-
       shareAsterismWithPrograms,
       unshareAsterismWithPrograms,
 
@@ -206,9 +163,6 @@ trait SharingMutation {
 
       shareTargetWithAsterisms,
       unshareTargetWithAsterisms,
-
-      shareTargetWithObservations,
-      unshareTargetWithObservations,
 
       shareTargetWithPrograms,
       unshareTargetWithPrograms,

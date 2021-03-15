@@ -3,24 +3,12 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{ObservationModel, ProgramModel, TargetModel}
-import lucuma.core.model.{Observation, Program, Target}
+import lucuma.odb.api.model.{ProgramModel, TargetModel}
+import lucuma.core.model.{Program, Target}
 
 import munit.DisciplineSuite
 
 final class TargetRepoSpec extends DisciplineSuite with OdbRepoTest {
-
-  test("shareWithObservations") {
-
-    sharingTest[Target.Id, TargetModel, Observation.Id, ObservationModel] { odb => (
-        odb.target,
-        odb.observation,
-        odb.target.shareWithObservations,
-        odb.target.unshareWithObservations,
-        odb.observation.selectPageForTarget(_)
-    )}
-
-  }
 
   test("shareWithPrograms") {
 

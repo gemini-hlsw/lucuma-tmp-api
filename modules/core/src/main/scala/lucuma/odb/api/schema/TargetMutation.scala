@@ -188,7 +188,11 @@ trait TargetMutation extends TargetScalars {
       name      = "updateSiderealTarget",
       fieldType = TargetType[F],
       arguments = List(ArgumentTargetEditSidereal),
-      resolve   = c => c.target(_.edit(c.arg(ArgumentTargetEditSidereal)))
+      resolve   = c =>
+        c.target {
+          val e = c.arg(ArgumentTargetEditSidereal)
+          _.edit(e.id, e.editor)
+        }
     )
 
   def delete[F[_]: Effect]: Field[OdbRepo[F], Unit] =

@@ -190,12 +190,12 @@ object TargetModel extends TargetOptics {
     existence: Option[Existence],
     name:      Option[String],
     key:       Option[EphemerisKey],
-  ) extends Editor[Target.Id, TargetModel] {
+  ) {
 
-    override def id: Target.Id =
+    def id: Target.Id =
       targetId
 
-    override val editor: ValidatedInput[State[TargetModel, Unit]] =
+    val editor: ValidatedInput[State[TargetModel, Unit]] =
       (for {
         _ <- TargetModel.existence    := existence
         _ <- TargetModel.name         := name.flatMap(n => NonEmptyString.from(n).toOption)
@@ -230,9 +230,9 @@ object TargetModel extends TargetOptics {
     magnitudes:       Option[List[MagnitudeModel.Input]],
     modifyMagnitudes: Option[List[MagnitudeModel.Input]],
     deleteMagnitudes: Option[List[MagnitudeBand]]
-  ) extends Editor[Target.Id, TargetModel] {
+  ) {
 
-    override def id: Target.Id =
+    def id: Target.Id =
       targetId
 
     private def validateMags(
@@ -242,7 +242,7 @@ object TargetModel extends TargetOptics {
         SortedMap.from(lst.map(m => m.band -> m))
       })
 
-    override val editor: ValidatedInput[State[TargetModel, Unit]] =
+    val editor: ValidatedInput[State[TargetModel, Unit]] =
       (existence     .validateIsNotNull("existence"),
        name          .validateNotNullable("name")(n => ValidatedInput.nonEmptyString("name", n)),
        catalogId     .validateNullable(_.toCatalogId),
