@@ -5,6 +5,8 @@ package lucuma.odb.api.repo
 
 import lucuma.core.model.{Asterism, ConstraintSet, Observation, Target}
 import lucuma.odb.api.model.{ConstraintSetModel, InputError, ObservationModel, ProgramModel}
+import ObservationModel.EditPointing
+
 
 import cats.syntax.all._
 import clue.data.Input
@@ -136,6 +138,78 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
             asterismId = Input(Asterism.Id(one)),
             targetId   = Input(Target.Id(one))
           )
+        }
+      }
+      Prop.passed
+    }
+  }
+
+  private def runEditPointingTest(
+    t: Tables
+  )(
+    f: List[ObservationModel] => EditPointing
+  ): List[ObservationModel] =
+
+    runTest(t) { odb =>
+      for {
+        // Insert a program and observation to insure that at least one exists
+        p  <- odb.program.insert(new ProgramModel.Create(None, None))
+        _  <- odb.observation.insert(new ObservationModel.Create(None, p.id, None, None, None, None, None))
+
+        tʹ    <- odb.tables.get
+        before = tʹ.observations.values.toList
+
+        // Do the prescribed edit.
+        after <- odb.observation.editPointing(f(before))
+      } yield after
+    }
+
+  property("editPointing: assign asterism") {
+    forAll { (t: Tables) =>
+      val asterismOption = t.asterisms.values.headOption.map(_.id)
+
+      val edits = runEditPointingTest(t) { os =>
+        val oids = os.map(_.id)
+        asterismOption.fold(EditPointing.unassign(oids))(a => EditPointing.assignAsterism(oids, a))
+      }
+      edits.foreach { after =>
+        assertEquals(after.asterismId, asterismOption)
+      }
+    }
+  }
+
+  property("editPointing: assign target") {
+    forAll { (t: Tables) =>
+      val targetOption = t.targets.values.headOption.map(_.id)
+
+      val edits = runEditPointingTest(t) { os =>
+        val oids = os.map(_.id)
+        targetOption.fold(EditPointing.unassign(oids))(t => EditPointing.assignTarget(oids, t))
+      }
+      edits.foreach { after =>
+        assertEquals(after.targetId, targetOption)
+      }
+    }
+  }
+
+  property("editPointing: unassign") {
+    forAll { (t: Tables) =>
+      val edits = runEditPointingTest(t) { os =>
+        EditPointing.unassign(os.map(_.id))
+      }
+
+      edits.foreach { after =>
+        assertEquals(after.asterismId, None)
+        assertEquals(after.targetId, None)
+      }
+    }
+  }
+
+  property("editPointing: invalid") {
+    forAll { (t: Tables) =>
+      intercept[InputError.Exception] {
+        runEditPointingTest(t) { os =>
+          EditPointing(os.map(_.id), Some(Asterism.Id.fromLong(1L).get), Some(Target.Id.fromLong(1L).get))
         }
       }
       Prop.passed

@@ -292,8 +292,8 @@ object ObservationRepo {
           os <- doEdit(
               edit.observationIds,
               State.pure[ObservationModel, Unit](()),
-              e.fold(Input.unassign[Asterism.Id])(p => p.fold(aid => Input(aid), _ => Input.ignore[Asterism.Id])),
-              e.fold(Input.unassign[Target.Id])(p => p.fold(_ => Input.ignore[Target.Id], tid => Input(tid)))
+              e.fold(Input.unassign[Asterism.Id])(_.fold(aid => Input(aid), _ => Input.ignore[Asterism.Id])),
+              e.fold(Input.unassign[Target.Id])(_.fold(_ => Input.ignore[Target.Id], tid => Input(tid)))
             )
         } yield os
 

@@ -163,6 +163,15 @@ object ObservationModel extends ObservationOptics {
 
   object EditPointing {
 
+    def unassign(observationIds: List[Observation.Id]): EditPointing =
+      EditPointing(observationIds, None, None)
+
+    def assignAsterism(observationIds: List[Observation.Id], asterismId: Asterism.Id): EditPointing =
+      unassign(observationIds).copy(asterismId = Some(asterismId))
+
+    def assignTarget(observationIds: List[Observation.Id], targetId: Target.Id): EditPointing =
+      unassign(observationIds).copy(targetId = Some(targetId))
+
     implicit val DecoderEditPointing: Decoder[EditPointing] =
       deriveDecoder[EditPointing]
 
