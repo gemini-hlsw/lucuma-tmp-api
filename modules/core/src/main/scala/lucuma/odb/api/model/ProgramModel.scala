@@ -5,8 +5,11 @@ package lucuma.odb.api.model
 
 import lucuma.core.model.Program
 import cats.Eq
+import eu.timepit.refined.cats._
+import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.generic.semiauto._
+import io.circe.refined._
 import monocle.Lens
 
 
@@ -16,7 +19,7 @@ import monocle.Lens
 final case class ProgramModel(
   id:        Program.Id,
   existence: Existence,
-  name:      Option[String]
+  name:      Option[NonEmptyString]
 )
 
 object ProgramModel extends ProgramOptics {
@@ -32,7 +35,7 @@ object ProgramModel extends ProgramOptics {
    */
   final case class Create(
     programId: Option[Program.Id],
-    name:      Option[String]
+    name:      Option[NonEmptyString]
   )
 
   object Create {
@@ -67,7 +70,7 @@ trait ProgramOptics { self: ProgramModel.type =>
   val existence: Lens[ProgramModel, Existence] =
     Lens[ProgramModel, Existence](_.existence)(a => b => b.copy(existence = a))
 
-  val name: Lens[ProgramModel, Option[String]] =
-    Lens[ProgramModel, Option[String]](_.name)(a => b => b.copy(name = a))
+  val name: Lens[ProgramModel, Option[NonEmptyString]] =
+    Lens[ProgramModel, Option[NonEmptyString]](_.name)(a => b => b.copy(name = a))
 
 }

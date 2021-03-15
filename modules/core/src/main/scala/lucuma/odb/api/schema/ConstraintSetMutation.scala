@@ -16,7 +16,7 @@ import lucuma.odb.api.model.{AirmassRange, ElevationRangeModel, HourAngleRange}
 
 trait ConstraintSetMutation {
 
-  import GeneralSchema.EnumTypeExistence
+  import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
   import ConstraintSetSchema._
   import ProgramSchema.ProgramIdType
   import context._
@@ -57,7 +57,7 @@ trait ConstraintSetMutation {
       InputObjectTypeName("EditConstraintSetInput"),
       InputObjectTypeDescription("Edit constraint set"),
       ReplaceInputField("existence", EnumTypeExistence.notNullableField("existence")),
-      ReplaceInputField("name", StringType.notNullableField("name")),
+      ReplaceInputField("name", NonEmptyStringType.notNullableField("name")),
       ReplaceInputField("imageQuality", EnumTypeImageQuality.notNullableField("imageQuality")),
       ReplaceInputField("cloudExtinction",
                         EnumTypeCloudExtinction.notNullableField("cloudExtinction")

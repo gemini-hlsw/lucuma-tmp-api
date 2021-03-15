@@ -14,7 +14,7 @@ import sangria.schema._
 trait AsterismMutation extends TargetScalars {
 
   import AsterismSchema.{AsterismIdType, AsterismIdArgument, AsterismType}
-  import GeneralSchema.EnumTypeExistence
+  import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
   import ProgramSchema.ProgramIdType
   import TargetMutation.InputObjectTypeCoordinates
 
@@ -39,7 +39,7 @@ trait AsterismMutation extends TargetScalars {
       InputObjectTypeName("EditAsterismInput"),
       InputObjectTypeDescription("Asterism edit"),
         ReplaceInputField("existence",    EnumTypeExistence.notNullableField("existence")),
-        ReplaceInputField("name",         StringType.nullableField("name")),
+        ReplaceInputField("name",         NonEmptyStringType.nullableField("name")),
         ReplaceInputField("explicitBase", InputObjectTypeCoordinates.nullableField("explicitBase"))
     )
 

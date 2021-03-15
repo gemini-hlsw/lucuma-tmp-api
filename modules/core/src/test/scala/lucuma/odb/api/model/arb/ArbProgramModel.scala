@@ -6,6 +6,8 @@ package arb
 
 import lucuma.core.model.Program
 import lucuma.core.util.arb.{ArbEnumerated, ArbGid}
+import eu.timepit.refined.types.string.NonEmptyString
+import eu.timepit.refined.scalacheck.string._
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
@@ -20,7 +22,7 @@ trait ArbProgramModel {
       for {
         id <- arbitrary[Program.Id]
         ex <- arbitrary[Existence]
-        nm <- arbitrary[Option[String]]
+        nm <- arbitrary[Option[NonEmptyString]]
       } yield ProgramModel(id, ex, nm)
     }
 
@@ -32,14 +34,14 @@ trait ArbProgramModel {
     )].contramap { in => (
       in.id,
       in.existence,
-      in.name
+      in.name.map(_.value)
     )}
 
   implicit val arbProgramModelCreate: Arbitrary[ProgramModel.Create] =
     Arbitrary {
       for {
         id <- arbitrary[Option[Program.Id]]
-        nm <- arbitrary[Option[String]]
+        nm <- arbitrary[Option[NonEmptyString]]
       } yield ProgramModel.Create(id, nm)
     }
 
@@ -49,7 +51,7 @@ trait ArbProgramModel {
       Option[String]
     )].contramap { in => (
       in.programId,
-      in.name
+      in.name.map(_.value)
     )}
 }
 

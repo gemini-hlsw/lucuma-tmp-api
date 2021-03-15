@@ -11,7 +11,7 @@ import sangria.schema._
 
 object AsterismSchema {
 
-  import GeneralSchema.{EnumTypeExistence, ArgumentIncludeDeleted}
+  import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, NonEmptyStringType}
   import ObservationSchema.ObservationConnectionType
   import Paging._
   import ProgramSchema.{OptionalProgramIdArgument, ProgramConnectionType}
@@ -57,9 +57,9 @@ object AsterismSchema {
 
         Field(
           name        = "name",
-          fieldType   = OptionType(StringType),
+          fieldType   = OptionType(NonEmptyStringType),
           description = Some("Asterism name, if any."),
-          resolve     = _.value.name.map(_.value)
+          resolve     = _.value.name
         ),
 
         Field(

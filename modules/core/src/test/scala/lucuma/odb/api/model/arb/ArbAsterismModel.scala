@@ -12,6 +12,7 @@ import lucuma.core.util.arb.ArbEnumerated
 
 import clue.data.Input
 import eu.timepit.refined.types.all.NonEmptyString
+import eu.timepit.refined.scalacheck.string._
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
@@ -28,7 +29,7 @@ trait ArbAsterismModel {
       for {
         id <- arbitrary[Asterism.Id]
         ex <- arbitrary[Existence]
-        nm <- Gen.option(Gen.alphaNumStr.suchThat(!_.isEmpty).map(NonEmptyString.unsafeFrom))
+        nm <- arbitrary[Option[NonEmptyString]]
         eb <- arbitrary[Option[Coordinates]]
       } yield AsterismModel(id, ex, nm, eb)
     }
@@ -50,7 +51,7 @@ trait ArbAsterismModel {
     Arbitrary {
       for {
         id <- arbitrary[Option[Asterism.Id]]
-        nm <- Gen.option(Gen.alphaNumStr.suchThat(!_.isEmpty))
+        nm <- arbitrary[Option[NonEmptyString]]
         ps <- arbitrary[List[Program.Id]]
         eb <- arbitrary[Option[CoordinatesModel.Input]]
       } yield Create(
@@ -69,7 +70,7 @@ trait ArbAsterismModel {
       Option[CoordinatesModel.Input]
     )].contramap { in => (
       in.asterismId,
-      in.name,
+      in.name.map(_.value),
       in.programIds,
       in.explicitBase
     )}
@@ -79,7 +80,7 @@ trait ArbAsterismModel {
       for {
         id <- arbitrary[Asterism.Id]
         ex <- arbNotNullableInput[Existence].arbitrary
-        nm <- arbitrary[Input[String]]
+        nm <- arbitrary[Input[NonEmptyString]]
         eb <- arbitrary[Input[CoordinatesModel.Input]]
       } yield Edit(
         id,
@@ -98,7 +99,7 @@ trait ArbAsterismModel {
     )].contramap { in => (
       in.asterismId,
       in.existence,
-      in.name,
+      in.name.map(_.value),
       in.explicitBase
     )}
 

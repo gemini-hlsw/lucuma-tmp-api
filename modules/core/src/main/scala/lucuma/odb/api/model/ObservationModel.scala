@@ -16,6 +16,7 @@ import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string._
 import io.circe.Decoder
 import io.circe.generic.semiauto._
+import io.circe.refined._
 import monocle.{Lens, Optional}
 
 
@@ -50,7 +51,7 @@ object ObservationModel extends ObservationOptics {
   final case class Create(
     observationId: Option[Observation.Id],
     programId:     Program.Id,
-    name:          Option[String],
+    name:          Option[NonEmptyString],
     asterismId:    Option[Asterism.Id],
     targetId:      Option[Target.Id],
     status:        Option[ObsStatus],
@@ -59,15 +60,14 @@ object ObservationModel extends ObservationOptics {
 
     def withId(s: PlannedTimeSummaryModel): ValidatedInput[Observation.Id => ObservationModel] =
       (
-        name.traverse(ValidatedInput.nonEmptyString("name", _)),
         ValidatedInput.optionEither("asterismId", "targetId", asterismId.map(_.validNec), targetId.map(_.validNec)),
         config.traverse(_.create)
-      ).mapN { (n, t, c) => oid =>
+      ).mapN { (t, c) => oid =>
         ObservationModel(
           oid,
           Present,
           programId,
-          n,
+          name,
           status.getOrElse(ObsStatus.New),
           t,
           s,
@@ -96,11 +96,11 @@ object ObservationModel extends ObservationOptics {
 
   final case class Edit(
     observationId: Observation.Id,
-    existence:     Input[Existence]   = Input.ignore,
-    name:          Input[String]      = Input.ignore,
-    status:        Input[ObsStatus]   = Input.ignore,
-    asterismId:    Input[Asterism.Id] = Input.ignore,
-    targetId:      Input[Target.Id]   = Input.ignore
+    existence:     Input[Existence]      = Input.ignore,
+    name:          Input[NonEmptyString] = Input.ignore,
+    status:        Input[ObsStatus]      = Input.ignore,
+    asterismId:    Input[Asterism.Id]    = Input.ignore,
+    targetId:      Input[Target.Id]      = Input.ignore
   ) {
 
     def id: Observation.Id =
@@ -114,12 +114,11 @@ object ObservationModel extends ObservationOptics {
 
     def editor: ValidatedInput[State[ObservationModel, Unit]] =
       (existence.validateIsNotNull("existence"),
-       name     .validateNullable(n => ValidatedInput.nonEmptyString("name", n)),
        status   .validateIsNotNull("status")
-      ).mapN { (e, n, s) =>
+      ).mapN { (e, s) =>
         for {
           _ <- ObservationModel.existence  := e
-          _ <- ObservationModel.name       := n
+          _ <- ObservationModel.name       := name.toOptionOption
           _ <- ObservationModel.status     := s
         } yield ()
       }

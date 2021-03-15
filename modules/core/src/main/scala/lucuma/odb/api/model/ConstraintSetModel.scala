@@ -10,6 +10,7 @@ import clue.data.Input
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.generic.semiauto._
+import io.circe.refined._
 import lucuma.core.enum._
 import lucuma.core.model.{ ConstraintSet, Program }
 import lucuma.core.optics.syntax.lens._
@@ -40,7 +41,7 @@ object ConstraintSetModel extends ConstraintSetModelOptics {
   final case class Create(
     constraintSetId: Option[ConstraintSet.Id],
     programId:       Program.Id,
-    name:            String,
+    name:            NonEmptyString,
     imageQuality:    ImageQuality,
     cloudExtinction: CloudExtinction,
     skyBackground:   SkyBackground,
@@ -49,11 +50,11 @@ object ConstraintSetModel extends ConstraintSetModelOptics {
   ) {
 
     def withId: ValidatedInput[ConstraintSet.Id => ConstraintSetModel] =
-      (ValidatedInput.nonEmptyString("name", name), elevationRange.create).mapN { (n, er) => csid =>
+      elevationRange.create.map { er => csid =>
         ConstraintSetModel(csid,
                            Present,
                            programId,
-                           n,
+                           name,
                            imageQuality,
                            cloudExtinction,
                            skyBackground,
@@ -73,7 +74,7 @@ object ConstraintSetModel extends ConstraintSetModelOptics {
   final case class Edit(
     constraintSetId: ConstraintSet.Id,
     existence:       Input[Existence] = Input.ignore,
-    name:            Input[String] = Input.ignore,
+    name:            Input[NonEmptyString] = Input.ignore,
     imageQuality:    Input[ImageQuality] = Input.ignore,
     cloudExtinction: Input[CloudExtinction] = Input.ignore,
     skyBackground:   Input[SkyBackground] = Input.ignore,
@@ -85,7 +86,7 @@ object ConstraintSetModel extends ConstraintSetModelOptics {
 
     def editor: ValidatedInput[State[ConstraintSetModel, Unit]] =
       (existence.validateIsNotNull("existence"),
-       name.validateNotNullable("name")(n => ValidatedInput.nonEmptyString("name", n)),
+       name.validateIsNotNull("name"),
        imageQuality.validateIsNotNull("imageQuality"),
        cloudExtinction.validateIsNotNull("cloudExtinction"),
        skyBackground.validateIsNotNull("skyBackground"),

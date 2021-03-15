@@ -3,8 +3,8 @@
 
 package lucuma.odb.api.model
 
-import cats.Eq
 import lucuma.odb.api.model.json.targetmath._
+
 import lucuma.core.`enum`.{EphemerisKeyType, MagnitudeBand}
 import lucuma.core.math.{Coordinates, Declination, Epoch, Parallax, ProperMotion, RadialVelocity, RightAscension}
 import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, Program, SiderealTracking, Target}
@@ -12,12 +12,15 @@ import lucuma.core.optics.syntax.lens._
 import lucuma.core.optics.syntax.optional._
 import lucuma.odb.api.model.syntax.input._
 
+import cats.Eq
 import cats.data._
 import cats.implicits._
 import clue.data.Input
+import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string._
 import io.circe.Decoder
 import io.circe.generic.semiauto._
+import io.circe.refined._
 import monocle.{Lens, Optional}
 import monocle.state.all._
 
@@ -70,7 +73,7 @@ object TargetModel extends TargetOptics {
   final case class CreateNonsidereal(
     targetId:   Option[Target.Id],
     programIds: Option[List[Program.Id]],
-    name:       String,
+    name:       NonEmptyString,
     key:        EphemerisKeyType,
     des:        String,
     magnitudes: Option[List[MagnitudeModel.Input]]
@@ -80,11 +83,10 @@ object TargetModel extends TargetOptics {
       parse.ephemerisKey("des", key, des)
 
     val toGemTarget: ValidatedInput[Target] = {
-      (ValidatedInput.nonEmptyString("name", name),
-       toEphemerisKey,
+      (toEphemerisKey,
        magnitudes.toList.flatten.traverse(_.toMagnitude)
-      ).mapN { (n, k, ms) =>
-        Target(n, Left(k), SortedMap.from(ms.map(m => m.band -> m)))
+      ).mapN { (k, ms) =>
+        Target(name, Left(k), SortedMap.from(ms.map(m => m.band -> m)))
       }
     }
   }
@@ -124,7 +126,7 @@ object TargetModel extends TargetOptics {
   final case class CreateSidereal(
     targetId:       Option[Target.Id],
     programIds:     Option[List[Program.Id]],
-    name:           String,
+    name:           NonEmptyString,
     catalogId:      Option[CatalogIdModel.Input],
     ra:             RightAscensionModel.Input,
     dec:            DeclinationModel.Input,
@@ -154,16 +156,34 @@ object TargetModel extends TargetOptics {
       }
 
     val toGemTarget: ValidatedInput[Target] =
-      (ValidatedInput.nonEmptyString("name", name),
-       toSiderealTracking,
+      (toSiderealTracking,
        magnitudes.toList.flatten.traverse(_.toMagnitude)
-      ).mapN { (n, pm, ms) =>
-        Target(n, Right(pm), SortedMap.from(ms.map(m => m.band -> m)))
+      ).mapN { (pm, ms) =>
+        Target(name, Right(pm), SortedMap.from(ms.map(m => m.band -> m)))
       }
 
   }
 
   object CreateSidereal {
+
+    def fromRaDec(
+      name: NonEmptyString,
+      ra:   RightAscensionModel.Input,
+      dec:  DeclinationModel.Input
+    ): CreateSidereal =
+      CreateSidereal(
+        targetId       = None,
+        programIds     = None,
+        name           = name,
+        catalogId      = None,
+        ra             = ra,
+        dec            = dec,
+        epoch          = None,
+        properMotion   = None,
+        radialVelocity = None,
+        parallax       = None,
+        magnitudes     = None
+      )
 
     implicit val DecoderCreateSidereal: Decoder[CreateSidereal] =
       deriveDecoder[CreateSidereal]
@@ -188,7 +208,7 @@ object TargetModel extends TargetOptics {
   final case class EditNonsidereal(
     targetId:  Target.Id,
     existence: Option[Existence],
-    name:      Option[String],
+    name:      Option[NonEmptyString],
     key:       Option[EphemerisKey],
   ) {
 
@@ -198,7 +218,7 @@ object TargetModel extends TargetOptics {
     val editor: ValidatedInput[State[TargetModel, Unit]] =
       (for {
         _ <- TargetModel.existence    := existence
-        _ <- TargetModel.name         := name.flatMap(n => NonEmptyString.from(n).toOption)
+        _ <- TargetModel.name         := name
         _ <- TargetModel.ephemerisKey := key
       } yield ()).validNec
 
@@ -219,7 +239,7 @@ object TargetModel extends TargetOptics {
   final case class EditSidereal(
     targetId:         Target.Id,
     existence:        Input[Existence]                 = Input.ignore,
-    name:             Input[String]                    = Input.ignore,
+    name:             Input[NonEmptyString]            = Input.ignore,
     catalogId:        Input[CatalogIdModel.Input]      = Input.ignore,
     ra:               Input[RightAscensionModel.Input] = Input.ignore,
     dec:              Input[DeclinationModel.Input]    = Input.ignore,
@@ -244,7 +264,7 @@ object TargetModel extends TargetOptics {
 
     val editor: ValidatedInput[State[TargetModel, Unit]] =
       (existence     .validateIsNotNull("existence"),
-       name          .validateNotNullable("name")(n => ValidatedInput.nonEmptyString("name", n)),
+       name          .validateIsNotNull("name"),
        catalogId     .validateNullable(_.toCatalogId),
        ra            .validateNotNullable("ra")(_.toRightAscension),
        dec           .validateNotNullable("dec")(_.toDeclination),
