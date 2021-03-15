@@ -13,7 +13,7 @@ import lucuma.odb.api.model.ConstraintSetModel
 import sangria.schema._
 
 object ConstraintSetSchema {
-  import GeneralSchema.{ ArgumentIncludeDeleted, EnumTypeExistence}
+  import GeneralSchema.{ ArgumentIncludeDeleted, EnumTypeExistence, NonEmptyStringType }
   import ObservationSchema.ObservationConnectionType
   import Paging._
   import ProgramSchema.ProgramType
@@ -122,9 +122,9 @@ object ConstraintSetSchema {
           ),
           Field(
             name        = "name",
-            fieldType   = StringType,
+            fieldType   = NonEmptyStringType,
             description = Some("Constraint set name"),
-            resolve     = _.value.name.value
+            resolve     = _.value.name
           ),
           Field(
             name        = "imageQuality",
@@ -177,7 +177,7 @@ object ConstraintSetSchema {
               ArgumentPagingCursor,
               ArgumentIncludeDeleted
             ),
-            resolve     = c => 
+            resolve     = c =>
               unsafeSelectPageFuture(c.pagingObservationId) { gid =>
                 c.ctx.observation.selectPageForConstraintSet(c.value.id, c.pagingFirst, gid, c.includeDeleted)
               }
@@ -185,10 +185,10 @@ object ConstraintSetSchema {
         )
     )
 
-    def ConstraintSetEdgeType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Edge[ConstraintSetModel]] = 
+    def ConstraintSetEdgeType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Edge[ConstraintSetModel]] =
       Paging.EdgeType(
-        "ContraintSetEdge", 
-        "A Constraint Set and its cursor", 
+        "ContraintSetEdge",
+        "A Constraint Set and its cursor",
         ConstraintSetType[F]
       )
 

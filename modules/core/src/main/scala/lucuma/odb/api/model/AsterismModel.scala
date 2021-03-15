@@ -16,6 +16,7 @@ import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string._
 import io.circe.Decoder
 import io.circe.generic.semiauto._
+import io.circe.refined._
 import monocle.Lens
 
 final case class AsterismModel(
@@ -39,15 +40,15 @@ object AsterismModel extends AsterismOptics {
 
   final case class Create(
     asterismId:   Option[Asterism.Id],
-    name:         Option[String],
+    name:         Option[NonEmptyString],
     programIds:   List[Program.Id],
     explicitBase: Option[CoordinatesModel.Input]
   ) {
 
     def withId: ValidatedInput[Asterism.Id => AsterismModel] =
-      (name.traverse(ValidatedInput.nonEmptyString("name", _)),
-       explicitBase.traverse(_.toCoordinates)
-      ).mapN((n, b) => aid => AsterismModel(aid, Present, n, b))
+      explicitBase
+        .traverse(_.toCoordinates)
+        .map(b => aid => AsterismModel(aid, Present, name, b))
 
   }
 
@@ -69,7 +70,7 @@ object AsterismModel extends AsterismOptics {
   final case class Edit(
     asterismId:   Asterism.Id,
     existence:    Input[Existence]              = Input.ignore,
-    name:         Input[String]                 = Input.ignore,
+    name:         Input[NonEmptyString]         = Input.ignore,
     explicitBase: Input[CoordinatesModel.Input] = Input.ignore
   ) {
 
@@ -78,12 +79,11 @@ object AsterismModel extends AsterismOptics {
 
     def editor: ValidatedInput[State[AsterismModel, Unit]] = {
       (existence   .validateIsNotNull("existence"),
-       name        .validateNullable(n => ValidatedInput.nonEmptyString("name", n)),
        explicitBase.validateNullable(_.toCoordinates)
-      ).mapN { (e, n, b) =>
+      ).mapN { (e, b) =>
         for {
           _ <- AsterismModel.existence    := e
-          _ <- AsterismModel.name         := n
+          _ <- AsterismModel.name         := name.toOptionOption
           _ <- AsterismModel.explicitBase := b
         } yield ()
       }

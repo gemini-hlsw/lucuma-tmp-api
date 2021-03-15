@@ -67,7 +67,7 @@ trait ArbConstraintSetModel {
       for {
         id   <- arbitrary[Option[ConstraintSet.Id]]
         pid  <- arbitrary[Program.Id]
-        name <- arbitrary[String]
+        name <- arbitrary[NonEmptyString]
         iq   <- arbitrary[ImageQuality]
         ce   <- arbitrary[CloudExtinction]
         sb   <- arbitrary[SkyBackground]
@@ -91,7 +91,7 @@ trait ArbConstraintSetModel {
     ].contramap(cs =>
       (cs.constraintSetId,
        cs.programId,
-       cs.name,
+       cs.name.value,
        cs.imageQuality,
        cs.cloudExtinction,
        cs.skyBackground,
@@ -105,7 +105,7 @@ trait ArbConstraintSetModel {
       for {
         csid <- arbitrary[ConstraintSet.Id]
         ex   <- arbitrary[Input[Existence]]
-        n    <- arbitrary[Input[String]]
+        n    <- arbitrary[Input[NonEmptyString]]
         iq   <- arbitrary[Input[ImageQuality]]
         c    <- arbitrary[Input[CloudExtinction]]
         sb   <- arbitrary[Input[SkyBackground]]
@@ -129,7 +129,7 @@ trait ArbConstraintSetModel {
     ].contramap(cse =>
       (cse.constraintSetId,
        cse.existence,
-       cse.name,
+       cse.name.map(_.value),
        cse.imageQuality,
        cse.cloudExtinction,
        cse.skyBackground,
