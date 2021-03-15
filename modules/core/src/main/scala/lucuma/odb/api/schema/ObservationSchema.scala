@@ -18,7 +18,7 @@ object ObservationSchema {
 
   import AsterismSchema.AsterismType
   import ConstraintSetSchema.ConstraintSetType
-  import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, PlannedTimeSummaryType}
+  import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, NonEmptyStringType, PlannedTimeSummaryType}
   import ProgramSchema.ProgramType
   import TargetSchema.TargetType
 
@@ -76,9 +76,9 @@ object ObservationSchema {
 
         Field(
           name        = "name",
-          fieldType   = OptionType(StringType),
+          fieldType   = OptionType(NonEmptyStringType),
           description = Some("Observation name"),
-          resolve     = _.value.name.map(_.value)
+          resolve     = _.value.name
         ),
 
         Field(

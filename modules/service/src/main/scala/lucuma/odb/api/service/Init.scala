@@ -3,16 +3,18 @@
 
 package lucuma.odb.api.service
 
-import cats.Applicative
-import cats.data.State
 import lucuma.odb.api.model._
 import lucuma.odb.api.model.SequenceModel._
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.`enum`._
 import lucuma.core.optics.syntax.all._
 import lucuma.core.math.syntax.int._
+
+import cats.Applicative
+import cats.data.State
 import cats.effect.Sync
 import cats.syntax.all._
+import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.parser.decode
 import lucuma.core.model.Program
 import lucuma.odb.api.model.OffsetModel.ComponentInput
@@ -280,7 +282,7 @@ object Init {
     ObservationModel.Create(
       observationId = None,
       programId     = pid,
-      name          = target.map(_.target.name.value) orElse Some("Observation"),
+      name          = target.map(_.target.name) orElse NonEmptyString.from("Observation").toOption,
       asterismId    = None,
       targetId      = target.map(_.id),
       status        = Some(ObsStatus.New),

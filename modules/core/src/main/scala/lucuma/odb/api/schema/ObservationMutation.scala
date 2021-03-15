@@ -14,7 +14,7 @@ import sangria.schema._
 trait ObservationMutation {
 
   import AsterismSchema.AsterismIdType
-  import GeneralSchema.EnumTypeExistence
+  import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
   import ObservationSchema.{ObservationIdType, ObservationIdArgument, ObsStatusType, ObservationType}
   import ProgramSchema.ProgramIdType
   import TargetSchema.TargetIdType
@@ -39,7 +39,7 @@ trait ObservationMutation {
       InputObjectTypeName("EditObservationInput"),
       InputObjectTypeDescription("Edit observation"),
       ReplaceInputField("existence",  EnumTypeExistence.notNullableField("existence")),
-      ReplaceInputField("name",       StringType.nullableField("name")),
+      ReplaceInputField("name",       NonEmptyStringType.nullableField("name")),
       ReplaceInputField("status",     ObsStatusType.notNullableField("status")),
       ReplaceInputField("asterismId", AsterismIdType.nullableField("asterismId")),
       ReplaceInputField("targetId",   TargetIdType.nullableField("targetId"))
