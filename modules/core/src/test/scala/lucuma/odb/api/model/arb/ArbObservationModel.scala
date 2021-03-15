@@ -66,7 +66,7 @@ trait ArbObservationModel {
       } yield ObservationModel.Create(
         id,
         pd,
-        nm.map(_.value),
+        nm,
         ts.flatMap(_.swap.toOption),
         ts.flatMap(_.toOption),
         st,
@@ -84,7 +84,7 @@ trait ArbObservationModel {
     )].contramap { in => (
       in.observationId,
       in.programId,
-      in.name,
+      in.name.map(_.value),
       in.asterismId,
       in.targetId,
     )}

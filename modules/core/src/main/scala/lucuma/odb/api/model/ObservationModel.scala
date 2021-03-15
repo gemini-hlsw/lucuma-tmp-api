@@ -18,7 +18,6 @@ import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
 import monocle.{Lens, Optional}
-import monocle.state.all._
 
 
 final case class ObservationModel(

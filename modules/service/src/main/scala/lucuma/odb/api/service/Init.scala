@@ -307,13 +307,13 @@ object Init {
       p  <- repo.program.insert(
               ProgramModel.Create(
                 None,
-                Some("The real dark matter was the friends we made along the way")
+                NonEmptyString.from("The real dark matter was the friends we made along the way").toOption
               )
             )
       _  <- repo.program.insert(
               ProgramModel.Create(
                 None,
-                Some("An Empty Placeholder Program")
+                NonEmptyString.from("An Empty Placeholder Program").toOption
               )
             )
       cs <- targets.liftTo[F]

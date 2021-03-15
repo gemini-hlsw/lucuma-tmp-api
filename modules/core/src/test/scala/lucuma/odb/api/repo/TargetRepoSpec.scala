@@ -3,10 +3,10 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{DeclinationModel, ObservationModel, ProgramModel, RightAscensionModel, TargetModel}
+import lucuma.odb.api.model.{DeclinationModel, ProgramModel, RightAscensionModel, TargetModel}
 import lucuma.odb.api.model.arb._
 import lucuma.odb.api.repo.arb._
-import lucuma.core.model.{Observation, Program, Target}
+import lucuma.core.model.{Program, Target}
 
 import cats.syntax.all._
 import clue.data.Input
@@ -59,7 +59,7 @@ final class TargetRepoSpec extends ScalaCheckSuite with OdbRepoTest {
           TargetModel.EditSidereal(t.id, name = Input(name), magnitudes = None, modifyMagnitudes = None, deleteMagnitudes = None)
         }
 
-        edit.traverse(odb.target.edit)
+        edit.traverse(e => odb.target.edit(e.id, e.editor))
       }
 
       assert(target.forall(_.target.name == name))

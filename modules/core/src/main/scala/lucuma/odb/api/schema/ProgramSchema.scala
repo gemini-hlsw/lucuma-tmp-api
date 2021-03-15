@@ -14,7 +14,7 @@ import sangria.schema._
 object ProgramSchema {
 
   import AsterismSchema.AsterismConnectionType
-  import GeneralSchema.{EnumTypeExistence, ArgumentIncludeDeleted, PlannedTimeSummaryType}
+  import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, NonEmptyStringType, PlannedTimeSummaryType}
   import ObservationSchema.ObservationConnectionType
   import Paging._
   import TargetSchema.TargetConnectionType
@@ -58,7 +58,7 @@ object ProgramSchema {
 
         Field(
           name        = "name",
-          fieldType   = OptionType(StringType),
+          fieldType   = OptionType(NonEmptyStringType),
           description = Some("Program name"),
           resolve     = _.value.name
         ),
