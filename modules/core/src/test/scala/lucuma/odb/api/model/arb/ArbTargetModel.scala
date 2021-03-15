@@ -13,6 +13,8 @@ import lucuma.core.math.arb.ArbEpoch
 import lucuma.core.util.arb.ArbEnumerated
 
 import clue.data.Input
+import eu.timepit.refined.types.string.NonEmptyString
+import eu.timepit.refined.scalacheck.string._
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
@@ -38,7 +40,7 @@ trait ArbTargetModel {
       for {
         id    <- arbitrary[Option[Target.Id]]
         pids  <- arbitrary[Option[List[Program.Id]]]
-        name  <- Gen.alphaNumStr.suchThat(!_.isEmpty)
+        name  <- arbitrary[NonEmptyString]
         cat   <- arbitrary[Option[CatalogIdModel.Input]]
         ra    <- arbitrary[RightAscensionModel.Input]
         dec   <- arbitrary[DeclinationModel.Input]
@@ -78,7 +80,7 @@ trait ArbTargetModel {
     )].contramap { in => (
       in.targetId,
       in.programIds,
-      in.name,
+      in.name.value,
       in.catalogId,
       in.ra,
       in.dec,
@@ -94,16 +96,16 @@ trait ArbTargetModel {
       for {
         id   <- arbitrary[Option[Target.Id]]
         pids <- arbitrary[Option[List[Program.Id]]]
-        name <- Gen.alphaNumStr.suchThat(!_.isEmpty)
+        name <- arbitrary[NonEmptyString]
         key  <- arbitrary[EphemerisKeyType]
-        des  <- Gen.alphaNumStr.suchThat(!_.isEmpty)
+        des  <- arbitrary[NonEmptyString]
         mags <- arbitrary[Option[List[MagnitudeModel.Input]]]
       } yield CreateNonsidereal(
         id,
         pids,
         name,
         key,
-        des,
+        des.value,
         mags
       )
     }
@@ -117,7 +119,7 @@ trait ArbTargetModel {
       String,
       Option[List[MagnitudeModel.Input]]
     )].contramap { in => (
-      (in.targetId, in.programIds, in.name, in.key, in.des, in.magnitudes)
+      in.targetId, in.programIds, in.name.value, in.key, in.des, in.magnitudes
     )}
 
   implicit val arbEditSidereal: Arbitrary[EditSidereal] =
@@ -125,7 +127,7 @@ trait ArbTargetModel {
       for {
         id    <- arbitrary[Target.Id]
         ex    <- arbNotNullableInput[Existence].arbitrary
-        name  <- arbNotNullableInput[String](Arbitrary(Gen.nonEmptyListOf(Gen.alphaNumChar).map(_.mkString))).arbitrary
+        name  <- arbNotNullableInput[NonEmptyString].arbitrary
         cat   <- arbitrary[Input[CatalogIdModel.Input]]
         ra    <- arbNotNullableInput[RightAscensionModel.Input].arbitrary
         dec   <- arbNotNullableInput[DeclinationModel.Input].arbitrary
@@ -168,7 +170,7 @@ trait ArbTargetModel {
     )].contramap { in => (
       in.targetId,
       in.existence,
-      in.name,
+      in.name.map(_.value),
       in.catalogId,
       in.ra,
       in.dec,
@@ -183,7 +185,7 @@ trait ArbTargetModel {
       for {
         id   <- arbitrary[Target.Id]
         ex   <- arbitrary[Option[Existence]]
-        name <- Gen.option(Gen.alphaNumStr.suchThat(!_.isEmpty))
+        name <- arbitrary[Option[NonEmptyString]]
         key  <- arbitrary[Option[EphemerisKey]]
       } yield EditNonsidereal(
         id,
@@ -200,7 +202,7 @@ trait ArbTargetModel {
       Option[String],
       Option[EphemerisKey]
     )].contramap { in => (
-      (in.targetId, in.existence, in.name, in.key)
+      in.targetId, in.existence, in.name.map(_.value), in.key
     )}
 
   implicit val arbTargetModel: Arbitrary[TargetModel] =

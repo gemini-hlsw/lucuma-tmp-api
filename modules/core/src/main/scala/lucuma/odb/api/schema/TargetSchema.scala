@@ -15,7 +15,7 @@ import sangria.schema._
 object TargetSchema extends TargetScalars {
 
   import AsterismSchema.AsterismConnectionType
-  import GeneralSchema.{EnumTypeExistence, ArgumentIncludeDeleted}
+  import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, NonEmptyStringType}
   import ObservationSchema.ObservationConnectionType
   import Paging._
   import ProgramSchema.{OptionalProgramIdArgument, ProgramConnectionType}
@@ -444,9 +444,9 @@ object TargetSchema extends TargetScalars {
 
         Field(
           name        = "name",
-          fieldType   = StringType,
+          fieldType   = NonEmptyStringType,
           description = Some("Target name."),
-          resolve     = _.value.target.name.value
+          resolve     = _.value.target.name
         ),
 
         Field(

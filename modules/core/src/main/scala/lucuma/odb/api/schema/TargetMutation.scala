@@ -12,9 +12,10 @@ import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
 
+
 trait TargetMutation extends TargetScalars {
 
-  import GeneralSchema.EnumTypeExistence
+  import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
   import NumericUnitsSchema._
   import ProgramSchema.ProgramIdType
   import TargetSchema.{EnumTypeCatalogName, EphemerisKeyType, EnumTypeMagnitudeBand, EnumTypeMagnitudeSystem, TargetIdArgument, TargetIdType, TargetType}
