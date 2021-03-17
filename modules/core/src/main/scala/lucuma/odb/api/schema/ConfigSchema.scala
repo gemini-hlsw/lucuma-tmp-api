@@ -14,7 +14,7 @@ import sangria.schema._
 object ConfigSchema {
 
   import GmosSchema._
-  import InstrumentSequenceSchema._
+  import SequenceSchema._
   import syntax.`enum`._
 
   implicit val EnumTypeInstrument: EnumType[Instrument] =
@@ -46,7 +46,7 @@ object ConfigSchema {
     )
 
   def GmosNorthSequenceType[F[_]: Effect]: ObjectType[OdbRepo[F], Sequence[GmosModel.NorthStatic, GmosModel.NorthDynamic]] =
-    InstrumentSequenceType(
+    SequenceType(
       "GmosNorth",
       "Instrument sequence",
       GmosNorthStaticConfigType[F],
@@ -71,7 +71,7 @@ object ConfigSchema {
     )
 
   def GmosSouthSequenceType[F[_]: Effect]: ObjectType[OdbRepo[F], Sequence[GmosModel.SouthStatic, GmosModel.SouthDynamic]] =
-    InstrumentSequenceType(
+    SequenceType(
       "GmosSouth",
       "Instrument sequence",
       GmosSouthStaticConfigType[F],
