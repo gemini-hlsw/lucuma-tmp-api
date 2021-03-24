@@ -4,11 +4,11 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.duration.NonNegativeFiniteDuration
-import lucuma.odb.api.model.SequenceModel
+import lucuma.odb.api.model.{SequenceModel, StepTimeModel}
+import lucuma.odb.api.model.SequenceModel.Sequence
 import lucuma.odb.api.model.StepTimeModel.{CategorizedTime, Category}
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
-import lucuma.odb.api.model.SequenceModel.Sequence
 import sangria.schema._
 
 
@@ -79,6 +79,13 @@ object SequenceSchema {
           fieldType   = StepType[F, D](typePrefix, dynamicType),
           description = Some("The sequence step itself"),
           resolve     = _.value.step
+        ),
+
+        Field(
+          name        = "time",
+          fieldType   = StepTimeType[F],
+          description = Some("Time estimate for this step's execution"),
+          resolve     = c => StepTimeModel.estimate(c.value.step)
         )
       )
     )
@@ -97,6 +104,13 @@ object SequenceSchema {
           fieldType   = ListType(BreakpointStepType[F, D](typePrefix, dynamicType)),
           description = Some("Individual steps that comprise the atom"),
           resolve     = _.value.steps.toList
+        ),
+
+        Field(
+          name        = "time",
+          fieldType   = StepTimeType[F],
+          description = Some("Time estimate for this atom's execution, the sum of each step's time."),
+          resolve     = c => (CategorizedTime.Zero :: c.value.steps.map(s => StepTimeModel.estimate(s.step))).reduce
         )
       )
     )

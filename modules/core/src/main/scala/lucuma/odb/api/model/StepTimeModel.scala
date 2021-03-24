@@ -9,7 +9,7 @@ import cats.syntax.all._
 
 import java.util.concurrent.TimeUnit
 
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
 
 object StepTimeModel {
 
@@ -85,6 +85,36 @@ object StepTimeModel {
     implicit val SemigroupCategorizedTime: Semigroup[CategorizedTime] =
       Semigroup.instance[CategorizedTime](_ + _)
 
+  }
+
+  /**
+   * Provides placeholder time estimate for the given step until an accurate
+   * version can be implemented.
+   */
+  def estimate[D](s: StepModel[D]): CategorizedTime = {
+
+    def forExposure(exposure: FiniteDuration): CategorizedTime =
+      CategorizedTime(
+        configChange = NonNegativeFiniteDuration.unsafeFrom(7.seconds),
+        exposure     = NonNegativeFiniteDuration.unsafeFrom(if (exposure.length >= 0) exposure else FiniteDuration(0L, TimeUnit.SECONDS)),
+        readout      = NonNegativeFiniteDuration.unsafeFrom(71400.milliseconds),
+        write        = NonNegativeFiniteDuration.unsafeFrom(10.seconds)
+      )
+
+    def forDynamicConfig(d: D): CategorizedTime =
+      d match {
+        case g: GmosModel.NorthDynamic => forExposure(g.exposure)
+        case g: GmosModel.SouthDynamic => forExposure(g.exposure)
+        case _                         => CategorizedTime.Zero
+      }
+
+    s match {
+      case StepModel.Bias(a)          => forDynamicConfig(a)
+      case StepModel.Dark(a)          => forDynamicConfig(a)
+      case StepModel.Gcal(_, g)       => forExposure(g.exposureTime)
+      case StepModel.Science(a, _)    => forDynamicConfig(a)
+
+    }
   }
 
 }

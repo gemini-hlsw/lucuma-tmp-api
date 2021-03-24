@@ -11,7 +11,7 @@ import eu.timepit.refined.numeric.{GreaterEqual, Less, NonNegative}
 import lucuma.odb.api.model.duration.NonNegativeFiniteDuration.unsafeFrom
 import shapeless.Nat._0
 
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{FiniteDuration, TimeUnit}
 
 object duration {
 
@@ -24,7 +24,12 @@ object duration {
 
   type NonNegativeFiniteDuration = FiniteDuration Refined NonNegative
 
-  object NonNegativeFiniteDuration extends RefinedTypeOps[NonNegativeFiniteDuration, FiniteDuration]
+  object NonNegativeFiniteDuration extends RefinedTypeOps[NonNegativeFiniteDuration, FiniteDuration] {
+
+    def zero(unit: TimeUnit): NonNegativeFiniteDuration =
+      unsafeFrom(FiniteDuration(0L, unit))
+
+  }
 
   // FiniteDuration seems very monoidy but the presence of the TimeUnit spoils it.
   implicit val nonNegFiniteDurationSemigroup: Semigroup[NonNegativeFiniteDuration] =
