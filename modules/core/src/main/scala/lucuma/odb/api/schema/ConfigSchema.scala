@@ -4,7 +4,6 @@
 package lucuma.odb.api.schema
 
 import lucuma.core.`enum`.Instrument
-import lucuma.odb.api.model.{ConfigModel, GmosModel}
 import lucuma.odb.api.model.SequenceModel._
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
@@ -23,11 +22,11 @@ object ConfigSchema {
       "Instrument"
     )
 
-  def ConfigType[F[_]: Effect]: InterfaceType[OdbRepo[F], ConfigModel] =
-    InterfaceType[OdbRepo[F], ConfigModel](
+  def ConfigType[F[_]: Effect]: InterfaceType[OdbRepo[F], InstrumentConfig] =
+    InterfaceType[OdbRepo[F], InstrumentConfig](
       name        = "Config",
       description = "Instrument configuration",
-      fields[OdbRepo[F], ConfigModel](
+      fields[OdbRepo[F], InstrumentConfig](
 
         Field(
           name        = "instrument",
@@ -45,54 +44,30 @@ object ConfigSchema {
       GmosSouthConfigType[F]
     )
 
-  def GmosNorthSequenceType[F[_]: Effect]: ObjectType[OdbRepo[F], Sequence[GmosModel.NorthStatic, GmosModel.NorthDynamic]] =
-    SequenceType(
-      "GmosNorth",
-      "Instrument sequence",
-      GmosNorthStaticConfigType[F],
-      GmosNorthDynamicType[F]
-    )
-
-  def GmosNorthConfigType[F[_]: Effect]: ObjectType[OdbRepo[F], ConfigModel.GmosNorth] =
+  def GmosNorthConfigType[F[_]: Effect]: ObjectType[OdbRepo[F], InstrumentConfig.GmosNorth] =
     ObjectType(
       name        = "GmosNorthConfig",
       description = "GMOS North Configuration",
-      interfaces  = List(PossibleInterface.apply[OdbRepo[F], ConfigModel.GmosNorth](ConfigType[F])),
-      fields      = List(
-
-        Field(
-          name        = "manual",
-          fieldType   = GmosNorthSequenceType[F],
-          description = Some("GMOS North manual sequence configuration"),
-          resolve     = _.value.manual
-        )
-
+      interfaces  = List(PossibleInterface.apply[OdbRepo[F], InstrumentConfig.GmosNorth](ConfigType[F])),
+      fields      = instrumentConfigFields(
+        "GmosNorth",
+        GmosNorthStaticConfigType[F],
+        GmosNorthDynamicType[F],
+        _.config
       )
     )
 
-  def GmosSouthSequenceType[F[_]: Effect]: ObjectType[OdbRepo[F], Sequence[GmosModel.SouthStatic, GmosModel.SouthDynamic]] =
-    SequenceType(
-      "GmosSouth",
-      "Instrument sequence",
-      GmosSouthStaticConfigType[F],
-      GmosSouthDynamicType[F]
-    )
-
-
-  def GmosSouthConfigType[F[_]: Effect]: ObjectType[OdbRepo[F], ConfigModel.GmosSouth] =
+  def GmosSouthConfigType[F[_]: Effect]: ObjectType[OdbRepo[F], InstrumentConfig.GmosSouth] =
     ObjectType(
       name        = "GmosSouthConfig",
       description = "GMOS South Configuration",
-      interfaces  = List(PossibleInterface.apply[OdbRepo[F], ConfigModel.GmosSouth](ConfigType[F])),
-      fields      = List(
-
-        Field(
-          name        = "manual",
-          fieldType   = GmosSouthSequenceType[F],
-          description = Some("GMOS South manual sequence configuration"),
-          resolve     = _.value.manual
-        )
-
+      interfaces  = List(PossibleInterface.apply[OdbRepo[F], InstrumentConfig.GmosSouth](ConfigType[F])),
+      fields      = instrumentConfigFields(
+        "GmosSouth",
+        GmosSouthStaticConfigType[F],
+        GmosSouthDynamicType[F],
+        _.config
       )
     )
+
 }
