@@ -11,6 +11,7 @@ import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
 import cats.syntax.all._
 import sangria.schema._
+import scala.concurrent.duration._
 
 
 object SequenceSchema {
@@ -153,6 +154,13 @@ object SequenceSchema {
     config:      I => Config[S, D],
   ): List[Field[OdbRepo[F], I]] =
     List(
+      Field(
+        name        = "setupTime",
+        fieldType   = DurationType[F],
+        description = Some("Estimated setup time"),
+        resolve     = _ => 18.minutes
+      ),
+
       Field(
         name        = "static",
         fieldType   = staticType,
