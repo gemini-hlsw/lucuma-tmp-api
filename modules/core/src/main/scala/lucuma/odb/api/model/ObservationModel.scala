@@ -28,7 +28,7 @@ final case class ObservationModel(
   status:             ObsStatus,
   pointing:           Option[Either[Asterism.Id, Target.Id]],
   plannedTimeSummary: PlannedTimeSummaryModel,
-  config:             Option[ConfigModel]
+  config:             Option[SequenceModel.InstrumentConfig]
 ) {
 
   def asterismId: Option[Asterism.Id] =
@@ -55,7 +55,7 @@ object ObservationModel extends ObservationOptics {
     asterismId:    Option[Asterism.Id],
     targetId:      Option[Target.Id],
     status:        Option[ObsStatus],
-    config:        Option[ConfigModel.Create]
+    config:        Option[SequenceModel.InstrumentConfig.Create]
   ) {
 
     def withId(s: PlannedTimeSummaryModel): ValidatedInput[Observation.Id => ObservationModel] =
@@ -226,7 +226,7 @@ trait ObservationOptics { self: ObservationModel.type =>
       _.copy(pointing = t.asRight[Asterism.Id].some)
     }
 
-  val config: Lens[ObservationModel, Option[ConfigModel]] =
-    Lens[ObservationModel, Option[ConfigModel]](_.config)(a => _.copy(config = a))
+  val config: Lens[ObservationModel, Option[SequenceModel.InstrumentConfig]] =
+    Lens[ObservationModel, Option[SequenceModel.InstrumentConfig]](_.config)(a => _.copy(config = a))
 
 }

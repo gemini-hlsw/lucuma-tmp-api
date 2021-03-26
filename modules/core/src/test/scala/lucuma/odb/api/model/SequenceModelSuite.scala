@@ -20,11 +20,19 @@ final class SequenceModelSuite extends DisciplineSuite {
   checkAll("Atom",                 EqTests[Atom[Int]].eqv)
   checkAll("CreateAtom",           EqTests[Atom.Create[Int]].eqv)
 
-  checkAll("Sequence",             EqTests[Sequence[Int, String]].eqv)
-  checkAll("Sequence.Create",      EqTests[Sequence.Create[Int, String]].eqv)
+  checkAll("Sequence",             EqTests[Sequence[String]].eqv)
+  checkAll("Sequence.Create",      EqTests[Sequence[String]].eqv)
 
-  checkAll("GmosModel.North.static",      LensTests(Sequence.static[Int, String]))
-  checkAll("GmosModel.North.acquisition", LensTests(Sequence.acquisition[Int, String]))
-  checkAll("GmosModel.North.science",     LensTests(Sequence.science[Int, String]))
+  checkAll("Config",               EqTests[Config[Int, String]].eqv)
+  checkAll("Config.Create",        EqTests[Config.Create[Int, String]].eqv)
+
+  checkAll("InstrumentConfig",                 EqTests[InstrumentConfig].eqv)
+  checkAll("InstrumentConfig.Create",          EqTests[InstrumentConfig.Create].eqv)
+  checkAll("InstrumentConfig.CreateGmosNorth", EqTests[InstrumentConfig.CreateGmosNorth].eqv)
+  checkAll("InstrumentConfig.CreateGmosSouth", EqTests[InstrumentConfig.CreateGmosSouth].eqv)
+
+  checkAll("Config.static",      LensTests(Config.static[Int, String]))
+  checkAll("Config.acquisition", LensTests(Config.acquisition[Int, String]))
+  checkAll("Config.science",     LensTests(Config.science[Int, String]))
 
 }

@@ -13,8 +13,9 @@ object FiniteDurationSchema {
 
   def DurationType[F[_]: Effect]: ObjectType[OdbRepo[F], FiniteDuration] =
     ObjectType(
-      name     = "Duration",
-      fieldsFn = () => fields(
+      name        = "Duration",
+      description = "Equivalent time amount in several unit options (e.g., 120 seconds or 2 minutes)",
+      fieldsFn    = () => fields(
 
         Field(
           name        = "microseconds",

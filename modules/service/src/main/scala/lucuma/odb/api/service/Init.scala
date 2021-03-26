@@ -202,9 +202,11 @@ object Init {
   val ac3: CreateStep[CreateSouthDynamic] =
     step.exposure.assign_(FiniteDurationModel.Input(30.seconds)).runS(ac2).value
 
-  val acquisitionSequence: List[Atom.Create[CreateSouthDynamic]] =
-    List(ac1, ac2, ac3).map(Atom.Create.continueTo) ++
-      List.fill(10)(Atom.Create.stopBefore(ac3))
+  val acquisitionSequence: Sequence.Create[CreateSouthDynamic] =
+    Sequence.Create(
+      List(ac1, ac2, ac3).map(Atom.Create.continueTo) ++
+        List.fill(10)(Atom.Create.stopBefore(ac3))
+    )
 
   val gcal: GcalModel.Create =
     GcalModel.Create(
@@ -257,23 +259,25 @@ object Init {
   val sci15_525: CreateStep[CreateSouthDynamic] =
     CreateStep.science(gmos525, Q15)
 
-  val scienceSequence: List[Atom.Create[CreateSouthDynamic]] =
-    List(
-      flat_520,  sci0_520,
-      sci15_520, flat_520,
-      flat_520,  sci15_520,
-      sci0_520,  flat_520,
-      flat_520,  sci0_520,
-      sci15_520, flat_520,
+  val scienceSequence: Sequence.Create[CreateSouthDynamic] =
+    Sequence.Create(
+      List(
+        flat_520,  sci0_520,
+        sci15_520, flat_520,
+        flat_520,  sci15_520,
+        sci0_520,  flat_520,
+        flat_520,  sci0_520,
+        sci15_520, flat_520,
 
-      flat_525,  sci15_525,
-      sci0_525,  flat_525,
-      flat_525,  sci0_525,
-      sci15_525, flat_525
-    ).map(BreakpointStep.Create.continueTo)
-     .grouped(2) // pairs flat and science steps
-     .toList
-     .map(Atom.Create(_))
+        flat_525,  sci15_525,
+        sci0_525,  flat_525,
+        flat_525,  sci0_525,
+        sci15_525, flat_525
+      ).map(BreakpointStep.Create.continueTo)
+       .grouped(2) // pairs flat and science steps
+       .toList
+       .map(Atom.Create(_))
+    )
 
   def obs(
     pid:   Program.Id,
@@ -285,18 +289,13 @@ object Init {
       name          = target.map(_.target.name) orElse NonEmptyString.from("Observation").toOption,
       asterismId    = None,
       targetId      = target.map(_.id),
-      status        = Some(ObsStatus.New),
-      config        = Some(
-        ConfigModel.Create.gmosSouth(
-          ConfigModel.CreateGmosSouth(
-            Sequence.Create(
-              GmosModel.CreateSouthStatic.Default,
-              acquisitionSequence,
-              scienceSequence
-            )
-          )
-        )
-      )
+      status        = ObsStatus.New.some,
+      config        =
+        SequenceModel.InstrumentConfig.Create.gmosSouth(
+          GmosModel.CreateSouthStatic.Default,
+          acquisitionSequence,
+          scienceSequence
+        ).some
     )
 
   /**
