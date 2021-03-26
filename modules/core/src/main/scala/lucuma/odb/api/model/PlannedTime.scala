@@ -4,14 +4,41 @@
 package lucuma.odb.api.model
 
 import lucuma.core.util.Enumerated
+import lucuma.odb.api.model.duration._
 import cats.{Eq, Semigroup}
+import cats.data.NonEmptyList
 import cats.syntax.all._
 
 import java.util.concurrent.TimeUnit
 
 import scala.concurrent.duration._
 
-object StepTimeModel {
+
+final case class PlannedTime(
+  setup:       NonNegativeFiniteDuration,
+  acquisition: List[PlannedTime.CategorizedTime],
+  science:     List[PlannedTime.CategorizedTime]
+) {
+
+  def acquisitionSum: PlannedTime.CategorizedTime =
+    NonEmptyList(PlannedTime.CategorizedTime.Zero, acquisition).reduce
+
+  def scienceSum: PlannedTime.CategorizedTime =
+    NonEmptyList(PlannedTime.CategorizedTime.Zero, science).reduce
+
+  def total: NonNegativeFiniteDuration =
+    setup |+| acquisition.foldMap(_.total) |+| science.foldMap(_.total)
+
+}
+
+object PlannedTime {
+
+  val Zero: PlannedTime =
+    PlannedTime(
+      NonNegativeFiniteDuration.zero(TimeUnit.SECONDS),
+      Nil,
+      Nil
+    )
 
   sealed trait Category extends Product with Serializable
 
@@ -32,8 +59,6 @@ object StepTimeModel {
     }
 
   }
-
-  import duration._
 
   final case class CategorizedTime(
     configChange: NonNegativeFiniteDuration,
@@ -66,9 +91,7 @@ object StepTimeModel {
   object CategorizedTime {
 
     private val zeroDuration: NonNegativeFiniteDuration =
-      NonNegativeFiniteDuration.unsafeFrom(
-        FiniteDuration(0L, TimeUnit.SECONDS)
-      )
+      NonNegativeFiniteDuration.unsafeFrom(0L.seconds)
 
     // Zero but not a valid Monoid zero because of the time units
     val Zero: CategorizedTime =
@@ -87,16 +110,13 @@ object StepTimeModel {
 
   }
 
-  /**
-   * Provides placeholder time estimate for the given step until an accurate
-   * version can be implemented.
-   */
-  def estimate[D](s: StepModel[D]): CategorizedTime = {
-
+  // Placeholder estimate.  In reality you cannot estimate a step independently
+  // like this because you need to account for changes from the previous step.
+  def estimateStep[D](s: StepModel[D]): CategorizedTime = {
     def forExposure(exposure: FiniteDuration): CategorizedTime =
       CategorizedTime(
         configChange = NonNegativeFiniteDuration.unsafeFrom(7.seconds),
-        exposure     = NonNegativeFiniteDuration.unsafeFrom(if (exposure.length >= 0) exposure else FiniteDuration(0L, TimeUnit.SECONDS)),
+        exposure     = NonNegativeFiniteDuration.unsafeFrom(if (exposure.length >= 0) exposure else 0L.seconds),
         readout      = NonNegativeFiniteDuration.unsafeFrom(71400.milliseconds),
         write        = NonNegativeFiniteDuration.unsafeFrom(10.seconds)
       )
@@ -114,6 +134,32 @@ object StepTimeModel {
       case StepModel.Gcal(_, g)       => forExposure(g.exposureTime)
       case StepModel.Science(a, _)    => forDynamicConfig(a)
 
+    }
+  }
+
+  def estimateAtom[D](a: SequenceModel.Atom[D]): CategorizedTime =
+    a.steps.map(s => estimateStep(s.step)).reduce
+
+  def estimateSequence[D](s: SequenceModel.Sequence[D]): CategorizedTime =
+    NonEmptyList(CategorizedTime.Zero, s.atoms.map(estimateAtom)).reduce
+
+  def estimate(config: SequenceModel.InstrumentConfig): PlannedTime = {
+    val gmosSetup = NonNegativeFiniteDuration.unsafeFrom(18.minutes)
+
+    config match {
+      case gn: SequenceModel.InstrumentConfig.GmosNorth =>
+        PlannedTime(
+          gmosSetup,
+          gn.config.acquisition.atoms.map(estimateAtom),
+          gn.config.science.atoms.map(estimateAtom)
+        )
+
+      case gs: SequenceModel.InstrumentConfig.GmosSouth =>
+        PlannedTime(
+          gmosSetup,
+          gs.config.acquisition.atoms.map(estimateAtom),
+          gs.config.science.atoms.map(estimateAtom)
+        )
     }
   }
 

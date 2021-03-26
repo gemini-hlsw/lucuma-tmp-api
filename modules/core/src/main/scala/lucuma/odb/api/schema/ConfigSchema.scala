@@ -7,12 +7,14 @@ import lucuma.core.`enum`.Instrument
 import lucuma.odb.api.model.SequenceModel._
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
+import lucuma.odb.api.model.PlannedTime
 import sangria.schema._
 
 
 object ConfigSchema {
 
   import GmosSchema._
+  import PlannedTimeSchema._
   import SequenceSchema._
   import syntax.`enum`._
 
@@ -33,6 +35,13 @@ object ConfigSchema {
           fieldType   = EnumTypeInstrument,
           description = Some("Instrument type"),
           resolve     = _.value.instrument
+        ),
+
+        Field(
+          name        = "plannedTime",
+          fieldType   = PlannedTimeType[F],
+          description = Some("Planned time for this configuration"),
+          resolve     = c => PlannedTime.estimate(c.value)
         )
 
       )

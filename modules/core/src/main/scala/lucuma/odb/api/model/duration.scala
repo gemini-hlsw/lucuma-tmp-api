@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.model
 
-import cats.Semigroup
+import cats.Monoid
 import eu.timepit.refined.api.{Refined, RefinedTypeOps, Validate}
 import eu.timepit.refined.api.Validate.Plain
 import eu.timepit.refined.boolean.Not
@@ -11,7 +11,9 @@ import eu.timepit.refined.numeric.{GreaterEqual, Less, NonNegative}
 import lucuma.odb.api.model.duration.NonNegativeFiniteDuration.unsafeFrom
 import shapeless.Nat._0
 
-import scala.concurrent.duration.{FiniteDuration, TimeUnit}
+import java.util.concurrent.TimeUnit
+
+import scala.concurrent.duration._
 
 object duration {
 
@@ -31,10 +33,10 @@ object duration {
 
   }
 
-  // FiniteDuration seems very monoidy but the presence of the TimeUnit spoils it.
-  implicit val nonNegFiniteDurationSemigroup: Semigroup[NonNegativeFiniteDuration] =
-    Semigroup.instance[NonNegativeFiniteDuration] { (a, b) =>
-      unsafeFrom(a.value + b.value)
-    }
+  implicit val nonNegFiniteDurationMonoid: Monoid[NonNegativeFiniteDuration] =
+    Monoid.instance(
+      NonNegativeFiniteDuration.zero(TimeUnit.DAYS),
+      (a, b) => unsafeFrom(a.value + b.value)
+    )
 
 }

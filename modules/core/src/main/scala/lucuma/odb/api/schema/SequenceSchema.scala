@@ -3,56 +3,18 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.duration.NonNegativeFiniteDuration
-import lucuma.odb.api.model.{SequenceModel, StepTimeModel}
+import lucuma.odb.api.model.{PlannedTime, SequenceModel}
 import lucuma.odb.api.model.SequenceModel._
-import lucuma.odb.api.model.StepTimeModel.{CategorizedTime, Category}
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
-import cats.syntax.all._
 import sangria.schema._
-import scala.concurrent.duration._
-
 
 object SequenceSchema {
 
   import FiniteDurationSchema.DurationType
+  import PlannedTimeSchema._
   import StepSchema.StepType
   import syntax.`enum`._
-
-  implicit val EnumTypeCategory: EnumType[Category] =
-    EnumType.fromEnumerated[Category](
-      "StepTimeCategory",
-      "Step time category"
-    )
-
-  def StepTimeType[F[_]: Effect]: ObjectType[OdbRepo[F], CategorizedTime] = {
-
-    def field(
-      name: String,
-      desc: String,
-      f:    CategorizedTime => NonNegativeFiniteDuration
-    ): Field[OdbRepo[F], CategorizedTime] =
-
-      Field(
-        name        = name,
-        fieldType   = DurationType[F],
-        description = Some(desc),
-        resolve     = c => f(c.value).value
-      )
-
-    ObjectType(
-      name        = "StepTime",
-      description = "Time required for a step or steps, categorized according to use",
-      fieldsFn    = () => fields (
-        field("configChange", "Time spent making configuration changes", _.configChange),
-        field("exposure", "Time spent collecting photons", _.exposure),
-        field("readout", "Time spent reading out the detector", _.readout),
-        field("write", "Time spent writing the dataset file", _.write),
-        field("total", "Total time across all categories", _.total)
-      )
-    )
-  }
 
   implicit val EnumTypeBreakpoint: EnumType[SequenceModel.Breakpoint] =
     EnumType.fromEnumerated[SequenceModel.Breakpoint](
@@ -85,9 +47,9 @@ object SequenceSchema {
 
         Field(
           name        = "time",
-          fieldType   = StepTimeType[F],
+          fieldType   = CategorizedTimeType[F],
           description = Some("Time estimate for this step's execution"),
-          resolve     = c => StepTimeModel.estimate(c.value.step)
+          resolve     = c => PlannedTime.estimateStep(c.value.step)
         )
       )
     )
@@ -110,9 +72,9 @@ object SequenceSchema {
 
         Field(
           name        = "time",
-          fieldType   = StepTimeType[F],
+          fieldType   = CategorizedTimeType[F],
           description = Some("Time estimate for this atom's execution, the sum of each step's time."),
-          resolve     = _.value.steps.map(s => StepTimeModel.estimate(s.step)).reduce
+          resolve     = c => PlannedTime.estimateAtom(c.value)
         )
       )
     )
@@ -135,19 +97,15 @@ object SequenceSchema {
 
         Field(
           name        = "time",
-          fieldType   = StepTimeType[F],
+          fieldType   = CategorizedTimeType[F],
           description = Some("Time required for the full execution of this sequence"),
-          resolve     =
-            _.value
-             .atoms
-             .flatMap(_.steps.toList.map(s => StepTimeModel.estimate(s.step)))
-             .foldLeft(CategorizedTime.Zero)(_ |+| _) // just a semigroup and list may be empty so foldLeft
+          resolve     = c => PlannedTime.estimateSequence(c.value)
         )
 
       )
     )
 
-  def instrumentConfigFields[F[_]: Effect, I, S, D](
+  def instrumentConfigFields[F[_]: Effect, I <: InstrumentConfig, S, D](
     typePrefix:  String,
     staticType:  OutputType[S],
     dynamicType: OutputType[D],
@@ -158,7 +116,7 @@ object SequenceSchema {
         name        = "setupTime",
         fieldType   = DurationType[F],
         description = Some("Estimated setup time"),
-        resolve     = _ => 18.minutes
+        resolve     = c => PlannedTime.estimate(c.value).setup.value
       ),
 
       Field(
