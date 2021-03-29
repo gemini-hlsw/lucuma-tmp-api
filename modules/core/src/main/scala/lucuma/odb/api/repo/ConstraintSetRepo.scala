@@ -4,12 +4,12 @@
 package lucuma.odb.api.repo
 
 import cats._
-import cats.effect.concurrent.Ref
 import cats.syntax.all._
 import lucuma.core.model.{ConstraintSet, Observation, Program}
 import lucuma.odb.api.model.{ConstraintSetModel, ObservationModel, Sharing}
 import lucuma.odb.api.model.ConstraintSetModel.ConstraintSetEvent
 import lucuma.odb.api.model.syntax.validatedinput._
+import cats.effect.Ref
 
 trait ConstraintSetRepo[F[_]] extends TopLevelRepo[F, ConstraintSet.Id, ConstraintSetModel] {
 

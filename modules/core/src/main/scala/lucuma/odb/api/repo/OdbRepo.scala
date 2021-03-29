@@ -5,8 +5,8 @@ package lucuma.odb.api.repo
 
 import cats.implicits._
 import cats.effect.Concurrent
-import cats.effect.concurrent.Ref
 import org.typelevel.log4cats.Logger
+import cats.effect.Ref
 
 /**
  * The main "repository" for the API server.  It is simply a collection of

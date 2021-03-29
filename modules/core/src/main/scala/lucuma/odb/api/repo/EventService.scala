@@ -6,12 +6,12 @@ package lucuma.odb.api.repo
 import lucuma.odb.api.model.Event
 import cats.effect.Concurrent
 import cats.implicits._
-import cats.effect.concurrent.Ref
 import org.typelevel.log4cats.Logger
 
 
 import fs2.Stream
 import fs2.concurrent.Topic
+import cats.effect.Ref
 
 /**
  *
