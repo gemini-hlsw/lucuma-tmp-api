@@ -12,7 +12,6 @@ import sangria.schema._
 
 object StepSchema {
 
-  import FiniteDurationSchema._
   import OffsetSchema._
   import syntax.`enum`._
 
@@ -162,21 +161,8 @@ object StepSchema {
           fieldType   = EnumTypeGcalShutter,
           description = Some("GCAL shutter"),
           resolve     = (ctx: Context[OdbRepo[F], StepModel.Gcal[_]]) => ctx.value.gcalConfig.shutter
-        ),
-
-        Field(
-          name        = "exposure",
-          fieldType   = DurationType[F],
-          description = Some("GCAL exposure time"),
-          resolve     = (ctx: Context[OdbRepo[F], StepModel.Gcal[_]]) => ctx.value.gcalConfig.exposureTime
-        ),
-
-        Field(
-          name        = "coadds",
-          fieldType   = IntType,
-          description = Some("GCAL coadds"),
-          resolve     = (ctx: Context[OdbRepo[F], StepModel.Gcal[_]]) => ctx.value.gcalConfig.coadds.toPosShort.value.toInt
         )
+
       )
     )
 
