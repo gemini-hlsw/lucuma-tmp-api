@@ -11,15 +11,12 @@ import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import monocle.macros.Lenses
 
-import scala.concurrent.duration.FiniteDuration
 
 @Lenses final case class GcalModel(
   lamp:         GcalModel.Lamp,
   filter:       GcalFilter,
   diffuser:     GcalDiffuser,
   shutter:      GcalShutter,
-  exposureTime: FiniteDuration,
-  coadds:       CoAddsModel
 )
 
 
@@ -71,9 +68,7 @@ object GcalModel {
       a.lamp,
       a.filter,
       a.diffuser,
-      a.shutter,
-      a.exposureTime,
-      a.coadds
+      a.shutter
     )}
 
 
@@ -82,18 +77,14 @@ object GcalModel {
     arcs:         List[GcalArc],
     filter:       GcalFilter,
     diffuser:     GcalDiffuser,
-    shutter:      GcalShutter,
-    exposureTime: FiniteDurationModel.Input,
-    coAdds:       CoAddsModel.Input
+    shutter:      GcalShutter
   ) {
 
 
     val create: ValidatedInput[GcalModel] =
-      (
-        Lamp.fromConfig(continuum, arcs),
-        exposureTime.toFiniteDuration("exposureTime"),
-        coAdds.create
-      ).mapN { (l, e, c) => GcalModel(l, filter, diffuser, shutter, e, c) }
+      Lamp.fromConfig(continuum, arcs).map { l =>
+        GcalModel(l, filter, diffuser, shutter)
+      }
 
   }
 
@@ -108,9 +99,7 @@ object GcalModel {
         a.arcs,
         a.filter,
         a.diffuser,
-        a.shutter,
-        a.exposureTime,
-        a.coAdds
+        a.shutter
       )}
   }
 

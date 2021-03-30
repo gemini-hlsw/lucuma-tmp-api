@@ -131,7 +131,7 @@ object PlannedTime {
     s match {
       case StepModel.Bias(a)          => forDynamicConfig(a)
       case StepModel.Dark(a)          => forDynamicConfig(a)
-      case StepModel.Gcal(_, g)       => forExposure(g.exposureTime)
+      case StepModel.Gcal(a, _)       => forDynamicConfig(a)
       case StepModel.Science(a, _)    => forDynamicConfig(a)
 
     }
