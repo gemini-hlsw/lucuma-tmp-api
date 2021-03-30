@@ -342,11 +342,11 @@ object GmosSchema {
       )
     )
 
-  def GmosFpuType[F[_]: Effect, U: EnumType: ClassTag](
+  def GmosFpuUnionType[F[_]: Effect, U: EnumType: ClassTag](
     site: Site
   ): OutputType[Either[GmosModel.CustomMask, U]] =
     UnionType(
-      name        = "GmosFpu",
+      name        = s"Gmos${location(site)}FpuUnion",
       description = Some("Either custom mask or builtin-FPU"),
       types       = List(GmosCustomMaskType[F], GmosBuiltinFpuType[F, U](site))
     ).mapValue[Either[GmosModel.CustomMask, U]](
@@ -408,7 +408,7 @@ object GmosSchema {
 
         Field(
           name        = "fpu",
-          fieldType   = OptionType(GmosFpuType[F, U](site)),
+          fieldType   = OptionType(GmosFpuUnionType[F, U](site)),
           description = Some(s"GMOS ${location(site)} FPU"),
           resolve     = _.value.fpu
         )
