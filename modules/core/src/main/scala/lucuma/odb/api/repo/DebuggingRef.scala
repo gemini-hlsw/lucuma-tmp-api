@@ -5,9 +5,9 @@ package lucuma.odb.api.repo
 
 import cats.data.State
 import cats.effect.Sync
-import cats.effect.concurrent.Ref
 import cats.syntax.all._
 import org.typelevel.log4cats.Logger
+import cats.effect.Ref
 
 final case class DebuggingRef[F[_]: Logger: Sync, A](ref: Ref[F, A]) extends Ref[F, A] {
 

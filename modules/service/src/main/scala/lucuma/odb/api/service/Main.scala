@@ -5,7 +5,7 @@ package lucuma.odb.api.service
 
 import java.util.concurrent._
 import lucuma.odb.api.repo.OdbRepo
-import cats.effect.{Blocker, Concurrent, ConcurrentEffect, ContextShift, ExitCode, IO, IOApp, Timer}
+import cats.effect.{Concurrent, ConcurrentEffect, ExitCode, IO, IOApp}
 import cats.implicits._
 import fs2.Stream
 import org.http4s.implicits._
@@ -19,6 +19,7 @@ import lucuma.core.model.User
 import lucuma.sso.client.SsoClient
 
 import scala.concurrent.ExecutionContext.global
+import cats.effect.Temporal
 
 // #server
 object Main extends IOApp {
@@ -26,7 +27,7 @@ object Main extends IOApp {
   def stream[F[_]: ConcurrentEffect : ContextShift: Log4CatsLogger](
     odb: OdbRepo[F],
     cfg: Config
-  )(implicit T: Timer[F]): Stream[F, Nothing] = {
+  )(implicit T: Temporal[F]): Stream[F, Nothing] = {
     val blockingPool = Executors.newFixedThreadPool(4)
     val blocker      = Blocker.liftExecutorService(blockingPool)
     val odbService   = OdbService.apply[F](odb)

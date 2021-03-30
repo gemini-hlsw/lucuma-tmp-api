@@ -9,12 +9,12 @@ import lucuma.core.model.User
 import clue.model.StreamingMessage._
 import clue.model.StreamingMessage.FromServer._
 import cats.effect.{ConcurrentEffect, Fiber}
-import cats.effect.concurrent.Ref
 import cats.implicits._
 import fs2.{Pipe, Stream}
 import fs2.concurrent.SignallingRef
 import org.typelevel.log4cats.Logger
 import io.circe.Json
+import cats.effect.Ref
 
 
 /**
