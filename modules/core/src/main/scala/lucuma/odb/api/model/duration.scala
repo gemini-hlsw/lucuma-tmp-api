@@ -8,7 +8,6 @@ import eu.timepit.refined.api.{Refined, RefinedTypeOps, Validate}
 import eu.timepit.refined.api.Validate.Plain
 import eu.timepit.refined.boolean.Not
 import eu.timepit.refined.numeric.{GreaterEqual, Less, NonNegative}
-import lucuma.odb.api.model.duration.NonNegativeFiniteDuration.unsafeFrom
 import shapeless.Nat._0
 
 import java.util.concurrent.TimeUnit
@@ -33,10 +32,11 @@ object duration {
 
   }
 
-  implicit val nonNegFiniteDurationMonoid: Monoid[NonNegativeFiniteDuration] =
+  // Has to be a def or else there are initialization issues.
+  implicit def nonNegFiniteDurationMonoid: Monoid[NonNegativeFiniteDuration] =
     Monoid.instance(
       NonNegativeFiniteDuration.zero(TimeUnit.DAYS),
-      (a, b) => unsafeFrom(a.value + b.value)
+      (a, b) => NonNegativeFiniteDuration.unsafeFrom(a.value + b.value)
     )
 
 }

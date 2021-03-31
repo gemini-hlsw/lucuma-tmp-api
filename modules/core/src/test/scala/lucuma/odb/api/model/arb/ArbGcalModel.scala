@@ -10,13 +10,10 @@ import lucuma.core.util.arb.ArbEnumerated
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
-import scala.concurrent.duration.FiniteDuration
 
 trait ArbGcalModel {
 
-  import ArbCoAddsModel._
   import ArbEnumerated._
-  import ArbFiniteDurationModel._
 
   implicit val arbGcalModelArcs: Arbitrary[GcalModel.Arcs] =
     Arbitrary {
@@ -36,9 +33,7 @@ trait ArbGcalModel {
         f <- arbitrary[GcalFilter]
         d <- arbitrary[GcalDiffuser]
         s <- arbitrary[GcalShutter]
-        e <- arbitrary[FiniteDuration]
-        c <- arbitrary[CoAddsModel]
-      } yield GcalModel(l, f, d, s, e, c)
+      } yield GcalModel(l, f, d, s)
     }
 
   implicit val cogGcalModel: Cogen[GcalModel] =
@@ -47,15 +42,11 @@ trait ArbGcalModel {
       GcalFilter,
       GcalDiffuser,
       GcalShutter,
-      FiniteDuration,
-      CoAddsModel
     )].contramap { in => (
       in.lamp,
       in.filter,
       in.diffuser,
-      in.shutter,
-      in.exposureTime,
-      in.coadds
+      in.shutter
     )}
 
   implicit val arbGcalModelCreate: Arbitrary[GcalModel.Create] =
@@ -65,9 +56,7 @@ trait ArbGcalModel {
         f <- arbitrary[GcalFilter]
         d <- arbitrary[GcalDiffuser]
         s <- arbitrary[GcalShutter]
-        e <- arbitrary[FiniteDurationModel.Input]
-        c <- arbitrary[CoAddsModel.Input]
-      } yield GcalModel.Create(l.swap.toOption, l.toOption.toList.flatMap(_.toList), f, d, s, e, c)
+      } yield GcalModel.Create(l.swap.toOption, l.toOption.toList.flatMap(_.toList), f, d, s)
     }
 
   implicit val cogGcalModelCreate: Cogen[GcalModel.Create] =
@@ -77,16 +66,12 @@ trait ArbGcalModel {
       GcalFilter,
       GcalDiffuser,
       GcalShutter,
-      FiniteDurationModel.Input,
-      CoAddsModel.Input
     )].contramap { in => (
       in.continuum,
       in.arcs,
       in.filter,
       in.diffuser,
-      in.shutter,
-      in.exposureTime,
-      in.coAdds
+      in.shutter
     )}
 }
 
