@@ -214,9 +214,7 @@ object Init {
       List.empty[GcalArc],
       GcalFilter.Gmos,
       GcalDiffuser.Visible,
-      GcalShutter.Closed,
-      FiniteDurationModel.Input.fromSeconds(3.0),
-      CoAddsModel.Input(1)
+      GcalShutter.Closed
     )
 
   val Q15: OffsetModel.Input =
@@ -241,11 +239,14 @@ object Init {
       CreateSouthDynamic.instrument.wavelength := WavelengthModel.Input.fromNanometers(525.0)
     )
 
+  val threeSeconds: FiniteDurationModel.Input =
+    FiniteDurationModel.Input.fromSeconds(3.0)
+
   val flat_520: CreateStep[CreateSouthDynamic] =
-    CreateStep.gcal(gmos520, gcal)
+    CreateStep.gcal(edit(gmos520)(exposure := threeSeconds), gcal)
 
   val flat_525: CreateStep[CreateSouthDynamic] =
-    CreateStep.gcal(gmos525, gcal)
+    CreateStep.gcal(edit(gmos525)(exposure := threeSeconds), gcal)
 
   val sci0_520: CreateStep[CreateSouthDynamic] =
     CreateStep.science(gmos520, OffsetModel.Input.Zero)
