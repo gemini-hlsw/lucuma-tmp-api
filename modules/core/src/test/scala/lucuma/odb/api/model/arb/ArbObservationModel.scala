@@ -5,7 +5,7 @@ package lucuma.odb.api.model
 package arb
 
 import lucuma.core.`enum`.ObsStatus
-import lucuma.core.model.{Asterism, Observation, Program, Target}
+import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
 import lucuma.core.util.arb.{ArbEnumerated, ArbGid}
 
 import eu.timepit.refined.scalacheck.all._
@@ -27,7 +27,8 @@ trait ArbObservationModel {
         nm <- arbitrary[Option[NonEmptyString]]
         os <- arbitrary[ObsStatus]
         ts <- arbitrary[Option[Either[Asterism.Id, Target.Id]]]
-      } yield ObservationModel(id, ex, pid, nm, os, ts, PlannedTimeSummaryModel.Zero, None)
+        cs <- arbitrary[Option[ConstraintSet.Id]]
+      } yield ObservationModel(id, ex, pid, nm, os, ts, cs, PlannedTimeSummaryModel.Zero, None)
     }
 
   implicit val arbObservationModel: Arbitrary[ObservationModel] =
@@ -62,6 +63,7 @@ trait ArbObservationModel {
         pd <- arbitrary[Program.Id]
         nm <- arbitrary[Option[NonEmptyString]]
         ts <- arbitrary[Option[Either[Asterism.Id, Target.Id]]]
+        cs <- arbitrary[Option[ConstraintSet.Id]]
         st <- arbitrary[Option[ObsStatus]]
       } yield ObservationModel.Create(
         id,
@@ -69,6 +71,7 @@ trait ArbObservationModel {
         nm,
         ts.flatMap(_.swap.toOption),
         ts.flatMap(_.toOption),
+        cs,
         st,
         None
       )
