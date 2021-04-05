@@ -48,13 +48,12 @@ object ConstraintSetRepo {
         includeDeleted: Boolean
       ): F[Option[ConstraintSetModel]] =
         tablesRef.get.map{ t => 
-          val ocs = for {
+          for {
             o <- t.observations.get(oid)
             csid <- o.constraintSetId
             cs <- t.constraintSets.get(csid)
+            if includeDeleted || cs.isPresent
           } yield cs
-
-          ocs.filter(cs => includeDeleted || cs.isPresent) 
         }
 
       override def selectPageForProgram(

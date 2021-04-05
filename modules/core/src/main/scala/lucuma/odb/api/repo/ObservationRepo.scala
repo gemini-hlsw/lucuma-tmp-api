@@ -95,7 +95,7 @@ object ObservationRepo {
         includeDeleted: Boolean
       ): F[ResultPage[ObservationModel]] =
 
-        selectPageFiltered(count, afterGid, includeDeleted) { _.constraintSetId.exists(_ == csid) }
+        selectPageFiltered(count, afterGid, includeDeleted) { _.constraintSetId.exists(_ === csid) }
 
       override def selectPageForProgram(
         pid:            Program.Id,
