@@ -10,7 +10,7 @@ import lucuma.odb.api.model.ObservationModel.ObservationEvent
 import lucuma.odb.api.model.TargetModel.TargetEvent
 import lucuma.odb.api.model.syntax.validatedinput._
 
-import cats.MonadError
+import cats.Eq
 import cats.data.{EitherT, State}
 import cats.effect.Sync
 import cats.implicits._
@@ -56,11 +56,7 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
 
   def editPointing(edit: ObservationModel.EditPointing): F[List[ObservationModel]]
 
-  def shareWithConstraintSet(oid: Observation.Id, csid: ConstraintSet.Id): F[ObservationModel]
-
-  def unshareWithConstraintSet(oid: Observation.Id, csid: ConstraintSet.Id): F[ObservationModel]
-
-  def unsetConstraintSet(oid: Observation.Id)(implicit F: MonadError[F, Throwable]): F[ObservationModel]
+  def editConstraintSet(edit: ObservationModel.EditConstraintSet): F[List[ObservationModel]]
 
 }
 
@@ -99,9 +95,7 @@ object ObservationRepo {
         includeDeleted: Boolean
       ): F[ResultPage[ObservationModel]] =
 
-        selectPageFromIds(count, afterGid, includeDeleted) { tables =>
-          tables.constraintSetObservation.selectRight(csid)
-        }
+        selectPageFiltered(count, afterGid, includeDeleted) { _.constraintSetId.exists(_ === csid) }
 
       override def selectPageForProgram(
         pid:            Program.Id,
@@ -130,8 +124,8 @@ object ObservationRepo {
       override def insert(newObs: ObservationModel.Create): F[ObservationModel] = {
 
         // Create the observation, keeping track of the asterism or target (if
-        // either) that will be linked.
-        def create(s: PlannedTimeSummaryModel): F[(Option[AsterismModel], Option[TargetModel], ObservationModel)] =
+        // either) and constraint (if any) that will be linked.
+        def create(s: PlannedTimeSummaryModel): F[(Option[AsterismModel], Option[TargetModel], Option[ConstraintSetModel], ObservationModel)] =
           EitherT(
             tablesRef.modify { tables =>
               {
@@ -139,9 +133,10 @@ object ObservationRepo {
                 tryFindProgram(tables, newObs.programId)                *>
                 (newObs.asterismId.traverse(tryFindAsterism(tables, _)),
                  newObs.targetId.traverse(tryFindTarget(tables, _)),
+                 newObs.constraintSetId.traverse(tryFindConstraintSet(tables, _)),
                  newObs.withId(s)
-                ).mapN { case (oa, ot, f) =>
-                  createAndInsert(newObs.observationId, f).map{o => (oa, ot, o)}
+                ).mapN { case (oa, ot, ocs, f) =>
+                  createAndInsert(newObs.observationId, f).map{o => (oa, ot, ocs, o)}
                 }
               }.fold(
                 err => (tables, InputError.Exception(err).asLeft),
@@ -153,68 +148,24 @@ object ObservationRepo {
         for {
           s   <- PlannedTimeSummaryModel.random[F]
           tup <- create(s)
-          (oasterism, otarget, obs) = tup
+          (oasterism, otarget, oconstraint, obs) = tup
           _   <- oasterism.traverse_(a => eventService.publish(AsterismEvent(_, Event.EditType.Updated, a)))
           _   <- otarget.traverse_(t => eventService.publish(TargetEvent(_, Event.EditType.Updated, t)))
+          _   <- oconstraint.traverse_(cs => eventService.publish(ConstraintSetModel.ConstraintSetEvent(_, Event.EditType.Updated, cs)))
           _   <- eventService.publish(ObservationEvent(_, Event.EditType.Created, obs))
         } yield obs
 
       }
 
-      override def shareWithConstraintSet(
-        oid:  Observation.Id,
-        csid: ConstraintSet.Id
-      ): F[ObservationModel] =
-        shareWithOneUnique(
-          "constraintSet",
-          oid,
-          csid,
-          TableState.constraintSet,
-          Tables.constraintSetObservation,
-          ConstraintSetModel.ConstraintSetEvent.updated
-        )
-
-      override def unshareWithConstraintSet(
-        oid:  Observation.Id,
-        csid: ConstraintSet.Id
-      ): F[ObservationModel] =
-        unshareWithOneUnique(
-          "constraintSet",
-          oid,
-          csid,
-          TableState.constraintSet,
-          Tables.constraintSetObservation,
-          ConstraintSetModel.ConstraintSetEvent.updated
-        )
-
-      override def unsetConstraintSet(oid: Observation.Id)(implicit F: MonadError[F, Throwable]): F[ObservationModel] = {
-        val doUpdate: F[(ObservationModel, Option[ConstraintSetModel])] =
-          tablesRef.modify { oldTables =>
-            val obs = focusOn(oid).get(oldTables).toValidNec(InputError.missingReference("id", oid.show))
-            val cs  =
-              obs.fold(
-                _ => None,
-                o => oldTables.constraintSetObservation.selectLeft(o.id).flatMap(csId => Tables.constraintSet(csId).get(oldTables))
-              )
-            val tables = cs.fold(oldTables)(_ => Tables.constraintSetObservation.modify(_.removeRight(oid))(oldTables))
-            (tables, obs.tupleRight(cs))
-          }.flatMap(_.liftTo[F])
-
-          for {
-            t         <- doUpdate
-            (obs, cs)  = t
-            _         <- cs.fold(F.unit)(c => eventService.publish(ConstraintSetModel.ConstraintSetEvent.updated(c)))
-          } yield obs
-      }
-
       type Pointing = Option[Either[Asterism.Id, Target.Id]]
       private val noPointing: Pointing = Option.empty
 
-      private def updatePointing(
-        oids:     List[Observation.Id],
-        asterism: Input[Asterism.Id],
-        target:   Input[Target.Id]
-      ): State[Tables, ValidatedInput[(List[ObservationModel], List[AsterismModel], List[TargetModel])]] = {
+      private def updatePointingAndConstraintSet(
+        oids:          List[Observation.Id],
+        asterism:      Input[Asterism.Id],
+        target:        Input[Target.Id],
+        constraintSet: Input[ConstraintSet.Id]
+      ): State[Tables, ValidatedInput[(List[ObservationModel], List[AsterismModel], List[TargetModel], List[ConstraintSetModel])]] = {
 
         val updateAsterism: Pointing => Pointing = in =>
           asterism match {
@@ -230,55 +181,79 @@ object ObservationRepo {
             case Assign(tid) => tid.asRight[Asterism.Id].some
           }
 
+        val updateConstraintSet: Option[ConstraintSet.Id] => Option[ConstraintSet.Id] = in =>
+          constraintSet match {
+            case Ignore        => in
+            case Unassign      => None
+            case Assign(csid) => csid.some
+          }
+
         val updatePointing = updateAsterism andThen updateTarget
+        
+        // Don't send a change event for the old id if the id Input is Ignore or the value is unchanged.
+        // Also don't send an event for the new id (if Assign) if it is always the same as the old id.
+        def ids4Event[A: Eq](oa: Option[A], ia: Input[A]): List[A] = (oa, ia) match {
+          case (_, Ignore)                => Nil
+          case (Some(a), Unassign)        => List(a)
+          case (None, Unassign)           => Nil
+          case (Some(aOld), Assign(aNew)) => if (aOld === aNew) Nil else List(aOld, aNew)
+          case (None, Assign(aNew))       => List(aNew)
+        }
 
         for {
           vos <- oids.traverse(TableState.observation).map(_.sequence)
           va  <- asterism.toOption.traverse(TableState.asterism).map(_.sequence)
           vt  <- target.toOption.traverse(TableState.target).map(_.sequence)
+          vcs <- constraintSet.toOption.traverse(TableState.constraintSet).map(_.sequence)
           tb  <- State.get
-        } yield (vos, va, vt).mapN { (os, a, t) =>
+        } yield (vos, va, vt, vcs).mapN { (os, _, _, _) =>
 
-          val (updatedOs, updatedAids, updatedTids) =
-            os.foldLeft((List.empty[ObservationModel], a.map(_.id).toSet, t.map(_.id).toSet)) {
-              case ((osʹ, aids, tids), o) =>
+          val (updatedOs, updatedAids, updatedTids, updatedCsids) =
+            os.foldLeft((List.empty[ObservationModel], Set.empty[Asterism.Id], Set.empty[Target.Id], Set.empty[ConstraintSet.Id])) {
+              case ((osʹ, aids, tids, csids), o) =>
+                val oModP = ObservationModel.pointing.modify(updatePointing)(o) 
+                val newO = ObservationModel.constraintSet.modify(updateConstraintSet)(oModP)
                 (
-                  ObservationModel.pointing.modify(updatePointing)(o) :: osʹ,
-                  ObservationModel.asterism.getOption(o).fold(aids)(aids + _),
-                  ObservationModel.target.getOption(o).fold(tids)(tids + _)
+                  newO  :: osʹ,
+                  aids  ++ ids4Event(ObservationModel.asterism.getOption(o), asterism),
+                  tids  ++ ids4Event(ObservationModel.target.getOption(o), target),
+                  csids ++ ids4Event(ObservationModel.constraintSet.get(o), constraintSet) 
                 )
             }
 
           (
            updatedOs,
            updatedAids.toList.map(tb.asterisms.apply),
-           updatedTids.toList.map(tb.targets.apply)
+           updatedTids.toList.map(tb.targets.apply),
+           updatedCsids.toList.map(tb.constraintSets.apply)
           )
         }
       }
 
       private def doEdit(
-        oids:     List[Observation.Id],
-        editor:   State[ObservationModel, Unit],
-        asterism: Input[Asterism.Id],
-        target:   Input[Target.Id]
+        oids:          List[Observation.Id],
+        editor:        State[ObservationModel, Unit],
+        asterism:      Input[Asterism.Id],
+        target:        Input[Target.Id],
+        constraintSet: Input[ConstraintSet.Id]
       ): F[List[ObservationModel]] = {
 
-        val update: State[Tables, ValidatedInput[(List[ObservationModel], List[AsterismModel], List[TargetModel])]] =
+        val update: State[Tables, ValidatedInput[(List[ObservationModel], List[AsterismModel], List[TargetModel], List[ConstraintSetModel])]] =
           for {
-            voat  <- updatePointing(oids, asterism, target)
-            voatʹ <- voat.map { case (os, as, ts) =>
+            voatc  <- updatePointingAndConstraintSet(oids, asterism, target, constraintSet)
+            voatcʹ <- voatc.map { case (os, as, ts, cs) =>
               val os2 = os.map(o => editor.runS(o).value)
-              Tables.observations.mod(_ ++ os2.map(o => o.id -> o)).as((os2, as, ts))
+              Tables.observations.mod(_ ++ os2.map(o => o.id -> o)).as((os2, as, ts, cs))
             }.sequence
-          } yield voatʹ
+          } yield voatcʹ
 
         for {
-          oat <- tablesRef.modifyState(update).flatMap(_.liftTo[F])
-          (os, as, ts) = oat
-          _ <- os.traverse_(o => eventService.publish(ObservationModel.ObservationEvent.updated(o)))
-          _ <- as.traverse_(a => eventService.publish(AsterismModel.AsterismEvent.updated(a)))
-          _ <- ts.traverse_(t => eventService.publish(TargetModel.TargetEvent.updated(t)))
+          oatc <- tablesRef.modifyState(update).flatMap(_.liftTo[F])
+          (os, as, ts, cs) = oatc
+          _    <- os.traverse_(o => eventService.publish(ObservationModel.ObservationEvent.updated(o)))
+          _    <- as.traverse_(a => eventService.publish(AsterismModel.AsterismEvent.updated(a)))
+          _    <- ts.traverse_(t => eventService.publish(TargetModel.TargetEvent.updated(t)))
+          _    <- cs.traverse_(c => eventService.publish(ConstraintSetModel.ConstraintSetEvent.updated(c)))
         } yield os
 
       }
@@ -293,16 +268,28 @@ object ObservationRepo {
               edit.observationIds,
               State.pure[ObservationModel, Unit](()),
               e.fold(Input.unassign[Asterism.Id])(_.fold(aid => Input(aid), _ => Input.ignore[Asterism.Id])),
-              e.fold(Input.unassign[Target.Id])(_.fold(_ => Input.ignore[Target.Id], tid => Input(tid)))
+              e.fold(Input.unassign[Target.Id])(_.fold(_ => Input.ignore[Target.Id], tid => Input(tid))),
+              Input.ignore[ConstraintSet.Id]
             )
         } yield os
+
+      override def editConstraintSet(
+        edit: ObservationModel.EditConstraintSet
+      ): F[List[ObservationModel]] = 
+          doEdit(
+            edit.observationIds,
+            State.pure[ObservationModel, Unit](()),
+            Input.ignore[Asterism.Id],
+            Input.ignore[Target.Id],
+            edit.constraintSetId.fold(Input.unassign[ConstraintSet.Id])(Input(_))
+          )
 
       override def edit(
         edit: ObservationModel.Edit
       ): F[ObservationModel] =
 
         (edit.editor, edit.pointing).mapN { case (e, (a, t)) =>
-          doEdit(List(edit.observationId), e, a, t)
+          doEdit(List(edit.observationId), e, a, t, edit.constraintSetId)
         }.liftTo[F].flatten.map(_.head)
 
     }

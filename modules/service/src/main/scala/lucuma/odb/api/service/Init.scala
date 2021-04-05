@@ -285,13 +285,14 @@ object Init {
     target: Option[TargetModel]
   ): ObservationModel.Create =
     ObservationModel.Create(
-      observationId = None,
-      programId     = pid,
-      name          = target.map(_.target.name) orElse NonEmptyString.from("Observation").toOption,
-      asterismId    = None,
-      targetId      = target.map(_.id),
-      status        = ObsStatus.New.some,
-      config        =
+      observationId   = None,
+      programId       = pid,
+      name            = target.map(_.target.name) orElse NonEmptyString.from("Observation").toOption,
+      asterismId      = None,
+      targetId        = target.map(_.id),
+      constraintSetId = None,
+      status          = ObsStatus.New.some,
+      config          =
         SequenceModel.InstrumentConfig.Create.gmosSouth(
           GmosModel.CreateSouthStatic.Default,
           acquisitionSequence,

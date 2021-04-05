@@ -54,7 +54,8 @@ trait ArbTables extends SplitSetHelper {
   private def mapObservations(
     pids: List[Program.Id],
     aids: List[Asterism.Id],
-    tids: List[Target.Id]
+    tids: List[Target.Id],
+    cids: List[ConstraintSet.Id]
   ): Gen[SortedMap[Observation.Id, ObservationModel]] = {
     val emptyTargets = Option.empty[Either[Asterism.Id, Target.Id]]
 
@@ -72,10 +73,17 @@ trait ArbTables extends SplitSetHelper {
             if (tids.isEmpty) Gen.const(emptyTargets) else Gen.pick(1, tids).map(_.headOption.map(_.asRight))
           )
         )
+        cs <- Gen.listOfN(
+          om.size,
+          Gen.oneOf(
+            Gen.const(Option.empty[ConstraintSet.Id]),
+            if (cids.isEmpty) Gen.const(Option.empty[ConstraintSet.Id]) else Gen.pick(1, cids).map(_.headOption)
+          )
+        )
       } yield
         SortedMap.from(
-          om.toList.zip(ps).zip(ts).map { case (((i, o), pid), t) =>
-            (i, o.copy(programId = pid, pointing = t))
+          om.toList.zip(ps).zip(ts).zip(cs).map { case ((((i, o), pid), t), c) =>
+            (i, o.copy(programId = pid, pointing = t, constraintSetId = c))
           }
         )
   }
@@ -98,20 +106,6 @@ trait ArbTables extends SplitSetHelper {
       someBs <- Gen.someOf(bs)
     } yield ManyToMany((for(a <- someAs; b <- someBs) yield (a, b)).toSeq: _*)
 
-  private def oneToManyUnique[A: Order, B: Order](
-    as: Iterable[A],
-    bs: Iterable[B]
-  ): Gen[OneToManyUnique[A, B]] =
-    for {
-      someAs <- Gen.someOf(as)
-      someBs <- Gen.someOf(bs)
-      len     = someAs.length
-      bList  <- splitSetIntoN(len, someBs.toSet)
-    } yield {
-      val tuples = someAs.zip(bList).flatMap{ case (a, bs) => bs.map((a, _))}.toList
-      OneToManyUnique[A, B](tuples: _*).toOption.get
-    }
-
   implicit val arbTables: Arbitrary[Tables] =
     Arbitrary {
       for {
@@ -119,7 +113,7 @@ trait ArbTables extends SplitSetHelper {
         as <- mapAsterisms
         cs <- mapConstraintSets
         ts <- mapTargets
-        os <- mapObservations(ps.keys.toList, as.keys.toList, ts.keys.toList)
+        os <- mapObservations(ps.keys.toList, as.keys.toList, ts.keys.toList, cs.keys.toList)
         ids = Ids(
           0L,
           lastGid[Asterism.Id](as),
@@ -131,8 +125,7 @@ trait ArbTables extends SplitSetHelper {
         pa <- manyToMany(ps.keys, as.keys)
         pt <- manyToMany(ps.keys, ts.keys)
         ta <- manyToMany(ts.keys, as.keys)
-        co <- oneToManyUnique(cs.keys, os.keys)
-      } yield Tables(ids, as, cs, os, ps, ts, pa, pt, ta, co)
+      } yield Tables(ids, as, cs, os, ps, ts, pa, pt, ta)
     }
 }
 
