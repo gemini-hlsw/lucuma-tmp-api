@@ -7,7 +7,7 @@ import lucuma.odb.api.model.Existence._
 import lucuma.odb.api.model.syntax.input._
 import lucuma.core.`enum`.ObsStatus
 import lucuma.core.optics.syntax.lens._
-import lucuma.core.model.{Asterism, Observation, Program, Target}
+import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
 import cats.Eq
 import cats.data.State
 import cats.syntax.all._
@@ -19,16 +19,16 @@ import io.circe.generic.semiauto._
 import io.circe.refined._
 import monocle.{Lens, Optional}
 
-
 final case class ObservationModel(
-  id:                 Observation.Id,
-  existence:          Existence,
-  programId:          Program.Id,
-  name:               Option[NonEmptyString],
-  status:             ObsStatus,
-  pointing:           Option[Either[Asterism.Id, Target.Id]],
-  plannedTimeSummary: PlannedTimeSummaryModel,
-  config:             Option[SequenceModel.InstrumentConfig]
+  id:                   Observation.Id,
+  existence:            Existence,
+  programId:            Program.Id,
+  name:                 Option[NonEmptyString],
+  status:               ObsStatus,
+  pointing:             Option[Either[Asterism.Id, Target.Id]],
+  constraintSetId:      Option[ConstraintSet.Id],
+  plannedTimeSummary:   PlannedTimeSummaryModel,
+  config:               Option[SequenceModel.InstrumentConfig]
 ) {
 
   def asterismId: Option[Asterism.Id] =
@@ -49,13 +49,14 @@ object ObservationModel extends ObservationOptics {
 
 
   final case class Create(
-    observationId: Option[Observation.Id],
-    programId:     Program.Id,
-    name:          Option[NonEmptyString],
-    asterismId:    Option[Asterism.Id],
-    targetId:      Option[Target.Id],
-    status:        Option[ObsStatus],
-    config:        Option[SequenceModel.InstrumentConfig.Create]
+    observationId:   Option[Observation.Id],
+    programId:       Program.Id,
+    name:            Option[NonEmptyString],
+    asterismId:      Option[Asterism.Id],
+    targetId:        Option[Target.Id],
+    constraintSetId: Option[ConstraintSet.Id],
+    status:          Option[ObsStatus],
+    config:          Option[SequenceModel.InstrumentConfig.Create]
   ) {
 
     def withId(s: PlannedTimeSummaryModel): ValidatedInput[Observation.Id => ObservationModel] =
@@ -70,6 +71,7 @@ object ObservationModel extends ObservationOptics {
           name,
           status.getOrElse(ObsStatus.New),
           t,
+          constraintSetId,
           s,
           c
         )
@@ -89,18 +91,20 @@ object ObservationModel extends ObservationOptics {
         a.name,
         a.asterismId,
         a.targetId,
+        a.constraintSetId,
         a.status
       )}
 
   }
 
   final case class Edit(
-    observationId: Observation.Id,
-    existence:     Input[Existence]      = Input.ignore,
-    name:          Input[NonEmptyString] = Input.ignore,
-    status:        Input[ObsStatus]      = Input.ignore,
-    asterismId:    Input[Asterism.Id]    = Input.ignore,
-    targetId:      Input[Target.Id]      = Input.ignore
+    observationId:   Observation.Id,
+    existence:       Input[Existence]        = Input.ignore,
+    name:            Input[NonEmptyString]   = Input.ignore,
+    status:          Input[ObsStatus]        = Input.ignore,
+    asterismId:      Input[Asterism.Id]      = Input.ignore,
+    targetId:        Input[Target.Id]        = Input.ignore,
+    constraintSetId: Input[ConstraintSet.Id] = Input.ignore
   ) {
 
     def id: Observation.Id =
@@ -140,6 +144,9 @@ object ObservationModel extends ObservationOptics {
         a.existence,
         a.name,
         a.status,
+        a.asterismId,
+        a.targetId,
+        a.constraintSetId
       )}
 
   }
@@ -181,6 +188,25 @@ object ObservationModel extends ObservationOptics {
         a.targetId
       )}
 
+  }
+
+  final case class EditConstraintSet(
+    observationIds:  List[Observation.Id],
+    constraintSetId: Option[ConstraintSet.Id]
+  )
+
+  object EditConstraintSet {
+    def unassign(observationIds: List[Observation.Id]): EditConstraintSet =
+      EditConstraintSet(observationIds, None)
+
+    def assign(observationIds: List[Observation.Id], constraintSetId: ConstraintSet.Id): EditConstraintSet =
+      EditConstraintSet(observationIds, constraintSetId.some)
+
+    implicit val DecoderEditConstraintSet: Decoder[EditConstraintSet] =
+      deriveDecoder[EditConstraintSet]
+
+    implicit val EqEditConstraintSet: Eq[EditConstraintSet] = 
+      Eq.by { a => (a.observationIds, a.constraintSetId)}
   }
 
   final case class ObservationEvent (
@@ -225,6 +251,9 @@ trait ObservationOptics { self: ObservationModel.type =>
     Optional[ObservationModel, Target.Id](_.pointing.flatMap(_.toOption)) { t =>
       _.copy(pointing = t.asRight[Asterism.Id].some)
     }
+
+  val constraintSet: Lens[ObservationModel, Option[ConstraintSet.Id]] =
+    Lens[ObservationModel, Option[ConstraintSet.Id]](_.constraintSetId)(a => _.copy(constraintSetId = a))
 
   val config: Lens[ObservationModel, Option[SequenceModel.InstrumentConfig]] =
     Lens[ObservationModel, Option[SequenceModel.InstrumentConfig]](_.config)(a => _.copy(config = a))

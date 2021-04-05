@@ -31,7 +31,6 @@ final case class Tables(
   programAsterism:          ManyToMany[Program.Id, Asterism.Id],
   programTarget:            ManyToMany[Program.Id, Target.Id],
   targetAsterism:           ManyToMany[Target.Id, Asterism.Id],
-  constraintSetObservation: OneToManyUnique[ConstraintSet.Id, Observation.Id]
 )
 
 object Tables extends TableOptics {
@@ -49,7 +48,6 @@ object Tables extends TableOptics {
       programAsterism          = ManyToMany.empty,
       programTarget            = ManyToMany.empty,
       targetAsterism           = ManyToMany.empty,
-      constraintSetObservation = OneToManyUnique.empty
     )
 
 }
@@ -121,8 +119,5 @@ sealed trait TableOptics { self: Tables.type =>
 
   val targetAsterism: Lens[Tables, ManyToMany[Target.Id, Asterism.Id]] =
     Lens[Tables, ManyToMany[Target.Id, Asterism.Id]](_.targetAsterism)(b => a => a.copy(targetAsterism = b))
-
-  val constraintSetObservation: Lens[Tables, OneToManyUnique[ConstraintSet.Id, Observation.Id]] =
-    Lens[Tables, OneToManyUnique[ConstraintSet.Id, Observation.Id]](_.constraintSetObservation)(b => a => a.copy(constraintSetObservation = b))
 
 }
