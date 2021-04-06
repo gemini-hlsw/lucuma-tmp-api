@@ -3,8 +3,9 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.core.model.{Asterism, ConstraintSet, Observation, Target}
-import lucuma.odb.api.model.{ConstraintSetModel, InputError, ObservationModel, ProgramModel}
+import lucuma.core.model.{Asterism, Target}
+import lucuma.odb.api.model.{InputError, ObservationModel, ProgramModel}
+import ObservationModel.EditConstraintSet
 import ObservationModel.EditPointing
 
 
@@ -20,28 +21,6 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
 
   import arb.ArbTables._
 
-  test("shareWithConstraintSets") {
-    shareWithOneUniqueTest[Observation.Id, ObservationModel, ConstraintSet.Id, ConstraintSetModel] { odb =>
-      (
-        odb.observation,
-        odb.constraintSet,
-        odb.observation.shareWithConstraintSet,
-        odb.constraintSet.selectForObservation(_, includeDeleted = true)
-      )
-    }
-  }
-
-  test("unshareWithConstrainSet") {
-    unshareWithOneUniqueTest[Observation.Id, ObservationModel, ConstraintSet.Id, ConstraintSetModel] { odb =>
-      (
-        odb.observation,
-        odb.constraintSet,
-        odb.observation.unshareWithConstraintSet,
-        odb.constraintSet.selectForObservation(_, includeDeleted = true)
-      )
-    }
-  }
-
   private def runEditTest(
     t: Tables
   )(
@@ -52,7 +31,7 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
       for {
         // Insert a program and observation to insure that at least one exists
         p  <- odb.program.insert(new ProgramModel.Create(None, None))
-        _  <- odb.observation.insert(new ObservationModel.Create(None, p.id, None, None, None, None, None))
+        _  <- odb.observation.insert(new ObservationModel.Create(None, p.id, None, None, None, None, None, None))
 
         // Pick whatever the first observation may be
         tʹ    <- odb.tables.get
@@ -153,7 +132,7 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
       for {
         // Insert a program and observation to insure that at least one exists
         p  <- odb.program.insert(new ProgramModel.Create(None, None))
-        _  <- odb.observation.insert(new ObservationModel.Create(None, p.id, None, None, None, None, None))
+        _  <- odb.observation.insert(new ObservationModel.Create(None, p.id, None, None, None, None, None, None))
 
         tʹ    <- odb.tables.get
         before = tʹ.observations.values.toList
@@ -212,6 +191,52 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
         }
       }
       Prop.passed
+    }
+  }
+
+  private def runEditConstraintSetTest(
+    t: Tables
+  )(
+    f: List[ObservationModel] => EditConstraintSet
+  ): List[ObservationModel] = 
+
+    runTest(t) {odb =>
+      for {
+        // Insert a program and observation to insure that at least one exists
+        p  <- odb.program.insert(new ProgramModel.Create(None, None))
+        _  <- odb.observation.insert(new ObservationModel.Create(None, p.id, None, None, None, None, None, None))
+
+        tʹ    <- odb.tables.get
+        before = tʹ.observations.values.toList
+
+        // Do the prescribed edit.
+        after <- odb.observation.editConstraintSet(f(before))
+      } yield after
+    }
+
+  property("editConstraintSet: assign") {
+    forAll{ (t: Tables) =>
+      val csOption = t.constraintSets.values.headOption.map(_.id)
+
+      val edits = runEditConstraintSetTest(t) { os =>
+        val oids = os.map(_.id)
+        csOption.fold(EditConstraintSet.unassign(oids))(c => EditConstraintSet.assign(oids, c))
+      }
+      edits.foreach { after =>
+        assertEquals(after.constraintSetId, csOption)
+      }
+    }
+  }
+
+  property("editConstraintSet: unassign") {
+    forAll { (t: Tables) =>
+      val edits = runEditConstraintSetTest(t) { os =>
+        EditConstraintSet.unassign(os.map(_.id))
+      }
+
+      edits.foreach { after =>
+        assertEquals(after.constraintSetId, None)
+      }
     }
   }
 }

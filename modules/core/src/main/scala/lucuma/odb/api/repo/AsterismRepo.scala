@@ -5,6 +5,7 @@ package lucuma.odb.api.repo
 
 import lucuma.odb.api.model.{AsterismModel, ProgramModel, Sharing, TargetModel}
 import lucuma.odb.api.model.AsterismModel.{AsterismEvent, Create}
+import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.core.model.{Asterism, Observation, Program, Target}
 import cats._
 import cats.data.State
@@ -103,7 +104,9 @@ object AsterismRepo {
         tablesRef.get.map { t =>
           t.observations.get(oid).flatMap(_.pointing).collect {
             case Left(aid) => aid
-          }.flatMap(t.asterisms.get)
+          }
+          .flatMap(t.asterisms.get)
+          .filter(a => includeDeleted || a.isPresent)
         }
 
       private def addAsterism[T <: AsterismModel](

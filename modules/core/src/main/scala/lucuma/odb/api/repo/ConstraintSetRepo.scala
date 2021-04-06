@@ -7,9 +7,9 @@ import cats._
 import cats.effect.concurrent.Ref
 import cats.syntax.all._
 import lucuma.core.model.{ConstraintSet, Observation, Program}
-import lucuma.odb.api.model.{ConstraintSetModel, ObservationModel, Sharing}
+import lucuma.odb.api.model.ConstraintSetModel
 import lucuma.odb.api.model.ConstraintSetModel.ConstraintSetEvent
-import lucuma.odb.api.model.syntax.validatedinput._
+import lucuma.odb.api.model.syntax.toplevel._
 
 trait ConstraintSetRepo[F[_]] extends TopLevelRepo[F, ConstraintSet.Id, ConstraintSetModel] {
 
@@ -26,12 +26,6 @@ trait ConstraintSetRepo[F[_]] extends TopLevelRepo[F, ConstraintSet.Id, Constrai
   ): F[ResultPage[ConstraintSetModel]]
 
   def insert(input: ConstraintSetModel.Create): F[ConstraintSetModel]
-
-  def shareWithObservations(input: Sharing[ConstraintSet.Id, Observation.Id]): F[ConstraintSetModel]
-
-  def unshareWithObservations(
-    input: Sharing[ConstraintSet.Id, Observation.Id]
-  ): F[ConstraintSetModel]
 }
 
 object ConstraintSetRepo {
@@ -53,13 +47,14 @@ object ConstraintSetRepo {
         oid:            Observation.Id,
         includeDeleted: Boolean
       ): F[Option[ConstraintSetModel]] =
-        tablesRef.get
-          .flatMap { tables =>
-            tables.constraintSetObservation.selectLeft(oid).traverse { csid =>
-              tryFindConstraintSet(tables, csid).liftTo[F]
-            }
-          }
-          .map(x => deletionFilter(includeDeleted)(x))
+        tablesRef.get.map{ t => 
+          for {
+            o <- t.observations.get(oid)
+            csid <- o.constraintSetId
+            cs <- t.constraintSets.get(csid)
+            if includeDeleted || cs.isPresent
+          } yield cs
+        }
 
       override def selectPageForProgram(
         pid:            Program.Id,
@@ -76,26 +71,5 @@ object ConstraintSetRepo {
             tryFindProgram(t, newCs.programId) *>
             newCs.withId).map(createAndInsert(newCs.constraintSetId, _))
         }
-
-      override def shareWithObservations(
-        input: Sharing[ConstraintSet.Id, Observation.Id]
-      ): F[ConstraintSetModel] =
-        shareOneWithManyUnique("constraintSet",
-                               input,
-                               TableState.observation,
-                               Tables.constraintSetObservation,
-                               ObservationModel.ObservationEvent.updated
-        )
-
-      override def unshareWithObservations(
-        input: Sharing[ConstraintSet.Id, Observation.Id]
-      ): F[ConstraintSetModel] =
-        unshareOneWithManyUnique("constraintSet",
-                                 input,
-                                 TableState.observation,
-                                 Tables.constraintSetObservation,
-                                 ObservationModel.ObservationEvent.updated
-        )
-
     }
 }
