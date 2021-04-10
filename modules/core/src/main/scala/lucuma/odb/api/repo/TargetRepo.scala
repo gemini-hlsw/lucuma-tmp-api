@@ -9,9 +9,9 @@ import lucuma.odb.api.model.Existence._
 import lucuma.core.model.{Asterism, Program, Target}
 import cats._
 import cats.data.State
-import cats.effect.concurrent.Ref
 import cats.syntax.all._
 import monocle.state.all._
+import cats.effect.Ref
 
 
 sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {

@@ -6,7 +6,7 @@ package lucuma.odb.api.service
 import lucuma.odb.api.schema.OdbSchema
 import lucuma.odb.api.repo.OdbRepo
 import cats.implicits._
-import cats.effect.{Async, ConcurrentEffect, ContextShift, IO}
+import cats.effect.{Async, ConcurrentEffect, IO}
 import fs2.Stream
 import org.typelevel.log4cats.Logger
 import io.circe._
@@ -35,14 +35,13 @@ object OdbService {
   def apply[F[_]: Logger](
     odb: OdbRepo[F]
   )(
-    implicit F: ConcurrentEffect[F], cs: ContextShift[F]
-  ): OdbService[F] =
+    implicit F: ConcurrentEffect[F]): OdbService[F] =
 
     new OdbService[F] {
 
       override def query(request: ParsedGraphQLRequest): F[Either[Throwable, Json]] =
 
-        F.async { (cb: Either[Throwable, Json] => Unit) =>
+        F.async_ { (cb: Either[Throwable, Json] => Unit) =>
           Executor.execute(
             schema           = OdbSchema[F],
             queryAst         = request.query,

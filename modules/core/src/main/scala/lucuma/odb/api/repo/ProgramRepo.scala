@@ -10,7 +10,7 @@ import lucuma.core.model.{Asterism, Program, Target}
 import cats.Monad
 import cats.implicits._
 import cats.MonadError
-import cats.effect.concurrent.Ref
+import cats.effect.Ref
 
 
 trait ProgramRepo[F[_]] extends TopLevelRepo[F, Program.Id, ProgramModel] {
