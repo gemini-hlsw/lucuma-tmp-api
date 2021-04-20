@@ -31,6 +31,32 @@ final class PagingQuerySpec extends ScalaCheckSuite with OdbRepoTest {
     }
   }
 
+  property("totalCount same on all result pages") {
+    forAll {  (t: Tables, pageSize: PosInt) =>
+
+      val sizes = runTest(t) { odb =>
+        val pages = allPages(pageSize, None, odb.program)
+        pages.map(_.map(_.totalCount).toSet)
+      }
+
+      assertEquals(sizes.size, 1)
+    }
+  }
+
+  property("totalCount includes all matching items") {
+    forAll {  (t: Tables, pageSize: PosInt) =>
+
+      val (a, b) = runTest(t) { odb =>
+        val pages = allPages(pageSize, None, odb.program)
+        (pages.map(_.map(_.totalCount).toSet.headOption.getOrElse(0)),
+         pages.map(_.map(_.nodes.size).sum)
+        ).tupled
+      }
+
+      assertEquals(a, b)
+    }
+  }
+
   property("filter") {
     forAll {  (t: Tables, pageSize: PosInt) =>
 
