@@ -274,7 +274,7 @@ object Init {
         sci0_525,  flat_525,
         flat_525,  sci0_525,
         sci15_525, flat_525
-      ).map(BreakpointStep.Create.continueTo)
+      ).map(StepModel.Create.continueTo)
        .grouped(2) // pairs flat and science steps
        .toList
        .map(Atom.Create(_))

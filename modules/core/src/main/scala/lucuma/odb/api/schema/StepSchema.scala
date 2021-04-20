@@ -4,9 +4,10 @@
 package lucuma.odb.api.schema
 
 import lucuma.core.`enum`._
-import lucuma.odb.api.model.StepConfig
+import lucuma.odb.api.model.{Breakpoint, PlannedTime, StepConfig, StepModel}
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
+import lucuma.odb.api.schema.PlannedTimeSchema.CategorizedTimeType
 import sangria.schema._
 
 
@@ -14,6 +15,12 @@ object StepSchema {
 
   import OffsetSchema._
   import syntax.`enum`._
+
+  implicit val EnumTypeBreakpoint: EnumType[Breakpoint] =
+    EnumType.fromEnumerated[Breakpoint](
+      "Breakpoint",
+      "Stopping point in a series of steps"
+    )
 
   implicit val EnumTypeGcalContinuum: EnumType[GcalContinuum] =
     EnumType.fromEnumerated(
@@ -51,34 +58,58 @@ object StepSchema {
       "Step type"
     )
 
-  def StepType[F[_]: Effect, A](
-    typePrefix: String,
-    outputType: OutputType[A]
-  ): ObjectType[OdbRepo[F], StepConfig[A]] =
-    ObjectType[OdbRepo[F], StepConfig[A]](
-      name         = s"${typePrefix}Step",
-      description  = "Step (bias, dark, science, etc.)",
-      fields[OdbRepo[F], StepConfig[A]](
+  def StepInterfaceType[F[_]: Effect]: InterfaceType[OdbRepo[F], StepModel[_]] =
+    InterfaceType[OdbRepo[F], StepModel[_]](
+      name        = "Step",
+      description = "Sequence step",
+      fieldsFn    = () => fields[OdbRepo[F], StepModel[_]](
+
+        Field(
+          name        = "breakpoint",
+          fieldType   = EnumTypeBreakpoint,
+          description = Some("Whether to pause before the execution of this step"),
+          resolve     = _.value.breakpoint
+        ),
 
         Field(
           name        = "stepType",
           fieldType   = EnumTypeStepType,
           description = Some("Step type"),
-          resolve     = _.value.stepType
-        ),
-
-        Field(
-          name        = "instrumentConfig",
-          fieldType   = outputType,
-          description = Some("Instrument configuration"),
-          resolve     = _.value.instrumentConfig
+          resolve     = _.value.config.stepType
         ),
 
         Field(
           name        = "stepConfig",
           fieldType   = StepConfigType[F],
-          description = Some("Step configuration"),
-          resolve     = _.value
+          description = Some("The sequence step itself"),
+          resolve     = _.value.config
+        ),
+
+        Field(
+          name        = "time",
+          fieldType   = CategorizedTimeType[F],
+          description = Some("Time estimate for this step's execution"),
+          resolve     = c => PlannedTime.estimateStep(c.value.config)
+        )
+
+      )
+    )
+
+  def InstrumentStepType[F[_]: Effect, D](
+    typePrefix:  String,
+    dynamicType: OutputType[D]
+  ): ObjectType[OdbRepo[F], StepModel[D]] =
+    ObjectType(
+      name        = s"${typePrefix}Step",
+      description = s"$typePrefix step with potential breakpoint",
+      interfaces  = List(PossibleInterface.apply[OdbRepo[F], StepModel[D]](StepInterfaceType[F])),
+      fieldsFn    = () => fields(
+
+        Field(
+          name        = "instrumentConfig",
+          fieldType   = dynamicType,
+          description = Some("Instrument configuration for this step"),
+          resolve     = _.value.config.instrumentConfig
         )
 
       )
@@ -87,7 +118,7 @@ object StepSchema {
   def StepConfigType[F[_]: Effect]: InterfaceType[OdbRepo[F], StepConfig[_]] =
     InterfaceType[OdbRepo[F], StepConfig[_]](
       name         = s"StepConfig",
-      description  = "Step (bias, dark, science, etc.)",
+      description  = "Step (bias, dark, gcal, science, etc.)",
       fields[OdbRepo[F], StepConfig[_]](
 
         Field(

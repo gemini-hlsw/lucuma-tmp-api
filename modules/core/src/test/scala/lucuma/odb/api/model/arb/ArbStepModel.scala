@@ -6,12 +6,13 @@ package arb
 
 import lucuma.core.math.Offset
 import lucuma.core.math.arb.ArbOffset
-
+import lucuma.core.util.arb.ArbEnumerated
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
 trait ArbStepModel {
 
+  import ArbEnumerated._
   import ArbGcalModel._
   import ArbOffset._
   import ArbOffsetModel._
@@ -60,7 +61,7 @@ trait ArbStepModel {
       in.offset
     )}
 
-  implicit def arbStep[A: Arbitrary]: Arbitrary[StepConfig[A]] =
+  implicit def arbStepConfig[A: Arbitrary]: Arbitrary[StepConfig[A]] =
     Arbitrary {
       Gen.oneOf(
         arbitrary[StepConfig.Bias[A]],
@@ -70,7 +71,7 @@ trait ArbStepModel {
       )
     }
 
-  implicit def cogStep[A: Cogen]: Cogen[StepConfig[A]] =
+  implicit def cogStepConfig[A: Cogen]: Cogen[StepConfig[A]] =
     Cogen[(
       Option[StepConfig.Bias[A]],
       Option[StepConfig.Dark[A]],
@@ -123,7 +124,7 @@ trait ArbStepModel {
       in.offset
     )}
 
-  implicit def arbCreateStep[A: Arbitrary]: Arbitrary[StepConfig.CreateStepConfig[A]] =
+  implicit def arbCreateStepConfig[A: Arbitrary]: Arbitrary[StepConfig.CreateStepConfig[A]] =
     Arbitrary {
       Gen.oneOf(
         arbitrary[StepConfig.CreateBias[A]].map(   b => StepConfig.CreateStepConfig(Some(b), None, None, None)),
@@ -136,7 +137,7 @@ trait ArbStepModel {
       )
     }
 
-  implicit def cogCreateStep[A: Cogen]: Cogen[StepConfig.CreateStepConfig[A]] =
+  implicit def cogCreateStepConfig[A: Cogen]: Cogen[StepConfig.CreateStepConfig[A]] =
     Cogen[(
       Option[StepConfig.CreateBias[A]],
       Option[StepConfig.CreateDark[A]],
@@ -148,6 +149,35 @@ trait ArbStepModel {
       in.gcal,
       in.science
     )}
+
+    implicit def arbStepModel[A: Arbitrary]: Arbitrary[StepModel[A]] =
+    Arbitrary {
+      for {
+        b <- arbitrary[Breakpoint]
+        s <- arbitrary[StepConfig[A]]
+      } yield StepModel(b, s)
+    }
+
+  implicit def cogStepModel[A: Cogen]: Cogen[StepModel[A]] =
+    Cogen[(Breakpoint, StepConfig[A])].contramap { in => (
+      in.breakpoint,
+      in.config
+    )}
+
+  implicit def arbStepModelCreate[A: Arbitrary]: Arbitrary[StepModel.Create[A]] =
+    Arbitrary {
+      for {
+        b <- arbitrary[Breakpoint]
+        s <- arbitrary[StepConfig.CreateStepConfig[A]]
+      } yield StepModel.Create(b, s)
+    }
+
+  implicit def cogStepModelCreate[A: Cogen]: Cogen[StepModel.Create[A]] =
+    Cogen[(Breakpoint, StepConfig.CreateStepConfig[A])].contramap { in => (
+      in.breakpoint,
+      in.step
+    )}
+
 
 }
 
