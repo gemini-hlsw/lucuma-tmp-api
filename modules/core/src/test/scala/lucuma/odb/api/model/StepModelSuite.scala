@@ -15,10 +15,10 @@ final class StepModelSuite extends DisciplineSuite {
   import ArbStepModel._
   import ArbOffsetModel._
 
-  checkAll("StepModel.StepModel",  EqTests[StepModel[Int]].eqv)
-  checkAll("StepModel.CreateStep", EqTests[StepModel.CreateStep[Int]].eqv)
+  checkAll("StepModel.StepModel",  EqTests[StepConfig[Int]].eqv)
+  checkAll("StepModel.CreateStep", EqTests[StepConfig.CreateStepConfig[Int]].eqv)
 
-  checkAll("StepModel.CreateStep.instrumentConfig", OptionalTests(StepModel.CreateStep.instrumentConfig[Int]))
-  checkAll("StepModel.CreateStep.gcalConfig",    OptionalTests(StepModel.CreateStep.gcalConfig[Int]))
-  checkAll("StepModel.CreateStep.offset",        OptionalTests(StepModel.CreateStep.offset[Int]))
+  checkAll("StepModel.CreateStep.instrumentConfig", OptionalTests(StepConfig.CreateStepConfig.instrumentConfig[Int]))
+  checkAll("StepModel.CreateStep.gcalConfig",    OptionalTests(StepConfig.CreateStepConfig.gcalConfig[Int]))
+  checkAll("StepModel.CreateStep.offset",        OptionalTests(StepConfig.CreateStepConfig.offset[Int]))
 }

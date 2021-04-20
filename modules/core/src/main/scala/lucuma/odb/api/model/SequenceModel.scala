@@ -4,7 +4,7 @@
 package lucuma.odb.api.model
 
 import lucuma.core.util.Enumerated
-import lucuma.odb.api.model.StepModel.CreateStep
+import lucuma.odb.api.model.StepConfig.CreateStepConfig
 import lucuma.odb.api.model.syntax.inputvalidator._
 import cats.Eq
 import cats.data.NonEmptyList
@@ -51,7 +51,7 @@ object SequenceModel {
 
   @Lenses final case class BreakpointStep[A](
     breakpoint: Breakpoint,
-    step:       StepModel[A]
+    step:       StepConfig[A]
   )
 
   object BreakpointStep {
@@ -64,7 +64,7 @@ object SequenceModel {
 
     @Lenses final case class Create[A](
       breakpoint: Breakpoint,
-      step:       CreateStep[A]
+      step:       CreateStepConfig[A]
     ) {
 
       def create[B](implicit V: InputValidator[A, B]): ValidatedInput[BreakpointStep[B]] =
@@ -74,10 +74,10 @@ object SequenceModel {
 
     object Create {
 
-      def stopBefore[A](s: CreateStep[A]): Create[A] =
+      def stopBefore[A](s: CreateStepConfig[A]): Create[A] =
         Create(Breakpoint.enabled, s)
 
-      def continueTo[A](s: CreateStep[A]): Create[A] =
+      def continueTo[A](s: CreateStepConfig[A]): Create[A] =
         Create(Breakpoint.disabled, s)
 
       implicit def EqCreate[A: Eq]: Eq[Create[A]] =
@@ -138,10 +138,10 @@ object SequenceModel {
       def singleton[A](step: BreakpointStep.Create[A]): Create[A] =
         Create(List(step))
 
-      def stopBefore[A](step: CreateStep[A]): Create[A] =
+      def stopBefore[A](step: CreateStepConfig[A]): Create[A] =
         singleton(BreakpointStep.Create.stopBefore(step))
 
-      def continueTo[A](step: CreateStep[A]): Create[A] =
+      def continueTo[A](step: CreateStepConfig[A]): Create[A] =
         singleton(BreakpointStep.Create.continueTo(step))
 
       implicit def DecoderCreate[A: Decoder]: Decoder[Create[A]] =

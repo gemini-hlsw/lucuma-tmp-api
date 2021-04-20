@@ -596,22 +596,22 @@ object GmosModel {
     }
 
     object step {
-      val instrumentConfig: Optional[StepModel.CreateStep[CreateSouthDynamic], CreateSouthDynamic] =
-        StepModel.CreateStep.instrumentConfig[CreateSouthDynamic]
+      val instrumentConfig: Optional[StepConfig.CreateStepConfig[CreateSouthDynamic], CreateSouthDynamic] =
+        StepConfig.CreateStepConfig.instrumentConfig[CreateSouthDynamic]
 
-      val exposure: Optional[StepModel.CreateStep[CreateSouthDynamic], FiniteDurationModel.Input] =
+      val exposure: Optional[StepConfig.CreateStepConfig[CreateSouthDynamic], FiniteDurationModel.Input] =
         instrumentConfig ^|-> CreateSouthDynamic.exposure
 
-      val p: Optional[StepModel.CreateStep[CreateSouthDynamic], OffsetModel.ComponentInput] =
-        StepModel.CreateStep.p[CreateSouthDynamic]
+      val p: Optional[StepConfig.CreateStepConfig[CreateSouthDynamic], OffsetModel.ComponentInput] =
+        StepConfig.CreateStepConfig.p[CreateSouthDynamic]
 
-      val q: Optional[StepModel.CreateStep[CreateSouthDynamic], OffsetModel.ComponentInput] =
-        StepModel.CreateStep.q[CreateSouthDynamic]
+      val q: Optional[StepConfig.CreateStepConfig[CreateSouthDynamic], OffsetModel.ComponentInput] =
+        StepConfig.CreateStepConfig.q[CreateSouthDynamic]
 
-      val grating: Optional[StepModel.CreateStep[CreateSouthDynamic], CreateGrating[GmosSouthDisperser]] =
+      val grating: Optional[StepConfig.CreateStepConfig[CreateSouthDynamic], CreateGrating[GmosSouthDisperser]] =
         instrumentConfig ^|-? instrument.grating
 
-      val wavelength: Optional[StepModel.CreateStep[CreateSouthDynamic], WavelengthModel.Input] =
+      val wavelength: Optional[StepConfig.CreateStepConfig[CreateSouthDynamic], WavelengthModel.Input] =
         grating ^|-> CreateGrating.wavelength[GmosSouthDisperser]
 
     }

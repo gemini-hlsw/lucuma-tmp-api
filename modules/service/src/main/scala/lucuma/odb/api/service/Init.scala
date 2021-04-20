@@ -159,7 +159,7 @@ object Init {
     targetsJson.traverse(decode[TargetModel.CreateSidereal])
 
   import GmosModel.{CreateCcdReadout, CreateSouthDynamic}
-  import StepModel.CreateStep
+  import StepConfig.CreateStepConfig
 
   import CreateSouthDynamic.{exposure, filter, fpu, grating, readout, roi, step}
   import CreateCcdReadout.{ampRead, xBin, yBin}
@@ -184,10 +184,10 @@ object Init {
       None
     )
 
-  val ac1: CreateStep[CreateSouthDynamic] =
-    CreateStep.science(gmosAc, OffsetModel.Input.Zero)
+  val ac1: CreateStepConfig[CreateSouthDynamic] =
+    CreateStepConfig.science(gmosAc, OffsetModel.Input.Zero)
 
-  val ac2: CreateStep[CreateSouthDynamic] =
+  val ac2: CreateStepConfig[CreateSouthDynamic] =
     edit(ac1) {
       for {
         _ <- step.p                                         := ComponentInput(10.arcsec)
@@ -199,7 +199,7 @@ object Init {
       } yield ()
     }
 
-  val ac3: CreateStep[CreateSouthDynamic] =
+  val ac3: CreateStepConfig[CreateSouthDynamic] =
     step.exposure.assign_(FiniteDurationModel.Input(30.seconds)).runS(ac2).value
 
   val acquisitionSequence: Sequence.Create[CreateSouthDynamic] =
@@ -242,23 +242,23 @@ object Init {
   val threeSeconds: FiniteDurationModel.Input =
     FiniteDurationModel.Input.fromSeconds(3.0)
 
-  val flat_520: CreateStep[CreateSouthDynamic] =
-    CreateStep.gcal(edit(gmos520)(exposure := threeSeconds), gcal)
+  val flat_520: CreateStepConfig[CreateSouthDynamic] =
+    CreateStepConfig.gcal(edit(gmos520)(exposure := threeSeconds), gcal)
 
-  val flat_525: CreateStep[CreateSouthDynamic] =
-    CreateStep.gcal(edit(gmos525)(exposure := threeSeconds), gcal)
+  val flat_525: CreateStepConfig[CreateSouthDynamic] =
+    CreateStepConfig.gcal(edit(gmos525)(exposure := threeSeconds), gcal)
 
-  val sci0_520: CreateStep[CreateSouthDynamic] =
-    CreateStep.science(gmos520, OffsetModel.Input.Zero)
+  val sci0_520: CreateStepConfig[CreateSouthDynamic] =
+    CreateStepConfig.science(gmos520, OffsetModel.Input.Zero)
 
-  val sci15_520: CreateStep[CreateSouthDynamic] =
-    CreateStep.science(gmos520, Q15)
+  val sci15_520: CreateStepConfig[CreateSouthDynamic] =
+    CreateStepConfig.science(gmos520, Q15)
 
-  val sci0_525: CreateStep[CreateSouthDynamic] =
-    CreateStep.science(gmos525, OffsetModel.Input.Zero)
+  val sci0_525: CreateStepConfig[CreateSouthDynamic] =
+    CreateStepConfig.science(gmos525, OffsetModel.Input.Zero)
 
-  val sci15_525: CreateStep[CreateSouthDynamic] =
-    CreateStep.science(gmos525, Q15)
+  val sci15_525: CreateStepConfig[CreateSouthDynamic] =
+    CreateStepConfig.science(gmos525, Q15)
 
   val scienceSequence: Sequence.Create[CreateSouthDynamic] =
     Sequence.Create(

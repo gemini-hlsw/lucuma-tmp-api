@@ -21,12 +21,12 @@ trait ArbSequenceModel extends Helper {
     Arbitrary {
       for {
         b <- arbitrary[Breakpoint]
-        s <- arbitrary[StepModel[A]]
+        s <- arbitrary[StepConfig[A]]
       } yield BreakpointStep(b, s)
     }
 
   implicit def cogBreakpointStep[A: Cogen]: Cogen[BreakpointStep[A]] =
-    Cogen[(Breakpoint, StepModel[A])].contramap { in => (
+    Cogen[(Breakpoint, StepConfig[A])].contramap { in => (
       in.breakpoint,
       in.step
     )}
@@ -35,12 +35,12 @@ trait ArbSequenceModel extends Helper {
     Arbitrary {
       for {
         b <- arbitrary[Breakpoint]
-        s <- arbitrary[StepModel.CreateStep[A]]
+        s <- arbitrary[StepConfig.CreateStepConfig[A]]
       } yield BreakpointStep.Create(b, s)
     }
 
   implicit def cogBreakpointStepCreate[A: Cogen]: Cogen[BreakpointStep.Create[A]] =
-    Cogen[(Breakpoint, StepModel.CreateStep[A])].contramap { in => (
+    Cogen[(Breakpoint, StepConfig.CreateStepConfig[A])].contramap { in => (
       in.breakpoint,
       in.step
     )}

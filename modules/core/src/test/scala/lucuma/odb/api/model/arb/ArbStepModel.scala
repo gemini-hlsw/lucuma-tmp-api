@@ -16,132 +16,132 @@ trait ArbStepModel {
   import ArbOffset._
   import ArbOffsetModel._
 
-  implicit def arbBias[A: Arbitrary]: Arbitrary[StepModel.Bias[A]] =
+  implicit def arbBias[A: Arbitrary]: Arbitrary[StepConfig.Bias[A]] =
     Arbitrary {
-      arbitrary[A].map(StepModel.Bias(_))
+      arbitrary[A].map(StepConfig.Bias(_))
     }
 
-  implicit def cogBias[A: Cogen]: Cogen[StepModel.Bias[A]] =
+  implicit def cogBias[A: Cogen]: Cogen[StepConfig.Bias[A]] =
     Cogen[A].contramap(_.instrumentConfig)
 
-  implicit def arbDark[A: Arbitrary]: Arbitrary[StepModel.Dark[A]] =
+  implicit def arbDark[A: Arbitrary]: Arbitrary[StepConfig.Dark[A]] =
     Arbitrary {
-      arbitrary[A].map(StepModel.Dark(_))
+      arbitrary[A].map(StepConfig.Dark(_))
     }
 
-  implicit def cogDark[A: Cogen]: Cogen[StepModel.Dark[A]] =
+  implicit def cogDark[A: Cogen]: Cogen[StepConfig.Dark[A]] =
     Cogen[A].contramap(_.instrumentConfig)
 
-  implicit def arbGcal[A: Arbitrary]: Arbitrary[StepModel.Gcal[A]] =
+  implicit def arbGcal[A: Arbitrary]: Arbitrary[StepConfig.Gcal[A]] =
     Arbitrary {
       for {
         a <- arbitrary[A]
         g <- arbitrary[GcalModel]
-      } yield StepModel.Gcal(a, g)
+      } yield StepConfig.Gcal(a, g)
     }
 
-  implicit def cogGcal[A: Cogen]: Cogen[StepModel.Gcal[A]] =
+  implicit def cogGcal[A: Cogen]: Cogen[StepConfig.Gcal[A]] =
     Cogen[(A, GcalModel)].contramap { in => (
       in.instrumentConfig,
       in.gcalConfig
     )}
 
-  implicit def arbScience[A: Arbitrary]: Arbitrary[StepModel.Science[A]] =
+  implicit def arbScience[A: Arbitrary]: Arbitrary[StepConfig.Science[A]] =
     Arbitrary {
       for {
         a <- arbitrary[A]
         o <- arbitrary[Offset]
-      } yield StepModel.Science(a, o)
+      } yield StepConfig.Science(a, o)
     }
 
-  implicit def cogScience[A: Cogen]: Cogen[StepModel.Science[A]] =
+  implicit def cogScience[A: Cogen]: Cogen[StepConfig.Science[A]] =
     Cogen[(A, Offset)].contramap { in => (
       in.instrumentConfig,
       in.offset
     )}
 
-  implicit def arbStep[A: Arbitrary]: Arbitrary[StepModel[A]] =
+  implicit def arbStep[A: Arbitrary]: Arbitrary[StepConfig[A]] =
     Arbitrary {
       Gen.oneOf(
-        arbitrary[StepModel.Bias[A]],
-        arbitrary[StepModel.Dark[A]],
-        arbitrary[StepModel.Gcal[A]],
-        arbitrary[StepModel.Science[A]]
+        arbitrary[StepConfig.Bias[A]],
+        arbitrary[StepConfig.Dark[A]],
+        arbitrary[StepConfig.Gcal[A]],
+        arbitrary[StepConfig.Science[A]]
       )
     }
 
-  implicit def cogStep[A: Cogen]: Cogen[StepModel[A]] =
+  implicit def cogStep[A: Cogen]: Cogen[StepConfig[A]] =
     Cogen[(
-      Option[StepModel.Bias[A]],
-      Option[StepModel.Dark[A]],
-      Option[StepModel.Gcal[A]],
-      Option[StepModel.Science[A]]
+      Option[StepConfig.Bias[A]],
+      Option[StepConfig.Dark[A]],
+      Option[StepConfig.Gcal[A]],
+      Option[StepConfig.Science[A]]
     )].contramap { in => (in.bias, in.dark, in.gcal, in.science) }
 
 
-  implicit def arbCreateBias[A: Arbitrary]: Arbitrary[StepModel.CreateBias[A]] =
+  implicit def arbCreateBias[A: Arbitrary]: Arbitrary[StepConfig.CreateBias[A]] =
     Arbitrary {
-      arbitrary[A].map(StepModel.CreateBias(_))
+      arbitrary[A].map(StepConfig.CreateBias(_))
     }
 
-  implicit def cogCreateBias[A: Cogen]: Cogen[StepModel.CreateBias[A]] =
+  implicit def cogCreateBias[A: Cogen]: Cogen[StepConfig.CreateBias[A]] =
     Cogen[A].contramap(_.config)
 
-  implicit def arbCreateDark[A: Arbitrary]: Arbitrary[StepModel.CreateDark[A]] =
+  implicit def arbCreateDark[A: Arbitrary]: Arbitrary[StepConfig.CreateDark[A]] =
     Arbitrary {
-      arbitrary[A].map(StepModel.CreateDark(_))
+      arbitrary[A].map(StepConfig.CreateDark(_))
     }
 
-  implicit def cogCreateDark[A: Cogen]: Cogen[StepModel.CreateDark[A]] =
+  implicit def cogCreateDark[A: Cogen]: Cogen[StepConfig.CreateDark[A]] =
     Cogen[A].contramap(_.config)
 
-  implicit def arbCreateGcal[A: Arbitrary]: Arbitrary[StepModel.CreateGcal[A]] =
+  implicit def arbCreateGcal[A: Arbitrary]: Arbitrary[StepConfig.CreateGcal[A]] =
     Arbitrary {
       for {
         a <- arbitrary[A]
         g <- arbitrary[GcalModel.Create]
-      } yield StepModel.CreateGcal(a, g)
+      } yield StepConfig.CreateGcal(a, g)
     }
 
-  implicit def cogCreateGcal[A: Cogen]: Cogen[StepModel.CreateGcal[A]] =
+  implicit def cogCreateGcal[A: Cogen]: Cogen[StepConfig.CreateGcal[A]] =
     Cogen[(A, GcalModel.Create)].contramap { in => (
       in.config,
       in.gcalConfig
     )}
 
-  implicit def arbCreateScience[A: Arbitrary]: Arbitrary[StepModel.CreateScience[A]] =
+  implicit def arbCreateScience[A: Arbitrary]: Arbitrary[StepConfig.CreateScience[A]] =
     Arbitrary {
       for {
         a <- arbitrary[A]
         o <- arbitrary[OffsetModel.Input]
-      } yield StepModel.CreateScience(a, o)
+      } yield StepConfig.CreateScience(a, o)
     }
 
-  implicit def cogCreateScience[A: Cogen]: Cogen[StepModel.CreateScience[A]] =
+  implicit def cogCreateScience[A: Cogen]: Cogen[StepConfig.CreateScience[A]] =
     Cogen[(A, OffsetModel.Input)].contramap { in => (
       in.config,
       in.offset
     )}
 
-  implicit def arbCreateStep[A: Arbitrary]: Arbitrary[StepModel.CreateStep[A]] =
+  implicit def arbCreateStep[A: Arbitrary]: Arbitrary[StepConfig.CreateStepConfig[A]] =
     Arbitrary {
       Gen.oneOf(
-        arbitrary[StepModel.CreateBias[A]].map(   b => StepModel.CreateStep(Some(b), None, None, None)),
-        arbitrary[StepModel.CreateDark[A]].map(   d => StepModel.CreateStep(None, Some(d), None, None)),
-        arbitrary[StepModel.CreateGcal[A]].map(   g => StepModel.CreateStep(None, None, Some(g), None)),
-        arbitrary[StepModel.CreateScience[A]].map(s => StepModel.CreateStep(None, None, None, Some(s))),
-        arbitrary[(StepModel.CreateGcal[A], StepModel.CreateScience[A])].map { case (g, s) =>
-          StepModel.CreateStep(None, None, Some(g), Some(s))  // invalid but possible input
+        arbitrary[StepConfig.CreateBias[A]].map(   b => StepConfig.CreateStepConfig(Some(b), None, None, None)),
+        arbitrary[StepConfig.CreateDark[A]].map(   d => StepConfig.CreateStepConfig(None, Some(d), None, None)),
+        arbitrary[StepConfig.CreateGcal[A]].map(   g => StepConfig.CreateStepConfig(None, None, Some(g), None)),
+        arbitrary[StepConfig.CreateScience[A]].map(s => StepConfig.CreateStepConfig(None, None, None, Some(s))),
+        arbitrary[(StepConfig.CreateGcal[A], StepConfig.CreateScience[A])].map { case (g, s) =>
+          StepConfig.CreateStepConfig(None, None, Some(g), Some(s))  // invalid but possible input
         }
       )
     }
 
-  implicit def cogCreateStep[A: Cogen]: Cogen[StepModel.CreateStep[A]] =
+  implicit def cogCreateStep[A: Cogen]: Cogen[StepConfig.CreateStepConfig[A]] =
     Cogen[(
-      Option[StepModel.CreateBias[A]],
-      Option[StepModel.CreateDark[A]],
-      Option[StepModel.CreateGcal[A]],
-      Option[StepModel.CreateScience[A]]
+      Option[StepConfig.CreateBias[A]],
+      Option[StepConfig.CreateDark[A]],
+      Option[StepConfig.CreateGcal[A]],
+      Option[StepConfig.CreateScience[A]]
     )].contramap { in => (
       in.bias,
       in.dark,
