@@ -8,7 +8,7 @@ import lucuma.core.model.User
 import lucuma.sso.client.SsoClient
 import cats.MonadError
 import cats.data.ValidatedNel
-import cats.effect.{ConcurrentEffect, Timer}
+import cats.effect.ConcurrentEffect
 import cats.implicits._
 import clue.model.StreamingMessage.{FromClient, FromServer}
 import clue.model.json._
@@ -27,6 +27,7 @@ import sangria.ast.Document
 import sangria.parser.QueryParser
 
 import scala.concurrent.duration._
+import cats.effect.Temporal
 
 
 object Routes {
@@ -38,7 +39,7 @@ object Routes {
     service:    OdbService[F],
     userClient: SsoClient[F, User]
   )(
-    implicit F: ConcurrentEffect[F], M: MonadError[F, Throwable], T: Timer[F]
+    implicit F: ConcurrentEffect[F], M: MonadError[F, Throwable], T: Temporal[F]
   ): HttpRoutes[F] = {
 
     val dsl = new Http4sDsl[F]{}

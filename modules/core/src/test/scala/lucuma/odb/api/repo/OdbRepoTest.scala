@@ -6,7 +6,7 @@ package lucuma.odb.api.repo
 import lucuma.odb.api.model.{Sharing, TopLevelModel}
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.repo.arb._
-import cats.effect.{Concurrent, ContextShift, IO, Sync}
+import cats.effect.{Concurrent, IO, Sync}
 import cats.syntax.all._
 import eu.timepit.refined.types.all.PosInt
 import fs2.Stream

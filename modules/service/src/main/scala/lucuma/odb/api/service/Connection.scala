@@ -8,7 +8,6 @@ import lucuma.core.model.User
 import lucuma.sso.client.SsoClient
 
 import cats.{Applicative, MonadError}
-import cats.effect.concurrent.Ref
 import cats.effect.ConcurrentEffect
 import cats.syntax.apply._
 import cats.syntax.flatMap._
@@ -23,6 +22,7 @@ import io.circe.Json
 import org.typelevel.log4cats.Logger
 import org.http4s.headers.Authorization
 import sangria.parser.QueryParser
+import cats.effect.Ref
 
 /**
  * A web-socket connection that receives messages from a client and processes

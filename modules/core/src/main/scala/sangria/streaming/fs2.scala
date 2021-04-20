@@ -4,7 +4,7 @@
 package sangria.streaming
 
 import _root_.fs2.Stream
-import cats.effect.{ConcurrentEffect, ContextShift, IO}
+import cats.effect.{ConcurrentEffect, IO}
 
 import scala.concurrent.{ExecutionContext, Future}
 

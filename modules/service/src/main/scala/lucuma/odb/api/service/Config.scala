@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.service
 
-import cats.effect.{ConcurrentEffect, ContextShift, Resource, Sync, Timer}
+import cats.effect.{ConcurrentEffect, Resource, Sync}
 import cats.syntax.all._
 import ciris.{ConfigDecoder, ConfigValue, env, prop}
 import lucuma.sso.client.SsoClient.UserInfo
@@ -14,6 +14,7 @@ import org.http4s.client.Client
 import org.http4s.client.blaze.BlazeClientBuilder
 
 import java.security.PublicKey
+import cats.effect.Temporal
 
 /**
  * Application configuration.
@@ -32,7 +33,7 @@ final case class Config(
     BlazeClientBuilder(scala.concurrent.ExecutionContext.Implicits.global).resource
 
   // SSO Client resource (has to be a resource because it owns an HTTP client).
-  def ssoClient[F[_]: ConcurrentEffect: Timer: ContextShift]: Resource[F, SsoClient[F, UserInfo]] =
+  def ssoClient[F[_]: ConcurrentEffect: Temporal: ContextShift]: Resource[F, SsoClient[F, UserInfo]] =
     httpClientResource[F].evalMap { httpClient =>
       SsoClient.initial(
         serviceJwt = serviceJwt,
