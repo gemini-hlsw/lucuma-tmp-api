@@ -13,46 +13,7 @@ object SequenceSchema {
 
   import FiniteDurationSchema.DurationType
   import PlannedTimeSchema._
-  import StepSchema.StepType
-  import syntax.`enum`._
-
-  implicit val EnumTypeBreakpoint: EnumType[SequenceModel.Breakpoint] =
-    EnumType.fromEnumerated[SequenceModel.Breakpoint](
-      "Breakpoint",
-      "Stopping point in a series of steps"
-    )
-
-  def BreakpointStepType[F[_]: Effect, D](
-    typePrefix:  String,
-    dynamicType: OutputType[D]
-  ): ObjectType[OdbRepo[F], SequenceModel.BreakpointStep[D]] =
-    ObjectType(
-      name        = s"${typePrefix}BreakpointStep",
-      description = s"$typePrefix step with potential breakpoint",
-      fieldsFn    = () => fields(
-
-        Field(
-          name        = "breakpoint",
-          fieldType   = EnumTypeBreakpoint,
-          description = Some("Whether to pause before the execution of this step"),
-          resolve     = _.value.breakpoint
-        ),
-
-        Field(
-          name        = "step",
-          fieldType   = StepType[F, D](typePrefix, dynamicType),
-          description = Some("The sequence step itself"),
-          resolve     = _.value.step
-        ),
-
-        Field(
-          name        = "time",
-          fieldType   = CategorizedTimeType[F],
-          description = Some("Time estimate for this step's execution"),
-          resolve     = c => PlannedTime.estimateStep(c.value.step)
-        )
-      )
-    )
+  import StepSchema.InstrumentStepType
 
   def AtomType[F[_]: Effect, D](
     typePrefix:  String,
@@ -65,7 +26,7 @@ object SequenceSchema {
 
         Field(
           name        = "steps",
-          fieldType   = ListType(BreakpointStepType[F, D](typePrefix, dynamicType)),
+          fieldType   = ListType(InstrumentStepType[F, D](typePrefix, dynamicType)),
           description = Some("Individual steps that comprise the atom"),
           resolve     = _.value.steps.toList
         ),

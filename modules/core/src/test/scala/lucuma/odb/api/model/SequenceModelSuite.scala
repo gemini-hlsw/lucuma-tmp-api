@@ -14,9 +14,6 @@ final class SequenceModelSuite extends DisciplineSuite {
 
   import ArbSequenceModel._
 
-  checkAll("BreakpointStep",       EqTests[BreakpointStep[Int]].eqv)
-  checkAll("CreateBreakpointStep", EqTests[BreakpointStep.Create[Int]].eqv)
-
   checkAll("Atom",                 EqTests[Atom[Int]].eqv)
   checkAll("CreateAtom",           EqTests[Atom.Create[Int]].eqv)
 

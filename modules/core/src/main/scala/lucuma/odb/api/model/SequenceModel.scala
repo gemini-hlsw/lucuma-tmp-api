@@ -3,8 +3,7 @@
 
 package lucuma.odb.api.model
 
-import lucuma.core.util.Enumerated
-import lucuma.odb.api.model.StepModel.CreateStep
+import lucuma.odb.api.model.StepConfig.CreateStepConfig
 import lucuma.odb.api.model.syntax.inputvalidator._
 import cats.Eq
 import cats.data.NonEmptyList
@@ -17,107 +16,28 @@ import monocle.macros.Lenses
 
 object SequenceModel {
 
-  sealed trait Breakpoint extends Product with Serializable {
-
-    def enabled: Boolean =
-      this match {
-        case Breakpoint.Enabled  => true
-        case Breakpoint.Disabled => false
-      }
-
-  }
-
-  object Breakpoint {
-
-    case object Enabled  extends Breakpoint
-    case object Disabled extends Breakpoint
-
-    val enabled: Breakpoint =
-      Enabled
-
-    val disabled: Breakpoint =
-      Disabled
-
-    val fromBoolean: Iso[Boolean, Breakpoint] =
-      Iso[Boolean, Breakpoint](b => if (b) Enabled else Disabled)(_.enabled)
-
-    implicit val EnumeratedBreakpoint: Enumerated[Breakpoint] =
-      Enumerated.of(enabled, disabled)
-
-    implicit val DecoderBreakpoint: Decoder[Breakpoint] =
-      deriveDecoder[Breakpoint]
-  }
-
-
-  @Lenses final case class BreakpointStep[A](
-    breakpoint: Breakpoint,
-    step:       StepModel[A]
-  )
-
-  object BreakpointStep {
-
-    implicit def EqBreakpointStep[A: Eq]: Eq[BreakpointStep[A]] =
-      Eq.by { a => (
-        a.breakpoint,
-        a.step
-      )}
-
-    @Lenses final case class Create[A](
-      breakpoint: Breakpoint,
-      step:       CreateStep[A]
-    ) {
-
-      def create[B](implicit V: InputValidator[A, B]): ValidatedInput[BreakpointStep[B]] =
-        step.create[B].map(s => BreakpointStep(breakpoint, s))
-
-    }
-
-    object Create {
-
-      def stopBefore[A](s: CreateStep[A]): Create[A] =
-        Create(Breakpoint.enabled, s)
-
-      def continueTo[A](s: CreateStep[A]): Create[A] =
-        Create(Breakpoint.disabled, s)
-
-      implicit def EqCreate[A: Eq]: Eq[Create[A]] =
-        Eq.by { a => (
-          a.breakpoint,
-          a.step
-        )}
-
-      implicit def DecoderCreate[A: Decoder]: Decoder[Create[A]] =
-        deriveDecoder[Create[A]]
-
-      implicit def ValidatorCreate[A, B](implicit V: InputValidator[A, B]): InputValidator[Create[A], BreakpointStep[B]] =
-        (cbs: Create[A]) => cbs.create[B]
-    }
-
-  }
-
-
   @Lenses final case class Atom[A](
-    steps: NonEmptyList[BreakpointStep[A]]
+    steps: NonEmptyList[StepModel[A]]
   )
 
 
   object Atom {
 
-    def one[A](head: BreakpointStep[A]): Atom[A] =
+    def one[A](head: StepModel[A]): Atom[A] =
       Atom(NonEmptyList.one(head))
 
-    def ofSteps[A](head: BreakpointStep[A], tail: BreakpointStep[A]*): Atom[A] =
+    def ofSteps[A](head: StepModel[A], tail: StepModel[A]*): Atom[A] =
       Atom(NonEmptyList.of(head, tail: _*))
 
-    def fromNel[A]: Iso[NonEmptyList[BreakpointStep[A]], Atom[A]] =
-      Iso[NonEmptyList[BreakpointStep[A]], Atom[A]](nel => Atom(nel))(_.steps)
+    def fromNel[A]: Iso[NonEmptyList[StepModel[A]], Atom[A]] =
+      Iso[NonEmptyList[StepModel[A]], Atom[A]](nel => Atom(nel))(_.steps)
 
     implicit def EqSequenceAtom[A: Eq]: Eq[Atom[A]] =
       Eq.by(_.steps)
 
 
     @Lenses final case class Create[A](
-      steps: List[BreakpointStep.Create[A]]
+      steps: List[StepModel.Create[A]]
     ) {
 
       def create[B](implicit V: InputValidator[A, B]): ValidatedInput[Atom[B]] =
@@ -135,14 +55,14 @@ object SequenceModel {
 
     object Create {
 
-      def singleton[A](step: BreakpointStep.Create[A]): Create[A] =
+      def singleton[A](step: StepModel.Create[A]): Create[A] =
         Create(List(step))
 
-      def stopBefore[A](step: CreateStep[A]): Create[A] =
-        singleton(BreakpointStep.Create.stopBefore(step))
+      def stopBefore[A](step: CreateStepConfig[A]): Create[A] =
+        singleton(StepModel.Create.stopBefore(step))
 
-      def continueTo[A](step: CreateStep[A]): Create[A] =
-        singleton(BreakpointStep.Create.continueTo(step))
+      def continueTo[A](step: CreateStepConfig[A]): Create[A] =
+        singleton(StepModel.Create.continueTo(step))
 
       implicit def DecoderCreate[A: Decoder]: Decoder[Create[A]] =
         deriveDecoder[Create[A]]

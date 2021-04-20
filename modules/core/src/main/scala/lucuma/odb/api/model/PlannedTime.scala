@@ -112,7 +112,7 @@ object PlannedTime {
 
   // Placeholder estimate.  In reality you cannot estimate a step independently
   // like this because you need to account for changes from the previous step.
-  def estimateStep[D](s: StepModel[D]): CategorizedTime = {
+  def estimateStep[D](s: StepConfig[D]): CategorizedTime = {
     def forExposure(exposure: FiniteDuration): CategorizedTime =
       CategorizedTime(
         configChange = NonNegativeFiniteDuration.unsafeFrom(7.seconds),
@@ -129,16 +129,16 @@ object PlannedTime {
       }
 
     s match {
-      case StepModel.Bias(a)          => forDynamicConfig(a)
-      case StepModel.Dark(a)          => forDynamicConfig(a)
-      case StepModel.Gcal(a, _)       => forDynamicConfig(a)
-      case StepModel.Science(a, _)    => forDynamicConfig(a)
+      case StepConfig.Bias(a)       => forDynamicConfig(a)
+      case StepConfig.Dark(a)       => forDynamicConfig(a)
+      case StepConfig.Gcal(a, _)    => forDynamicConfig(a)
+      case StepConfig.Science(a, _) => forDynamicConfig(a)
 
     }
   }
 
   def estimateAtom[D](a: SequenceModel.Atom[D]): CategorizedTime =
-    a.steps.map(s => estimateStep(s.step)).reduce
+    a.steps.map(s => estimateStep(s.config)).reduce
 
   def estimateSequence[D](s: SequenceModel.Sequence[D]): CategorizedTime =
     NonEmptyList(CategorizedTime.Zero, s.atoms.map(estimateAtom)).reduce
