@@ -13,7 +13,7 @@ import io.circe.generic.semiauto.deriveDecoder
 import monocle.{Lens, Optional}
 import monocle.macros.Lenses
 
-// For now, just bias, dark, and science.  Pending smart-gcal and gcal.
+// For now, just bias, dark, gcal and science.  Pending smart-gcal.
 
 sealed abstract class StepModel[A] extends Product with Serializable {
   def instrumentConfig: A
@@ -308,23 +308,4 @@ object StepModel {
       offset[A] ^|-> OffsetModel.Input.q
   }
 
-  /*
-  val x =
-    """
-      |"gmos": {
-      |  "static": ...
-      |  "acquisition": [
-      |
-      |  ],
-      |  "sequence": [
-      |    {
-      |      "bias": {
-      |        "filter" : ...
-      |      }
-      |    }
-      |  ]
-      |
-      |}
-      |""".stripMargin
-   */
 }
