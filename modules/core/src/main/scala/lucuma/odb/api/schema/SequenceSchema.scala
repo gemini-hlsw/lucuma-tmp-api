@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{PlannedTime, SequenceModel}
+import lucuma.odb.api.model.{Breakpoint, PlannedTime, SequenceModel}
 import lucuma.odb.api.model.SequenceModel._
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
@@ -16,8 +16,8 @@ object SequenceSchema {
   import StepSchema.StepType
   import syntax.`enum`._
 
-  implicit val EnumTypeBreakpoint: EnumType[SequenceModel.Breakpoint] =
-    EnumType.fromEnumerated[SequenceModel.Breakpoint](
+  implicit val EnumTypeBreakpoint: EnumType[Breakpoint] =
+    EnumType.fromEnumerated[Breakpoint](
       "Breakpoint",
       "Stopping point in a series of steps"
     )
