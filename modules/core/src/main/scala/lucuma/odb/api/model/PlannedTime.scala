@@ -137,7 +137,7 @@ object PlannedTime {
     }
   }
 
-  def estimateAtom[D](a: SequenceModel.Atom[D]): CategorizedTime =
+  def estimateAtom[D](a: AtomModel[D]): CategorizedTime =
     a.steps.map(s => estimateStep(s.config)).reduce
 
   def estimateSequence[D](s: SequenceModel.Sequence[D]): CategorizedTime =

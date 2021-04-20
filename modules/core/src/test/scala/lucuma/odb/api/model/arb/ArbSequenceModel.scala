@@ -6,62 +6,35 @@ package arb
 
 import lucuma.odb.api.model.SequenceModel._
 
-import cats.data.NonEmptyList
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
 trait ArbSequenceModel extends Helper {
 
+  import ArbAtomModel._
   import ArbGmosModel._
-  import ArbStepModel._
-
-  implicit def arbAtom[A: Arbitrary]: Arbitrary[Atom[A]] =
-    Arbitrary {
-      for {
-        s0 <- arbitrary[StepModel[A]]
-        s  <- tinyPositiveSize
-        ss <- Gen.listOfN(s, arbitrary[StepModel[A]])
-      } yield Atom(NonEmptyList(s0, ss))
-    }
-
-  implicit def cogAtom[A: Cogen]: Cogen[Atom[A]] =
-    Cogen[List[StepModel[A]]].contramap(_.steps.toList)
-
-
-  implicit def arbCreateAtom[A: Arbitrary]: Arbitrary[Atom.Create[A]] =
-    Arbitrary {
-      for {
-        s0 <- arbitrary[StepModel.Create[A]]
-        s  <- tinyPositiveSize
-        ss <- Gen.listOfN(s, arbitrary[StepModel.Create[A]])
-      } yield Atom.Create[A](s0 :: ss)
-    }
-
-  implicit def cogAtomCreate[A: Cogen]: Cogen[Atom.Create[A]] =
-    Cogen[List[StepModel.Create[A]]].contramap(_.steps)
-
 
   implicit def arbSequence[D: Arbitrary]: Arbitrary[Sequence[D]] =
     Arbitrary {
       for {
         s  <- smallSize
-        as <- Gen.listOfN(s, arbitrary[Atom[D]])
+        as <- Gen.listOfN(s, arbitrary[AtomModel[D]])
       } yield Sequence(as)
     }
 
   implicit def cogSequence[D: Cogen]: Cogen[Sequence[D]] =
-    Cogen[List[Atom[D]]].contramap(_.atoms)
+    Cogen[List[AtomModel[D]]].contramap(_.atoms)
 
   implicit def arbSequenceCreate[D: Arbitrary]: Arbitrary[Sequence.Create[D]] =
     Arbitrary {
       for {
         s  <- smallSize
-        as <- Gen.listOfN(s, arbitrary[Atom.Create[D]])
+        as <- Gen.listOfN(s, arbitrary[AtomModel.Create[D]])
       } yield Sequence.Create(as)
     }
 
   implicit def cogSequenceCreate[D: Cogen]: Cogen[Sequence.Create[D]] =
-    Cogen[List[Atom.Create[D]]].contramap(_.atoms)
+    Cogen[List[AtomModel.Create[D]]].contramap(_.atoms)
 
 
   implicit def arbConfig[S: Arbitrary, D: Arbitrary]: Arbitrary[Config[S, D]] =

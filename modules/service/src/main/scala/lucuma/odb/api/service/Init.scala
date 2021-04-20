@@ -204,8 +204,8 @@ object Init {
 
   val acquisitionSequence: Sequence.Create[CreateSouthDynamic] =
     Sequence.Create(
-      List(ac1, ac2, ac3).map(Atom.Create.continueTo) ++
-        List.fill(10)(Atom.Create.stopBefore(ac3))
+      List(ac1, ac2, ac3).map(AtomModel.Create.continueTo) ++
+        List.fill(10)(AtomModel.Create.stopBefore(ac3))
     )
 
   val gcal: GcalModel.Create =
@@ -277,7 +277,7 @@ object Init {
       ).map(StepModel.Create.continueTo)
        .grouped(2) // pairs flat and science steps
        .toList
-       .map(Atom.Create(_))
+       .map(AtomModel.Create(_))
     )
 
   def obs(

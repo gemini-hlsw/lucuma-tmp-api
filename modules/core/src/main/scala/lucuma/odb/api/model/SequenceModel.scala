@@ -3,80 +3,15 @@
 
 package lucuma.odb.api.model
 
-import lucuma.odb.api.model.StepConfig.CreateStepConfig
 import lucuma.odb.api.model.syntax.inputvalidator._
 import cats.Eq
-import cats.data.NonEmptyList
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import lucuma.core.`enum`.Instrument
-import monocle.{Iso, Lens}
-import monocle.macros.Lenses
+import monocle.Lens
 
 object SequenceModel {
-
-  @Lenses final case class Atom[A](
-    steps: NonEmptyList[StepModel[A]]
-  )
-
-
-  object Atom {
-
-    def one[A](head: StepModel[A]): Atom[A] =
-      Atom(NonEmptyList.one(head))
-
-    def ofSteps[A](head: StepModel[A], tail: StepModel[A]*): Atom[A] =
-      Atom(NonEmptyList.of(head, tail: _*))
-
-    def fromNel[A]: Iso[NonEmptyList[StepModel[A]], Atom[A]] =
-      Iso[NonEmptyList[StepModel[A]], Atom[A]](nel => Atom(nel))(_.steps)
-
-    implicit def EqSequenceAtom[A: Eq]: Eq[Atom[A]] =
-      Eq.by(_.steps)
-
-
-    @Lenses final case class Create[A](
-      steps: List[StepModel.Create[A]]
-    ) {
-
-      def create[B](implicit V: InputValidator[A, B]): ValidatedInput[Atom[B]] =
-        steps match {
-          case Nil    =>
-            InputError.fromMessage("Cannot create an empty sequence atom").invalidNec[Atom[B]]
-
-          case h :: t =>
-            (h.create[B], t.traverse(_.create[B])).mapN { (h0, t0) =>
-              Atom.fromNel.get(NonEmptyList(h0, t0))
-            }
-
-        }
-    }
-
-    object Create {
-
-      def singleton[A](step: StepModel.Create[A]): Create[A] =
-        Create(List(step))
-
-      def stopBefore[A](step: CreateStepConfig[A]): Create[A] =
-        singleton(StepModel.Create.stopBefore(step))
-
-      def continueTo[A](step: CreateStepConfig[A]): Create[A] =
-        singleton(StepModel.Create.continueTo(step))
-
-      implicit def DecoderCreate[A: Decoder]: Decoder[Create[A]] =
-        deriveDecoder[Create[A]]
-
-      implicit def ValidatorCreate[A, B](implicit V: InputValidator[A, B]): InputValidator[Create[A], Atom[B]] =
-        (csa: Create[A]) => csa.create[B]
-
-      implicit def EqCreate[A: Eq]: Eq[Create[A]] =
-        Eq.by(_.steps)
-
-    }
-
-
-  }
 
   /**
    * Sequence representation.
@@ -86,7 +21,7 @@ object SequenceModel {
    * @tparam D dynamic (step) configuration type
    */
   final case class Sequence[D](
-    atoms: List[Atom[D]]
+    atoms: List[AtomModel[D]]
   )
 
   object Sequence extends SequenceOptics {
@@ -95,7 +30,7 @@ object SequenceModel {
       Eq.by { _.atoms }
 
     final case class Create[CD](
-      atoms: List[Atom.Create[CD]]
+      atoms: List[AtomModel.Create[CD]]
     ) {
 
       def create[D](implicit ev: InputValidator[CD, D]): ValidatedInput[Sequence[D]] =
@@ -122,8 +57,8 @@ object SequenceModel {
 
   sealed trait SequenceOptics { this: Sequence.type =>
 
-    def steps[D]: Lens[Sequence[D], List[Atom[D]]] =
-      Lens[Sequence[D], List[Atom[D]]](_.atoms)(a => _.copy(atoms = a))
+    def steps[D]: Lens[Sequence[D], List[AtomModel[D]]] =
+      Lens[Sequence[D], List[AtomModel[D]]](_.atoms)(a => _.copy(atoms = a))
 
   }
 

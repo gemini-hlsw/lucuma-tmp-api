@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{PlannedTime, SequenceModel}
+import lucuma.odb.api.model.{AtomModel, PlannedTime}
 import lucuma.odb.api.model.SequenceModel._
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
@@ -18,7 +18,7 @@ object SequenceSchema {
   def AtomType[F[_]: Effect, D](
     typePrefix:  String,
     dynamicType: OutputType[D]
-  ): ObjectType[OdbRepo[F], SequenceModel.Atom[D]] =
+  ): ObjectType[OdbRepo[F], AtomModel[D]] =
     ObjectType(
       name        = s"${typePrefix}Atom",
       description = s"$typePrefix atom, a collection of steps that should be executed in their entirety",

@@ -14,9 +14,6 @@ final class SequenceModelSuite extends DisciplineSuite {
 
   import ArbSequenceModel._
 
-  checkAll("Atom",                 EqTests[Atom[Int]].eqv)
-  checkAll("CreateAtom",           EqTests[Atom.Create[Int]].eqv)
-
   checkAll("Sequence",             EqTests[Sequence[String]].eqv)
   checkAll("Sequence.Create",      EqTests[Sequence[String]].eqv)
 
