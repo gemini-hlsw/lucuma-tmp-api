@@ -190,14 +190,15 @@ object Paging {
     )
 
   final case class Connection[A](
-    edges:    List[Edge[A]],
-    pageInfo: PageInfo
+    edges:      List[Edge[A]],
+    totalCount: Int,
+    pageInfo:   PageInfo
   )
 
   object Connection {
 
     def empty[A]: Connection[A] =
-      Connection(Nil, PageInfo.Empty)
+      Connection(Nil, 0, PageInfo.Empty)
 
     implicit def EqConnection[A: Eq](implicit ev: Eq[Edge[A]]): Eq[Connection[A]] =
       Eq.by { a => (
@@ -208,6 +209,7 @@ object Paging {
     def page[A](page: ResultPage[A])(cursorFor: A => Cursor): Connection[A] =
       Connection(
         page.nodes.map(a => Edge(a, cursorFor(a))),
+        page.totalCount,
         PageInfo(
           startCursor     = page.nodes.headOption.map(cursorFor),
           endCursor       = page.nodes.lastOption.map(cursorFor),
@@ -234,6 +236,7 @@ object Paging {
         Field(
           name        = "nodes",
           fieldType   = ListType(nodeType),
+          description = Some("The nodes in all the edges from the current page"),
           resolve     = _.value.edges.map(_.node)
         ),
 
@@ -242,6 +245,13 @@ object Paging {
           fieldType   = ListType(edgeType),
           description = Some("Edges in the current page"),
           resolve     = _.value.edges
+        ),
+
+        Field(
+          name        = "totalCount",
+          fieldType   = IntType,
+          description = Some("Count of all nodes in all pages"),
+          resolve     = _.value.totalCount
         ),
 
         Field(

@@ -7,18 +7,20 @@ import cats.Eq
 
 final case class ResultPage[A](
   nodes:       List[A],
-  hasNextPage: Boolean
+  hasNextPage: Boolean,
+  totalCount:  Int
 )
 
 object ResultPage {
 
   def empty[A]: ResultPage[A] =
-    ResultPage(Nil, hasNextPage = false)
+    ResultPage(Nil, hasNextPage = false, 0)
 
   def EqResultPage[A: Eq]: Eq[ResultPage[A]] =
     Eq.by { p => (
       p.nodes,
-      p.hasNextPage
+      p.hasNextPage,
+      p.totalCount
     )}
 
 }

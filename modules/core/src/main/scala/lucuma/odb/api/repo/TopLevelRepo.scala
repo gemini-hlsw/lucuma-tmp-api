@@ -120,18 +120,23 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
     includeDeleted: Boolean
   )(
     predicate: T => Boolean
-  ): F[ResultPage[T]] =
+  ): F[ResultPage[T]] = {
+
+    val isSelected: T => Boolean =
+      t => (includeDeleted || t.isPresent) && predicate(t)
 
     tablesRef.get.map { tables =>
-      val all    = mapLens.get(tables)
+      val all = mapLens.get(tables)
 
       page(
         count,
         afterGid
           .fold(all.valuesIterator)(gid => all.valuesIteratorFrom(gid).dropWhile(t => TopLevelModel[I, T].id(t) === gid))
-          .filter(t => (includeDeleted || t.isPresent) && predicate(t))
+          .filter(isSelected),
+        all.count { case (_, t) => isSelected(t) }
       )
     }
+  }
 
   def selectPageFromIds(
     count:          Int,
@@ -139,27 +144,34 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
     includeDeleted: Boolean
   )(
     ids: Tables => scala.collection.immutable.SortedSet[I]
-  ): F[ResultPage[T]] =
+  ): F[ResultPage[T]] = {
+
+    val isSelected: T => Boolean =
+      t => includeDeleted || t.isPresent
 
     tablesRef.get.map { tables =>
-      val all = ids(tables)
+      val all    = ids(tables)
+      val lookup = mapLens.get(tables)
 
       page(
         count,
         afterGid
           .fold(all.iterator)(gid => all.iteratorFrom(gid).dropWhile(_ === gid))
-          .map(k => mapLens.get(tables).apply(k))
-          .filter(t => includeDeleted || t.isPresent)
+          .map(lookup)
+          .filter(isSelected),
+        all.count(k => isSelected(lookup(k)))
       )
     }
+  }
 
   private def page(
-    count: Int,
-    it:    Iterator[T]
+    count:      Int,
+    it:         Iterator[T],
+    totalCount: Int
   ): ResultPage[T] = {
     val res = mutable.Buffer.empty[T]
     while (it.hasNext && (res.size < count)) res += it.next()
-    ResultPage(res.toList, it.hasNext)
+    ResultPage(res.toList, it.hasNext, totalCount)
   }
 
   def constructAndPublish[U <: T](
