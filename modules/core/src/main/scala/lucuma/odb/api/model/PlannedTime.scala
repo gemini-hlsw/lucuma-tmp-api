@@ -137,28 +137,28 @@ object PlannedTime {
     }
   }
 
-  def estimateAtom[D](a: SequenceModel.Atom[D]): CategorizedTime =
+  def estimateAtom[D](a: AtomModel[D]): CategorizedTime =
     a.steps.map(s => estimateStep(s.config)).reduce
 
-  def estimateSequence[D](s: SequenceModel.Sequence[D]): CategorizedTime =
+  def estimateSequence[D](s: SequenceModel[D]): CategorizedTime =
     NonEmptyList(CategorizedTime.Zero, s.atoms.map(estimateAtom)).reduce
 
-  def estimate(config: SequenceModel.InstrumentConfig): PlannedTime = {
+  def estimate(config: InstrumentConfigModel): PlannedTime = {
     val gmosSetup = NonNegativeFiniteDuration.unsafeFrom(18.minutes)
 
     config match {
-      case gn: SequenceModel.InstrumentConfig.GmosNorth =>
+      case gn: InstrumentConfigModel.GmosNorth =>
         PlannedTime(
           gmosSetup,
-          gn.config.acquisition.atoms.map(estimateAtom),
-          gn.config.science.atoms.map(estimateAtom)
+          gn.acquisition.atoms.map(estimateAtom),
+          gn.science.atoms.map(estimateAtom)
         )
 
-      case gs: SequenceModel.InstrumentConfig.GmosSouth =>
+      case gs: InstrumentConfigModel.GmosSouth =>
         PlannedTime(
           gmosSetup,
-          gs.config.acquisition.atoms.map(estimateAtom),
-          gs.config.science.atoms.map(estimateAtom)
+          gs.acquisition.atoms.map(estimateAtom),
+          gs.science.atoms.map(estimateAtom)
         )
     }
   }

@@ -143,7 +143,7 @@ object ObservationSchema {
 
         Field(
           name        = "config",
-          fieldType   = OptionType(ConfigSchema.ConfigType[F]),
+          fieldType   = OptionType(InstrumentConfigSchema.ConfigType[F]),
           description = Some("Instrument configuration"),
           resolve     = _.value.config
         )

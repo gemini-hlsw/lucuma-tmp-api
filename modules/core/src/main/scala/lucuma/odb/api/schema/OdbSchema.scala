@@ -36,7 +36,7 @@ object OdbSchema {
       QueryType[F],
       Some(MutationType[F]),
       Some(SubscriptionType[F]),
-      additionalTypes = ConfigSchema.implementations[F]
+      additionalTypes = InstrumentConfigSchema.implementations[F]
     )
 
 }
