@@ -8,6 +8,7 @@ import lucuma.odb.api.model.syntax.input._
 import lucuma.core.`enum`.ObsStatus
 import lucuma.core.optics.syntax.lens._
 import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
+
 import cats.Eq
 import cats.data.State
 import cats.syntax.all._
@@ -28,7 +29,7 @@ final case class ObservationModel(
   pointing:             Option[Either[Asterism.Id, Target.Id]],
   constraintSetId:      Option[ConstraintSet.Id],
   plannedTimeSummary:   PlannedTimeSummaryModel,
-  config:               Option[SequenceModel.InstrumentConfig]
+  config:               Option[InstrumentConfigModel]
 ) {
 
   def asterismId: Option[Asterism.Id] =
@@ -45,7 +46,17 @@ object ObservationModel extends ObservationOptics {
     TopLevelModel.instance(_.id, ObservationModel.existence)
 
   implicit val EqObservation: Eq[ObservationModel] =
-    Eq.by(o => (o.id, o.existence, o.programId, o.name, o.status, o.pointing, o.plannedTimeSummary, o.config))
+    Eq.by { o => (
+      o.id,
+      o.existence,
+      o.programId,
+      o.name,
+      o.status,
+      o.pointing,
+      o.constraintSetId,
+      o.plannedTimeSummary,
+      o.config
+    )}
 
 
   final case class Create(
@@ -56,7 +67,7 @@ object ObservationModel extends ObservationOptics {
     targetId:        Option[Target.Id],
     constraintSetId: Option[ConstraintSet.Id],
     status:          Option[ObsStatus],
-    config:          Option[SequenceModel.InstrumentConfig.Create]
+    config:          Option[InstrumentConfigModel.Create]
   ) {
 
     def withId(s: PlannedTimeSummaryModel): ValidatedInput[Observation.Id => ObservationModel] =
@@ -92,7 +103,8 @@ object ObservationModel extends ObservationOptics {
         a.asterismId,
         a.targetId,
         a.constraintSetId,
-        a.status
+        a.status,
+        a.config
       )}
 
   }
@@ -205,7 +217,7 @@ object ObservationModel extends ObservationOptics {
     implicit val DecoderEditConstraintSet: Decoder[EditConstraintSet] =
       deriveDecoder[EditConstraintSet]
 
-    implicit val EqEditConstraintSet: Eq[EditConstraintSet] = 
+    implicit val EqEditConstraintSet: Eq[EditConstraintSet] =
       Eq.by { a => (a.observationIds, a.constraintSetId)}
   }
 
@@ -255,7 +267,7 @@ trait ObservationOptics { self: ObservationModel.type =>
   val constraintSet: Lens[ObservationModel, Option[ConstraintSet.Id]] =
     Lens[ObservationModel, Option[ConstraintSet.Id]](_.constraintSetId)(a => _.copy(constraintSetId = a))
 
-  val config: Lens[ObservationModel, Option[SequenceModel.InstrumentConfig]] =
-    Lens[ObservationModel, Option[SequenceModel.InstrumentConfig]](_.config)(a => _.copy(config = a))
+  val config: Lens[ObservationModel, Option[InstrumentConfigModel]] =
+    Lens[ObservationModel, Option[InstrumentConfigModel]](_.config)(a => _.copy(config = a))
 
 }

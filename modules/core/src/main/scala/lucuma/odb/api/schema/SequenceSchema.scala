@@ -11,7 +11,6 @@ import sangria.schema._
 
 object SequenceSchema {
 
-  import FiniteDurationSchema.DurationType
   import PlannedTimeSchema._
   import StepSchema.InstrumentStepType
 
@@ -63,42 +62,6 @@ object SequenceSchema {
           resolve     = c => PlannedTime.estimateSequence(c.value)
         )
 
-      )
-    )
-
-  def instrumentConfigFields[F[_]: Effect, I <: InstrumentConfig, S, D](
-    typePrefix:  String,
-    staticType:  OutputType[S],
-    dynamicType: OutputType[D],
-    config:      I => Config[S, D],
-  ): List[Field[OdbRepo[F], I]] =
-    List(
-      Field(
-        name        = "setupTime",
-        fieldType   = DurationType[F],
-        description = Some("Estimated setup time"),
-        resolve     = c => PlannedTime.estimate(c.value).setup.value
-      ),
-
-      Field(
-        name        = "static",
-        fieldType   = staticType,
-        description = Some("Static/unchanging configuration"),
-        resolve     = c => config(c.value).static
-      ),
-
-      Field(
-        name        = "acquisition",
-        fieldType   = SequenceType[F, D](typePrefix, dynamicType),
-        description = Some("Acquisition sequence."),
-        resolve     = c => config(c.value).acquisition
-      ),
-
-      Field(
-        name        = "science",
-        fieldType   = SequenceType[F, D](typePrefix, dynamicType),
-        description = Some("Science sequence."),
-        resolve     = c => config(c.value).science
       )
     )
 

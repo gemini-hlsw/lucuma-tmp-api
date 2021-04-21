@@ -3,12 +3,12 @@
 
 package lucuma.odb.api.model
 
-import lucuma.odb.api.model.syntax.inputvalidator._
+//import lucuma.odb.api.model.syntax.inputvalidator._
 import cats.Eq
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
-import lucuma.core.`enum`.Instrument
+//import lucuma.core.`enum`.Instrument
 import monocle.Lens
 
 object SequenceModel {
@@ -57,13 +57,14 @@ object SequenceModel {
 
   sealed trait SequenceOptics { this: Sequence.type =>
 
-    def steps[D]: Lens[Sequence[D], List[AtomModel[D]]] =
+    def atoms[D]: Lens[Sequence[D], List[AtomModel[D]]] =
       Lens[Sequence[D], List[AtomModel[D]]](_.atoms)(a => _.copy(atoms = a))
 
   }
 
   // ---------------------------------------------------------------
 
+  /*
   final case class Config[S, D](
     static:      S,
     acquisition: Sequence[D],
@@ -281,5 +282,5 @@ object SequenceModel {
 
 
   }
-
+*/
 }

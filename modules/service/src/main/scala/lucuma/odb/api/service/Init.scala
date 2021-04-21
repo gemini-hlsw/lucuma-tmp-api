@@ -293,7 +293,7 @@ object Init {
       constraintSetId = None,
       status          = ObsStatus.New.some,
       config          =
-        SequenceModel.InstrumentConfig.Create.gmosSouth(
+        InstrumentConfigModel.Create.gmosSouth(
           GmosModel.CreateSouthStatic.Default,
           acquisitionSequence,
           scienceSequence
