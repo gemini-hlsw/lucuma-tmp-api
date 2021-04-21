@@ -4,8 +4,6 @@
 package lucuma.odb.api.model
 package arb
 
-import lucuma.odb.api.model.SequenceModel._
-
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
@@ -13,26 +11,26 @@ trait ArbSequenceModel extends Helper {
 
   import ArbAtomModel._
 
-  implicit def arbSequence[D: Arbitrary]: Arbitrary[Sequence[D]] =
+  implicit def arbSequence[D: Arbitrary]: Arbitrary[SequenceModel[D]] =
     Arbitrary {
       for {
         s  <- smallSize
         as <- Gen.listOfN(s, arbitrary[AtomModel[D]])
-      } yield Sequence(as)
+      } yield SequenceModel(as)
     }
 
-  implicit def cogSequence[D: Cogen]: Cogen[Sequence[D]] =
+  implicit def cogSequence[D: Cogen]: Cogen[SequenceModel[D]] =
     Cogen[List[AtomModel[D]]].contramap(_.atoms)
 
-  implicit def arbSequenceCreate[D: Arbitrary]: Arbitrary[Sequence.Create[D]] =
+  implicit def arbSequenceCreate[D: Arbitrary]: Arbitrary[SequenceModel.Create[D]] =
     Arbitrary {
       for {
         s  <- smallSize
         as <- Gen.listOfN(s, arbitrary[AtomModel.Create[D]])
-      } yield Sequence.Create(as)
+      } yield SequenceModel.Create(as)
     }
 
-  implicit def cogSequenceCreate[D: Cogen]: Cogen[Sequence.Create[D]] =
+  implicit def cogSequenceCreate[D: Cogen]: Cogen[SequenceModel.Create[D]] =
     Cogen[List[AtomModel.Create[D]]].contramap(_.atoms)
 
 

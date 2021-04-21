@@ -66,8 +66,8 @@ object InstrumentConfigSchema {
     staticType:  OutputType[S],
     dynamicType: OutputType[D],
     static:       I => S,
-    acquisition:  I => SequenceModel.Sequence[D],
-    science:      I => SequenceModel.Sequence[D]
+    acquisition:  I => SequenceModel[D],
+    science:      I => SequenceModel[D]
   ): List[Field[OdbRepo[F], I]] =
 
     List(

@@ -3,8 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{AtomModel, PlannedTime}
-import lucuma.odb.api.model.SequenceModel._
+import lucuma.odb.api.model.{AtomModel, PlannedTime, SequenceModel}
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
 import sangria.schema._
@@ -42,7 +41,7 @@ object SequenceSchema {
   def SequenceType[F[_]: Effect, D](
     typePrefix:  String,
     dynamicType: OutputType[D]
-  ): ObjectType[OdbRepo[F], Sequence[D]] =
+  ): ObjectType[OdbRepo[F], SequenceModel[D]] =
     ObjectType(
       name        = s"${typePrefix}Sequence",
       description = s"A series of $typePrefix atoms that comprise the sequence",

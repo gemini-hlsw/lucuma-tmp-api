@@ -4,7 +4,6 @@
 package lucuma.odb.api.service
 
 import lucuma.odb.api.model._
-import lucuma.odb.api.model.SequenceModel._
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.`enum`._
 import lucuma.core.optics.syntax.all._
@@ -202,8 +201,8 @@ object Init {
   val ac3: CreateStepConfig[CreateSouthDynamic] =
     step.exposure.assign_(FiniteDurationModel.Input(30.seconds)).runS(ac2).value
 
-  val acquisitionSequence: Sequence.Create[CreateSouthDynamic] =
-    Sequence.Create(
+  val acquisitionSequence: SequenceModel.Create[CreateSouthDynamic] =
+    SequenceModel.Create(
       List(ac1, ac2, ac3).map(AtomModel.Create.continueTo) ++
         List.fill(10)(AtomModel.Create.stopBefore(ac3))
     )
@@ -260,8 +259,8 @@ object Init {
   val sci15_525: CreateStepConfig[CreateSouthDynamic] =
     CreateStepConfig.science(gmos525, Q15)
 
-  val scienceSequence: Sequence.Create[CreateSouthDynamic] =
-    Sequence.Create(
+  val scienceSequence: SequenceModel.Create[CreateSouthDynamic] =
+    SequenceModel.Create(
       List(
         flat_520,  sci0_520,
         sci15_520, flat_520,

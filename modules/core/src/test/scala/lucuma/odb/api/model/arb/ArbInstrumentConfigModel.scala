@@ -18,16 +18,16 @@ trait ArbInstrumentConfigModel extends Helper {
     Arbitrary {
       for {
         st <- arbitrary[GmosModel.NorthStatic]
-        aq <- arbitrary[SequenceModel.Sequence[GmosModel.NorthDynamic]]
-        sc <- arbitrary[SequenceModel.Sequence[GmosModel.NorthDynamic]]
+        aq <- arbitrary[SequenceModel[GmosModel.NorthDynamic]]
+        sc <- arbitrary[SequenceModel[GmosModel.NorthDynamic]]
       } yield InstrumentConfigModel.GmosNorth(st, aq, sc)
     }
 
   implicit def cogInstrumentConfigGmosNorth: Cogen[InstrumentConfigModel.GmosNorth] =
     Cogen[(
       GmosModel.NorthStatic,
-      SequenceModel.Sequence[GmosModel.NorthDynamic],
-      SequenceModel.Sequence[GmosModel.NorthDynamic]
+      SequenceModel[GmosModel.NorthDynamic],
+      SequenceModel[GmosModel.NorthDynamic]
     )].contramap { in => (
       in.static,
       in.acquisition,
@@ -38,16 +38,16 @@ trait ArbInstrumentConfigModel extends Helper {
     Arbitrary {
       for {
         st <- arbitrary[GmosModel.SouthStatic]
-        aq <- arbitrary[SequenceModel.Sequence[GmosModel.SouthDynamic]]
-        sc <- arbitrary[SequenceModel.Sequence[GmosModel.SouthDynamic]]
+        aq <- arbitrary[SequenceModel[GmosModel.SouthDynamic]]
+        sc <- arbitrary[SequenceModel[GmosModel.SouthDynamic]]
       } yield InstrumentConfigModel.GmosSouth(st, aq, sc)
     }
 
   implicit def cogInstrumentConfigGmosSouth: Cogen[InstrumentConfigModel.GmosSouth] =
     Cogen[(
       GmosModel.SouthStatic,
-      SequenceModel.Sequence[GmosModel.SouthDynamic],
-      SequenceModel.Sequence[GmosModel.SouthDynamic]
+      SequenceModel[GmosModel.SouthDynamic],
+      SequenceModel[GmosModel.SouthDynamic]
     )].contramap { in => (
       in.static,
       in.acquisition,
@@ -58,16 +58,16 @@ trait ArbInstrumentConfigModel extends Helper {
     Arbitrary {
       for {
         st <- arbitrary[GmosModel.CreateNorthStatic]
-        aq <- arbitrary[SequenceModel.Sequence.Create[GmosModel.CreateNorthDynamic]]
-        sc <- arbitrary[SequenceModel.Sequence.Create[GmosModel.CreateNorthDynamic]]
+        aq <- arbitrary[SequenceModel.Create[GmosModel.CreateNorthDynamic]]
+        sc <- arbitrary[SequenceModel.Create[GmosModel.CreateNorthDynamic]]
       } yield InstrumentConfigModel.CreateGmosNorth(st, aq, sc)
     }
 
   implicit def cogInstrumentConfigCreateGmosNorth: Cogen[InstrumentConfigModel.CreateGmosNorth] =
     Cogen[(
       GmosModel.CreateNorthStatic,
-      SequenceModel.Sequence.Create[GmosModel.CreateNorthDynamic],
-      SequenceModel.Sequence.Create[GmosModel.CreateNorthDynamic]
+      SequenceModel.Create[GmosModel.CreateNorthDynamic],
+      SequenceModel.Create[GmosModel.CreateNorthDynamic]
     )].contramap { in => (
       in.static,
       in.acquisition,
@@ -78,16 +78,16 @@ trait ArbInstrumentConfigModel extends Helper {
     Arbitrary {
       for {
         st <- arbitrary[GmosModel.CreateSouthStatic]
-        aq <- arbitrary[SequenceModel.Sequence.Create[GmosModel.CreateSouthDynamic]]
-        sc <- arbitrary[SequenceModel.Sequence.Create[GmosModel.CreateSouthDynamic]]
+        aq <- arbitrary[SequenceModel.Create[GmosModel.CreateSouthDynamic]]
+        sc <- arbitrary[SequenceModel.Create[GmosModel.CreateSouthDynamic]]
       } yield InstrumentConfigModel.CreateGmosSouth(st, aq, sc)
     }
 
   implicit def cogInstrumentConfigCreateGmosSouth: Cogen[InstrumentConfigModel.CreateGmosSouth] =
     Cogen[(
       GmosModel.CreateSouthStatic,
-      SequenceModel.Sequence.Create[GmosModel.CreateSouthDynamic],
-      SequenceModel.Sequence.Create[GmosModel.CreateSouthDynamic]
+      SequenceModel.Create[GmosModel.CreateSouthDynamic],
+      SequenceModel.Create[GmosModel.CreateSouthDynamic]
     )].contramap { in => (
       in.static,
       in.acquisition,

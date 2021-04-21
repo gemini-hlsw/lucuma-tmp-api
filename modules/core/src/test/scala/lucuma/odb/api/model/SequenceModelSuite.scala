@@ -3,7 +3,6 @@
 
 package lucuma.odb.api.model
 
-import lucuma.odb.api.model.SequenceModel._
 import lucuma.odb.api.model.arb._
 
 import cats.kernel.laws.discipline.EqTests
@@ -13,7 +12,7 @@ final class SequenceModelSuite extends DisciplineSuite {
 
   import ArbSequenceModel._
 
-  checkAll("Sequence",             EqTests[Sequence[String]].eqv)
-  checkAll("Sequence.Create",      EqTests[Sequence[String]].eqv)
+  checkAll("Sequence",             EqTests[SequenceModel[String]].eqv)
+  checkAll("Sequence.Create",      EqTests[SequenceModel[String]].eqv)
 
 }

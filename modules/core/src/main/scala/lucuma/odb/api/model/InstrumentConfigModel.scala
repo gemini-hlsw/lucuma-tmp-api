@@ -33,8 +33,8 @@ object InstrumentConfigModel {
 
   @Lenses final case class GmosNorth(
     static:      GmosModel.NorthStatic,
-    acquisition: SequenceModel.Sequence[GmosModel.NorthDynamic],
-    science:     SequenceModel.Sequence[GmosModel.NorthDynamic]
+    acquisition: SequenceModel[GmosModel.NorthDynamic],
+    science:     SequenceModel[GmosModel.NorthDynamic]
   ) extends InstrumentConfigModel {
 
     def instrument: Instrument =
@@ -51,8 +51,8 @@ object InstrumentConfigModel {
 
   final case class CreateGmosNorth(
     static:      GmosModel.CreateNorthStatic,
-    acquisition: SequenceModel.Sequence.Create[GmosModel.CreateNorthDynamic],
-    science:     SequenceModel.Sequence.Create[GmosModel.CreateNorthDynamic]
+    acquisition: SequenceModel.Create[GmosModel.CreateNorthDynamic],
+    science:     SequenceModel.Create[GmosModel.CreateNorthDynamic]
   ) {
 
     def create: ValidatedInput[GmosNorth] =
@@ -76,8 +76,8 @@ object InstrumentConfigModel {
 
   @Lenses final case class GmosSouth(
     static:      GmosModel.SouthStatic,
-    acquisition: SequenceModel.Sequence[GmosModel.SouthDynamic],
-    science:     SequenceModel.Sequence[GmosModel.SouthDynamic]
+    acquisition: SequenceModel[GmosModel.SouthDynamic],
+    science:     SequenceModel[GmosModel.SouthDynamic]
   ) extends InstrumentConfigModel {
 
     def instrument: Instrument =
@@ -94,8 +94,8 @@ object InstrumentConfigModel {
 
   final case class CreateGmosSouth(
     static:      GmosModel.CreateSouthStatic,
-    acquisition: SequenceModel.Sequence.Create[GmosModel.CreateSouthDynamic],
-    science:     SequenceModel.Sequence.Create[GmosModel.CreateSouthDynamic]
+    acquisition: SequenceModel.Create[GmosModel.CreateSouthDynamic],
+    science:     SequenceModel.Create[GmosModel.CreateSouthDynamic]
   ) {
 
     def create: ValidatedInput[GmosSouth] =
@@ -149,8 +149,8 @@ object InstrumentConfigModel {
 
     def gmosNorth(
       s:  GmosModel.CreateNorthStatic,
-      ac: SequenceModel.Sequence.Create[GmosModel.CreateNorthDynamic],
-      sc: SequenceModel.Sequence.Create[GmosModel.CreateNorthDynamic]
+      ac: SequenceModel.Create[GmosModel.CreateNorthDynamic],
+      sc: SequenceModel.Create[GmosModel.CreateNorthDynamic]
     ): Create =
       gmosNorth(CreateGmosNorth(s, ac, sc))
 
@@ -159,8 +159,8 @@ object InstrumentConfigModel {
 
     def gmosSouth(
       s:  GmosModel.CreateSouthStatic,
-      ac: SequenceModel.Sequence.Create[GmosModel.CreateSouthDynamic],
-      sc: SequenceModel.Sequence.Create[GmosModel.CreateSouthDynamic]
+      ac: SequenceModel.Create[GmosModel.CreateSouthDynamic],
+      sc: SequenceModel.Create[GmosModel.CreateSouthDynamic]
     ): Create =
       gmosSouth(CreateGmosSouth(s, ac, sc))
 
