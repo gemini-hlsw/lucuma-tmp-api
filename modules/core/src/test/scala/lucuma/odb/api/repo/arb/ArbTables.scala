@@ -5,20 +5,12 @@ package lucuma.odb.api.repo
 package arb
 
 import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
-import lucuma.odb.api.model.{
-  AsterismModel,
-  ConstraintSetModel,
-  ObservationModel,
-  ProgramModel,
-  TargetModel
-}
+import lucuma.odb.api.model.{AsterismModel, Atom, AtomModel, ConstraintSetModel, ObservationModel, ProgramModel, Step, StepModel, TargetModel}
 import lucuma.odb.api.model.arb._
 import lucuma.core.util.Gid
-
 import cats.Order
 import cats.kernel.instances.order._
 import cats.syntax.all._
-
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
@@ -117,15 +109,17 @@ trait ArbTables extends SplitSetHelper {
         ids = Ids(
           0L,
           lastGid[Asterism.Id](as),
+          lastGid[Atom.Id](SortedMap.empty[Atom.Id, AtomModel[_]]),
           lastGid[ConstraintSet.Id](cs),
           lastGid[Observation.Id](os),
           lastGid[Program.Id](ps),
+          lastGid[Step.Id](SortedMap.empty[Step.Id, StepModel[_]]),
           lastGid[Target.Id](ts)
         )
         pa <- manyToMany(ps.keys, as.keys)
         pt <- manyToMany(ps.keys, ts.keys)
         ta <- manyToMany(ts.keys, as.keys)
-      } yield Tables(ids, as, cs, os, ps, ts, pa, pt, ta)
+      } yield Tables(ids, SortedMap.empty, as, cs, os, ps, SortedMap.empty, ts, pa, pt, ta)
     }
 }
 

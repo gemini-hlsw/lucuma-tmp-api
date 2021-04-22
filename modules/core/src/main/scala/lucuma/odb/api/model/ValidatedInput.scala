@@ -21,12 +21,18 @@ object ValidatedInput {
       case _       => InputError.fromMessage(s"Multiple '$name' definitions are not permitted").invalidNec[A]
     }
 
-  def optionEither[A, B](nameA: String, nameB: String, a: Option[ValidatedInput[A]], b: Option[ValidatedInput[B]]): ValidatedInput[Option[Either[A, B]]] =
-    List(a.map(_.map(_.asLeft[B])), b.map(_.map(_.asRight[A]))).flattenOption match {
-      case List(c) => c.map(_.some)
-      case Nil     => Option.empty[Either[A, B]].validNec[InputError]
-      case _       => InputError.fromMessage(s"Either $nameA or $nameB are permitted but not both").invalidNec
-    }
+  def optionEither[A, B](
+    nameA: String,
+    nameB: String,
+    a:     ValidatedInput[Option[A]],
+    b:     ValidatedInput[Option[B]]
+  ): ValidatedInput[Option[Either[A, B]]] =
+    (a, b).mapN {
+      case (Some(aʹ), None    ) => aʹ.asLeft[B].some.validNec[InputError]
+      case (None,     Some(bʹ)) => bʹ.asRight[A].some.validNec[InputError]
+      case (Some(_),  Some(_) ) => InputError.fromMessage(s"Either $nameA or $nameB are permitted but not both").invalidNec
+      case (None,     None    ) => Option.empty[Either[A, B]].validNec[InputError]
+    }.fold(_.invalid[Option[Either[A, B]]], identity)
 
   def nonEmptyString(name: String, s: String): ValidatedInput[NonEmptyString] =
     NonEmptyString
@@ -35,9 +41,9 @@ object ValidatedInput {
       .toValidatedNec
 
   def closedInterval[T](
-    name:  String, 
-    value: T, 
-    low:   T, 
+    name:  String,
+    value: T,
+    low:   T,
     high:  T
   )(implicit
     v:     Validate[T, Interval.Closed[low.type, high.type]]

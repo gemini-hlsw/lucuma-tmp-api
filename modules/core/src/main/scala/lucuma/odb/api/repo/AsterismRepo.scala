@@ -137,7 +137,7 @@ object AsterismRepo {
         shareLeft[Program.Id, ProgramModel](
           "asterism",
           input,
-          TableState.program,
+          TableState.program.lookup,
           Tables.programAsterism,
           ProgramModel.ProgramEvent.updated
         )(update)
@@ -154,7 +154,7 @@ object AsterismRepo {
         update: (ManyToMany[Target.Id, Asterism.Id], IterableOnce[(Target.Id, Asterism.Id)]) => ManyToMany[Target.Id, Asterism.Id]
       ): F[AsterismModel] =
         shareLeft[Target.Id, TargetModel](
-          "asterism", input, TableState.target, Tables.targetAsterism, TargetModel.TargetEvent.updated
+          "asterism", input, TableState.target.lookup, Tables.targetAsterism, TargetModel.TargetEvent.updated
         )(update)
 
       override def shareWithTargets(input: Sharing[Asterism.Id, Target.Id]): F[AsterismModel] =

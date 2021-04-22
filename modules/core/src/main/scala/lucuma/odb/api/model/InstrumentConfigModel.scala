@@ -4,8 +4,8 @@
 package lucuma.odb.api.model
 
 import lucuma.core.`enum`.Instrument
-
 import cats.Eq
+import cats.data.State
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
@@ -55,12 +55,14 @@ object InstrumentConfigModel {
     science:     SequenceModel.Create[GmosModel.CreateNorthDynamic]
   ) {
 
-    def create: ValidatedInput[GmosNorth] =
-      (
-        static.create,
-        acquisition.create,
-        science.create
-      ).mapN { (st, aq, sc) => GmosNorth(st, aq, sc) }
+    def create[T](db: Database[T]): State[T, ValidatedInput[GmosNorth]] =
+      for {
+        aq <- acquisition.create[T, GmosModel.NorthDynamic](db)
+        sc <- science.create[T, GmosModel.NorthDynamic](db)
+        gn  = (static.create, aq, sc).mapN { (stʹ, aqʹ, scʹ) =>
+          GmosNorth(stʹ, aqʹ, scʹ)
+        }
+      } yield gn
 
   }
 
@@ -98,12 +100,14 @@ object InstrumentConfigModel {
     science:     SequenceModel.Create[GmosModel.CreateSouthDynamic]
   ) {
 
-    def create: ValidatedInput[GmosSouth] =
-      (
-        static.create,
-        acquisition.create,
-        science.create
-      ).mapN { (st, aq, sc) => GmosSouth(st, aq, sc) }
+    def create[T](db: Database[T]): State[T, ValidatedInput[GmosSouth]] =
+      for {
+        aq <- acquisition.create[T, GmosModel.SouthDynamic](db)
+        sc <- science.create[T, GmosModel.SouthDynamic](db)
+        gs  = (static.create, aq, sc).mapN { (stʹ, aqʹ, scʹ) =>
+          GmosSouth(stʹ, aqʹ, scʹ)
+        }
+      } yield gs
 
   }
 
@@ -129,10 +133,14 @@ object InstrumentConfigModel {
     gmosSouth: Option[CreateGmosSouth]
   ) {
 
-    def create: ValidatedInput[InstrumentConfigModel] =
-      ValidatedInput.requireOne("instrument",
-        gmosNorth.map(_.create),
-        gmosSouth.map(_.create)
+    def create[T](db: Database[T]): State[T, ValidatedInput[InstrumentConfigModel]] =
+      for {
+        gn <- gmosNorth.traverse(_.create(db))
+        gs <- gmosSouth.traverse(_.create(db))
+      } yield ValidatedInput.requireOne[InstrumentConfigModel](
+        "instrument",
+        gn,
+        gs
       )
 
   }

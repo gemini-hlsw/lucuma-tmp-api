@@ -8,9 +8,8 @@ import lucuma.odb.api.model.syntax.input._
 import lucuma.core.`enum`.ObsStatus
 import lucuma.core.optics.syntax.lens._
 import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
-
 import cats.Eq
-import cats.data.State
+import cats.data.{Nested, State}
 import cats.syntax.all._
 import clue.data.{Assign, Input}
 import eu.timepit.refined.cats._
@@ -70,23 +69,39 @@ object ObservationModel extends ObservationOptics {
     config:          Option[InstrumentConfigModel.Create]
   ) {
 
-    def withId(s: PlannedTimeSummaryModel): ValidatedInput[Observation.Id => ObservationModel] =
-      (
-        ValidatedInput.optionEither("asterismId", "targetId", asterismId.map(_.validNec), targetId.map(_.validNec)),
-        config.traverse(_.create)
-      ).mapN { (t, c) => oid =>
-        ObservationModel(
-          oid,
-          Present,
-          programId,
-          name,
-          status.getOrElse(ObsStatus.New),
-          t,
-          constraintSetId,
-          s,
-          c
+    def create[T](db: Database[T], s: PlannedTimeSummaryModel): State[T, ValidatedInput[ObservationModel]] =
+      for {
+        i <- db.observation.getUnusedId(observationId)
+        p <- db.program.lookup(programId)
+        a <- db.asterism.optionalLookup(asterismId)
+        t <- db.target.optionalLookup(targetId)
+
+        pointing = ValidatedInput.optionEither(
+          "asterismId",
+          "targetId",
+          Nested(a).map(_.id).value,
+          Nested(t).map(_.id).value
         )
-      }
+
+        c <- db.constraintSet.optionalLookup(constraintSetId)
+        g <- config.traverse(_.create(db))
+
+        o  = (i, p, pointing, c, g.sequence).mapN { (iʹ, _, pointingʹ, _, gʹ) =>
+          ObservationModel(
+            iʹ,
+            Present,
+            programId,
+            name,
+            status.getOrElse(ObsStatus.New),
+            pointingʹ,
+            constraintSetId,
+            s,
+            gʹ
+          )
+        }
+
+        _ <- db.observation.saveValid(o)(_.id)
+      } yield o
 
   }
 

@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{AtomModel, PlannedTime, SequenceModel}
+import lucuma.odb.api.model.{Atom, AtomModel, PlannedTime, SequenceModel}
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
 import sangria.schema._
@@ -13,6 +13,9 @@ object SequenceSchema {
   import PlannedTimeSchema._
   import StepSchema.InstrumentStepType
 
+  implicit val AtomIdType: ScalarType[Atom.Id] =
+    ObjectIdSchema.idType[Atom.Id](name = "AtomId")
+
   def AtomType[F[_]: Effect, D](
     typePrefix:  String,
     dynamicType: OutputType[D]
@@ -21,6 +24,13 @@ object SequenceSchema {
       name        = s"${typePrefix}Atom",
       description = s"$typePrefix atom, a collection of steps that should be executed in their entirety",
       fieldsFn    = () => fields(
+
+        Field(
+          name        = "id",
+          fieldType   = AtomIdType,
+          description = Some("Atom id"),
+          resolve     = _.value.id
+        ),
 
         Field(
           name        = "steps",

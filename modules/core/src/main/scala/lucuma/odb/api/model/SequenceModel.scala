@@ -4,6 +4,7 @@
 package lucuma.odb.api.model
 
 import cats.Eq
+import cats.data.State
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
@@ -30,9 +31,8 @@ object SequenceModel {
     atoms: List[AtomModel.Create[CD]]
   ) {
 
-    def create[D](implicit ev: InputValidator[CD, D]): ValidatedInput[SequenceModel[D]] =
-      atoms.traverse(_.create).map { as => SequenceModel(as) }
-
+    def create[T, D](db: Database[T])(implicit ev: InputValidator[CD, D]): State[T, ValidatedInput[SequenceModel[D]]] =
+      atoms.traverse(_.create[T, D](db)).map(_.sequence.map(SequenceModel(_)))
   }
 
   object Create {
@@ -42,11 +42,6 @@ object SequenceModel {
 
     implicit def DecoderCreate[D: Decoder]:Decoder[Create[D]] =
       deriveDecoder[Create[D]]
-
-    implicit def ValidatorCreate[CD, D](
-      implicit ev: InputValidator[CD, D]
-    ): InputValidator[Create[CD], SequenceModel[D]] =
-      InputValidator.by[Create[CD], SequenceModel[D]](_.create)
 
   }
 

@@ -4,7 +4,7 @@
 package lucuma.odb.api.schema
 
 import lucuma.core.`enum`._
-import lucuma.odb.api.model.{Breakpoint, PlannedTime, StepConfig, StepModel}
+import lucuma.odb.api.model.{Breakpoint, PlannedTime, Step, StepConfig, StepModel}
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
 import lucuma.odb.api.schema.PlannedTimeSchema.CategorizedTimeType
@@ -15,6 +15,9 @@ object StepSchema {
 
   import OffsetSchema._
   import syntax.`enum`._
+
+  implicit val StepIdType: ScalarType[Step.Id] =
+    ObjectIdSchema.idType[Step.Id](name = "StepId")
 
   implicit val EnumTypeBreakpoint: EnumType[Breakpoint] =
     EnumType.fromEnumerated[Breakpoint](
@@ -63,6 +66,13 @@ object StepSchema {
       name        = "Step",
       description = "Sequence step",
       fieldsFn    = () => fields[OdbRepo[F], StepModel[_]](
+
+        Field(
+          name        = "id",
+          fieldType   = StepIdType,
+          description = Some("Step id"),
+          resolve     = _.value.id
+        ),
 
         Field(
           name        = "breakpoint",

@@ -3,13 +3,7 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{
-  AsterismModel,
-  ConstraintSetModel,
-  ObservationModel,
-  ProgramModel,
-  TargetModel
-}
+import lucuma.odb.api.model.{AsterismModel, Atom, AtomModel, ConstraintSetModel, ObservationModel, ProgramModel, Step, StepModel, TargetModel}
 import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
 import cats.instances.order._
 import monocle.Lens
@@ -22,10 +16,12 @@ import scala.collection.immutable.{SortedMap, TreeMap}
  */
 final case class Tables(
   ids:                      Ids,
+  atoms:                    SortedMap[Atom.Id, AtomModel[_]],
   asterisms:                SortedMap[Asterism.Id, AsterismModel],
   constraintSets:           SortedMap[ConstraintSet.Id, ConstraintSetModel],
   observations:             SortedMap[Observation.Id, ObservationModel],
   programs:                 SortedMap[Program.Id, ProgramModel],
+  steps:                    SortedMap[Step.Id, StepModel[_]],
   targets:                  SortedMap[Target.Id, TargetModel],
 
   programAsterism:          ManyToMany[Program.Id, Asterism.Id],
@@ -39,10 +35,12 @@ object Tables extends TableOptics {
     Tables(
       ids                      = Ids.zero,
 
+      atoms                    = TreeMap.empty[Atom.Id, AtomModel[_]],
       asterisms                = TreeMap.empty[Asterism.Id, AsterismModel],
       constraintSets           = TreeMap.empty[ConstraintSet.Id, ConstraintSetModel],
       observations             = TreeMap.empty[Observation.Id, ObservationModel],
       programs                 = TreeMap.empty[Program.Id, ProgramModel],
+      steps                    = TreeMap.empty[Step.Id, StepModel[_]],
       targets                  = TreeMap.empty[Target.Id, TargetModel],
 
       programAsterism          = ManyToMany.empty,
@@ -60,6 +58,9 @@ sealed trait TableOptics { self: Tables.type =>
   val lastEventId: Lens[Tables, Long] =
     ids ^|-> Ids.lastEvent
 
+  val lastAtomId: Lens[Tables, Atom.Id] =
+    ids ^|-> Ids.lastAtom
+
   val lastAsterismId: Lens[Tables, Asterism.Id] =
     ids ^|-> Ids.lastAsterism
 
@@ -72,9 +73,17 @@ sealed trait TableOptics { self: Tables.type =>
   val lastProgramId: Lens[Tables, Program.Id] =
     ids ^|-> Ids.lastProgram
 
+  val lastStepId: Lens[Tables, Step.Id] =
+    ids ^|-> Ids.lastStep
+
   val lastTargetId: Lens[Tables, Target.Id] =
     ids ^|-> Ids.lastTarget
 
+  val atoms: Lens[Tables, SortedMap[Atom.Id, AtomModel[_]]] =
+    Lens[Tables, SortedMap[Atom.Id, AtomModel[_]]](_.atoms)(b => a => a.copy(atoms = b))
+
+  def atom(aid: Atom.Id): Lens[Tables, Option[AtomModel[_]]] =
+    atoms ^|-> At.at(aid)
 
   val asterisms: Lens[Tables, SortedMap[Asterism.Id, AsterismModel]] =
     Lens[Tables, SortedMap[Asterism.Id, AsterismModel]](_.asterisms)(b => a => a.copy(asterisms = b))
@@ -96,13 +105,17 @@ sealed trait TableOptics { self: Tables.type =>
   def observation(oid: Observation.Id): Lens[Tables, Option[ObservationModel]] =
     observations ^|-> At.at(oid)
 
-
   val programs: Lens[Tables, SortedMap[Program.Id, ProgramModel]] =
     Lens[Tables, SortedMap[Program.Id, ProgramModel]](_.programs)(b => a => a.copy(programs = b))
 
   def program(pid: Program.Id): Lens[Tables, Option[ProgramModel]] =
     programs ^|-> At.at(pid)
 
+  val steps: Lens[Tables, SortedMap[Step.Id, StepModel[_]]] =
+    Lens[Tables, SortedMap[Step.Id, StepModel[_]]](_.steps)(b => a => a.copy(steps = b))
+
+  def step(sid: Step.Id): Lens[Tables, Option[StepModel[_]]] =
+    steps ^|-> At.at(sid)
 
   val targets: Lens[Tables, SortedMap[Target.Id, TargetModel]] =
     Lens[Tables, SortedMap[Target.Id, TargetModel]](_.targets)(b => a => a.copy(targets = b))
