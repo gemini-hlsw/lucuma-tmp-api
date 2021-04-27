@@ -32,40 +32,12 @@ object StepModel {
     config:     CreateStepConfig[A]
   ) {
 
-    // Presumably IdSupply turns into something more capable --
-    //
-    // * id lookup
-    // * id creation when necessary
-    // * registering newly created stuff in the item map
-
     def create[T, B](db: Database[T])(implicit V: InputValidator[A, B]): State[T, ValidatedInput[StepModel[B]]] =
       for {
         i <- db.step.getUnusedId(id)
         o  = (i, config.create[B]).mapN { (i, c) => StepModel(i, breakpoint, c) }
         _ <- db.step.saveValid(o)(_.id)
       } yield o
-
-    // ^^^ this is still somehow not quite right.  what if there were other
-    //     ids to lookup?  In the case of ObservationModel you have to make sure
-    //     that target / asterism, constraint set, etc. really exist.
-
-    // So the second argument, instead of just being a Validated[Id => StepModel[D]]
-    // should maybe be a full fledged State[T, Validated[Id => StepModel[D]]
-    // though the "simpler" form above could exist as a convenience.
-    //
-    // So for an observation maybe:
-    //
-    // store.storeObservation(
-    //   id,
-    //   for {
-    //     a <- store.definedAsterismId(aid)  // State[T, ValidatedInput[Asterism.Id]] though aid may be None ...
-    //     ....
-    //   } yield (a, blah, baz).mapN { (x, y, z) => ObservationModel(...) }
-    // }
-
-    // Think this "Store[T] thing should be moved to TableState and we should
-    // delete the IdSupply in Ids.
-
 
   }
 
