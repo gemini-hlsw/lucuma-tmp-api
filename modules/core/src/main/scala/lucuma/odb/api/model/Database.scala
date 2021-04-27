@@ -25,4 +25,6 @@ trait Database[T] {
 
   def error[A](m: => String): State[T, ValidatedInput[A]] =
     State.pure[T, ValidatedInput[A]](InputError.fromMessage(m).invalidNec[A])
+
+//  def programAsterism(pas: List[(Program.Id, Asterism.Id)]): State[T, ]
 }
