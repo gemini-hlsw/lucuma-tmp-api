@@ -66,10 +66,10 @@ object ConstraintSetRepo {
 
         selectPageFiltered(count, afterGid, includeDeleted) { _.programId === pid }
 
-      override def insert(newCs: ConstraintSetModel.Create): F[ConstraintSetModel] = {
+      override def insert(input: ConstraintSetModel.Create): F[ConstraintSetModel] = {
         val create = EitherT(
           tablesRef.modify { tables =>
-            val (tablesʹ, c) = newCs.create(TableState).run(tables).value
+            val (tablesʹ, c) = input.create(TableState).run(tables).value
 
             c.fold(
               err => (tables,  InputError.Exception(err).asLeft),
