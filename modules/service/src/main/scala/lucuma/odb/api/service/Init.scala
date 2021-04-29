@@ -276,7 +276,7 @@ object Init {
       ).map(StepModel.Create.continueTo)
        .grouped(2) // pairs flat and science steps
        .toList
-       .map(AtomModel.Create(_))
+       .map(AtomModel.Create(None, _))
     )
 
   def obs(

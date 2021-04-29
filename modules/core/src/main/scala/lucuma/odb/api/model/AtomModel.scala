@@ -4,53 +4,59 @@
 package lucuma.odb.api.model
 
 import lucuma.odb.api.model.StepConfig.CreateStepConfig
-
 import cats.Eq
-import cats.data.NonEmptyList
+import cats.data.{NonEmptyList, State}
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
-import monocle.Iso
 import monocle.macros.Lenses
 
 @Lenses final case class AtomModel[A](
+  id:    Atom.Id,
   steps: NonEmptyList[StepModel[A]]
 )
 
 object AtomModel {
-  def one[A](head: StepModel[A]): AtomModel[A] =
-    AtomModel(NonEmptyList.one(head))
+  def one[A](id: Atom.Id, head: StepModel[A]): AtomModel[A] =
+    AtomModel(id, NonEmptyList.one(head))
 
-  def ofSteps[A](head: StepModel[A], tail: StepModel[A]*): AtomModel[A] =
-    AtomModel(NonEmptyList.of(head, tail: _*))
-
-  def fromNel[A]: Iso[NonEmptyList[StepModel[A]], AtomModel[A]] =
-    Iso[NonEmptyList[StepModel[A]], AtomModel[A]](nel => AtomModel(nel))(_.steps)
+  def ofSteps[A](id: Atom.Id, head: StepModel[A], tail: StepModel[A]*): AtomModel[A] =
+    AtomModel(id, NonEmptyList.of(head, tail: _*))
 
   implicit def EqSequenceAtom[A: Eq]: Eq[AtomModel[A]] =
-    Eq.by(_.steps)
-
+    Eq.by { a => (
+      a.id,
+      a.steps
+    )}
 
   @Lenses final case class Create[A](
+    id:    Option[Atom.Id],
     steps: List[StepModel.Create[A]]
   ) {
 
-    def create[B](implicit V: InputValidator[A, B]): ValidatedInput[AtomModel[B]] =
+    def create[T, B](db: Database[T])(implicit V: InputValidator[A, B]): State[T, ValidatedInput[AtomModel[B]]] =
       steps match {
         case Nil    =>
-          InputError.fromMessage("Cannot create an empty sequence atom").invalidNec[AtomModel[B]]
+          db.error[AtomModel[B]]("Cannot create an empty sequence atom")
 
         case h :: t =>
-          (h.create[B], t.traverse(_.create[B])).mapN { (h0, t0) =>
-            AtomModel.fromNel.get(NonEmptyList(h0, t0))
-          }
+          for {
+            i  <- db.atom.getUnusedId(id)
+            hʹ <- h.create[T, B](db)
+            tʹ <- t.traverse(_.create[T, B](db))
+            a   = (i, hʹ, tʹ.sequence).mapN { (iʹʹ, hʹʹ, tʹʹ) =>
+              AtomModel.ofSteps(iʹʹ, hʹʹ, tʹʹ: _*)
+            }
+            _  <- db.atom.saveValid(a)(_.id)
+          } yield a
+
       }
   }
 
   object Create {
 
     def singleton[A](step: StepModel.Create[A]): Create[A] =
-      Create(List(step))
+      Create(None, List(step))
 
     def stopBefore[A](step: CreateStepConfig[A]): Create[A] =
       singleton(StepModel.Create.stopBefore(step))
@@ -61,11 +67,11 @@ object AtomModel {
     implicit def DecoderCreate[A: Decoder]: Decoder[Create[A]] =
       deriveDecoder[Create[A]]
 
-    implicit def ValidatorCreate[A, B](implicit V: InputValidator[A, B]): InputValidator[Create[A], AtomModel[B]] =
-      (csa: Create[A]) => csa.create[B]
-
     implicit def EqCreate[A: Eq]: Eq[Create[A]] =
-      Eq.by(_.steps)
+      Eq.by { a => (
+        a.id,
+        a.steps
+      )}
 
   }
 

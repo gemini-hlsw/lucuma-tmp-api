@@ -4,10 +4,11 @@
 package lucuma.odb.api.repo
 
 import cats._
+import cats.data.EitherT
 import cats.effect.concurrent.Ref
 import cats.syntax.all._
 import lucuma.core.model.{ConstraintSet, Observation, Program}
-import lucuma.odb.api.model.ConstraintSetModel
+import lucuma.odb.api.model.{ConstraintSetModel, Event, InputError}
 import lucuma.odb.api.model.ConstraintSetModel.ConstraintSetEvent
 import lucuma.odb.api.model.syntax.toplevel._
 
@@ -47,7 +48,7 @@ object ConstraintSetRepo {
         oid:            Observation.Id,
         includeDeleted: Boolean
       ): F[Option[ConstraintSetModel]] =
-        tablesRef.get.map{ t => 
+        tablesRef.get.map{ t =>
           for {
             o <- t.observations.get(oid)
             csid <- o.constraintSetId
@@ -65,11 +66,22 @@ object ConstraintSetRepo {
 
         selectPageFiltered(count, afterGid, includeDeleted) { _.programId === pid }
 
-      override def insert(newCs: ConstraintSetModel.Create): F[ConstraintSetModel] =
-        constructAndPublish { t =>
-          (tryNotFindConstraintSet(t, newCs.constraintSetId) *>
-            tryFindProgram(t, newCs.programId) *>
-            newCs.withId).map(createAndInsert(newCs.constraintSetId, _))
-        }
+      override def insert(input: ConstraintSetModel.Create): F[ConstraintSetModel] = {
+        val create = EitherT(
+          tablesRef.modify { tables =>
+            val (tablesʹ, c) = input.create(TableState).run(tables).value
+
+            c.fold(
+              err => (tables,  InputError.Exception(err).asLeft),
+              cm  => (tablesʹ, cm.asRight)
+            )
+          }
+        ).rethrowT
+
+        for {
+          c <- create
+          _ <- eventService.publish(ConstraintSetEvent(_, Event.EditType.Created, c))
+        } yield c
+      }
     }
 }

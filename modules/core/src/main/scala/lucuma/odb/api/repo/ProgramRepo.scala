@@ -3,13 +3,13 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.ProgramModel
+import lucuma.odb.api.model.{Event, InputError, ProgramModel}
 import lucuma.odb.api.model.ProgramModel.ProgramEvent
-import lucuma.odb.api.model.Existence._
 import lucuma.core.model.{Asterism, Program, Target}
 import cats.Monad
 import cats.implicits._
 import cats.MonadError
+import cats.data.EitherT
 import cats.effect.concurrent.Ref
 
 
@@ -113,12 +113,23 @@ object ProgramRepo {
             else Iterable.empty[Program.Id])
         }
 
-      override def insert(input: ProgramModel.Create): F[ProgramModel] =
-        constructAndPublish { t =>
-          tryNotFindProgram(t, input.programId).as(
-            createAndInsert(input.programId, ProgramModel(_, Present, input.name))
-          )
-        }
+      override def insert(input: ProgramModel.Create): F[ProgramModel] = {
+        val create = EitherT(
+          tablesRef.modify { tables =>
+            val (tablesʹ, p) = input.create(TableState).run(tables).value
+
+            p.fold(
+              err => (tables,  InputError.Exception(err).asLeft),
+              pm  => (tablesʹ, pm.asRight)
+            )
+          }
+        ).rethrowT
+
+        for {
+          p <- create
+          _ <- eventService.publish(ProgramEvent(_, Event.EditType.Created, p))
+        } yield p
+      }
 
     }
 

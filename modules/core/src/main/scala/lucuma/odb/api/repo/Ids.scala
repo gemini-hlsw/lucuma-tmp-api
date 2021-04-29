@@ -3,10 +3,10 @@
 
 package lucuma.odb.api.repo
 
+import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
+import lucuma.odb.api.model.{Atom, Step}
 import cats.kernel.BoundedEnumerable
-import lucuma.core.model.{ Asterism, Observation, Program, Target }
 import monocle.Lens
-import lucuma.core.model.ConstraintSet
 
 /**
  * Tracking "last" used ids of top-level types.
@@ -14,9 +14,11 @@ import lucuma.core.model.ConstraintSet
 final case class Ids(
   event:         Long,
   asterism:      Asterism.Id,
+  atom:          Atom.Id,
   constraintSet: ConstraintSet.Id,
   observation:   Observation.Id,
   program:       Program.Id,
+  step:          Step.Id,
   target:        Target.Id
 )
 
@@ -26,9 +28,11 @@ object Ids extends IdsOptics {
     Ids(
       event         = 0L,
       asterism      = BoundedEnumerable[Asterism.Id].minBound,
+      atom          = BoundedEnumerable[Atom.Id].minBound,
       constraintSet = BoundedEnumerable[ConstraintSet.Id].minBound,
       observation   = BoundedEnumerable[Observation.Id].minBound,
       program       = BoundedEnumerable[Program.Id].minBound,
+      step          = BoundedEnumerable[Step.Id].minBound,
       target        = BoundedEnumerable[Target.Id].minBound
     )
 
@@ -42,6 +46,9 @@ sealed trait IdsOptics { self: Ids.type =>
   val lastAsterism: Lens[Ids, Asterism.Id] =
     Lens[Ids, Asterism.Id](_.asterism)(b => a => a.copy(asterism = b))
 
+  val lastAtom: Lens[Ids, Atom.Id] =
+    Lens[Ids, Atom.Id](_.atom)(b => a => a.copy(atom = b))
+
   val lastConstraintSet: Lens[Ids, ConstraintSet.Id] =
     Lens[Ids, ConstraintSet.Id](_.constraintSet)(b => a => a.copy(constraintSet = b))
 
@@ -50,6 +57,9 @@ sealed trait IdsOptics { self: Ids.type =>
 
   val lastProgram: Lens[Ids, Program.Id] =
     Lens[Ids, Program.Id](_.program)(b => a => a.copy(program = b))
+
+  val lastStep: Lens[Ids, Step.Id] =
+    Lens[Ids, Step.Id](_.step)(b => a => a.copy(step = b))
 
   val lastTarget: Lens[Ids, Target.Id] =
     Lens[Ids, Target.Id](_.target)(b => a => a.copy(target = b))

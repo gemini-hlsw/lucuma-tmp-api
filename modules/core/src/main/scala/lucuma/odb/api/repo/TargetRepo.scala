@@ -3,12 +3,11 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{AsterismModel, ProgramModel, Sharing, TargetModel, ValidatedInput}
+import lucuma.odb.api.model.{AsterismModel, Event, InputError, ProgramModel, Sharing, TargetModel, ValidatedInput}
 import lucuma.odb.api.model.TargetModel.{CreateNonsidereal, CreateSidereal, TargetEvent}
-import lucuma.odb.api.model.Existence._
 import lucuma.core.model.{Asterism, Program, Target}
 import cats._
-import cats.data.State
+import cats.data.{EitherT, State}
 import cats.effect.concurrent.Ref
 import cats.syntax.all._
 import monocle.state.all._
@@ -85,24 +84,36 @@ object TargetRepo {
           tables.targetAsterism.selectLeft(aid)
         }
 
-      def addAndShare(id: Option[Target.Id], g: Target, pids: Set[Program.Id]): State[Tables, TargetModel] =
-        for {
-          t <- createAndInsert(id, tid => TargetModel(tid, Present, g))
-          _ <- Tables.programTarget.mod_(_ ++ pids.toList.tupleRight(t.id))
-        } yield t
+      private def insertTarget(
+        pids: Option[List[Program.Id]],
+        tm:   State[Tables, ValidatedInput[TargetModel]]
+      ): F[TargetModel] = {
+        val create = EitherT(
+          tablesRef.modify { tables =>
+            val (tablesʹ, t) = (for {
+              t <- tm
+              _ <- t.traverse(tm => Tables.programTarget.mod_(_ ++ pids.toList.flatten.tupleRight(tm.id)))
+            } yield t).run(tables).value
 
-      private def insertTarget(id: Option[Target.Id], pids: List[Program.Id], vt: ValidatedInput[Target]): F[TargetModel] =
-        constructAndPublish { t =>
-          (vt, tryNotFindTarget(t, id), pids.traverse(tryFindProgram(t, _))).mapN((g, _, _) =>
-            addAndShare(id, g, pids.toSet)
-          )
-        }
+            t.fold(
+              err => (tables,  InputError.Exception(err).asLeft),
+              tm  => (tablesʹ, tm.asRight)
+            )
+          }
+        ).rethrowT
+
+        for {
+          t <- create
+          _ <- eventService.publish(TargetEvent(_, Event.EditType.Created, t))
+        } yield t
+      }
+
 
       override def insertNonsidereal(input: CreateNonsidereal): F[TargetModel] =
-        insertTarget(input.targetId, input.programIds.toList.flatten, input.toGemTarget)
+        insertTarget(input.programIds, input.create(TableState))
 
       override def insertSidereal(input: CreateSidereal): F[TargetModel] =
-        insertTarget(input.targetId, input.programIds.toList.flatten, input.toGemTarget)
+        insertTarget(input.programIds, input.create(TableState))
 
       private def asterismSharing(
         input: Sharing[Target.Id, Asterism.Id]
@@ -110,7 +121,7 @@ object TargetRepo {
         update: (ManyToMany[Target.Id, Asterism.Id], IterableOnce[(Target.Id, Asterism.Id)]) => ManyToMany[Target.Id, Asterism.Id]
       ): F[TargetModel] =
         shareRight[Asterism.Id, AsterismModel](
-          "target", input, TableState.asterism, Tables.targetAsterism, AsterismModel.AsterismEvent.updated
+          "target", input, TableState.asterism.lookup, Tables.targetAsterism, AsterismModel.AsterismEvent.updated
         )(update)
 
       override def shareWithAsterisms(input: Sharing[Target.Id, Asterism.Id]): F[TargetModel] =
@@ -125,7 +136,7 @@ object TargetRepo {
         update: (ManyToMany[Program.Id, Target.Id], IterableOnce[(Program.Id, Target.Id)]) => ManyToMany[Program.Id, Target.Id]
       ): F[TargetModel] =
         shareLeft[Program.Id, ProgramModel](
-          "target", input, TableState.program, Tables.programTarget, ProgramModel.ProgramEvent.updated
+          "target", input, TableState.program.lookup, Tables.programTarget, ProgramModel.ProgramEvent.updated
         )(update)
 
       override def shareWithPrograms(input: Sharing[Target.Id, Program.Id]): F[TargetModel] =

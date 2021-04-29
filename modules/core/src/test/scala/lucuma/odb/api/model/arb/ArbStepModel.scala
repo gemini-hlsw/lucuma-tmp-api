@@ -6,7 +6,7 @@ package arb
 
 import lucuma.core.math.Offset
 import lucuma.core.math.arb.ArbOffset
-import lucuma.core.util.arb.ArbEnumerated
+import lucuma.core.util.arb.{ArbEnumerated, ArbGid}
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
@@ -14,6 +14,7 @@ trait ArbStepModel {
 
   import ArbEnumerated._
   import ArbGcalModel._
+  import ArbGid._
   import ArbOffset._
   import ArbOffsetModel._
 
@@ -153,13 +154,15 @@ trait ArbStepModel {
     implicit def arbStepModel[A: Arbitrary]: Arbitrary[StepModel[A]] =
     Arbitrary {
       for {
+        i <- arbitrary[Step.Id]
         b <- arbitrary[Breakpoint]
         s <- arbitrary[StepConfig[A]]
-      } yield StepModel(b, s)
+      } yield StepModel(i, b, s)
     }
 
   implicit def cogStepModel[A: Cogen]: Cogen[StepModel[A]] =
-    Cogen[(Breakpoint, StepConfig[A])].contramap { in => (
+    Cogen[(Step.Id, Breakpoint, StepConfig[A])].contramap { in => (
+      in.id,
       in.breakpoint,
       in.config
     )}
@@ -167,15 +170,17 @@ trait ArbStepModel {
   implicit def arbStepModelCreate[A: Arbitrary]: Arbitrary[StepModel.Create[A]] =
     Arbitrary {
       for {
+        i <- arbitrary[Option[Step.Id]]
         b <- arbitrary[Breakpoint]
         s <- arbitrary[StepConfig.CreateStepConfig[A]]
-      } yield StepModel.Create(b, s)
+      } yield StepModel.Create(i, b, s)
     }
 
   implicit def cogStepModelCreate[A: Cogen]: Cogen[StepModel.Create[A]] =
-    Cogen[(Breakpoint, StepConfig.CreateStepConfig[A])].contramap { in => (
+    Cogen[(Option[Step.Id], Breakpoint, StepConfig.CreateStepConfig[A])].contramap { in => (
+      in.id,
       in.breakpoint,
-      in.step
+      in.config
     )}
 
 

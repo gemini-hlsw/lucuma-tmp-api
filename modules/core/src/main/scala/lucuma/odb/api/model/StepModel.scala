@@ -4,14 +4,16 @@
 package lucuma.odb.api.model
 
 import lucuma.odb.api.model.StepConfig.CreateStepConfig
-
 import cats.Eq
+import cats.data.State
+import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import monocle.macros.Lenses
 
 
 @Lenses final case class StepModel[A](
+  id:         Step.Id,
   breakpoint: Breakpoint,
   config:     StepConfig[A]
 )
@@ -19,39 +21,44 @@ import monocle.macros.Lenses
 object StepModel {
   implicit def EqStepModel[A: Eq]: Eq[StepModel[A]] =
     Eq.by { a => (
+      a.id,
       a.breakpoint,
       a.config
     )}
 
   @Lenses final case class Create[A](
+    id:         Option[Step.Id],
     breakpoint: Breakpoint,
-    step:       CreateStepConfig[A]
+    config:     CreateStepConfig[A]
   ) {
 
-    def create[B](implicit V: InputValidator[A, B]): ValidatedInput[StepModel[B]] =
-      step.create[B].map(s => StepModel(breakpoint, s))
+    def create[T, B](db: Database[T])(implicit V: InputValidator[A, B]): State[T, ValidatedInput[StepModel[B]]] =
+      for {
+        i <- db.step.getUnusedId(id)
+        o  = (i, config.create[B]).mapN { (i, c) => StepModel(i, breakpoint, c) }
+        _ <- db.step.saveValid(o)(_.id)
+      } yield o
 
   }
 
   object Create {
 
     def stopBefore[A](s: CreateStepConfig[A]): Create[A] =
-      Create(Breakpoint.enabled, s)
+      Create(None, Breakpoint.enabled, s)
 
     def continueTo[A](s: CreateStepConfig[A]): Create[A] =
-      Create(Breakpoint.disabled, s)
+      Create(None, Breakpoint.disabled, s)
 
     implicit def EqCreate[A: Eq]: Eq[Create[A]] =
       Eq.by { a => (
+        a.id,
         a.breakpoint,
-        a.step
+        a.config
       )}
 
     implicit def DecoderCreate[A: Decoder]: Decoder[Create[A]] =
       deriveDecoder[Create[A]]
 
-    implicit def ValidatorCreate[A, B](implicit V: InputValidator[A, B]): InputValidator[Create[A], StepModel[B]] =
-      (cbs: Create[A]) => cbs.create[B]
   }
 
 }

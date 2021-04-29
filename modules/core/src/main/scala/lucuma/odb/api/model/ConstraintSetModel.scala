@@ -49,19 +49,25 @@ object ConstraintSetModel extends ConstraintSetModelOptics {
     elevationRange:  ElevationRangeModel.Create
   ) {
 
-    def withId: ValidatedInput[ConstraintSet.Id => ConstraintSetModel] =
-      elevationRange.create.map { er => csid =>
-        ConstraintSetModel(csid,
-                           Present,
-                           programId,
-                           name,
-                           imageQuality,
-                           cloudExtinction,
-                           skyBackground,
-                           waterVapor,
-                           er
-        )
-      }
+    def create[T](db: Database[T]): State[T, ValidatedInput[ConstraintSetModel]] =
+      for {
+        i <- db.constraintSet.getUnusedId(constraintSetId)
+        p <- db.program.lookup(programId)
+        c  = (i, p, elevationRange.create).mapN { (iʹ, _, e) =>
+          ConstraintSetModel(
+            iʹ,
+            Present,
+            programId,
+            name,
+            imageQuality,
+            cloudExtinction,
+            skyBackground,
+            waterVapor,
+            e
+          )
+        }
+        _ <- db.constraintSet.saveValid(c)(_.id)
+      } yield c
   }
 
   object Create {
