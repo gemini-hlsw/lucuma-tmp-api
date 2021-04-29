@@ -9,7 +9,7 @@ import lucuma.core.`enum`.ObsStatus
 import lucuma.core.optics.syntax.lens._
 import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
 import cats.Eq
-import cats.data.State
+import cats.data.{Nested, State}
 import cats.syntax.all._
 import clue.data.{Assign, Input}
 import eu.timepit.refined.cats._
@@ -28,7 +28,7 @@ final case class ObservationModel(
   pointing:             Option[Either[Asterism.Id, Target.Id]],
   constraintSetId:      Option[ConstraintSet.Id],
   plannedTimeSummary:   PlannedTimeSummaryModel,
-  config:               Option[SequenceModel.InstrumentConfig]
+  config:               Option[InstrumentConfigModel]
 ) {
 
   def asterismId: Option[Asterism.Id] =
@@ -45,7 +45,17 @@ object ObservationModel extends ObservationOptics {
     TopLevelModel.instance(_.id, ObservationModel.existence)
 
   implicit val EqObservation: Eq[ObservationModel] =
-    Eq.by(o => (o.id, o.existence, o.programId, o.name, o.status, o.pointing, o.plannedTimeSummary, o.config))
+    Eq.by { o => (
+      o.id,
+      o.existence,
+      o.programId,
+      o.name,
+      o.status,
+      o.pointing,
+      o.constraintSetId,
+      o.plannedTimeSummary,
+      o.config
+    )}
 
 
   final case class Create(
@@ -56,26 +66,42 @@ object ObservationModel extends ObservationOptics {
     targetId:        Option[Target.Id],
     constraintSetId: Option[ConstraintSet.Id],
     status:          Option[ObsStatus],
-    config:          Option[SequenceModel.InstrumentConfig.Create]
+    config:          Option[InstrumentConfigModel.Create]
   ) {
 
-    def withId(s: PlannedTimeSummaryModel): ValidatedInput[Observation.Id => ObservationModel] =
-      (
-        ValidatedInput.optionEither("asterismId", "targetId", asterismId.map(_.validNec), targetId.map(_.validNec)),
-        config.traverse(_.create)
-      ).mapN { (t, c) => oid =>
-        ObservationModel(
-          oid,
-          Present,
-          programId,
-          name,
-          status.getOrElse(ObsStatus.New),
-          t,
-          constraintSetId,
-          s,
-          c
+    def create[T](db: Database[T], s: PlannedTimeSummaryModel): State[T, ValidatedInput[ObservationModel]] =
+      for {
+        i <- db.observation.getUnusedId(observationId)
+        p <- db.program.lookup(programId)
+        a <- db.asterism.optionalLookup(asterismId)
+        t <- db.target.optionalLookup(targetId)
+
+        pointing = ValidatedInput.optionEither(
+          "asterismId",
+          "targetId",
+          Nested(a).map(_.id).value,
+          Nested(t).map(_.id).value
         )
-      }
+
+        c <- db.constraintSet.optionalLookup(constraintSetId)
+        g <- config.traverse(_.create(db))
+
+        o  = (i, p, pointing, c, g.sequence).mapN { (iʹ, _, pointingʹ, _, gʹ) =>
+          ObservationModel(
+            iʹ,
+            Present,
+            programId,
+            name,
+            status.getOrElse(ObsStatus.New),
+            pointingʹ,
+            constraintSetId,
+            s,
+            gʹ
+          )
+        }
+
+        _ <- db.observation.saveValid(o)(_.id)
+      } yield o
 
   }
 
@@ -92,7 +118,8 @@ object ObservationModel extends ObservationOptics {
         a.asterismId,
         a.targetId,
         a.constraintSetId,
-        a.status
+        a.status,
+        a.config
       )}
 
   }
@@ -205,7 +232,7 @@ object ObservationModel extends ObservationOptics {
     implicit val DecoderEditConstraintSet: Decoder[EditConstraintSet] =
       deriveDecoder[EditConstraintSet]
 
-    implicit val EqEditConstraintSet: Eq[EditConstraintSet] = 
+    implicit val EqEditConstraintSet: Eq[EditConstraintSet] =
       Eq.by { a => (a.observationIds, a.constraintSetId)}
   }
 
@@ -255,7 +282,7 @@ trait ObservationOptics { self: ObservationModel.type =>
   val constraintSet: Lens[ObservationModel, Option[ConstraintSet.Id]] =
     Lens[ObservationModel, Option[ConstraintSet.Id]](_.constraintSetId)(a => _.copy(constraintSetId = a))
 
-  val config: Lens[ObservationModel, Option[SequenceModel.InstrumentConfig]] =
-    Lens[ObservationModel, Option[SequenceModel.InstrumentConfig]](_.config)(a => _.copy(config = a))
+  val config: Lens[ObservationModel, Option[InstrumentConfigModel]] =
+    Lens[ObservationModel, Option[InstrumentConfigModel]](_.config)(a => _.copy(config = a))
 
 }

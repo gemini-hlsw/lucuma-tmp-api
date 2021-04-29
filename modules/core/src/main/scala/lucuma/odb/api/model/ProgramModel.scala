@@ -5,6 +5,7 @@ package lucuma.odb.api.model
 
 import lucuma.core.model.Program
 import cats.Eq
+import cats.data.State
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
@@ -36,7 +37,16 @@ object ProgramModel extends ProgramOptics {
   final case class Create(
     programId: Option[Program.Id],
     name:      Option[NonEmptyString]
-  )
+  ) {
+
+    def create[T](db: Database[T]): State[T, ValidatedInput[ProgramModel]] =
+      for {
+        i <- db.program.getUnusedId(programId)
+        p  = i.map(ProgramModel(_, Existence.Present, name))
+        _ <- db.program.saveValid(p)(_.id)
+      } yield p
+
+  }
 
   object Create {
 

@@ -192,13 +192,6 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
     } yield u
   }
 
-  def createAndInsert[U <: T](id: Option[I], f: I => U): State[Tables, U] =
-    for {
-      i <- id.fold(idLens.mod(BoundedEnumerable[I].cycleNext))(State.pure[Tables, I])
-      t  = f(i)
-      _ <- mapLens.mod(_ + (i -> t))
-    } yield t
-
   override def edit(
     id:     I,
     editor: ValidatedInput[State[T, Unit]],

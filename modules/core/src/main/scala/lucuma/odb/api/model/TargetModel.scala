@@ -59,6 +59,21 @@ object TargetModel extends TargetOptics {
 
   }
 
+  private def createTarget[T](
+    db:         Database[T],
+    targetId:   Option[Target.Id],
+    programIds: Option[List[Program.Id]],
+    gemTarget:  ValidatedInput[Target]
+  ): State[T, ValidatedInput[TargetModel]] =
+     for {
+       i  <- db.target.getUnusedId(targetId)
+       ps <- programIds.toList.flatten.traverse(db.program.lookup)
+       t   = (i, ps.sequence, gemTarget).mapN { (iʹ, _, tʹ) =>
+         TargetModel(iʹ, Existence.Present, tʹ)
+       }
+       _  <- db.target.saveValid(t)(_.id)
+     } yield t
+
   /**
    * Describes input used to create a nonsidereal target.
    *
@@ -89,6 +104,10 @@ object TargetModel extends TargetOptics {
         Target(name, Left(k), SortedMap.from(ms.map(m => m.band -> m)))
       }
     }
+
+    def create[T](db: Database[T]): State[T, ValidatedInput[TargetModel]] =
+      createTarget(db, targetId, programIds, toGemTarget)
+
   }
 
   object CreateNonsidereal {
@@ -161,6 +180,9 @@ object TargetModel extends TargetOptics {
       ).mapN { (pm, ms) =>
         Target(name, Right(pm), SortedMap.from(ms.map(m => m.band -> m)))
       }
+
+    def create[T](db: Database[T]): State[T, ValidatedInput[TargetModel]] =
+      createTarget(db, targetId, programIds, toGemTarget)
 
   }
 

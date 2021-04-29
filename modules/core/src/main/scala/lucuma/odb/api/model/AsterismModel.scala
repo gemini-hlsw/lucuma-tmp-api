@@ -45,10 +45,15 @@ object AsterismModel extends AsterismOptics {
     explicitBase: Option[CoordinatesModel.Input]
   ) {
 
-    def withId: ValidatedInput[Asterism.Id => AsterismModel] =
-      explicitBase
-        .traverse(_.toCoordinates)
-        .map(b => aid => AsterismModel(aid, Present, name, b))
+    def create[T](db: Database[T]): State[T, ValidatedInput[AsterismModel]] =
+      for {
+        i  <- db.asterism.getUnusedId(asterismId)
+        ps <- programIds.traverse(db.program.lookup)
+        a   = (i, ps.sequence, explicitBase.traverse(_.toCoordinates)).mapN { (iʹ, _, bʹ) =>
+          AsterismModel(iʹ, Present, name, bʹ)
+        }
+        _  <- db.asterism.saveValid(a)(_.id)
+      } yield a
 
   }
 

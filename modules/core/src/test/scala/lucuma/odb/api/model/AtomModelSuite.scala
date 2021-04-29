@@ -8,11 +8,11 @@ import lucuma.odb.api.model.arb._
 import cats.kernel.laws.discipline.EqTests
 import munit.DisciplineSuite
 
-final class SequenceModelSuite extends DisciplineSuite {
+final class AtomModelSuite extends DisciplineSuite {
 
-  import ArbSequenceModel._
+  import ArbAtomModel._
 
-  checkAll("Sequence",             EqTests[SequenceModel[String]].eqv)
-  checkAll("Sequence.Create",      EqTests[SequenceModel[String]].eqv)
+  checkAll("Atom",                 EqTests[AtomModel[Int]].eqv)
+  checkAll("CreateAtom",           EqTests[AtomModel.Create[Int]].eqv)
 
 }

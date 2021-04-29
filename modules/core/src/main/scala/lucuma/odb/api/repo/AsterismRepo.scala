@@ -3,12 +3,13 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{AsterismModel, ProgramModel, Sharing, TargetModel}
+import lucuma.odb.api.model.{AsterismModel, Event, InputError, ProgramModel, Sharing, TargetModel}
 import lucuma.odb.api.model.AsterismModel.{AsterismEvent, Create}
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.core.model.{Asterism, Observation, Program, Target}
 import cats._
-import cats.data.State
+import cats.data.EitherT
+import cats.effect.concurrent.Ref
 import cats.syntax.all._
 import monocle.state.all._
 
@@ -109,25 +110,28 @@ object AsterismRepo {
           .filter(a => includeDeleted || a.isPresent)
         }
 
-      private def addAsterism[T <: AsterismModel](
-        asterismId: Option[Asterism.Id],
-        programs:   Set[Program.Id],
-        factory:    Asterism.Id => T
-      ): State[Tables, T] =
+      override def insert(input: Create): F[AsterismModel] = {
+        val create = EitherT(
+          tablesRef.modify { tables =>
+
+            val (tablesʹ, a) = (for {
+              a <- input.create(TableState)
+              _ <- a.traverse(am => Tables.programAsterism.mod_(_ ++ input.programIds.tupleRight(am.id)))
+            } yield a).run(tables).value
+
+            a.fold(
+              err => (tables,  InputError.Exception(err).asLeft),
+              am  => (tablesʹ, am.asRight)
+            )
+          }
+        ).rethrowT
+
         for {
-          a   <- createAndInsert(asterismId, factory)
-          _   <- Tables.programAsterism.mod_(_ ++ programs.toList.tupleRight(a.id))
+          a <- create
+          _ <- eventService.publish(AsterismEvent(_, Event.EditType.Created, a))
         } yield a
 
-      override def insert(input: Create): F[AsterismModel] =
-        constructAndPublish { t =>
-          val existing = tryNotFindAsterism(t, input.asterismId)
-          val programs = input.programIds.traverse(tryFindProgram(t, _))
-          val asterism = input.withId
-          (existing, programs, asterism).mapN((_, _, f) =>
-            addAsterism(input.asterismId, input.programIds.toSet, f)
-          )
-        }
+      }
 
       def programSharing(
         input: Sharing[Asterism.Id, Program.Id]
@@ -137,7 +141,7 @@ object AsterismRepo {
         shareLeft[Program.Id, ProgramModel](
           "asterism",
           input,
-          TableState.program,
+          TableState.program.lookup,
           Tables.programAsterism,
           ProgramModel.ProgramEvent.updated
         )(update)
@@ -154,7 +158,7 @@ object AsterismRepo {
         update: (ManyToMany[Target.Id, Asterism.Id], IterableOnce[(Target.Id, Asterism.Id)]) => ManyToMany[Target.Id, Asterism.Id]
       ): F[AsterismModel] =
         shareLeft[Target.Id, TargetModel](
-          "asterism", input, TableState.target, Tables.targetAsterism, TargetModel.TargetEvent.updated
+          "asterism", input, TableState.target.lookup, Tables.targetAsterism, TargetModel.TargetEvent.updated
         )(update)
 
       override def shareWithTargets(input: Sharing[Asterism.Id, Target.Id]): F[AsterismModel] =

@@ -9,7 +9,6 @@ import lucuma.odb.api.model.AsterismModel.AsterismEvent
 import lucuma.odb.api.model.ObservationModel.ObservationEvent
 import lucuma.odb.api.model.TargetModel.TargetEvent
 import lucuma.odb.api.model.syntax.validatedinput._
-
 import cats.Eq
 import cats.data.{EitherT, State}
 import cats.effect.Sync
@@ -128,20 +127,18 @@ object ObservationRepo {
         def create(s: PlannedTimeSummaryModel): F[(Option[AsterismModel], Option[TargetModel], Option[ConstraintSetModel], ObservationModel)] =
           EitherT(
             tablesRef.modify { tables =>
-              {
-                tryNotFindObservation(tables, newObs.observationId)     *>
-                tryFindProgram(tables, newObs.programId)                *>
-                (newObs.asterismId.traverse(tryFindAsterism(tables, _)),
-                 newObs.targetId.traverse(tryFindTarget(tables, _)),
-                 newObs.constraintSetId.traverse(tryFindConstraintSet(tables, _)),
-                 newObs.withId(s)
-                ).mapN { case (oa, ot, ocs, f) =>
-                  createAndInsert(newObs.observationId, f).map{o => (oa, ot, ocs, o)}
-                }
-              }.fold(
-                err => (tables, InputError.Exception(err).asLeft),
-                _.run(tables).value.map(_.asRight)
+              val (tablesʹ, o) = newObs.create(TableState, s).run(tables).value
+
+              o.map { obs => (
+                obs.asterismId.flatMap(tables.asterisms.get),
+                obs.targetId.flatMap(tables.targets.get),
+                obs.constraintSetId.flatMap(tables.constraintSets.get),
+                obs
+              )}.fold(
+                err => (tables,  InputError.Exception(err).asLeft),
+                tup => (tablesʹ, tup.asRight)
               )
+
             }
           ).rethrowT
 
@@ -189,7 +186,7 @@ object ObservationRepo {
           }
 
         val updatePointing = updateAsterism andThen updateTarget
-        
+
         // Don't send a change event for the old id if the id Input is Ignore or the value is unchanged.
         // Also don't send an event for the new id (if Assign) if it is always the same as the old id.
         def ids4Event[A: Eq](oa: Option[A], ia: Input[A]): List[A] = (oa, ia) match {
@@ -201,23 +198,23 @@ object ObservationRepo {
         }
 
         for {
-          vos <- oids.traverse(TableState.observation).map(_.sequence)
-          va  <- asterism.toOption.traverse(TableState.asterism).map(_.sequence)
-          vt  <- target.toOption.traverse(TableState.target).map(_.sequence)
-          vcs <- constraintSet.toOption.traverse(TableState.constraintSet).map(_.sequence)
+          vos <- oids.traverse(TableState.observation.lookup).map(_.sequence)
+          va  <- asterism.toOption.traverse(TableState.asterism.lookup).map(_.sequence)
+          vt  <- target.toOption.traverse(TableState.target.lookup).map(_.sequence)
+          vcs <- constraintSet.toOption.traverse(TableState.constraintSet.lookup).map(_.sequence)
           tb  <- State.get
         } yield (vos, va, vt, vcs).mapN { (os, _, _, _) =>
 
           val (updatedOs, updatedAids, updatedTids, updatedCsids) =
             os.foldLeft((List.empty[ObservationModel], Set.empty[Asterism.Id], Set.empty[Target.Id], Set.empty[ConstraintSet.Id])) {
               case ((osʹ, aids, tids, csids), o) =>
-                val oModP = ObservationModel.pointing.modify(updatePointing)(o) 
+                val oModP = ObservationModel.pointing.modify(updatePointing)(o)
                 val newO = ObservationModel.constraintSet.modify(updateConstraintSet)(oModP)
                 (
                   newO  :: osʹ,
                   aids  ++ ids4Event(ObservationModel.asterism.getOption(o), asterism),
                   tids  ++ ids4Event(ObservationModel.target.getOption(o), target),
-                  csids ++ ids4Event(ObservationModel.constraintSet.get(o), constraintSet) 
+                  csids ++ ids4Event(ObservationModel.constraintSet.get(o), constraintSet)
                 )
             }
 
@@ -275,7 +272,7 @@ object ObservationRepo {
 
       override def editConstraintSet(
         edit: ObservationModel.EditConstraintSet
-      ): F[List[ObservationModel]] = 
+      ): F[List[ObservationModel]] =
           doEdit(
             edit.observationIds,
             State.pure[ObservationModel, Unit](()),
