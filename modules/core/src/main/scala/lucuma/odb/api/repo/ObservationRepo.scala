@@ -127,7 +127,7 @@ object ObservationRepo {
         def create(s: PlannedTimeSummaryModel): F[(Option[AsterismModel], Option[TargetModel], Option[ConstraintSetModel], ObservationModel)] =
           EitherT(
             tablesRef.modify { tables =>
-              val (tablesʹ, o) = newObs.create(TableState, s).run(tables).value
+              val (tablesʹ, o) = newObs.create[State[Tables, *], Tables](TableState, s).run(tables).value
 
               o.map { obs => (
                 obs.asterismId.flatMap(tables.asterisms.get),
@@ -198,10 +198,10 @@ object ObservationRepo {
         }
 
         for {
-          vos <- oids.traverse(TableState.observation.lookup).map(_.sequence)
-          va  <- asterism.toOption.traverse(TableState.asterism.lookup).map(_.sequence)
-          vt  <- target.toOption.traverse(TableState.target.lookup).map(_.sequence)
-          vcs <- constraintSet.toOption.traverse(TableState.constraintSet.lookup).map(_.sequence)
+          vos <- TableState.observation.lookupAllValidated[State[Tables, *]](oids)
+          va  <- asterism.toOption.traverse(TableState.asterism.lookupValidated[State[Tables, *]]).map(_.sequence)
+          vt  <- target.toOption.traverse(TableState.target.lookupValidated[State[Tables, *]]).map(_.sequence)
+          vcs <- constraintSet.toOption.traverse(TableState.constraintSet.lookupValidated[State[Tables, *]]).map(_.sequence)
           tb  <- State.get
         } yield (vos, va, vt, vcs).mapN { (os, _, _, _) =>
 

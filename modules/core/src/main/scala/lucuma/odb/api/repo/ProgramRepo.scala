@@ -9,7 +9,7 @@ import lucuma.core.model.{Asterism, Program, Target}
 import cats.Monad
 import cats.implicits._
 import cats.MonadError
-import cats.data.EitherT
+import cats.data.{EitherT, State}
 import cats.effect.concurrent.Ref
 
 
@@ -116,7 +116,7 @@ object ProgramRepo {
       override def insert(input: ProgramModel.Create): F[ProgramModel] = {
         val create = EitherT(
           tablesRef.modify { tables =>
-            val (tablesʹ, p) = input.create(TableState).run(tables).value
+            val (tablesʹ, p) = input.create[State[Tables, *], Tables](TableState).run(tables).value
 
             p.fold(
               err => (tables,  InputError.Exception(err).asLeft),

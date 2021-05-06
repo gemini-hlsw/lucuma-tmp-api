@@ -11,16 +11,16 @@ trait ArbSequenceModel extends Helper {
 
   import ArbAtomModel._
 
-  implicit def arbSequence[D: Arbitrary]: Arbitrary[SequenceModel[D]] =
+  implicit def arbSequence[D: Arbitrary]: Arbitrary[DereferencedSequence[D]] =
     Arbitrary {
       for {
         s  <- smallSize
-        as <- Gen.listOfN(s, arbitrary[AtomModel[D]])
+        as <- Gen.listOfN(s, arbitrary[AtomModel[StepModel[D]]])
       } yield SequenceModel(as)
     }
 
-  implicit def cogSequence[D: Cogen]: Cogen[SequenceModel[D]] =
-    Cogen[List[AtomModel[D]]].contramap(_.atoms)
+  implicit def cogSequence[D: Cogen]: Cogen[DereferencedSequence[D]] =
+    Cogen[List[AtomModel[StepModel[D]]]].contramap(_.atoms)
 
   implicit def arbSequenceCreate[D: Arbitrary]: Arbitrary[SequenceModel.Create[D]] =
     Arbitrary {

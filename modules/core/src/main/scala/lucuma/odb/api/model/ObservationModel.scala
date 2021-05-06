@@ -8,8 +8,9 @@ import lucuma.odb.api.model.syntax.input._
 import lucuma.core.`enum`.ObsStatus
 import lucuma.core.optics.syntax.lens._
 import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
-import cats.Eq
+import cats.{Eq, Monad}
 import cats.data.{Nested, State}
+import cats.mtl.Stateful
 import cats.syntax.all._
 import clue.data.{Assign, Input}
 import eu.timepit.refined.cats._
@@ -28,7 +29,7 @@ final case class ObservationModel(
   pointing:             Option[Either[Asterism.Id, Target.Id]],
   constraintSetId:      Option[ConstraintSet.Id],
   plannedTimeSummary:   PlannedTimeSummaryModel,
-  config:               Option[InstrumentConfigModel]
+  config:               Option[InstrumentConfigModel.Reference]
 ) {
 
   def asterismId: Option[Asterism.Id] =
@@ -69,12 +70,12 @@ object ObservationModel extends ObservationOptics {
     config:          Option[InstrumentConfigModel.Create]
   ) {
 
-    def create[T](db: Database[T], s: PlannedTimeSummaryModel): State[T, ValidatedInput[ObservationModel]] =
+    def create[F[_]: Monad, T](db: DatabaseState[T], s: PlannedTimeSummaryModel)(implicit S: Stateful[F, T]): F[ValidatedInput[ObservationModel]] =
       for {
         i <- db.observation.getUnusedId(observationId)
-        p <- db.program.lookup(programId)
-        a <- db.asterism.optionalLookup(asterismId)
-        t <- db.target.optionalLookup(targetId)
+        p <- db.program.lookupValidated(programId)
+        a <- asterismId.traverse(db.asterism.lookupValidated[F]).map(_.sequence)
+        t <- targetId.traverse(db.target.lookupValidated[F]).map(_.sequence)
 
         pointing = ValidatedInput.optionEither(
           "asterismId",
@@ -83,10 +84,10 @@ object ObservationModel extends ObservationOptics {
           Nested(t).map(_.id).value
         )
 
-        c <- db.constraintSet.optionalLookup(constraintSetId)
-        g <- config.traverse(_.create(db))
+        c <- constraintSetId.traverse(db.constraintSet.lookupValidated[F]).map(_.sequence)
+        g <- config.traverse(_.create(db)).map(_.sequence)
 
-        o  = (i, p, pointing, c, g.sequence).mapN { (iʹ, _, pointingʹ, _, gʹ) =>
+        o  = (i, p, pointing, c, g).mapN { (iʹ, _, pointingʹ, _, gʹ) =>
           ObservationModel(
             iʹ,
             Present,
@@ -96,11 +97,11 @@ object ObservationModel extends ObservationOptics {
             pointingʹ,
             constraintSetId,
             s,
-            gʹ
+            gʹ.map(_.toReference)
           )
         }
 
-        _ <- db.observation.saveValid(o)(_.id)
+        _ <- db.observation.saveIfValid(o)(_.id)
       } yield o
 
   }
@@ -282,7 +283,7 @@ trait ObservationOptics { self: ObservationModel.type =>
   val constraintSet: Lens[ObservationModel, Option[ConstraintSet.Id]] =
     Lens[ObservationModel, Option[ConstraintSet.Id]](_.constraintSetId)(a => _.copy(constraintSetId = a))
 
-  val config: Lens[ObservationModel, Option[InstrumentConfigModel]] =
-    Lens[ObservationModel, Option[InstrumentConfigModel]](_.config)(a => _.copy(config = a))
+  val config: Lens[ObservationModel, Option[InstrumentConfigModel.Reference]] =
+    Lens[ObservationModel, Option[InstrumentConfigModel.Reference]](_.config)(a => _.copy(config = a))
 
 }

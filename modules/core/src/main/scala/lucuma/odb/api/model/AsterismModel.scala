@@ -8,9 +8,10 @@ import lucuma.odb.api.model.syntax.input._
 import lucuma.core.model.{Asterism, Program}
 import lucuma.core.math.Coordinates
 import lucuma.core.optics.syntax.lens._
-import cats.Eq
+import cats.{Eq, Monad}
 import cats.data.State
 import cats.implicits._
+import cats.mtl.Stateful
 import clue.data.Input
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string._
@@ -45,14 +46,17 @@ object AsterismModel extends AsterismOptics {
     explicitBase: Option[CoordinatesModel.Input]
   ) {
 
-    def create[T](db: Database[T]): State[T, ValidatedInput[AsterismModel]] =
+    def create[F[_]: Monad, T](db: DatabaseState[T])(implicit S: Stateful[F, T]): F[ValidatedInput[AsterismModel]] =
       for {
-        i  <- db.asterism.getUnusedId(asterismId)
-        ps <- programIds.traverse(db.program.lookup)
-        a   = (i, ps.sequence, explicitBase.traverse(_.toCoordinates)).mapN { (iʹ, _, bʹ) =>
+        i  <- db.asterism.getUnusedId[F](asterismId)
+        ps <- db.program.lookupAllValidated[F](programIds)
+        a   = (i, ps, explicitBase.traverse(_.toCoordinates)).mapN { (iʹ, _, bʹ) =>
           AsterismModel(iʹ, Present, name, bʹ)
         }
-        _  <- db.asterism.saveValid(a)(_.id)
+        _  <- db.asterism.saveIfValid[F](a)(_.id)
+        _  <- a.traverse_ { am =>
+          db.programAsterism.linkAll[F](programIds.tupleRight(am.id))
+        }
       } yield a
 
   }

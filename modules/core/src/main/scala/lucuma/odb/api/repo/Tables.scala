@@ -17,7 +17,7 @@ import scala.collection.immutable.{SortedMap, TreeMap}
  */
 final case class Tables(
   ids:                      Ids,
-  atoms:                    SortedMap[Atom.Id, AtomModel[_]],
+  atoms:                    SortedMap[Atom.Id, AtomModel[Step.Id]],
   asterisms:                SortedMap[Asterism.Id, AsterismModel],
   constraintSets:           SortedMap[ConstraintSet.Id, ConstraintSetModel],
   observations:             SortedMap[Observation.Id, ObservationModel],
@@ -36,7 +36,7 @@ object Tables extends TableOptics {
     Tables(
       ids                      = Ids.zero,
 
-      atoms                    = TreeMap.empty[Atom.Id, AtomModel[_]],
+      atoms                    = TreeMap.empty[Atom.Id, AtomModel[Step.Id]],
       asterisms                = TreeMap.empty[Asterism.Id, AsterismModel],
       constraintSets           = TreeMap.empty[ConstraintSet.Id, ConstraintSetModel],
       observations             = TreeMap.empty[Observation.Id, ObservationModel],
@@ -80,10 +80,10 @@ sealed trait TableOptics { self: Tables.type =>
   val lastTargetId: Lens[Tables, Target.Id] =
     ids ^|-> Ids.lastTarget
 
-  val atoms: Lens[Tables, SortedMap[Atom.Id, AtomModel[_]]] =
-    Lens[Tables, SortedMap[Atom.Id, AtomModel[_]]](_.atoms)(b => a => a.copy(atoms = b))
+  val atoms: Lens[Tables, SortedMap[Atom.Id, AtomModel[Step.Id]]] =
+    Lens[Tables, SortedMap[Atom.Id, AtomModel[Step.Id]]](_.atoms)(b => a => a.copy(atoms = b))
 
-  def atom(aid: Atom.Id): Lens[Tables, Option[AtomModel[_]]] =
+  def atom(aid: Atom.Id): Lens[Tables, Option[AtomModel[Step.Id]]] =
     atoms ^|-> At.at(aid)
 
   val asterisms: Lens[Tables, SortedMap[Asterism.Id, AsterismModel]] =

@@ -5,6 +5,7 @@ package lucuma.odb.api.model
 
 import cats._
 import cats.data.State
+import cats.mtl.Stateful
 import cats.syntax.all._
 import clue.data.Input
 import eu.timepit.refined.types.string.NonEmptyString
@@ -12,11 +13,11 @@ import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
 import lucuma.core.enum._
-import lucuma.core.model.{ ConstraintSet, Program }
+import lucuma.core.model.{ConstraintSet, Program}
 import lucuma.core.optics.syntax.lens._
 import lucuma.odb.api.model.Existence._
 import lucuma.odb.api.model.syntax.input._
-import monocle.{ Fold, Lens, Optional }
+import monocle.{Fold, Lens, Optional}
 import monocle.macros.GenLens
 
 final case class ConstraintSetModel(
@@ -49,10 +50,10 @@ object ConstraintSetModel extends ConstraintSetModelOptics {
     elevationRange:  ElevationRangeModel.Create
   ) {
 
-    def create[T](db: Database[T]): State[T, ValidatedInput[ConstraintSetModel]] =
+    def create[F[_]: Monad, T](db: DatabaseState[T])(implicit S: Stateful[F, T]): F[ValidatedInput[ConstraintSetModel]] =
       for {
-        i <- db.constraintSet.getUnusedId(constraintSetId)
-        p <- db.program.lookup(programId)
+        i <- db.constraintSet.getUnusedId[F](constraintSetId)
+        p <- db.program.lookupValidated[F](programId)
         c  = (i, p, elevationRange.create).mapN { (iʹ, _, e) =>
           ConstraintSetModel(
             iʹ,
@@ -66,7 +67,7 @@ object ConstraintSetModel extends ConstraintSetModelOptics {
             e
           )
         }
-        _ <- db.constraintSet.saveValid(c)(_.id)
+        _ <- db.constraintSet.saveIfValid[F](c)(_.id)
       } yield c
   }
 

@@ -8,10 +8,10 @@ import lucuma.odb.api.model.AsterismModel.{AsterismEvent, Create}
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.core.model.{Asterism, Observation, Program, Target}
 import cats._
-import cats.data.EitherT
+import cats.data.{EitherT, State}
 import cats.effect.concurrent.Ref
+import cats.mtl.Stateful._
 import cats.syntax.all._
-import monocle.state.all._
 
 import scala.collection.immutable.SortedSet
 
@@ -113,15 +113,16 @@ object AsterismRepo {
         val create = EitherT(
           tablesRef.modify { tables =>
 
-            val (tablesʹ, a) = (for {
-              a <- input.create(TableState)
-              _ <- a.traverse(am => Tables.programAsterism.mod_(_ ++ input.programIds.tupleRight(am.id)))
-            } yield a).run(tables).value
+            val (tablesʹ, a) =
+              input
+                .create[State[Tables, *], Tables](TableState)
+                .run(tables)
+                .value
 
             a.fold(
               err => (tables,  InputError.Exception(err).asLeft),
               am  => (tablesʹ, am.asRight)
-            )
+             )
           }
         ).rethrowT
 
@@ -140,7 +141,7 @@ object AsterismRepo {
         shareLeft[Program.Id, ProgramModel](
           "asterism",
           input,
-          TableState.program.lookup,
+          TableState.program.lookupValidated[State[Tables, *]],
           Tables.programAsterism,
           ProgramModel.ProgramEvent.updated
         )(update)
@@ -157,7 +158,7 @@ object AsterismRepo {
         update: (ManyToMany[Target.Id, Asterism.Id], IterableOnce[(Target.Id, Asterism.Id)]) => ManyToMany[Target.Id, Asterism.Id]
       ): F[AsterismModel] =
         shareLeft[Target.Id, TargetModel](
-          "asterism", input, TableState.target.lookup, Tables.targetAsterism, TargetModel.TargetEvent.updated
+          "asterism", input, TableState.target.lookupValidated[State[Tables, *]], Tables.targetAsterism, TargetModel.TargetEvent.updated
         )(update)
 
       override def shareWithTargets(input: Sharing[Asterism.Id, Target.Id]): F[AsterismModel] =
