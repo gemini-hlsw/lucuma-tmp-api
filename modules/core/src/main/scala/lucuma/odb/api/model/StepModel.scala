@@ -3,7 +3,9 @@
 
 package lucuma.odb.api.model
 
+import lucuma.core.model.Step
 import lucuma.odb.api.model.StepConfig.CreateStepConfig
+
 import cats.Eq
 import cats.data.State
 import cats.syntax.all._
