@@ -4,6 +4,7 @@
 package lucuma.odb.api.model
 package arb
 
+import lucuma.core.model.Atom
 import lucuma.core.util.arb.ArbGid
 
 import cats.data.NonEmptyList

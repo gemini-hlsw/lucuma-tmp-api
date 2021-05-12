@@ -4,8 +4,10 @@
 package lucuma.odb.api.schema
 
 import lucuma.core.`enum`._
-import lucuma.odb.api.model.{Breakpoint, PlannedTime, Step, StepConfig, StepModel}
+import lucuma.core.model.Step
+import lucuma.odb.api.model.{Breakpoint, PlannedTime, StepConfig, StepModel}
 import lucuma.odb.api.repo.OdbRepo
+
 import cats.effect.Effect
 import lucuma.odb.api.schema.PlannedTimeSchema.CategorizedTimeType
 import sangria.schema._

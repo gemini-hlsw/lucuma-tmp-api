@@ -3,8 +3,8 @@
 
 package lucuma.odb.api.repo
 
+import lucuma.core.model.{Atom, Step}
 import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
-import lucuma.odb.api.model.{Atom, Step}
 import cats.kernel.BoundedEnumerable
 import monocle.Lens
 
