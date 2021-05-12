@@ -4,6 +4,8 @@
 package lucuma.odb.api.model
 
 import lucuma.core.`enum`.Instrument
+import lucuma.core.model.Atom
+
 import cats.{Eq, Monad}
 import cats.mtl.Stateful
 import cats.syntax.all._
@@ -20,14 +22,14 @@ sealed trait InstrumentConfigModel extends Product with Serializable {
 
   def gmosNorth: Option[InstrumentConfigModel.GmosNorth] =
     this match {
-      case gn: InstrumentConfigModel.GmosNorth => Some(gn)
-      case _                                   => None
+      case gn: InstrumentConfigModel.GmosNorth => gn.some
+      case _                                   => none
     }
 
   def gmosSouth: Option[InstrumentConfigModel.GmosSouth] =
     this match {
-      case gs: InstrumentConfigModel.GmosSouth => Some(gs)
-      case _                                   => None
+      case gs: InstrumentConfigModel.GmosSouth => gs.some
+      case _                                   => none
     }
 
 }

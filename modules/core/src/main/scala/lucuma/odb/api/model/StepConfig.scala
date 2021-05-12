@@ -33,26 +33,26 @@ sealed abstract class StepConfig[A] extends Product with Serializable {
 
   def bias: Option[StepConfig.Bias[A]] =
     this match {
-      case b @ StepConfig.Bias(_) => Some(b)
-      case _                      => None
+      case b @ StepConfig.Bias(_) => b.some
+      case _                      => none
     }
 
   def dark: Option[StepConfig.Dark[A]] =
     this match {
-      case d @ StepConfig.Dark(_) => Some(d)
-      case _                      => None
+      case d @ StepConfig.Dark(_) => d.some
+      case _                      => none
     }
 
   def gcal: Option[StepConfig.Gcal[A]] =
     this match {
-      case g @ StepConfig.Gcal(_, _) => Some(g)
-      case _                         => None
+      case g @ StepConfig.Gcal(_, _) => g.some
+      case _                         => none
     }
 
   def science: Option[StepConfig.Science[A]] =
     this match {
-      case s @ StepConfig.Science(_, _) => Some(s)
-      case _                            => None
+      case s @ StepConfig.Science(_, _) => s.some
+      case _                            => none
     }
 
   def stepType: StepType =
@@ -65,14 +65,14 @@ sealed abstract class StepConfig[A] extends Product with Serializable {
 
   def gmosNorth: Option[GmosModel.NorthDynamic] =
     instrumentConfig match {
-      case gn: GmosModel.NorthDynamic => Some(gn)
-      case _                          => None
+      case gn: GmosModel.NorthDynamic => gn.some
+      case _                          => none
     }
 
   def gmosSouth: Option[GmosModel.SouthDynamic] =
     instrumentConfig match {
-      case gs: GmosModel.SouthDynamic => Some(gs)
-      case _                          => None
+      case gs: GmosModel.SouthDynamic => gs.some
+      case _                          => none
     }
 
 }

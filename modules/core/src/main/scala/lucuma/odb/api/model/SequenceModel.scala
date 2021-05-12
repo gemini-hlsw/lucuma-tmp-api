@@ -3,6 +3,8 @@
 
 package lucuma.odb.api.model
 
+import lucuma.core.model.Atom
+
 import cats.{Applicative, Eq, Eval, Monad, Traverse}
 import cats.mtl.Stateful
 import cats.syntax.all._

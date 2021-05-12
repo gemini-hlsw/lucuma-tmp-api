@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.model
 
-import lucuma.core.model.Atom
+import lucuma.core.model.{Atom, Step}
 import lucuma.odb.api.model.StepConfig.CreateStepConfig
 
 import cats.{Applicative, Eq, Eval, Monad, Traverse}
