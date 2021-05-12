@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.model
 
-import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
+import lucuma.core.model.{Asterism, Atom, ConstraintSet, Observation, Program, Step, Target}
 import cats.data.State
 import cats.syntax.all._
 

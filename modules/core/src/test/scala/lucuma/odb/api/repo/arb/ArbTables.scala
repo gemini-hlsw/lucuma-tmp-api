@@ -4,10 +4,11 @@
 package lucuma.odb.api.repo
 package arb
 
-import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
-import lucuma.odb.api.model.{AsterismModel, Atom, AtomModel, ConstraintSetModel, ObservationModel, ProgramModel, Step, StepModel, TargetModel}
+import lucuma.core.model.{Asterism, Atom, ConstraintSet, Observation, Program, Step, Target}
+import lucuma.odb.api.model.{AsterismModel, AtomModel, ConstraintSetModel, ObservationModel, ProgramModel, StepModel, TargetModel}
 import lucuma.odb.api.model.arb._
 import lucuma.core.util.Gid
+
 import cats.Order
 import cats.kernel.instances.order._
 import cats.syntax.all._
