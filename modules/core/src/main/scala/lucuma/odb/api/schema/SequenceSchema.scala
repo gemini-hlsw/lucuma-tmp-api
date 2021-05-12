@@ -3,7 +3,8 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{Atom, AtomModel, PlannedTime, SequenceModel}
+import lucuma.core.model.Atom
+import lucuma.odb.api.model.{AtomModel, PlannedTime, SequenceModel}
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
 import sangria.schema._
