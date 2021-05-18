@@ -3,11 +3,12 @@
 
 package lucuma.odb.api.model
 
-import lucuma.core.model.Atom
+import lucuma.core.model.{Atom, Step}
 import lucuma.odb.api.model.StepConfig.CreateStepConfig
 
-import cats.Eq
-import cats.data.{NonEmptyList, State}
+import cats.{Applicative, Eq, Eval, Monad, Traverse}
+import cats.data.{Nested, NonEmptyList}
+import cats.mtl.Stateful
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
@@ -15,41 +16,71 @@ import monocle.macros.Lenses
 
 @Lenses final case class AtomModel[A](
   id:    Atom.Id,
-  steps: NonEmptyList[StepModel[A]]
+  steps: NonEmptyList[A]
 )
 
 object AtomModel {
-  def one[A](id: Atom.Id, head: StepModel[A]): AtomModel[A] =
+
+  def one[A](id: Atom.Id, head: A): AtomModel[A] =
     AtomModel(id, NonEmptyList.one(head))
 
-  def ofSteps[A](id: Atom.Id, head: StepModel[A], tail: StepModel[A]*): AtomModel[A] =
+  def ofSteps[A](id: Atom.Id, head: A, tail: A*): AtomModel[A] =
     AtomModel(id, NonEmptyList.of(head, tail: _*))
 
-  implicit def EqSequenceAtom[A: Eq]: Eq[AtomModel[A]] =
+  implicit def EqAtomModel[A: Eq]: Eq[AtomModel[A]] =
     Eq.by { a => (
       a.id,
       a.steps
     )}
+
+  implicit val TraverseAtomModel: Traverse[AtomModel] =
+    new Traverse[AtomModel] {
+      override def traverse[G[_], A, B](fa: AtomModel[A])(f: A => G[B])(implicit ev: Applicative[G]): G[AtomModel[B]] =
+        fa.steps.traverse(f).map { steps => AtomModel(fa.id, steps) }
+
+      override def foldLeft[A, B](fa: AtomModel[A], b: B)(f: (B, A) => B): B =
+        fa.steps.foldLeft(b)(f)
+
+      override def foldRight[A, B](fa: AtomModel[A], lb: Eval[B])(f: (A, Eval[B]) => Eval[B]): Eval[B] =
+        fa.steps.foldRight(lb)(f)
+    }
+
+  def dereference[F[_]: Monad, T, D](db: DatabaseReader[T], id: Atom.Id)(f: StepConfig[_] => Option[D])(implicit S: Stateful[F, T]): F[Option[AtomModel[StepModel[D]]]] =
+      db.atom
+        .lookupOption[F](id)
+        .flatMap(_.flatTraverse(_.dereference[F, T, D](db)(f)))
+
+  implicit class ReferenceExtensions(a: AtomModel[Step.Id]) {
+
+    def dereference[F[_]: Applicative, T, D](db: DatabaseReader[T])(f: StepConfig[_] => Option[D])(implicit S: Stateful[F, T]): F[Option[AtomModel[StepModel[D]]]] =
+      a.steps
+       .traverse(i => StepModel.dereference[F, T, D](db, i)(f))
+       .map(_.sequence.map(AtomModel(a.id, _)))
+
+  }
+
 
   @Lenses final case class Create[A](
     id:    Option[Atom.Id],
     steps: List[StepModel.Create[A]]
   ) {
 
-    def create[T, B](db: Database[T])(implicit V: InputValidator[A, B]): State[T, ValidatedInput[AtomModel[B]]] =
+    def create[F[_]: Monad, T, B](db: DatabaseState[T])(implicit V: InputValidator[A, B], S: Stateful[F, T]): F[ValidatedInput[AtomModel[StepModel[B]]]] =
       steps match {
         case Nil    =>
-          db.error[AtomModel[B]]("Cannot create an empty sequence atom")
+          Monad[F].pure[ValidatedInput[AtomModel[StepModel[B]]]](
+            InputError.fromMessage("Cannot create an emptySequence atom").invalidNec
+          )
 
         case h :: t =>
           for {
             i  <- db.atom.getUnusedId(id)
-            hʹ <- h.create[T, B](db)
-            tʹ <- t.traverse(_.create[T, B](db))
+            hʹ <- h.create[F, T, B](db)
+            tʹ <- t.traverse(_.create[F, T, B](db))
             a   = (i, hʹ, tʹ.sequence).mapN { (iʹʹ, hʹʹ, tʹʹ) =>
               AtomModel.ofSteps(iʹʹ, hʹʹ, tʹʹ: _*)
             }
-            _  <- db.atom.saveValid(a)(_.id)
+            _  <- db.atom.saveIfValid(Nested(a).map(_.id).value)(_.id)
           } yield a
 
       }

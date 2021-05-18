@@ -12,7 +12,7 @@ final class AtomModelSuite extends DisciplineSuite {
 
   import ArbAtomModel._
 
-  checkAll("Atom",                 EqTests[AtomModel[Int]].eqv)
+  checkAll("Atom",                 EqTests[AtomModel[StepModel[Int]]].eqv)
   checkAll("CreateAtom",           EqTests[AtomModel.Create[Int]].eqv)
 
 }

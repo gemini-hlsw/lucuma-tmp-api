@@ -4,10 +4,10 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.{AsterismModel, ObservationModel, TargetModel}
-import lucuma.odb.api.repo.OdbRepo
+import lucuma.odb.api.repo.{OdbRepo, TableState, Tables}
 import lucuma.core.`enum`.ObsStatus
 import lucuma.core.model.Observation
-import cats.data.OptionT
+import cats.data.{OptionT, State}
 import cats.effect.Effect
 import cats.effect.implicits._
 import cats.syntax.all._
@@ -145,7 +145,12 @@ object ObservationSchema {
           name        = "config",
           fieldType   = OptionType(InstrumentConfigSchema.ConfigType[F]),
           description = Some("Instrument configuration"),
-          resolve     = _.value.config
+          resolve     = c =>
+            c.ctx.tables.get.map { tables =>
+              c.value.config.flatMap { icm =>
+                icm.dereference[State[Tables, *], Tables](TableState).runA(tables).value
+              }
+            }.toIO.unsafeToFuture()
         )
 
       )

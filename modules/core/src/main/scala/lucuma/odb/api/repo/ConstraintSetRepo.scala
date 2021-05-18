@@ -4,7 +4,7 @@
 package lucuma.odb.api.repo
 
 import cats._
-import cats.data.EitherT
+import cats.data.{EitherT, State}
 import cats.effect.concurrent.Ref
 import cats.syntax.all._
 import lucuma.core.model.{ConstraintSet, Observation, Program}
@@ -69,7 +69,7 @@ object ConstraintSetRepo {
       override def insert(input: ConstraintSetModel.Create): F[ConstraintSetModel] = {
         val create = EitherT(
           tablesRef.modify { tables =>
-            val (tablesʹ, c) = input.create(TableState).run(tables).value
+            val (tablesʹ, c) = input.create[State[Tables, *], Tables](TableState).run(tables).value
 
             c.fold(
               err => (tables,  InputError.Exception(err).asLeft),

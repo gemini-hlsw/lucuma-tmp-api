@@ -6,8 +6,8 @@ package lucuma.odb.api.model
 import lucuma.core.model.Step
 import lucuma.odb.api.model.StepConfig.CreateStepConfig
 
-import cats.Eq
-import cats.data.State
+import cats.{Applicative, Eq, Eval, Functor, Monad, Traverse}
+import cats.mtl.Stateful
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
@@ -18,9 +18,38 @@ import monocle.macros.Lenses
   id:         Step.Id,
   breakpoint: Breakpoint,
   config:     StepConfig[A]
-)
+) {
+
+  def to[D](f: StepConfig[_] => Option[D]): Option[StepModel[D]] =
+    f(config).map(this.as)
+
+  def gmosNorth: Option[StepModel[GmosModel.NorthDynamic]] =
+    to(_.gmosNorth)
+
+  def gmosSouth: Option[StepModel[GmosModel.SouthDynamic]] =
+    to(_.gmosSouth)
+
+}
 
 object StepModel {
+
+  implicit val TraverseStepModel: Traverse[StepModel] =
+    new Traverse[StepModel] {
+      override def traverse[G[_], A, B](fa: StepModel[A])(f: A => G[B])(implicit evidence$1: Applicative[G]): G[StepModel[B]] =
+        fa.config.traverse(f).map(sc => StepModel(fa.id, fa.breakpoint, sc))
+
+      override def foldLeft[A, B](fa: StepModel[A], b: B)(f: (B, A) => B): B =
+        fa.config.foldLeft(b)(f)
+
+      override def foldRight[A, B](fa: StepModel[A], lb: Eval[B])(f: (A, Eval[B]) => Eval[B]): Eval[B] =
+        fa.config.foldRight(lb)(f)
+    }
+
+  def dereference[F[_]: Functor, T, D](db: DatabaseReader[T], id: Step.Id)(f: StepConfig[_] => Option[D])(implicit S: Stateful[F, T]): F[Option[StepModel[D]]] =
+    db.step
+      .lookupOption[F](id)
+      .map(_.flatMap(_.to(f)))
+
   implicit def EqStepModel[A: Eq]: Eq[StepModel[A]] =
     Eq.by { a => (
       a.id,
@@ -34,11 +63,11 @@ object StepModel {
     config:     CreateStepConfig[A]
   ) {
 
-    def create[T, B](db: Database[T])(implicit V: InputValidator[A, B]): State[T, ValidatedInput[StepModel[B]]] =
+    def create[F[_]: Monad, T, B](db: DatabaseState[T])(implicit V: InputValidator[A, B], S: Stateful[F, T]): F[ValidatedInput[StepModel[B]]] =
       for {
         i <- db.step.getUnusedId(id)
         o  = (i, config.create[B]).mapN { (i, c) => StepModel(i, breakpoint, c) }
-        _ <- db.step.saveValid(o)(_.id)
+        _ <- db.step.saveIfValid(o)(_.id)
       } yield o
 
   }

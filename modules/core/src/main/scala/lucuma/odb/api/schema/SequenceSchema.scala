@@ -4,7 +4,7 @@
 package lucuma.odb.api.schema
 
 import lucuma.core.model.Atom
-import lucuma.odb.api.model.{AtomModel, PlannedTime, SequenceModel}
+import lucuma.odb.api.model.{AtomModel, DereferencedSequence, PlannedTime, StepModel}
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
 import sangria.schema._
@@ -20,7 +20,7 @@ object SequenceSchema {
   def AtomType[F[_]: Effect, D](
     typePrefix:  String,
     dynamicType: OutputType[D]
-  ): ObjectType[OdbRepo[F], AtomModel[D]] =
+  ): ObjectType[OdbRepo[F], AtomModel[StepModel[D]]] =
     ObjectType(
       name        = s"${typePrefix}Atom",
       description = s"$typePrefix atom, a collection of steps that should be executed in their entirety",
@@ -52,7 +52,7 @@ object SequenceSchema {
   def SequenceType[F[_]: Effect, D](
     typePrefix:  String,
     dynamicType: OutputType[D]
-  ): ObjectType[OdbRepo[F], SequenceModel[D]] =
+  ): ObjectType[OdbRepo[F], DereferencedSequence[D]] =
     ObjectType(
       name        = s"${typePrefix}Sequence",
       description = s"A series of $typePrefix atoms that comprise the sequence",

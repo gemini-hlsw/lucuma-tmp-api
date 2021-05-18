@@ -4,8 +4,9 @@
 package lucuma.odb.api.model
 
 import lucuma.core.model.Program
-import cats.Eq
-import cats.data.State
+import cats.{Eq, Monad}
+import cats.mtl.Stateful
+import cats.syntax.all._
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
@@ -39,11 +40,11 @@ object ProgramModel extends ProgramOptics {
     name:      Option[NonEmptyString]
   ) {
 
-    def create[T](db: Database[T]): State[T, ValidatedInput[ProgramModel]] =
+    def create[F[_]: Monad, T](db: DatabaseState[T])(implicit S: Stateful[F, T]): F[ValidatedInput[ProgramModel]] =
       for {
-        i <- db.program.getUnusedId(programId)
+        i <- db.program.getUnusedId[F](programId)
         p  = i.map(ProgramModel(_, Existence.Present, name))
-        _ <- db.program.saveValid(p)(_.id)
+        _ <- db.program.saveIfValid[F](p)(_.id)
       } yield p
 
   }

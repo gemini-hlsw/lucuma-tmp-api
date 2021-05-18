@@ -6,7 +6,7 @@ package lucuma.odb.api.model
 import lucuma.core.math.Offset
 import lucuma.core.`enum`.StepType
 import lucuma.odb.api.model.syntax.inputvalidator._
-import cats.Eq
+import cats.{Applicative, Eq, Eval, Traverse}
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
@@ -33,26 +33,26 @@ sealed abstract class StepConfig[A] extends Product with Serializable {
 
   def bias: Option[StepConfig.Bias[A]] =
     this match {
-      case b @ StepConfig.Bias(_) => Some(b)
-      case _                      => None
+      case b @ StepConfig.Bias(_) => b.some
+      case _                      => none
     }
 
   def dark: Option[StepConfig.Dark[A]] =
     this match {
-      case d @ StepConfig.Dark(_) => Some(d)
-      case _                      => None
+      case d @ StepConfig.Dark(_) => d.some
+      case _                      => none
     }
 
   def gcal: Option[StepConfig.Gcal[A]] =
     this match {
-      case g @ StepConfig.Gcal(_, _) => Some(g)
-      case _                         => None
+      case g @ StepConfig.Gcal(_, _) => g.some
+      case _                         => none
     }
 
   def science: Option[StepConfig.Science[A]] =
     this match {
-      case s @ StepConfig.Science(_, _) => Some(s)
-      case _                            => None
+      case s @ StepConfig.Science(_, _) => s.some
+      case _                            => none
     }
 
   def stepType: StepType =
@@ -63,6 +63,18 @@ sealed abstract class StepConfig[A] extends Product with Serializable {
       _ => StepType.Science
     )
 
+  def gmosNorth: Option[GmosModel.NorthDynamic] =
+    instrumentConfig match {
+      case gn: GmosModel.NorthDynamic => gn.some
+      case _                          => none
+    }
+
+  def gmosSouth: Option[GmosModel.SouthDynamic] =
+    instrumentConfig match {
+      case gs: GmosModel.SouthDynamic => gs.some
+      case _                          => none
+    }
+
 }
 
 object StepConfig {
@@ -72,15 +84,28 @@ object StepConfig {
   @Lenses final case class Gcal   [A](instrumentConfig: A, gcalConfig: GcalModel) extends StepConfig[A]
   @Lenses final case class Science[A](instrumentConfig: A, offset: Offset)        extends StepConfig[A]
 
-  def instrumentConfig[A]: Lens[StepConfig[A], A] =
-    Lens[StepConfig[A], A](_.instrumentConfig) { a =>
-      _.fold(
-        _.copy(instrumentConfig = a),
-        _.copy(instrumentConfig = a),
-        _.copy(instrumentConfig = a),
-        _.copy(instrumentConfig = a)
-      )
+  implicit val TraverseStepConfig: Traverse[StepConfig] =
+    new Traverse[StepConfig] {
+      override def traverse[G[_], A, B](fa: StepConfig[A])(f: A => G[B])(implicit ev: Applicative[G]): G[StepConfig[B]] =
+        f(fa.instrumentConfig).map { b =>
+          fa.fold(
+            _    => Bias(b),
+            _    => Dark(b),
+            gcal => Gcal(b, gcal.gcalConfig),
+            sci  => Science(b, sci.offset)
+          )
+        }
+
+      override def foldLeft[A, B](fa: StepConfig[A], b: B)(f: (B, A) => B): B =
+        f(b, fa.instrumentConfig)
+
+      override def foldRight[A, B](fa: StepConfig[A], lb: Eval[B])(f: (A, Eval[B]) => Eval[B]): Eval[B] =
+        f(fa.instrumentConfig, lb)
+
     }
+
+  def instrumentConfig[A]: Lens[StepConfig[A], A] =
+    Lens[StepConfig[A], A](_.instrumentConfig) { a => b => b.as(a) }
 
   def gcalConfig[A]: Optional[StepConfig[A], GcalModel] =
     Optional[StepConfig[A], GcalModel](_.gcal.map(_.gcalConfig)) { a =>

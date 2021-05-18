@@ -17,7 +17,7 @@ trait ArbAtomModel extends Helper {
   import ArbGid._
   import ArbStepModel._
 
-  implicit def arbAtom[A: Arbitrary]: Arbitrary[AtomModel[A]] =
+  implicit def arbAtom[A: Arbitrary]: Arbitrary[AtomModel[StepModel[A]]] =
     Arbitrary {
       for {
         id <- arbitrary[Atom.Id]
@@ -27,7 +27,7 @@ trait ArbAtomModel extends Helper {
       } yield AtomModel(id, NonEmptyList(s0, ss))
     }
 
-  implicit def cogAtom[A: Cogen]: Cogen[AtomModel[A]] =
+  implicit def cogAtom[A: Cogen]: Cogen[AtomModel[StepModel[A]]] =
     Cogen[(Atom.Id, List[StepModel[A]])].contramap { in => (
       in.id,
       in.steps.toList

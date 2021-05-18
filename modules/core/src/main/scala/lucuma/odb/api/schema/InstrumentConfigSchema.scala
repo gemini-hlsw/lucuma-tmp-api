@@ -4,10 +4,9 @@
 package lucuma.odb.api.schema
 
 import lucuma.core.`enum`.Instrument
-import lucuma.odb.api.model.{InstrumentConfigModel, SequenceModel}
+import lucuma.odb.api.model.{DereferencedSequence, InstrumentConfigModel, PlannedTime}
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
-import lucuma.odb.api.model.PlannedTime
 import lucuma.odb.api.schema.FiniteDurationSchema.DurationType
 import sangria.schema._
 
@@ -66,8 +65,8 @@ object InstrumentConfigSchema {
     staticType:  OutputType[S],
     dynamicType: OutputType[D],
     static:       I => S,
-    acquisition:  I => SequenceModel[D],
-    science:      I => SequenceModel[D]
+    acquisition:  I => DereferencedSequence[D],
+    science:      I => DereferencedSequence[D]
   ): List[Field[OdbRepo[F], I]] =
 
     List(

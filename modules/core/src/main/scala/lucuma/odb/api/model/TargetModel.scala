@@ -4,17 +4,16 @@
 package lucuma.odb.api.model
 
 import lucuma.odb.api.model.json.targetmath._
-
 import lucuma.core.`enum`.{EphemerisKeyType, MagnitudeBand}
 import lucuma.core.math.{Coordinates, Declination, Epoch, Parallax, ProperMotion, RadialVelocity, RightAscension}
 import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, Program, SiderealTracking, Target}
 import lucuma.core.optics.syntax.lens._
 import lucuma.core.optics.syntax.optional._
 import lucuma.odb.api.model.syntax.input._
-
-import cats.Eq
+import cats.{Eq, Monad}
 import cats.data._
 import cats.implicits._
+import cats.mtl.Stateful
 import clue.data.Input
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string._
@@ -59,19 +58,21 @@ object TargetModel extends TargetOptics {
 
   }
 
-  private def createTarget[T](
-    db:         Database[T],
+  private def createTarget[F[_]: Monad, T](
+    db:         DatabaseState[T],
     targetId:   Option[Target.Id],
     programIds: Option[List[Program.Id]],
     gemTarget:  ValidatedInput[Target]
-  ): State[T, ValidatedInput[TargetModel]] =
+  )(
+    implicit S: Stateful[F, T]
+  ): F[ValidatedInput[TargetModel]] =
      for {
-       i  <- db.target.getUnusedId(targetId)
-       ps <- programIds.toList.flatten.traverse(db.program.lookup)
+       i  <- db.target.getUnusedId[F](targetId)
+       ps <- programIds.toList.flatten.traverse(db.program.lookupValidated[F])
        t   = (i, ps.sequence, gemTarget).mapN { (iʹ, _, tʹ) =>
          TargetModel(iʹ, Existence.Present, tʹ)
        }
-       _  <- db.target.saveValid(t)(_.id)
+       _  <- db.target.saveIfValid[F](t)(_.id)
      } yield t
 
   /**
@@ -105,8 +106,8 @@ object TargetModel extends TargetOptics {
       }
     }
 
-    def create[T](db: Database[T]): State[T, ValidatedInput[TargetModel]] =
-      createTarget(db, targetId, programIds, toGemTarget)
+    def create[F[_]: Monad, T](db: DatabaseState[T])(implicit S: Stateful[F, T]): F[ValidatedInput[TargetModel]] =
+      createTarget[F, T](db, targetId, programIds, toGemTarget)
 
   }
 
@@ -181,8 +182,8 @@ object TargetModel extends TargetOptics {
         Target(name, Right(pm), SortedMap.from(ms.map(m => m.band -> m)))
       }
 
-    def create[T](db: Database[T]): State[T, ValidatedInput[TargetModel]] =
-      createTarget(db, targetId, programIds, toGemTarget)
+    def create[F[_]: Monad, T](db: DatabaseState[T])(implicit S: Stateful[F, T]): F[ValidatedInput[TargetModel]] =
+      createTarget[F, T](db, targetId, programIds, toGemTarget)
 
   }
 
