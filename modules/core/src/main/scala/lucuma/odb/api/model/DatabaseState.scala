@@ -7,19 +7,23 @@ import lucuma.core.model.{Asterism, Atom, ConstraintSet, Observation, Program, S
 
 trait DatabaseState[T] extends DatabaseReader[T] {
 
-  def atom:          RepoState[T, Atom.Id, AtomModel[Step.Id]]
+  def atom:           RepoState[T, Atom.Id, AtomModel[Step.Id]]
 
-  def asterism:      RepoState[T, Asterism.Id, AsterismModel]
+  def asterism:       RepoState[T, Asterism.Id, AsterismModel]
 
-  def constraintSet: RepoState[T, ConstraintSet.Id, ConstraintSetModel]
+  def constraintSet:  RepoState[T, ConstraintSet.Id, ConstraintSetModel]
 
-  def observation:   RepoState[T, Observation.Id, ObservationModel]
+  def dataset:        RepoState[T, Dataset.Id, DatasetModel]
 
-  def program:       RepoState[T, Program.Id, ProgramModel]
+  def executionEvent: RepoState[T, ExecutionEvent.Id, ExecutionEventModel]
 
-  def step:          RepoState[T, Step.Id, StepModel[_]]
+  def observation:    RepoState[T, Observation.Id, ObservationModel]
 
-  def target:        RepoState[T, Target.Id, TargetModel]
+  def program:        RepoState[T, Program.Id, ProgramModel]
+
+  def step:           RepoState[T, Step.Id, StepModel[_]]
+
+  def target:         RepoState[T, Target.Id, TargetModel]
 
   def programAsterism: SharingState[T, Program.Id, Asterism.Id]
 

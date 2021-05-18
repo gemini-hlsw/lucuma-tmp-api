@@ -129,7 +129,7 @@ object StepSchema {
 
   def StepConfigType[F[_]: Effect]: InterfaceType[OdbRepo[F], StepConfig[_]] =
     InterfaceType[OdbRepo[F], StepConfig[_]](
-      name         = s"StepConfig",
+      name         = "StepConfig",
       description  = "Step (bias, dark, gcal, science, etc.)",
       fields[OdbRepo[F], StepConfig[_]](
 

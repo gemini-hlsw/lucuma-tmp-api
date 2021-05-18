@@ -29,7 +29,8 @@ final case class ObservationModel(
   pointing:             Option[Either[Asterism.Id, Target.Id]],
   constraintSetId:      Option[ConstraintSet.Id],
   plannedTimeSummary:   PlannedTimeSummaryModel,
-  config:               Option[InstrumentConfigModel.Reference]
+  config:               Option[InstrumentConfigModel.Reference],
+  executedSteps:        List[ExecutedStep]
 ) {
 
   def asterismId: Option[Asterism.Id] =
@@ -55,7 +56,8 @@ object ObservationModel extends ObservationOptics {
       o.pointing,
       o.constraintSetId,
       o.plannedTimeSummary,
-      o.config
+      o.config,
+      o.executedSteps
     )}
 
 
@@ -97,7 +99,8 @@ object ObservationModel extends ObservationOptics {
             pointingʹ,
             constraintSetId,
             s,
-            gʹ.map(_.toReference)
+            gʹ.map(_.toReference),
+            List.empty
           )
         }
 
@@ -285,5 +288,8 @@ trait ObservationOptics { self: ObservationModel.type =>
 
   val config: Lens[ObservationModel, Option[InstrumentConfigModel.Reference]] =
     Lens[ObservationModel, Option[InstrumentConfigModel.Reference]](_.config)(a => _.copy(config = a))
+
+  val executedSteps: Lens[ObservationModel, List[ExecutedStep]] =
+    Lens[ObservationModel, List[ExecutedStep]](_.executedSteps)(a => _.copy(executedSteps = a))
 
 }

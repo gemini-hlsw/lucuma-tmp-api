@@ -5,7 +5,7 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.PlannedTime
 import lucuma.odb.api.model.PlannedTime.{CategorizedTime, Category}
-import lucuma.odb.api.model.duration._
+import lucuma.odb.api.model.time._
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
 import sangria.schema._
@@ -13,7 +13,7 @@ import sangria.schema._
 
 object PlannedTimeSchema {
 
-  import FiniteDurationSchema.DurationType
+  import TimeSchema.DurationType
   import syntax.`enum`._
 
   implicit val EnumTypeCategory: EnumType[Category] =

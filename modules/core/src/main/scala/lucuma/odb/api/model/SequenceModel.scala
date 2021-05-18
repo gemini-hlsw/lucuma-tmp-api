@@ -4,12 +4,12 @@
 package lucuma.odb.api.model
 
 import lucuma.core.model.Atom
-
 import cats.{Applicative, Eq, Eval, Monad, Traverse}
 import cats.mtl.Stateful
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
+import lucuma.core.util.Enumerated
 import monocle.macros.Lenses
 
 /**
@@ -66,5 +66,37 @@ object SequenceModel {
       deriveDecoder[Create[D]]
 
   }
+
+  sealed abstract class SequenceType(
+    val tag:       String,
+    val shortName: String
+  ) extends Product with Serializable
+
+  object SequenceType {
+    case object Acquisition extends SequenceType("ACQUISITION", "Acquisition")
+    case object Science     extends SequenceType("SCIENCE", "Science")
+
+    val all: List[SequenceType] =
+      List(
+        Acquisition,
+        Science
+      )
+
+    def fromTag(s: String): Option[SequenceType] =
+      all.find(_.tag === s)
+
+    def unsafeFromTag(s: String): SequenceType =
+      fromTag(s).getOrElse(throw new NoSuchElementException(s"SequenceType: Invalid tag: '$s'"))
+
+    implicit val EnumeratedSequenceType: Enumerated[SequenceType] =
+      new Enumerated[SequenceType] {
+        override def all: List[SequenceType] = SequenceType.all
+        override def tag(a: SequenceType): String = a.tag
+        override def unsafeFromTag(s: String): SequenceType = SequenceType.unsafeFromTag(s)
+      }
+
+  }
+
+
 
 }
