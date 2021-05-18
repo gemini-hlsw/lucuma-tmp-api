@@ -10,7 +10,6 @@ import lucuma.core.util.Gid
 
 import cats._
 import cats.data._
-import cats.effect.concurrent.Ref
 import cats.kernel.BoundedEnumerable
 import cats.syntax.all._
 import monocle.Lens
@@ -19,6 +18,7 @@ import monocle.state.all._
 
 import scala.collection.immutable.SortedMap
 import scala.collection.mutable
+import cats.effect.Ref
 
 
 trait TopLevelRepo[F[_], I, T] {

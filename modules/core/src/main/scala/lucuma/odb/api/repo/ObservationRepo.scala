@@ -12,10 +12,10 @@ import lucuma.odb.api.model.syntax.validatedinput._
 import cats.Eq
 import cats.data.{EitherT, State}
 import cats.effect.Sync
-import cats.effect.concurrent.Ref
 import cats.implicits._
 import clue.data.{Assign, Ignore, Input, Unassign}
 import monocle.state.all._
+import cats.effect.Ref
 
 sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, ObservationModel] {
 

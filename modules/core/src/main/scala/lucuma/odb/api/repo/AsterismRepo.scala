@@ -9,11 +9,11 @@ import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.core.model.{Asterism, Observation, Program, Target}
 import cats._
 import cats.data.{EitherT, State}
-import cats.effect.concurrent.Ref
 import cats.mtl.Stateful._
 import cats.syntax.all._
 
 import scala.collection.immutable.SortedSet
+import cats.effect.Ref
 
 sealed trait AsterismRepo[F[_]] extends TopLevelRepo[F, Asterism.Id, AsterismModel] {
 
