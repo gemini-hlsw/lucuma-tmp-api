@@ -14,7 +14,7 @@ import sangria.validation.ValueCoercionViolation
 
 object GeneralSchema {
 
-  import FiniteDurationSchema._
+  import TimeSchema._
   import syntax.`enum`._
 
   implicit val EnumTypeExistence: EnumType[Existence] =

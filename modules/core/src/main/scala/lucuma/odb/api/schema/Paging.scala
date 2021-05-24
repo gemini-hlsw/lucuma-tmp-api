@@ -222,8 +222,8 @@ object Paging {
   def ConnectionType[F[_]: Effect, A](
     name:        String,
     description: String,
-    nodeType:    ObjectType[OdbRepo[F], A],
-    edgeType:    ObjectType[OdbRepo[F], Edge[A]]
+    nodeType:    ObjectLikeType[OdbRepo[F], A],
+    edgeType:    ObjectLikeType[OdbRepo[F], Edge[A]]
   ): ObjectType[OdbRepo[F], Connection[A]] =
 
     ObjectType(
@@ -266,22 +266,30 @@ object Paging {
 
   def selectPage[F[_]: Effect, I: Gid, T](
     afterGid: Either[InputError, Option[I]],
+    getId: T => I
   )(
     select: Option[I] => F[ResultPage[T]]
-  )(implicit ev: TopLevelModel[I, T]): F[Connection[T]] =
+  ): F[Connection[T]] =
     afterGid.fold(
       e => Effect[F].raiseError[Connection[T]](e.toException), // if not a valid GID
       g => select(g).map { page =>
-        Connection.page(page) { t => Cursor.fromGid(TopLevelModel[I, T].id(t)) }
+        Connection.page(page) { t => Cursor.fromGid(getId(t)) }
       }
     )
 
   def unsafeSelectPageFuture[F[_]: Effect, I: Gid, T](
-    afterGid: Either[InputError, Option[I]],
+    afterGid: Either[InputError, Option[I]]
   )(
     select: Option[I] => F[ResultPage[T]]
   )(implicit ev: TopLevelModel[I, T]): Future[Connection[T]] =
-    selectPage[F, I, T](afterGid)(select).toIO.unsafeToFuture()
+    selectPage[F, I, T](afterGid, TopLevelModel[I, T].id(_))(select).toIO.unsafeToFuture()
 
+  def unsafeSelectPageFuture[F[_]: Effect, I: Gid, T](
+    afterGid: Either[InputError, Option[I]],
+    getId:    T => I
+  )(
+    select: Option[I] => F[ResultPage[T]]
+  ): Future[Connection[T]] =
+    selectPage[F, I, T](afterGid, getId)(select).toIO.unsafeToFuture()
 
 }
