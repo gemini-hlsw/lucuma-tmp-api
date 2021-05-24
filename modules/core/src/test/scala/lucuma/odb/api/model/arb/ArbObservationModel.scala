@@ -28,7 +28,7 @@ trait ArbObservationModel {
         os <- arbitrary[ObsStatus]
         ts <- arbitrary[Option[Either[Asterism.Id, Target.Id]]]
         cs <- arbitrary[Option[ConstraintSet.Id]]
-      } yield ObservationModel(id, ex, pid, nm, os, ts, cs, PlannedTimeSummaryModel.Zero, None)
+      } yield ObservationModel(id, ex, pid, nm, os, ts, cs, PlannedTimeSummaryModel.Zero, None, Nil)
     }
 
   implicit val arbObservationModel: Arbitrary[ObservationModel] =

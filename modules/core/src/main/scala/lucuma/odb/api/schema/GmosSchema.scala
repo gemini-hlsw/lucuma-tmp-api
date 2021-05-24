@@ -13,7 +13,7 @@ import scala.reflect.ClassTag
 
 object GmosSchema {
 
-  import FiniteDurationSchema._
+  import TimeSchema._
   import InstrumentSchema._
   import OffsetSchema._
   import WavelengthSchema._

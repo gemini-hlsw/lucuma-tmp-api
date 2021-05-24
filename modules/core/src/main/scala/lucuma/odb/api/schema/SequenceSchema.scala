@@ -4,18 +4,25 @@
 package lucuma.odb.api.schema
 
 import lucuma.core.model.Atom
-import lucuma.odb.api.model.{AtomModel, DereferencedSequence, PlannedTime, StepModel}
+import lucuma.odb.api.model.{AtomModel, DereferencedSequence, PlannedTime, SequenceModel, StepModel}
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
 import sangria.schema._
 
 object SequenceSchema {
 
+  import syntax.`enum`._
   import PlannedTimeSchema._
   import StepSchema.InstrumentStepType
 
   implicit val AtomIdType: ScalarType[Atom.Id] =
     ObjectIdSchema.idType[Atom.Id](name = "AtomId")
+
+  implicit val EnumTypeSequenceType: EnumType[SequenceModel.SequenceType] =
+    EnumType.fromEnumerated(
+      "SequenceType",
+      "Type of sequence, acquisition or science"
+    )
 
   def AtomType[F[_]: Effect, D](
     typePrefix:  String,

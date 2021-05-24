@@ -4,7 +4,7 @@
 package lucuma.odb.api.model
 
 import lucuma.core.util.Enumerated
-import lucuma.odb.api.model.duration._
+import lucuma.odb.api.model.time._
 import cats.{Eq, Semigroup}
 import cats.data.NonEmptyList
 import cats.syntax.all._
