@@ -35,7 +35,7 @@ object DatasetSchema {
       description  = "Dataset ID"
     )
 
-  val DatasetFilenameScalar: ScalarType[DatasetFilename] =
+  implicit val DatasetFilenameScalar: ScalarType[DatasetFilename] =
     ScalarType.fromScalarFormat(
       name         = "DatasetFilename",
       description  = "Dataset filename in standard format",

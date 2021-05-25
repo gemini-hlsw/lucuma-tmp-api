@@ -21,7 +21,8 @@ object MutationType {
         ConstraintSetMutation.allFields[F] ++
         ObservationMutation.allFields[F]   ++
         TargetMutation.allFields[F]        ++
-        SharingMutation.allFields[F]
+        SharingMutation.allFields[F]       ++
+        ExecutionEventMutation.allFields[F]
 
     )
 
