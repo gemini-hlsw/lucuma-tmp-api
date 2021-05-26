@@ -312,7 +312,19 @@ object ExecutionEventModel {
     datasetIndex:  PosInt,
     filename:      Option[DatasetFilename],
     stageType:     DatasetStageType
-  ) extends ExecutionEventModel
+  ) extends ExecutionEventModel {
+
+    def toDataset: Option[DatasetModel] =
+      filename.map { fn =>
+        DatasetModel(
+          stepId,
+          datasetIndex,
+          observationId,
+          fn
+        )
+      }
+
+  }
 
   object DatasetEvent {
 

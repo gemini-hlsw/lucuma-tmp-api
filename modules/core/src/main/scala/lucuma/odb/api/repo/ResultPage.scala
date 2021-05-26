@@ -19,7 +19,7 @@ object ResultPage {
   def empty[A]: ResultPage[A] =
     ResultPage(Nil, hasNextPage = false, 0)
 
-  def fromIterator[A](
+  private def fromIterator[A](
     count:      Int,
     it:         Iterator[A],
     totalCount: Int
@@ -28,6 +28,21 @@ object ResultPage {
     while (it.hasNext && (res.size < count)) res += it.next()
     ResultPage(res.toList, it.hasNext, totalCount)
   }
+
+  def fromSeq[A, B: Eq](
+    all:   Seq[A],
+    count: Int,
+    after: Option[B],
+    toB:   A => B
+  ): ResultPage[A] =
+
+    fromIterator[A](
+      count,
+      after.fold(all) { b =>
+        all.dropWhile(a => toB(a) =!= b).dropWhile(a => toB(a) === b)
+      }.iterator,
+      all.size
+    )
 
   def select[A: Order, B](
     count:   Int,

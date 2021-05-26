@@ -13,8 +13,6 @@ trait DatabaseState[T] extends DatabaseReader[T] {
 
   def constraintSet:  RepoState[T, ConstraintSet.Id, ConstraintSetModel]
 
-  def dataset:        RepoState[T, Dataset.Id, DatasetModel]
-
   def executionEvent: RepoState[T, ExecutionEvent.Id, ExecutionEventModel]
 
   def observation:    RepoState[T, Observation.Id, ObservationModel]

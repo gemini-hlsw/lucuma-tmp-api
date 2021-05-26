@@ -4,7 +4,7 @@
 package lucuma.odb.api.repo
 
 import lucuma.core.model.{Asterism, Atom, ConstraintSet, Observation, Program, Step, Target}
-import lucuma.odb.api.model.{AsterismModel, AtomModel, ConstraintSetModel, Dataset, DatasetModel, ExecutionEvent, ExecutionEventModel, ObservationModel, ProgramModel, StepModel, TargetModel}
+import lucuma.odb.api.model.{AsterismModel, AtomModel, ConstraintSetModel, ExecutionEvent, ExecutionEventModel, ObservationModel, ProgramModel, StepModel, TargetModel}
 import cats.instances.order._
 import monocle.Lens
 import monocle.function.At
@@ -19,7 +19,6 @@ final case class Tables(
   atoms:           SortedMap[Atom.Id, AtomModel[Step.Id]],
   asterisms:       SortedMap[Asterism.Id, AsterismModel],
   constraintSets:  SortedMap[ConstraintSet.Id, ConstraintSetModel],
-  datasets:        SortedMap[Dataset.Id, DatasetModel],
   executionEvents: SortedMap[ExecutionEvent.Id, ExecutionEventModel],
   observations:    SortedMap[Observation.Id, ObservationModel],
   programs:        SortedMap[Program.Id, ProgramModel],
@@ -40,7 +39,6 @@ object Tables extends TableOptics {
       atoms           = TreeMap.empty[Atom.Id, AtomModel[Step.Id]],
       asterisms       = TreeMap.empty[Asterism.Id, AsterismModel],
       constraintSets  = TreeMap.empty[ConstraintSet.Id, ConstraintSetModel],
-      datasets        = TreeMap.empty[Dataset.Id, DatasetModel],
       executionEvents = TreeMap.empty[ExecutionEvent.Id, ExecutionEventModel],
       observations    = TreeMap.empty[Observation.Id, ObservationModel],
       programs        = TreeMap.empty[Program.Id, ProgramModel],
@@ -70,9 +68,6 @@ sealed trait TableOptics { self: Tables.type =>
 
   val lastConstraintSetId: Lens[Tables, ConstraintSet.Id] =
     ids ^|-> Ids.lastConstraintSet
-
-  val lastDatasetId: Lens[Tables, Dataset.Id] =
-    ids ^|-> Ids.lastDataset
 
   val lastExecutionEventId: Lens[Tables, ExecutionEvent.Id] =
     ids ^|-> Ids.lastExecutionEvent
@@ -108,12 +103,6 @@ sealed trait TableOptics { self: Tables.type =>
 
   def constraintSet(csid: ConstraintSet.Id): Lens[Tables, Option[ConstraintSetModel]] =
     constraintSets ^|-> At.at(csid)
-
-  val datasets: Lens[Tables, SortedMap[Dataset.Id, DatasetModel]] =
-    Lens[Tables, SortedMap[Dataset.Id, DatasetModel]](_.datasets)(b => a => a.copy(datasets = b))
-
-  def dataset(did: Dataset.Id): Lens[Tables, Option[DatasetModel]] =
-    datasets ^|-> At.at(did)
 
   val executionEvents: Lens[Tables, SortedMap[ExecutionEvent.Id, ExecutionEventModel]] =
     Lens[Tables, SortedMap[ExecutionEvent.Id, ExecutionEventModel]](_.executionEvents)(b => a => a.copy(executionEvents = b))
