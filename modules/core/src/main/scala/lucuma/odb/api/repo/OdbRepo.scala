@@ -22,8 +22,6 @@ trait OdbRepo[F[_]] {
 
   def constraintSet: ConstraintSetRepo[F]
 
-  def dataset: DatasetRepo[F]
-
   def executionEvent: ExecutionEventRepo[F]
 
   def observation: ObservationRepo[F]
@@ -64,9 +62,6 @@ object OdbRepo {
 
       override def constraintSet: ConstraintSetRepo[F] =
         ConstraintSetRepo.create(r, s)
-
-      override def dataset: DatasetRepo[F] =
-        DatasetRepo.create(r)
 
       override def executionEvent: ExecutionEventRepo[F] =
         ExecutionEventRepo.create(r)

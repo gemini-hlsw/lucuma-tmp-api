@@ -23,7 +23,7 @@ object TimeSchema {
       _.toString
     )
 
-  val InstantScalar: ScalarType[Instant] =
+  implicit val InstantScalar: ScalarType[Instant] =
     ScalarType.fromScalarFormat(
       name         = "Instant",
       description  = "Instant of time in ISO-8601 representation",

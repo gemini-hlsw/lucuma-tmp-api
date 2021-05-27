@@ -8,31 +8,31 @@ import cats.effect.Effect
 import sangria.schema._
 
 trait ConstraintSetQuery {
-  
+
   import GeneralSchema.ArgumentIncludeDeleted
   import Paging._
   import ProgramSchema.ProgramIdArgument
   import ConstraintSetSchema.{ConstraintSetConnectionType, ConstraintSetIdArgument, ConstraintSetType}
   import context._
 
-  def allForProgram[F[_]: Effect]: Field[OdbRepo[F], Unit] = 
+  def allForProgram[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
       name        = "constraintSets",
       fieldType   = ConstraintSetConnectionType,
       description = Some("Returns all constraint sets associated with the given program."),
       arguments   = List(
-        ProgramIdArgument, 
+        ProgramIdArgument,
         ArgumentPagingFirst,
         ArgumentPagingCursor,
         ArgumentIncludeDeleted
       ),
-      resolve     = c => 
-        unsafeSelectPageFuture(c.pagingConstraintSetId) { gid => 
+      resolve     = c =>
+        unsafeSelectTopLevelPageFuture(c.pagingConstraintSetId) { gid =>
           c.ctx.constraintSet.selectPageForProgram(c.programId, c.pagingFirst, gid, c.includeDeleted)
         }
     )
 
-  def forId[F[_]: Effect]: Field[OdbRepo[F], Unit] = 
+  def forId[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
       name        = "constraintSet",
       fieldType   = OptionType(ConstraintSetType[F]),

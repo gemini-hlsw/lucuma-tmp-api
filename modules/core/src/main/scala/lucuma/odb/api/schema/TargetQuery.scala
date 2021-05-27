@@ -36,7 +36,7 @@ trait TargetQuery {
         ArgumentIncludeDeleted
       ),
       resolve     = c =>
-        unsafeSelectPageFuture(c.pagingTargetId) { gid =>
+        unsafeSelectTopLevelPageFuture(c.pagingTargetId) { gid =>
           c.ctx.target.selectPageForProgram(c.programId, c.pagingFirst, gid, c.includeDeleted)
         }
     )

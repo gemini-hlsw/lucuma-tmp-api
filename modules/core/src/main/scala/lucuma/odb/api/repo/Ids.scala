@@ -5,7 +5,7 @@ package lucuma.odb.api.repo
 
 import lucuma.core.model.{Atom, Step}
 import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
-import lucuma.odb.api.model.{Dataset, ExecutionEvent}
+import lucuma.odb.api.model.ExecutionEvent
 import cats.kernel.BoundedEnumerable
 import monocle.Lens
 
@@ -17,7 +17,6 @@ final case class Ids(
   asterism:       Asterism.Id,
   atom:           Atom.Id,
   constraintSet:  ConstraintSet.Id,
-  dataset:        Dataset.Id,
   executionEvent: ExecutionEvent.Id,
   observation:    Observation.Id,
   program:        Program.Id,
@@ -33,7 +32,6 @@ object Ids extends IdsOptics {
       asterism       = BoundedEnumerable[Asterism.Id].minBound,
       atom           = BoundedEnumerable[Atom.Id].minBound,
       constraintSet  = BoundedEnumerable[ConstraintSet.Id].minBound,
-      dataset        = BoundedEnumerable[Dataset.Id].minBound,
       executionEvent = BoundedEnumerable[ExecutionEvent.Id].minBound,
       observation    = BoundedEnumerable[Observation.Id].minBound,
       program        = BoundedEnumerable[Program.Id].minBound,
@@ -56,9 +54,6 @@ sealed trait IdsOptics { self: Ids.type =>
 
   val lastConstraintSet: Lens[Ids, ConstraintSet.Id] =
     Lens[Ids, ConstraintSet.Id](_.constraintSet)(b => a => a.copy(constraintSet = b))
-
-  val lastDataset: Lens[Ids, Dataset.Id] =
-    Lens[Ids, Dataset.Id](_.dataset)(b => a => a.copy(dataset = b))
 
   val lastExecutionEvent: Lens[Ids, ExecutionEvent.Id] =
     Lens[Ids, ExecutionEvent.Id](_.executionEvent)(b => a => a.copy(executionEvent = b))

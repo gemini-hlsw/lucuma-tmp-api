@@ -80,7 +80,7 @@ object ProgramSchema {
             ArgumentIncludeDeleted
           ),
           resolve     = c =>
-            unsafeSelectPageFuture(c.pagingAsterismId) { gid =>
+            unsafeSelectTopLevelPageFuture(c.pagingAsterismId) { gid =>
               c.ctx.asterism.selectPageForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
             }
         ),
@@ -95,7 +95,7 @@ object ProgramSchema {
             ArgumentIncludeDeleted
           ),
           resolve     = c =>
-            unsafeSelectPageFuture(c.pagingObservationId) { gid =>
+            unsafeSelectTopLevelPageFuture(c.pagingObservationId) { gid =>
               c.ctx.observation.selectPageForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
             }
         ),
@@ -110,7 +110,7 @@ object ProgramSchema {
             ArgumentIncludeDeleted
           ),
           resolve     = c =>
-            unsafeSelectPageFuture(c.pagingTargetId) { gid =>
+            unsafeSelectTopLevelPageFuture(c.pagingTargetId) { gid =>
               c.ctx.target.selectPageForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
             }
         ),
