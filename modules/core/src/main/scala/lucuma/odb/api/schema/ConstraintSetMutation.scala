@@ -4,11 +4,9 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.ConstraintSetModel
-import lucuma.odb.api.repo.OdbRepo
 
 import lucuma.odb.api.schema.syntax.inputtype._
 
-import cats.effect.Effect
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -18,6 +16,7 @@ trait ConstraintSetMutation {
 
   import GeneralSchema.NonEmptyStringType
   import ConstraintSetSchema._
+  import ObservationSchema.ObservationIdType
   import syntax.inputobjecttype._
 
   implicit val InputObjectTypeAirmassRangeCreate: InputObjectType[AirmassRange.Create] =
@@ -72,20 +71,18 @@ trait ConstraintSetMutation {
       "Edit constraint set"
     )
 
-  def bulkEdit[F[_]: Effect]: Field[OdbRepo[F], Unit] =
-    Field(
-      name      = "bulkEditConstraintSet",
-      fieldType = ConstraintSetType[F],
-      arguments = List(ArgumentConstraintSetEdit),
-      resolve   = _ => ConstraintSetModel.AnyConstraints
-//        c.constraintSet {
-//          val e = c.arg(ArgumentConstraintSetEdit)
-//          _.edit(e.id, e.editor)
-//        }
+  implicit val InputObjectTypeConstraintSetBulkEdit: InputObjectType[ConstraintSetModel.BulkEdit] =
+    deriveInputObjectType[ConstraintSetModel.BulkEdit](
+      InputObjectTypeName("BulkEditConstraintSetInput"),
+      InputObjectTypeDescription("Bulk edit constraint set of multiple observations")
     )
 
-  def allFields[F[_]: Effect]: List[Field[OdbRepo[F], Unit]] =
-    List(bulkEdit[F])
+  val ArgumentConstraintSetBulkEdit: Argument[ConstraintSetModel.BulkEdit] =
+    InputObjectTypeConstraintSetBulkEdit.argument(
+      "input",
+      "Bulk edit constraint set"
+    )
+
 }
 
 object ConstraintSetMutation extends ConstraintSetMutation

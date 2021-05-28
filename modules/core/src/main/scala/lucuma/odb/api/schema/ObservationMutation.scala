@@ -14,7 +14,7 @@ import sangria.schema._
 trait ObservationMutation {
 
   import AsterismSchema.AsterismIdType
-  import ConstraintSetMutation.{InputObjectTypeConstraintSetCreate, InputObjectTypeConstraintSetEdit}
+  import ConstraintSetMutation.{ArgumentConstraintSetBulkEdit, InputObjectTypeConstraintSetCreate, InputObjectTypeConstraintSetEdit}
   import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
   import ObservationSchema.{ObservationIdType, ObservationIdArgument, ObsStatusType, ObservationType}
   import ProgramSchema.ProgramIdType
@@ -65,18 +65,6 @@ trait ObservationMutation {
       "Edit observation asterism / target"
     )
 
-//  val InputObjectObservationEditConstraintSet: InputObjectType[ObservationModel.EditConstraintSet] =
-//    deriveInputObjectType[ObservationModel.EditConstraintSet](
-//      InputObjectTypeName("EditObservationConstraintSetInput"),
-//      InputObjectTypeDescription("Edit the constraint set for a set of observations")
-//    )
-//
-//  val ArgumentObservationEditConstraintSet: Argument[ObservationModel.EditConstraintSet] =
-//    InputObjectObservationEditConstraintSet.argument(
-//      "input",
-//      "Edit observation constraint set"
-//    )
-
   def create[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
       name      = "createObservation",
@@ -101,13 +89,13 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.editPointing(c.arg(ArgumentObservationEditPointing)))
     )
 
-//  def updateObservationConstraintSet[F[_]: Effect]: Field[OdbRepo[F], Unit] =
-//    Field(
-//      name      = "updateObservationConstraintSet",
-//      fieldType = ListType(ObservationType[F]),
-//      arguments = List(ArgumentObservationEditConstraintSet),
-//      resolve   = c => c.observation(_.editConstraintSet(c.arg(ArgumentObservationEditConstraintSet)))
-//    )
+  def updateConstraintSet[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+    Field(
+      name      = "updateConstraintSet",
+      fieldType = ListType(ObservationType[F]),
+      arguments = List(ArgumentConstraintSetBulkEdit),
+      resolve   = c => c.observation(_.bulkEditConstraintSet(c.arg(ArgumentConstraintSetBulkEdit)))
+    )
 
   def delete[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
@@ -130,7 +118,7 @@ trait ObservationMutation {
       create,
       update,
       updatePointing,
-//      updateObservationConstraintSet,
+      updateConstraintSet,
       delete,
       undelete,
     )

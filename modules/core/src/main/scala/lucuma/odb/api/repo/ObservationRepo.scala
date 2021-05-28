@@ -4,7 +4,7 @@
 package lucuma.odb.api.repo
 
 import lucuma.core.model.{Asterism, Observation, Program, Target}
-import lucuma.odb.api.model.{AsterismModel, Event, InputError, ObservationModel, PlannedTimeSummaryModel, TargetModel, ValidatedInput}
+import lucuma.odb.api.model.{AsterismModel, ConstraintSetModel, Event, InputError, ObservationModel, PlannedTimeSummaryModel, TargetModel, ValidatedInput}
 import lucuma.odb.api.model.AsterismModel.AsterismEvent
 import lucuma.odb.api.model.ObservationModel.ObservationEvent
 import lucuma.odb.api.model.TargetModel.TargetEvent
@@ -55,7 +55,7 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
 
   def editPointing(edit: ObservationModel.EditPointing): F[List[ObservationModel]]
 
-//  def editConstraintSet(edit: ConstraintSetModel.Edit): F[List[ObservationModel]]
+  def bulkEditConstraintSet(edit: ConstraintSetModel.BulkEdit): F[List[ObservationModel]]
 
 }
 
@@ -253,17 +253,6 @@ object ObservationRepo {
             )
         } yield os
 
-//      override def editConstraintSet(
-//        edit: ObservationModel.EditConstraintSet
-//      ): F[List[ObservationModel]] =
-//          doEdit(
-//            edit.observationIds,
-//            State.pure[ObservationModel, Unit](()),
-//            Input.ignore[Asterism.Id],
-//            Input.ignore[Target.Id],
-//            edit.constraintSetId.fold(Input.unassign[ConstraintSet.Id])(Input(_))
-//          )
-
       override def edit(
         edit: ObservationModel.Edit
       ): F[ObservationModel] =
@@ -271,6 +260,30 @@ object ObservationRepo {
         (edit.editor, edit.pointing).mapN { case (e, (a, t)) =>
           doEdit(List(edit.observationId), e, a, t)
         }.liftTo[F].flatten.map(_.head)
+
+
+      override def bulkEditConstraintSet(
+        edit: ConstraintSetModel.BulkEdit
+      ): F[List[ObservationModel]] = {
+
+        val update =
+          for {
+            vos <- TableState.observation.lookupAllValidated[State[Tables, *]](edit.observationIds)
+            os  <- (vos, edit.constraintSet.editor).mapN { (os, ed) =>
+                     val os2 = os.map {
+                       ObservationModel.constraintSet.modify { cs => ed.runS(cs).value }
+                     }
+                     Tables.observations.mod(_ ++ os2.map(o => o.id -> o)).as(os2)
+                   }.sequence
+          } yield os
+
+        for {
+          os <- tablesRef.modifyState(update).flatMap(_.liftTo[F])
+          _  <- os.traverse_(o => eventService.publish(ObservationModel.ObservationEvent.updated(o)))
+        } yield os
+
+      }
+
 
     }
 }
