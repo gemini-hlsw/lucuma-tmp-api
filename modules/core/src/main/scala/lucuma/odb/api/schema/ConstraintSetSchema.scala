@@ -178,7 +178,7 @@ object ConstraintSetSchema {
               ArgumentIncludeDeleted
             ),
             resolve     = c =>
-              unsafeSelectPageFuture(c.pagingObservationId) { gid =>
+              unsafeSelectTopLevelPageFuture(c.pagingObservationId) { gid =>
                 c.ctx.observation.selectPageForConstraintSet(c.value.id, c.pagingFirst, gid, c.includeDeleted)
               }
           )

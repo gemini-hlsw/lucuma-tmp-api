@@ -3,13 +3,13 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.repo.{AsterismRepo, ConstraintSetRepo, ObservationRepo, OdbRepo, ProgramRepo, TargetRepo}
+import lucuma.odb.api.repo.{AsterismRepo, ConstraintSetRepo, ExecutionEventRepo, ObservationRepo, OdbRepo, ProgramRepo, StepRepo, TargetRepo}
 import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
 import cats.effect.Effect
 import cats.effect.implicits._
 import cats.syntax.all._
 import lucuma.core.util.Gid
-import lucuma.odb.api.model.InputError
+import lucuma.odb.api.model.{ExecutionEvent, InputError}
 import sangria.schema.Context
 
 import scala.concurrent.Future
@@ -27,6 +27,12 @@ final class RepoContextOps[F[_]: Effect](val self: Context[OdbRepo[F], _]) {
 
   def optionConstraintSetId: Option[ConstraintSet.Id] =
     self.arg(ConstraintSetSchema.OptionalConstraintSetIdArgument)
+
+  def executionEventId: ExecutionEvent.Id =
+    self.arg(ExecutionEventSchema.ExecutionEventArgument)
+
+  def optionalExecutionEventId: Option[ExecutionEvent.Id] =
+    self.arg(ExecutionEventSchema.OptionalExecutionEventArgument)
 
   def observationId: Observation.Id =
     self.arg(ObservationSchema.ObservationIdArgument)
@@ -52,26 +58,30 @@ final class RepoContextOps[F[_]: Effect](val self: Context[OdbRepo[F], _]) {
   def pagingFirst: Int =
     self.arg(Paging.ArgumentPagingFirst)
 
-  def pagingCursor: Option[Paging.Cursor] =
-    self.arg(Paging.ArgumentPagingCursor)
-
-  /** Treats the cursor as a Gid, decoding through Cursor to its Gid representation. */
-  def pagingGid[A: Gid](name: String): Either[InputError, Option[A]] = {
+  def pagingCursor[A](msg: String)(f: Paging.Cursor => Option[A]): Either[InputError, Option[A]] = {
 
     type E[X] = Either[InputError, X]
 
-    pagingCursor.traverse { cursor =>
-      cursor.asGid[A].toRight(
-        InputError.fromMessage(s"Cannot read ${cursor.toString} (${cursor.toBase64}) as $name.`")
+    self.arg(Paging.ArgumentPagingCursor).traverse { cursor =>
+      f(cursor).toRight(
+        InputError.fromMessage(s"Unexpected cursor format ${cursor.toString} (${cursor.toBase64}): $msg")
       ): E[A]
     }
   }
+
+
+  /** Treats the cursor as a Gid, decoding through Cursor to its Gid representation. */
+  def pagingGid[A: Gid](name: String): Either[InputError, Option[A]] =
+    pagingCursor(s"Cannot read as $name")(Paging.Cursor.gid[A].getOption)
 
   def pagingAsterismId: Either[InputError, Option[Asterism.Id]] =
     pagingGid[Asterism.Id]("AsterismId")
 
   def pagingConstraintSetId: Either[InputError, Option[ConstraintSet.Id]] =
     pagingGid[ConstraintSet.Id]("ConstraintSetId")
+
+  def pagingExecutionEventId: Either[InputError, Option[ExecutionEvent.Id]] =
+    pagingGid[ExecutionEvent.Id]("ExecutionEventId")
 
   def pagingObservationId: Either[InputError, Option[Observation.Id]] =
     pagingGid[Observation.Id]("ObservationId")
@@ -88,11 +98,17 @@ final class RepoContextOps[F[_]: Effect](val self: Context[OdbRepo[F], _]) {
   def constraintSet[B](f: ConstraintSetRepo[F] => F[B]): Future[B] =
     f(self.ctx.constraintSet).toIO.unsafeToFuture()
 
+  def executionEvent[B](f: ExecutionEventRepo[F] => F[B]): Future[B] =
+    f(self.ctx.executionEvent).toIO.unsafeToFuture()
+
   def observation[B](f: ObservationRepo[F] => F[B]): Future[B] =
     f(self.ctx.observation).toIO.unsafeToFuture()
 
   def program[B](f: ProgramRepo[F] => F[B]): Future[B] =
     f(self.ctx.program).toIO.unsafeToFuture()
+
+  def step[B](f: StepRepo[F] => F[B]): Future[B] =
+    f(self.ctx.step).toIO.unsafeToFuture()
 
   def target[B](f: TargetRepo[F] => F[B]): Future[B] =
     f(self.ctx.target).toIO.unsafeToFuture()

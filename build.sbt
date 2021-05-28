@@ -1,22 +1,23 @@
 val attoVersion                 = "0.9.5"
 val catsEffectVersion           = "2.5.1"
-val catsMtlVersion              = "1.2.0"
-val catsTestkitScalaTestVersion = "2.1.4"
+val catsMtlVersion              = "1.2.1"
+val catsTestkitScalaTestVersion = "2.1.5"
 val catsVersion                 = "2.6.1"
+val catsTimeVersion             = "0.3.4"
 val circeOpticsVersion          = "0.13.0"
-val circeVersion                = "0.13.0"
+val circeVersion                = "0.14.1"
 val cirisVersion                = "1.2.1"
 val clueVersion                 = "0.14.1"
-val fs2Version                  = "3.0.4"
-val http4sVersion               = "0.21.23"
+val fs2Version                  = "2.5.6"
+val http4sVersion               = "0.21.24"
 val jawnVersion                 = "1.1.2"
 val kindProjectorVersion        = "0.13.0"
 val logbackVersion              = "1.2.3"
 val log4catsVersion             = "1.3.1"
-val lucumaCoreVersion           = "0.7.11"
+val lucumaCoreVersion           = "0.8.1"
 val lucumaSsoVersion            = "0.0.9"
 val monocleVersion              = "2.1.0"
-val refinedVersion              = "0.9.25"
+val refinedVersion              = "0.9.26"
 val sangriaVersion              = "2.1.3"
 val sangriaCirceVersion         = "1.3.1"
 val singletonOpsVersion         = "0.5.2"
@@ -79,6 +80,7 @@ lazy val core = project
       "org.typelevel"              %% "cats-core"                 % catsVersion,
       "org.typelevel"              %% "cats-effect"               % catsEffectVersion,
       "org.typelevel"              %% "cats-mtl"                  % catsMtlVersion,
+      "io.chrisdavenport"          %% "cats-time"                 % catsTimeVersion,
       "io.circe"                   %% "circe-core"                % circeVersion,
       "io.circe"                   %% "circe-literal"             % circeVersion,
       "io.circe"                   %% "circe-optics"              % circeOpticsVersion,
@@ -92,6 +94,7 @@ lazy val core = project
       "eu.timepit"                 %% "singleton-ops"             % singletonOpsVersion,
       "eu.timepit"                 %% "refined"                   % refinedVersion,
       "eu.timepit"                 %% "refined-cats"              % refinedVersion,
+
 
       "edu.gemini"                 %% "lucuma-core-testkit"       % lucumaCoreVersion      % Test,
       "org.scalameta"              %% "munit"                     % munitVersion           % Test,

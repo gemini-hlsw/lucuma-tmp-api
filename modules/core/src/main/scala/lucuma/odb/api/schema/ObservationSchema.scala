@@ -18,6 +18,7 @@ object ObservationSchema {
 
   import AsterismSchema.AsterismType
   import ConstraintSetSchema.ConstraintSetType
+  import ExecutionRecordSchema.ExecutionRecordType
   import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, NonEmptyStringType, PlannedTimeSummaryType}
   import ProgramSchema.ProgramType
   import TargetSchema.TargetType
@@ -151,6 +152,13 @@ object ObservationSchema {
                 icm.dereference[State[Tables, *], Tables](TableState).runA(tables).value
               }
             }.toIO.unsafeToFuture()
+        ),
+
+        Field(
+          name        = "execution",
+          fieldType   = ExecutionRecordType[F],
+          description = Some("Execution sequence and runtime artifacts"),
+          resolve     = _.value.id
         )
 
       )

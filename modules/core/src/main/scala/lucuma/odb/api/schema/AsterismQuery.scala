@@ -27,7 +27,7 @@ trait AsterismQuery {
         ArgumentIncludeDeleted
       ),
       resolve     = c =>
-        unsafeSelectPageFuture(c.pagingAsterismId) { gid =>
+        unsafeSelectTopLevelPageFuture(c.pagingAsterismId) { gid =>
           c.ctx.asterism.selectPageForProgram(c.programId, c.pagingFirst, gid, c.includeDeleted)
         }
     )

@@ -4,8 +4,7 @@
 package lucuma.odb.api.repo
 
 import lucuma.core.model.{Asterism, Atom, ConstraintSet, Observation, Program, Step, Target}
-import lucuma.odb.api.model.{AsterismModel, AtomModel, ConstraintSetModel, ObservationModel, ProgramModel, StepModel, TargetModel}
-
+import lucuma.odb.api.model.{AsterismModel, AtomModel, ConstraintSetModel, ExecutionEvent, ExecutionEventModel, ObservationModel, ProgramModel, StepModel, TargetModel}
 import cats.instances.order._
 import monocle.Lens
 import monocle.function.At
@@ -16,37 +15,39 @@ import scala.collection.immutable.{SortedMap, TreeMap}
  * Simplistic immutable database "tables" of top-level types keyed by Id.
  */
 final case class Tables(
-  ids:                      Ids,
-  atoms:                    SortedMap[Atom.Id, AtomModel[Step.Id]],
-  asterisms:                SortedMap[Asterism.Id, AsterismModel],
-  constraintSets:           SortedMap[ConstraintSet.Id, ConstraintSetModel],
-  observations:             SortedMap[Observation.Id, ObservationModel],
-  programs:                 SortedMap[Program.Id, ProgramModel],
-  steps:                    SortedMap[Step.Id, StepModel[_]],
-  targets:                  SortedMap[Target.Id, TargetModel],
+  ids:             Ids,
+  atoms:           SortedMap[Atom.Id, AtomModel[Step.Id]],
+  asterisms:       SortedMap[Asterism.Id, AsterismModel],
+  constraintSets:  SortedMap[ConstraintSet.Id, ConstraintSetModel],
+  executionEvents: SortedMap[ExecutionEvent.Id, ExecutionEventModel],
+  observations:    SortedMap[Observation.Id, ObservationModel],
+  programs:        SortedMap[Program.Id, ProgramModel],
+  steps:           SortedMap[Step.Id, StepModel[_]],
+  targets:         SortedMap[Target.Id, TargetModel],
 
-  programAsterism:          ManyToMany[Program.Id, Asterism.Id],
-  programTarget:            ManyToMany[Program.Id, Target.Id],
-  targetAsterism:           ManyToMany[Target.Id, Asterism.Id],
+  programAsterism: ManyToMany[Program.Id, Asterism.Id],
+  programTarget:   ManyToMany[Program.Id, Target.Id],
+  targetAsterism:  ManyToMany[Target.Id, Asterism.Id],
 )
 
 object Tables extends TableOptics {
 
   val empty: Tables =
     Tables(
-      ids                      = Ids.zero,
+      ids             = Ids.zero,
 
-      atoms                    = TreeMap.empty[Atom.Id, AtomModel[Step.Id]],
-      asterisms                = TreeMap.empty[Asterism.Id, AsterismModel],
-      constraintSets           = TreeMap.empty[ConstraintSet.Id, ConstraintSetModel],
-      observations             = TreeMap.empty[Observation.Id, ObservationModel],
-      programs                 = TreeMap.empty[Program.Id, ProgramModel],
-      steps                    = TreeMap.empty[Step.Id, StepModel[_]],
-      targets                  = TreeMap.empty[Target.Id, TargetModel],
+      atoms           = TreeMap.empty[Atom.Id, AtomModel[Step.Id]],
+      asterisms       = TreeMap.empty[Asterism.Id, AsterismModel],
+      constraintSets  = TreeMap.empty[ConstraintSet.Id, ConstraintSetModel],
+      executionEvents = TreeMap.empty[ExecutionEvent.Id, ExecutionEventModel],
+      observations    = TreeMap.empty[Observation.Id, ObservationModel],
+      programs        = TreeMap.empty[Program.Id, ProgramModel],
+      steps           = TreeMap.empty[Step.Id, StepModel[_]],
+      targets         = TreeMap.empty[Target.Id, TargetModel],
 
-      programAsterism          = ManyToMany.empty,
-      programTarget            = ManyToMany.empty,
-      targetAsterism           = ManyToMany.empty,
+      programAsterism = ManyToMany.empty,
+      programTarget   = ManyToMany.empty,
+      targetAsterism  = ManyToMany.empty,
     )
 
 }
@@ -67,6 +68,9 @@ sealed trait TableOptics { self: Tables.type =>
 
   val lastConstraintSetId: Lens[Tables, ConstraintSet.Id] =
     ids ^|-> Ids.lastConstraintSet
+
+  val lastExecutionEventId: Lens[Tables, ExecutionEvent.Id] =
+    ids ^|-> Ids.lastExecutionEvent
 
   val lastObservationId: Lens[Tables, Observation.Id] =
     ids ^|-> Ids.lastObservation
@@ -99,6 +103,12 @@ sealed trait TableOptics { self: Tables.type =>
 
   def constraintSet(csid: ConstraintSet.Id): Lens[Tables, Option[ConstraintSetModel]] =
     constraintSets ^|-> At.at(csid)
+
+  val executionEvents: Lens[Tables, SortedMap[ExecutionEvent.Id, ExecutionEventModel]] =
+    Lens[Tables, SortedMap[ExecutionEvent.Id, ExecutionEventModel]](_.executionEvents)(b => a => a.copy(executionEvents = b))
+
+  def executionEvent(eid: ExecutionEvent.Id): Lens[Tables, Option[ExecutionEventModel]] =
+    executionEvents ^|-> At.at(eid)
 
   val observations: Lens[Tables, SortedMap[Observation.Id, ObservationModel]] =
     Lens[Tables, SortedMap[Observation.Id, ObservationModel]](_.observations)(b => a => a.copy(observations = b))

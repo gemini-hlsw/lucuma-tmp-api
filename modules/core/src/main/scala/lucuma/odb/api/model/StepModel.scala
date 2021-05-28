@@ -5,7 +5,6 @@ package lucuma.odb.api.model
 
 import lucuma.core.model.Step
 import lucuma.odb.api.model.StepConfig.CreateStepConfig
-
 import cats.{Applicative, Eq, Eval, Functor, Monad, Traverse}
 import cats.mtl.Stateful
 import cats.syntax.all._

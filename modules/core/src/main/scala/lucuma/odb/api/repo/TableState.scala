@@ -4,8 +4,7 @@
 package lucuma.odb.api.repo
 
 import lucuma.core.model.{Asterism, Atom, ConstraintSet, Observation, Program, Step, Target}
-import lucuma.odb.api.model.{AsterismModel, AtomModel, ConstraintSetModel, DatabaseState, ObservationModel, ProgramModel, RepoState, SharingState, StepModel, TargetModel}
-
+import lucuma.odb.api.model.{AsterismModel, AtomModel, ConstraintSetModel, DatabaseState, ExecutionEvent, ExecutionEventModel, ObservationModel, ProgramModel, RepoState, SharingState, StepModel, TargetModel}
 import cats.data.State
 import cats.mtl.Stateful
 import monocle.Lens
@@ -24,6 +23,9 @@ trait TableState extends DatabaseState[Tables] {
 
   override val constraintSet: RepoState[Tables, ConstraintSet.Id, ConstraintSetModel] =
     RepoState.fromLenses(Tables.lastConstraintSetId, Tables.constraintSets)
+
+  override val executionEvent: RepoState[Tables, ExecutionEvent.Id, ExecutionEventModel] =
+    RepoState.fromLenses(Tables.lastExecutionEventId, Tables.executionEvents)
 
   override val observation: RepoState[Tables, Observation.Id, ObservationModel] =
     RepoState.fromLenses(Tables.lastObservationId, Tables.observations)
