@@ -28,7 +28,7 @@ trait ObservationQuery {
         ArgumentIncludeDeleted
       ),
       resolve     = c =>
-        unsafeSelectPageFuture(c.pagingObservationId) { gid =>
+        unsafeSelectTopLevelPageFuture(c.pagingObservationId) { gid =>
           c.ctx.observation.selectPageForProgram(c.programId, c.pagingFirst, gid, c.includeDeleted)
         }
     )
@@ -39,12 +39,12 @@ trait ObservationQuery {
       fieldType   = ObservationConnectionType[F],
       description = Some("Returns all observations associated with the give constraint set."),
       arguments   = List(
-        ConstraintSetIdArgument, 
+        ConstraintSetIdArgument,
         ArgumentPagingFirst,
         ArgumentPagingCursor,
         ArgumentIncludeDeleted
       ),
-      resolve     = c => unsafeSelectPageFuture(c.pagingObservationId) { gid =>
+      resolve     = c => unsafeSelectTopLevelPageFuture(c.pagingObservationId) { gid =>
         c.ctx.observation.selectPageForConstraintSet(c.constraintSetId, c.pagingFirst, gid, c.includeDeleted)
       }
     )

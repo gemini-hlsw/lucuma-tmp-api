@@ -28,15 +28,15 @@ sealed trait ExecutionEventRepo[F[_]] {
   ): F[ResultPage[ExecutionEventModel]]
 
   def insertSequenceEvent(
-    event: SequenceEvent.Create
+    event: SequenceEvent.Add
   ): F[SequenceEvent]
 
   def insertStepEvent(
-    event: StepEvent.Create
+    event: StepEvent.Add
   ): F[StepEvent]
 
   def insertDatasetEvent(
-    event: DatasetEvent.Create
+    event: DatasetEvent.Add
   ): F[DatasetEvent]
 
 }
@@ -95,19 +95,19 @@ object ExecutionEventRepo {
         } yield e
 
       override def insertSequenceEvent(
-        event: SequenceEvent.Create
+        event: SequenceEvent.Add
       ): F[SequenceEvent] =
-        insertEvent(event.create[State[Tables, *], Tables])
+        insertEvent(event.add[State[Tables, *], Tables])
 
       override def insertStepEvent(
-        event: StepEvent.Create
+        event: StepEvent.Add
       ): F[StepEvent] =
-        insertEvent(event.create[State[Tables, *], Tables])
+        insertEvent(event.add[State[Tables, *], Tables])
 
       override def insertDatasetEvent(
-        event: DatasetEvent.Create
+        event: DatasetEvent.Add
       ): F[DatasetEvent] =
-        insertEvent(event.create[State[Tables, *], Tables])
+        insertEvent(event.add[State[Tables, *], Tables])
 
     }
 

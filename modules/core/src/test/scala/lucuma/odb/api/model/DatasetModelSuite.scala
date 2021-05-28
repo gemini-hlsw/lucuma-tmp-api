@@ -13,6 +13,5 @@ final class DatasetModelSuite extends DisciplineSuite {
   import ArbDatasetModel._
 
   checkAll("DatasetModel", EqTests[DatasetModel].eqv)
-  checkAll("DatasetModel.Create", EqTests[DatasetModel.Create].eqv)
 
 }
