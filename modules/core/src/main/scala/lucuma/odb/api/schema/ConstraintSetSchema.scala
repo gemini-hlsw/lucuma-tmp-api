@@ -5,7 +5,6 @@ package lucuma.odb.api.schema
 
 import cats.effect.Effect
 import lucuma.core.enum.{CloudExtinction, ImageQuality, SkyBackground, WaterVapor}
-import lucuma.core.model.ConstraintSet
 import lucuma.odb.api.model.{AirmassRange, ElevationRangeModel, HourAngleRange}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.all._
@@ -13,29 +12,7 @@ import lucuma.odb.api.model.ConstraintSetModel
 import sangria.schema._
 
 object ConstraintSetSchema {
-  import GeneralSchema.{ ArgumentIncludeDeleted, EnumTypeExistence, NonEmptyStringType }
-  import ObservationSchema.ObservationConnectionType
-  import Paging._
-  import ProgramSchema.ProgramType
-
-  import context._
-
-  implicit val ConstraintSetIdType: ScalarType[ConstraintSet.Id] =
-    ObjectIdSchema.idType[ConstraintSet.Id]("ConstraintSetId")
-
-  val ConstraintSetIdArgument: Argument[ConstraintSet.Id] =
-    Argument(
-      name         = "constraintSetId",
-      argumentType = ConstraintSetIdType,
-      description  = "Constraint Set ID"
-    )
-
-  val OptionalConstraintSetIdArgument: Argument[Option[ConstraintSet.Id]] =
-    Argument(
-      name         = "constraintSetId",
-      argumentType = OptionInputType(ConstraintSetIdType),
-      description  = "Constraint Set ID"
-    )
+  import GeneralSchema.NonEmptyStringType
 
   implicit val EnumTypeCloudExtinction: EnumType[CloudExtinction] =
     EnumType.fromEnumerated("CloudExtinction", "Cloud extinction")
@@ -102,25 +79,6 @@ object ConstraintSetSchema {
       fieldsFn = () =>
         fields(
           Field(
-            name        = "id",
-            fieldType   = ConstraintSetIdType,
-            description = Some("Constraint set ID"),
-            resolve     = _.value.id
-          ),
-          Field(
-            name        = "existence",
-            fieldType   = EnumTypeExistence,
-            description = Some("Deleted or Present"),
-            resolve     = _.value.existence
-          ),
-          Field(
-            name        = "program",
-            fieldType   = ProgramType[F],
-            description = Some("The program that contains this constraint set"),
-            arguments   = List(ArgumentIncludeDeleted),
-            resolve     = c => c.program(_.unsafeSelect(c.value.programId, c.includeDeleted))
-          ),
-          Field(
             name        = "name",
             fieldType   = NonEmptyStringType,
             description = Some("Constraint set name"),
@@ -167,21 +125,21 @@ object ConstraintSetSchema {
             fieldType   = OptionType(HourAngleRangeType[F]),
             description = Some("Hour angle range if elevation range is an Hour angle range"),
             resolve     = c => ElevationRangeModel.hourAngleRange.getOption((c.value.elevationRange))
-          ),
-          Field(
-            name        = "observations",
-            fieldType   = ObservationConnectionType[F],
-            description = Some("The observations associated with the constraint set"),
-            arguments   = List(
-              ArgumentPagingFirst,
-              ArgumentPagingCursor,
-              ArgumentIncludeDeleted
-            ),
-            resolve     = c =>
-              unsafeSelectTopLevelPageFuture(c.pagingObservationId) { gid =>
-                c.ctx.observation.selectPageForConstraintSet(c.value.id, c.pagingFirst, gid, c.includeDeleted)
-              }
           )
+//          Field(
+//            name        = "observations",
+//            fieldType   = ObservationConnectionType[F],
+//            description = Some("The observations associated with the constraint set"),
+//            arguments   = List(
+//              ArgumentPagingFirst,
+//              ArgumentPagingCursor,
+//              ArgumentIncludeDeleted
+//            ),
+//            resolve     = c =>
+//              unsafeSelectTopLevelPageFuture(c.pagingObservationId) { gid =>
+//                c.ctx.observation.selectPageForConstraintSet(c.value.id, c.pagingFirst, gid, c.includeDeleted)
+//              }
+//          )
         )
     )
 

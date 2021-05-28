@@ -9,10 +9,11 @@ import sangria.schema._
 
 trait ConstraintSetQuery {
 
+/*
   import GeneralSchema.ArgumentIncludeDeleted
   import Paging._
   import ProgramSchema.ProgramIdArgument
-  import ConstraintSetSchema.{ConstraintSetConnectionType, ConstraintSetIdArgument, ConstraintSetType}
+  import ConstraintSetSchema.{ConstraintSetConnectionType, ConstraintSetType}
   import context._
 
   def allForProgram[F[_]: Effect]: Field[OdbRepo[F], Unit] =
@@ -41,8 +42,9 @@ trait ConstraintSetQuery {
       resolve     = c => c.constraintSet(_.select(c.constraintSetId, c.includeDeleted))
     )
 
-    def allFields[F[_]: Effect]: List[Field[OdbRepo[F], Unit]] =
-      List(allForProgram, forId)
+*/
+    def allFields[F[_]: Effect]: List[Field[OdbRepo[F], Unit]] = Nil
+//      List(allForProgram, forId)
 }
 
 object ConstraintSetQuery extends ConstraintSetQuery

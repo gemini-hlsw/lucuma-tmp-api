@@ -4,8 +4,8 @@
 package lucuma.odb.api.repo
 package arb
 
-import lucuma.core.model.{Asterism, Atom, ConstraintSet, Observation, Program, Step, Target}
-import lucuma.odb.api.model.{AsterismModel, AtomModel, ConstraintSetModel, ExecutionEvent, ExecutionEventModel, ObservationModel, ProgramModel, StepModel, TargetModel}
+import lucuma.core.model.{Asterism, Atom, Observation, Program, Step, Target}
+import lucuma.odb.api.model.{AsterismModel, AtomModel, ExecutionEvent, ExecutionEventModel, ObservationModel, ProgramModel, StepModel, TargetModel}
 import lucuma.odb.api.model.arb._
 import lucuma.core.util.Gid
 import cats.Order
@@ -19,7 +19,6 @@ import scala.collection.immutable.SortedMap
 trait ArbTables extends SplitSetHelper {
 
   import ArbAsterismModel._
-  import ArbConstraintSetModel._
   import ArbObservationModel._
   import ArbProgramModel._
   import ArbTargetModel._
@@ -40,14 +39,10 @@ trait ArbTables extends SplitSetHelper {
   private def mapAsterisms: Gen[SortedMap[Asterism.Id, AsterismModel]] =
     map[Asterism.Id, AsterismModel]((a, i) => a.copy(id = i))
 
-  private def mapConstraintSets: Gen[SortedMap[ConstraintSet.Id, ConstraintSetModel]] =
-    map[ConstraintSet.Id, ConstraintSetModel]((cs, i) => cs.copy(id = i))
-
   private def mapObservations(
     pids: List[Program.Id],
     aids: List[Asterism.Id],
-    tids: List[Target.Id],
-    cids: List[ConstraintSet.Id]
+    tids: List[Target.Id]
   ): Gen[SortedMap[Observation.Id, ObservationModel]] = {
     val emptyTargets = Option.empty[Either[Asterism.Id, Target.Id]]
 
@@ -65,17 +60,10 @@ trait ArbTables extends SplitSetHelper {
             if (tids.isEmpty) Gen.const(emptyTargets) else Gen.pick(1, tids).map(_.headOption.map(_.asRight))
           )
         )
-        cs <- Gen.listOfN(
-          om.size,
-          Gen.oneOf(
-            Gen.const(Option.empty[ConstraintSet.Id]),
-            if (cids.isEmpty) Gen.const(Option.empty[ConstraintSet.Id]) else Gen.pick(1, cids).map(_.headOption)
-          )
-        )
       } yield
         SortedMap.from(
-          om.toList.zip(ps).zip(ts).zip(cs).map { case ((((i, o), pid), t), c) =>
-            (i, o.copy(programId = pid, pointing = t, constraintSetId = c))
+          om.toList.zip(ps).zip(ts).map { case (((i, o), pid), t) =>
+            (i, o.copy(programId = pid, pointing = t))
           }
         )
   }
@@ -103,14 +91,12 @@ trait ArbTables extends SplitSetHelper {
       for {
         ps <- mapPrograms
         as <- mapAsterisms
-        cs <- mapConstraintSets
         ts <- mapTargets
-        os <- mapObservations(ps.keys.toList, as.keys.toList, ts.keys.toList, cs.keys.toList)
+        os <- mapObservations(ps.keys.toList, as.keys.toList, ts.keys.toList)
         ids = Ids(
           0L,
           lastGid[Asterism.Id](as),
           lastGid[Atom.Id](SortedMap.empty[Atom.Id, AtomModel[_]]),
-          lastGid[ConstraintSet.Id](cs),
           lastGid[ExecutionEvent.Id](SortedMap.empty[ExecutionEvent.Id, ExecutionEventModel]),
           lastGid[Observation.Id](os),
           lastGid[Program.Id](ps),
@@ -120,7 +106,7 @@ trait ArbTables extends SplitSetHelper {
         pa <- manyToMany(ps.keys, as.keys)
         pt <- manyToMany(ps.keys, ts.keys)
         ta <- manyToMany(ts.keys, as.keys)
-      } yield Tables(ids, SortedMap.empty, as, cs, SortedMap.empty, os, ps, SortedMap.empty, ts, pa, pt, ta)
+      } yield Tables(ids, SortedMap.empty, as, SortedMap.empty, os, ps, SortedMap.empty, ts, pa, pt, ta)
     }
 }
 

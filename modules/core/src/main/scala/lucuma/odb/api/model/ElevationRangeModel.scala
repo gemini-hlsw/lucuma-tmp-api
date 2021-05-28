@@ -76,6 +76,9 @@ object AirmassRange extends AirmassRangeOptics {
   type Value        = Interval.Closed[MinValue.type, MaxValue.type]
   type DecimalValue = BigDecimal Refined Value
 
+  val AnyAirmass: AirmassRange =
+    unsafeFromBigDecimal(MinValue, MaxValue)
+
   /**
    * Construct a new AirmassRange.
    * min must be <= max.
@@ -83,6 +86,15 @@ object AirmassRange extends AirmassRangeOptics {
    */
   def apply(min: DecimalValue, max: DecimalValue): Option[AirmassRange] =
     fromOrderedDecimalValues.getOption((min, max))
+
+  def unsafeFromBigDecimal(min: BigDecimal, max: BigDecimal): AirmassRange =
+    if ((min < MinValue) || (max > MaxValue) || (min > max))
+      throw new IllegalArgumentException(s"invalid airmass range ($min, $max)")
+    else
+      new AirmassRange(
+        Refined.unsafeApply[BigDecimal, Value](MinValue),
+        Refined.unsafeApply[BigDecimal, Value](MaxValue)
+      ) {}
 
   implicit val EqAirmassRange: Eq[AirmassRange] = Eq.fromUniversalEquals
 

@@ -3,8 +3,8 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.repo.{AsterismRepo, ConstraintSetRepo, ExecutionEventRepo, ObservationRepo, OdbRepo, ProgramRepo, StepRepo, TargetRepo}
-import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
+import lucuma.odb.api.repo.{AsterismRepo, ExecutionEventRepo, ObservationRepo, OdbRepo, ProgramRepo, StepRepo, TargetRepo}
+import lucuma.core.model.{Asterism, Observation, Program, Target}
 import cats.effect.Effect
 import cats.effect.implicits._
 import cats.syntax.all._
@@ -21,12 +21,6 @@ final class RepoContextOps[F[_]: Effect](val self: Context[OdbRepo[F], _]) {
 
   def optionalAsterismId: Option[Asterism.Id] =
     self.arg(AsterismSchema.OptionalAsterismIdArgument)
-
-  def constraintSetId: ConstraintSet.Id =
-    self.arg(ConstraintSetSchema.ConstraintSetIdArgument)
-
-  def optionConstraintSetId: Option[ConstraintSet.Id] =
-    self.arg(ConstraintSetSchema.OptionalConstraintSetIdArgument)
 
   def executionEventId: ExecutionEvent.Id =
     self.arg(ExecutionEventSchema.ExecutionEventArgument)
@@ -77,9 +71,6 @@ final class RepoContextOps[F[_]: Effect](val self: Context[OdbRepo[F], _]) {
   def pagingAsterismId: Either[InputError, Option[Asterism.Id]] =
     pagingGid[Asterism.Id]("AsterismId")
 
-  def pagingConstraintSetId: Either[InputError, Option[ConstraintSet.Id]] =
-    pagingGid[ConstraintSet.Id]("ConstraintSetId")
-
   def pagingExecutionEventId: Either[InputError, Option[ExecutionEvent.Id]] =
     pagingGid[ExecutionEvent.Id]("ExecutionEventId")
 
@@ -94,9 +85,6 @@ final class RepoContextOps[F[_]: Effect](val self: Context[OdbRepo[F], _]) {
 
   def asterism[B](f: AsterismRepo[F] => F[B]): Future[B] =
     f(self.ctx.asterism).toIO.unsafeToFuture()
-
-  def constraintSet[B](f: ConstraintSetRepo[F] => F[B]): Future[B] =
-    f(self.ctx.constraintSet).toIO.unsafeToFuture()
 
   def executionEvent[B](f: ExecutionEventRepo[F] => F[B]): Future[B] =
     f(self.ctx.executionEvent).toIO.unsafeToFuture()

@@ -13,6 +13,7 @@ import cats.Applicative
 import cats.data.State
 import cats.effect.Sync
 import cats.syntax.all._
+import eu.timepit.refined.auto._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.parser.decode
 import lucuma.core.model.Program
@@ -289,7 +290,7 @@ object Init {
       name            = target.map(_.target.name) orElse NonEmptyString.from("Observation").toOption,
       asterismId      = None,
       targetId        = target.map(_.id),
-      constraintSetId = None,
+      constraintSet   = None,
       status          = ObsStatus.New.some,
       config          =
         InstrumentConfigModel.Create.gmosSouth(

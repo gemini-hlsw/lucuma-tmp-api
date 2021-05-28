@@ -11,7 +11,6 @@ import sangria.schema._
 
 trait ObservationQuery {
 
-  import ConstraintSetSchema.ConstraintSetIdArgument
   import GeneralSchema.ArgumentIncludeDeleted
   import Paging._
   import ProgramSchema.OptionalProgramIdArgument
@@ -47,22 +46,6 @@ trait ObservationQuery {
               c.ctx.observation.selectPage(c.pagingFirst, gid, c.includeDeleted)
           }
         }
-    )
-
-  def allForConstraintSet[F[_]: Effect]: Field[OdbRepo[F], Unit] =
-    Field(
-      name        = "observations",
-      fieldType   = ObservationConnectionType[F],
-      description = "Returns all observations associated with the give constraint set.".some,
-      arguments   = List(
-        ConstraintSetIdArgument,
-        ArgumentPagingFirst,
-        ArgumentPagingCursor,
-        ArgumentIncludeDeleted
-      ),
-      resolve     = c => unsafeSelectTopLevelPageFuture(c.pagingObservationId) { gid =>
-        c.ctx.observation.selectPageForConstraintSet(c.constraintSetId, c.pagingFirst, gid, c.includeDeleted)
-      }
     )
 
   def forId[F[_]: Effect]: Field[OdbRepo[F], Unit] =

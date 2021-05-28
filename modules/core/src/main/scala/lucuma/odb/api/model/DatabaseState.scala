@@ -3,15 +3,13 @@
 
 package lucuma.odb.api.model
 
-import lucuma.core.model.{Asterism, Atom, ConstraintSet, Observation, Program, Step, Target}
+import lucuma.core.model.{Asterism, Atom, Observation, Program, Step, Target}
 
 trait DatabaseState[T] extends DatabaseReader[T] {
 
   def atom:           RepoState[T, Atom.Id, AtomModel[Step.Id]]
 
   def asterism:       RepoState[T, Asterism.Id, AsterismModel]
-
-  def constraintSet:  RepoState[T, ConstraintSet.Id, ConstraintSetModel]
 
   def executionEvent: RepoState[T, ExecutionEvent.Id, ExecutionEventModel]
 

@@ -14,7 +14,7 @@ import sangria.schema._
 trait ObservationMutation {
 
   import AsterismSchema.AsterismIdType
-  import ConstraintSetSchema.ConstraintSetIdType
+  import ConstraintSetMutation.{InputObjectTypeConstraintSetCreate, InputObjectTypeConstraintSetEdit}
   import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
   import ObservationSchema.{ObservationIdType, ObservationIdArgument, ObsStatusType, ObservationType}
   import ProgramSchema.ProgramIdType
@@ -44,7 +44,7 @@ trait ObservationMutation {
       ReplaceInputField("status",          ObsStatusType.notNullableField("status")),
       ReplaceInputField("asterismId",      AsterismIdType.nullableField("asterismId")),
       ReplaceInputField("targetId",        TargetIdType.nullableField("targetId")),
-      ReplaceInputField("constraintSetId", ConstraintSetIdType.nullableField("constraintSetId"))
+      ReplaceInputField("constraintSet",   InputObjectTypeConstraintSetEdit.nullableField("constraintSet"))
     )
 
   val ArgumentObservationEdit: Argument[ObservationModel.Edit] =
@@ -65,17 +65,17 @@ trait ObservationMutation {
       "Edit observation asterism / target"
     )
 
-  val InputObjectObservationEditConstraintSet: InputObjectType[ObservationModel.EditConstraintSet] =
-    deriveInputObjectType[ObservationModel.EditConstraintSet](
-      InputObjectTypeName("EditObservationConstraintSetInput"),
-      InputObjectTypeDescription("Edit the constraint set for a set of observations")
-    )
-
-  val ArgumentObservationEditConstraintSet: Argument[ObservationModel.EditConstraintSet] =
-    InputObjectObservationEditConstraintSet.argument(
-      "input",
-      "Edit observation constraint set"
-    )
+//  val InputObjectObservationEditConstraintSet: InputObjectType[ObservationModel.EditConstraintSet] =
+//    deriveInputObjectType[ObservationModel.EditConstraintSet](
+//      InputObjectTypeName("EditObservationConstraintSetInput"),
+//      InputObjectTypeDescription("Edit the constraint set for a set of observations")
+//    )
+//
+//  val ArgumentObservationEditConstraintSet: Argument[ObservationModel.EditConstraintSet] =
+//    InputObjectObservationEditConstraintSet.argument(
+//      "input",
+//      "Edit observation constraint set"
+//    )
 
   def create[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
@@ -101,13 +101,13 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.editPointing(c.arg(ArgumentObservationEditPointing)))
     )
 
-  def updateObservationConstraintSet[F[_]: Effect]: Field[OdbRepo[F], Unit] =
-    Field(
-      name      = "updateObservationConstraintSet",
-      fieldType = ListType(ObservationType[F]),
-      arguments = List(ArgumentObservationEditConstraintSet),
-      resolve   = c => c.observation(_.editConstraintSet(c.arg(ArgumentObservationEditConstraintSet)))
-    )
+//  def updateObservationConstraintSet[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+//    Field(
+//      name      = "updateObservationConstraintSet",
+//      fieldType = ListType(ObservationType[F]),
+//      arguments = List(ArgumentObservationEditConstraintSet),
+//      resolve   = c => c.observation(_.editConstraintSet(c.arg(ArgumentObservationEditConstraintSet)))
+//    )
 
   def delete[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
@@ -130,7 +130,7 @@ trait ObservationMutation {
       create,
       update,
       updatePointing,
-      updateObservationConstraintSet,
+//      updateObservationConstraintSet,
       delete,
       undelete,
     )
