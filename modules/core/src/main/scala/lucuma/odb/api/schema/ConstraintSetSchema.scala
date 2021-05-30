@@ -13,6 +13,7 @@ import sangria.schema._
 
 object ConstraintSetSchema {
   import GeneralSchema.NonEmptyStringType
+  import ObservationSchema.ObservationIdType
 
   implicit val EnumTypeCloudExtinction: EnumType[CloudExtinction] =
     EnumType.fromEnumerated("CloudExtinction", "Cloud extinction")
@@ -143,18 +144,56 @@ object ConstraintSetSchema {
         )
     )
 
-    def ConstraintSetEdgeType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Edge[ConstraintSetModel]] =
-      Paging.EdgeType(
-        "ContraintSetEdge",
-        "A Constraint Set and its cursor",
-        ConstraintSetType[F]
-      )
+//    def ConstraintSetEdgeType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Edge[ConstraintSetModel]] =
+//      Paging.EdgeType(
+//        "ContraintSetEdge",
+//        "A Constraint Set and its cursor",
+//        ConstraintSetType[F]
+//      )
+//
+//   def ConstraintSetConnectionType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Connection[ConstraintSetModel]] =
+//     Paging.ConnectionType(
+//       "ConstraintSetConnection",
+//       "Constraint Sets in the current page",
+//       ConstraintSetType[F],
+//       ConstraintSetEdgeType[F]
+//     )
 
-    def ConstraintSetConnectionType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Connection[ConstraintSetModel]] =
-     Paging.ConnectionType(
-       "ConstraintSetConnection",
-       "Constraint Sets in the current page",
-       ConstraintSetType[F],
-       ConstraintSetEdgeType[F]
-     )
+  def ConstraintSetGroupType[F[_]: Effect]: ObjectType[OdbRepo[F], ConstraintSetModel.Group] =
+    ObjectType(
+      name     = "ConstraintSetGroup",
+      fieldsFn = () => fields(
+
+        Field(
+          name        = "observationIds",
+          fieldType   = ListType(ObservationIdType),
+          description = Some("IDs of observations that use the same constraints"),
+          resolve     = _.value.observationIds.toList
+        ),
+
+        Field(
+          name        = "constraintSet",
+          fieldType   = ConstraintSetType[F],
+          description = Some("Constraints held in common across the observations"),
+          resolve     = _.value.constraints
+
+        )
+
+      )
+    )
+
+  def ConstraintSetGroupEdgeType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Edge[ConstraintSetModel.Group]] =
+    Paging.EdgeType[F, ConstraintSetModel.Group](
+      "ConstraintSetGroupEdge",
+      "A constraint set group and its cursor",
+      ConstraintSetGroupType[F]
+    )
+
+  def ConstraintSetGroupConnectionType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Connection[ConstraintSetModel.Group]] =
+    Paging.ConnectionType[F, ConstraintSetModel.Group](
+      "ConstraintSetGroupConnection",
+      "Observations group by common constraints",
+      ConstraintSetGroupType[F],
+      ConstraintSetGroupEdgeType[F]
+    )
 }
