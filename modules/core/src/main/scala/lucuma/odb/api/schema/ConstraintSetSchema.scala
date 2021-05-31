@@ -3,15 +3,21 @@
 
 package lucuma.odb.api.schema
 
-import cats.effect.Effect
 import lucuma.core.enum.{CloudExtinction, ImageQuality, SkyBackground, WaterVapor}
 import lucuma.odb.api.model.{AirmassRange, ElevationRangeModel, HourAngleRange}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.all._
 import lucuma.odb.api.model.ConstraintSetModel
+import lucuma.odb.api.schema.GeneralSchema.ArgumentIncludeDeleted
+import lucuma.odb.api.schema.ObservationSchema.ObservationType
+
+import cats.effect.Effect
+import cats.effect.implicits._
+import cats.syntax.all._
 import sangria.schema._
 
 object ConstraintSetSchema {
+  import context._
   import GeneralSchema.NonEmptyStringType
   import ObservationSchema.ObservationIdType
 
@@ -140,6 +146,18 @@ object ConstraintSetSchema {
           fieldType   = ListType(ObservationIdType),
           description = Some("IDs of observations that use the same constraints"),
           resolve     = _.value.observationIds.toList
+        ),
+
+        Field(
+          name        = "observations",
+          fieldType   = ListType(ObservationType[F]),
+          description = Some("Observations that use this constraint set"),
+          arguments   = List(ArgumentIncludeDeleted),
+          resolve     = c => {
+            c.value.observationIds.toList.flatTraverse { oid =>
+              c.ctx.observation.select(oid, c.includeDeleted).map(_.toList)
+            }
+          }.toIO.unsafeToFuture()
         ),
 
         Field(
