@@ -127,37 +127,8 @@ object ConstraintSetSchema {
             description = Some("Hour angle range if elevation range is an Hour angle range"),
             resolve     = c => ElevationRangeModel.hourAngleRange.getOption((c.value.elevationRange))
           )
-//          Field(
-//            name        = "observations",
-//            fieldType   = ObservationConnectionType[F],
-//            description = Some("The observations associated with the constraint set"),
-//            arguments   = List(
-//              ArgumentPagingFirst,
-//              ArgumentPagingCursor,
-//              ArgumentIncludeDeleted
-//            ),
-//            resolve     = c =>
-//              unsafeSelectTopLevelPageFuture(c.pagingObservationId) { gid =>
-//                c.ctx.observation.selectPageForConstraintSet(c.value.id, c.pagingFirst, gid, c.includeDeleted)
-//              }
-//          )
         )
     )
-
-//    def ConstraintSetEdgeType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Edge[ConstraintSetModel]] =
-//      Paging.EdgeType(
-//        "ContraintSetEdge",
-//        "A Constraint Set and its cursor",
-//        ConstraintSetType[F]
-//      )
-//
-//   def ConstraintSetConnectionType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Connection[ConstraintSetModel]] =
-//     Paging.ConnectionType(
-//       "ConstraintSetConnection",
-//       "Constraint Sets in the current page",
-//       ConstraintSetType[F],
-//       ConstraintSetEdgeType[F]
-//     )
 
   def ConstraintSetGroupType[F[_]: Effect]: ObjectType[OdbRepo[F], ConstraintSetModel.Group] =
     ObjectType(
