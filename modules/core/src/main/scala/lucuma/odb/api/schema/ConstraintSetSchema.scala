@@ -9,17 +9,15 @@ import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.all._
 import lucuma.odb.api.model.ConstraintSetModel
 import lucuma.odb.api.schema.GeneralSchema.ArgumentIncludeDeleted
-import lucuma.odb.api.schema.ObservationSchema.ObservationType
-
+import lucuma.odb.api.schema.ObservationSchema.ObservationConnectionType
 import cats.effect.Effect
-import cats.effect.implicits._
-import cats.syntax.all._
 import sangria.schema._
 
 object ConstraintSetSchema {
   import context._
   import GeneralSchema.NonEmptyStringType
   import ObservationSchema.ObservationIdType
+  import Paging._
 
   implicit val EnumTypeCloudExtinction: EnumType[CloudExtinction] =
     EnumType.fromEnumerated("CloudExtinction", "Cloud extinction")
@@ -150,14 +148,19 @@ object ConstraintSetSchema {
 
         Field(
           name        = "observations",
-          fieldType   = ListType(ObservationType[F]),
+          fieldType   = ObservationConnectionType[F],
           description = Some("Observations that use this constraint set"),
-          arguments   = List(ArgumentIncludeDeleted),
-          resolve     = c => {
-            c.value.observationIds.toList.flatTraverse { oid =>
-              c.ctx.observation.select(oid, c.includeDeleted).map(_.toList)
+          arguments   = List(
+            ArgumentPagingFirst,
+            ArgumentPagingCursor,
+            ArgumentIncludeDeleted
+          ),
+          resolve     = c =>
+            unsafeSelectTopLevelPageFuture(c.pagingObservationId) { gid =>
+              c.ctx.observation.selectPageFromIds(c.pagingFirst, gid, c.includeDeleted) { _ =>
+                c.value.observationIds
+              }
             }
-          }.toIO.unsafeToFuture()
         ),
 
         Field(
