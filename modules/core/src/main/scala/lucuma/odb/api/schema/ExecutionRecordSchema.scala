@@ -4,13 +4,12 @@
 package lucuma.odb.api.schema
 
 import lucuma.core.model.{Observation, Step}
-import lucuma.odb.api.repo.{OdbRepo, ResultPage}
+import lucuma.odb.api.repo.OdbRepo
+
 import cats.effect.Effect
 import cats.syntax.all._
-import eu.timepit.refined.cats._
 import eu.timepit.refined.types.all.PosInt
 import lucuma.core.util.Gid
-import lucuma.odb.api.model.ExecutionEventModel.DatasetEvent
 import lucuma.odb.api.model.{DatasetModel, ExecutionEvent, ExecutionEventModel}
 import monocle.Prism
 import sangria.schema._
@@ -54,27 +53,12 @@ object ExecutionRecordSchema {
             ArgumentPagingFirst,
             ArgumentPagingCursor
           ),
-          resolve     = c => {
-
-            val all: F[List[DatasetModel]] =
-              c.ctx
-               .tables
-               .get
-               .map { tables =>
-                 tables.executionEvents.values.collect {
-                   case de: DatasetEvent if de.observationId === c.value => de.toDataset
-                 }.toList.flattenOption.distinct
-               }
-
+          resolve     = c =>
             unsafeSelectPageFuture[F, (Step.Id, PosInt), DatasetModel](
               c.pagingCursor("(step-id, index)")(datasetCursor.getOption),
               dm => datasetCursor.reverseGet((dm.stepId, dm.index)),
-              o  => all.map { ds =>
-                ResultPage.fromSeq(ds, c.arg(ArgumentPagingFirst), o, dm => (dm.stepId, dm.index))
-              }
+              o  => c.ctx.executionEvent.selectDatasetsForObservation(c.value, c.pagingFirst, o)
             )
-
-          }
         ),
 
         Field(
@@ -90,7 +74,7 @@ object ExecutionRecordSchema {
               c.pagingExecutionEventId,
               (e: ExecutionEventModel) => Cursor.gid[ExecutionEvent.Id].reverseGet(e.id),
               // TODO: here we're going to want the events sorted by timestamp, not GID
-              eid => c.ctx.executionEvent.selectPageForObservation(c.value, c.pagingFirst, eid)
+              eid => c.ctx.executionEvent.selectEventsForObservation(c.value, c.pagingFirst, eid)
             )
         )
 
