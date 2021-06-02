@@ -107,7 +107,7 @@ object StepSchema {
       )
     )
 
-  def InstrumentStepType[F[_]: Effect, D](
+  def StepConcreteType[F[_]: Effect, D](
     typePrefix:  String,
     dynamicType: OutputType[D]
   ): ObjectType[OdbRepo[F], StepModel[D]] =

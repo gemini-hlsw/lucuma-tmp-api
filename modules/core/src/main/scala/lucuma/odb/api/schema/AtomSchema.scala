@@ -1,0 +1,52 @@
+// Copyright (c) 2016-2020 Association of Universities for Research in Astronomy, Inc. (AURA)
+// For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
+
+package lucuma.odb.api.schema
+
+import cats.effect.Effect
+import lucuma.core.model.Atom
+import lucuma.odb.api.model.{AtomModel, PlannedTime, StepModel}
+import lucuma.odb.api.repo.OdbRepo
+import sangria.schema._
+
+object AtomSchema {
+
+  import PlannedTimeSchema._
+  import StepSchema.StepConcreteType
+
+  implicit val AtomIdType: ScalarType[Atom.Id] =
+    ObjectIdSchema.idType[Atom.Id](name = "AtomId")
+
+  def AtomType[F[_]: Effect, D](
+    typePrefix:  String,
+    dynamicType: OutputType[D]
+  ): ObjectType[OdbRepo[F], AtomModel[StepModel[D]]] =
+    ObjectType(
+      name        = s"${typePrefix}Atom",
+      description = s"$typePrefix atom, a collection of steps that should be executed in their entirety",
+      fieldsFn    = () => fields(
+
+        Field(
+          name        = "id",
+          fieldType   = AtomIdType,
+          description = Some("Atom id"),
+          resolve     = _.value.id
+        ),
+
+        Field(
+          name        = "steps",
+          fieldType   = ListType(StepConcreteType[F, D](typePrefix, dynamicType)),
+          description = Some("Individual steps that comprise the atom"),
+          resolve     = _.value.steps.toList
+        ),
+
+        Field(
+          name        = "time",
+          fieldType   = CategorizedTimeType[F],
+          description = Some("Time estimate for this atom's execution, the sum of each step's time."),
+          resolve     = c => PlannedTime.estimateAtom(c.value)
+        )
+      )
+    )
+
+}
