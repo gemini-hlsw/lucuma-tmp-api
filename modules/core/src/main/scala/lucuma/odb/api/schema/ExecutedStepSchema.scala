@@ -42,16 +42,16 @@ object ExecutedStepSchema {
         )
 
 //        Field(
+//          name        = "atom",
+//          fieldType   = AtomType()
+//        )
+//        Field(
 //          name        = "datasets",
 //          fieldType   = ListType(DatasetType[F]),
 //          description = Some("Datasets associated with this step"),
 //          resolve     = c =>
 //        )
 
-//        Field(
-//          name        = "atom",
-//          fieldType   = AtomType()
-//        )
 
       )
     )

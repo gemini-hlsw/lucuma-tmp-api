@@ -32,7 +32,7 @@ object SequenceSchema {
 
         Field(
           name        = "atoms",
-          fieldType   = ListType(AtomType[F, D](typePrefix, dynamicType)),
+          fieldType   = ListType(AtomConcreteType[F, D](typePrefix, dynamicType)),
           description = Some("Sequence atoms"),
           resolve     = _.value.atoms
         ),
