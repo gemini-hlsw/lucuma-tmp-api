@@ -17,6 +17,7 @@ object QueryType {
       name   = "Query",
       fields =
         AsterismQuery.allFields[F]      ++
+        ConfigurationQuery.allFields[F] ++
         ConstraintSetQuery.allFields[F] ++
         ObservationQuery.allFields[F]   ++
         ProgramQuery.allFields[F]       ++
