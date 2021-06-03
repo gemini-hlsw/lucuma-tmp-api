@@ -20,12 +20,10 @@ object ExecutedStepSchema {
   import AtomSchema.AtomInterfaceType
   import StepSchema.{StepIdType, StepInterfaceType}
 
-  def ExecutedStepType[F[_]: Effect](
-    typePrefix:  String,
-  ): ObjectType[OdbRepo[F], ExecutedStepModel] = {
+  def ExecutedStepType[F[_]: Effect]: ObjectType[OdbRepo[F], ExecutedStepModel] = {
     ObjectType(
-      name        = s"${typePrefix}ExecutedStep",
-      description = s"$typePrefix executed step",
+      name        = "ExecutedStep",
+      description = s"Executed step",
       fieldsFn    = () => fields(
 
         Field(
