@@ -3,8 +3,8 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.repo.{AsterismRepo, ExecutionEventRepo, ObservationRepo, OdbRepo, ProgramRepo, StepRepo, TargetRepo}
 import lucuma.core.model.{Asterism, Observation, Program, Target}
+import lucuma.odb.api.repo.{AsterismRepo, AtomRepo, ExecutionEventRepo, ObservationRepo, OdbRepo, ProgramRepo, StepRepo, TargetRepo}
 import cats.effect.Effect
 import cats.effect.implicits._
 import cats.syntax.all._
@@ -85,6 +85,9 @@ final class RepoContextOps[F[_]: Effect](val self: Context[OdbRepo[F], _]) {
 
   def asterism[B](f: AsterismRepo[F] => F[B]): Future[B] =
     f(self.ctx.asterism).toIO.unsafeToFuture()
+
+  def atom[B](f: AtomRepo[F] => F[B]): Future[B] =
+    f(self.ctx.atom).toIO.unsafeToFuture()
 
   def executionEvent[B](f: ExecutionEventRepo[F] => F[B]): Future[B] =
     f(self.ctx.executionEvent).toIO.unsafeToFuture()

@@ -8,6 +8,7 @@ import lucuma.odb.api.model.ExecutedStepModel
 import lucuma.odb.api.repo.OdbRepo
 //import lucuma.odb.api.schema.syntax.scalar._
 import cats.effect.Effect
+import cats.syntax.all._
 //import lucuma.odb.api.schema.SequenceSchema.AtomType
 import sangria.schema._
 
@@ -17,6 +18,7 @@ object ExecutedStepSchema {
 
 //  import DatasetSchema.DatasetType
 //  import SequenceSchema.AtomIdType
+  import AtomSchema.AtomInterfaceType
   import StepSchema.{StepIdType, StepInterfaceType}
 
   def ExecutedStepType[F[_]: Effect](
@@ -39,12 +41,15 @@ object ExecutedStepSchema {
           fieldType   = StepInterfaceType[F],
           description = Some("The executed step itself"),
           resolve     = c => c.step(_.unsafeSelectStep(c.value.stepId))
+        ),
+
+        Field(
+          name        = "atom",
+          fieldType   = AtomInterfaceType[F],
+          description = "The atom containing the executed step".some,
+          resolve     = c => c.atom(_.unsafeSelectAtom(c.value.atomId))
         )
 
-//        Field(
-//          name        = "atom",
-//          fieldType   = AtomType()
-//        )
 //        Field(
 //          name        = "datasets",
 //          fieldType   = ListType(DatasetType[F]),
