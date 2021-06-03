@@ -37,6 +37,12 @@ sealed trait ExecutionEventRepo[F[_]] {
     after: Option[(Step.Id, PosInt)] = None
   ): F[ResultPage[DatasetModel]]
 
+  def selectDatasetsForStep(
+    sid:   Step.Id,
+    count: Int,
+    after: Option[PosInt] = None
+  ): F[ResultPage[DatasetModel]]
+
   def selectExecutedStepsForObservation(
     oid: Observation.Id,
     count: Int,
@@ -166,7 +172,29 @@ object ExecutionEventRepo {
 
         }
 
-      def selectExecutedStepsForObservation(
+      override def selectDatasetsForStep(
+        sid:   Step.Id,
+        count: Int,
+        after: Option[PosInt] = None
+      ): F[ResultPage[DatasetModel]] =
+
+        tablesRef.get.map { tables =>
+          tables.executionEvents.values.collect {
+            case de: DatasetEvent if de.stepId === sid => de.toDataset
+          }.toList.flattenOption.distinct.sortBy(_.index)
+        }.map { all =>
+
+          ResultPage.fromSeq(
+            all,
+            count,
+            after,
+            _.index
+          )
+
+        }
+
+
+      override def selectExecutedStepsForObservation(
         oid:   Observation.Id,
         count: Int,
         after: Option[Step.Id] = None

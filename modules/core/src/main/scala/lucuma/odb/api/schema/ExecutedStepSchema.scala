@@ -3,21 +3,20 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.ExecutedStepModel
-//import lucuma.odb.api.model.format.ScalarFormat
+import lucuma.odb.api.model.{DatasetModel, ExecutedStepModel}
 import lucuma.odb.api.repo.OdbRepo
-//import lucuma.odb.api.schema.syntax.scalar._
+
 import cats.effect.Effect
 import cats.syntax.all._
-//import lucuma.odb.api.schema.SequenceSchema.AtomType
+import eu.timepit.refined.types.all.PosInt
 import sangria.schema._
 
 object ExecutedStepSchema {
 
   import context._
+  import Paging._
 
-//  import DatasetSchema.DatasetType
-//  import SequenceSchema.AtomIdType
+  import DatasetSchema.{ DatasetConnectionType, IndexCursor }
   import AtomSchema.AtomInterfaceType
   import StepSchema.{StepIdType, StepInterfaceType}
 
@@ -48,15 +47,23 @@ object ExecutedStepSchema {
           fieldType   = AtomInterfaceType[F],
           description = "The atom containing the executed step".some,
           resolve     = c => c.atom(_.unsafeSelectAtom(c.value.atomId))
+        ),
+
+        Field(
+          name        = "datasets",
+          fieldType   = DatasetConnectionType[F],
+          description = Some("Datasets associated with this step"),
+          arguments   = List(
+            ArgumentPagingFirst,
+            ArgumentPagingCursor
+          ),
+          resolve     = c =>
+            unsafeSelectPageFuture[F, PosInt, DatasetModel](
+              c.pagingCursor("index")(IndexCursor.getOption),
+              dm => IndexCursor.reverseGet(dm.index),
+              o  => c.ctx.executionEvent.selectDatasetsForStep(c.value.stepId, c.pagingFirst, o)
+            )
         )
-
-//        Field(
-//          name        = "datasets",
-//          fieldType   = ListType(DatasetType[F]),
-//          description = Some("Datasets associated with this step"),
-//          resolve     = c =>
-//        )
-
 
       )
     )

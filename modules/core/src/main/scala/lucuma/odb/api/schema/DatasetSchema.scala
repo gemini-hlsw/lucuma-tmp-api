@@ -3,19 +3,54 @@
 
 package lucuma.odb.api.schema
 
+import lucuma.core.model.Step
+import lucuma.core.util.Gid
 import lucuma.odb.api.model.{DatasetFilename, DatasetModel}
 import lucuma.odb.api.model.format.ScalarFormat
 import lucuma.odb.api.repo.OdbRepo
+import lucuma.odb.api.schema.Paging.Cursor
 import lucuma.odb.api.schema.syntax.scalar._
-
 import cats.effect.Effect
-
+import cats.syntax.all._
+import eu.timepit.refined.types.all.PosInt
+import monocle.Prism
 import sangria.schema._
+
+import scala.util.matching.Regex
 
 
 object DatasetSchema {
 
   import context._
+
+  private val PosIntPattern: Regex =
+    raw"([1-9a-f][0-9a-f]*)".r
+
+  val StepAndIndexCursor: Prism[Cursor, (Step.Id, PosInt)] =
+    Prism[Cursor, (Step.Id, PosInt)](
+      _.toString.split(',').toList match {
+        case List(sid, PosIntPattern(idx)) =>
+          (Step.Id.parse(sid),
+           PosInt.unapply(java.lang.Integer.parseInt(idx))
+          ).bisequence
+        case _                             =>
+          None
+      }
+    ) {
+      case (sid, idx) =>
+        new Cursor(s"${Gid[Step.Id].show(sid)},${idx.value}")
+    }
+
+  val IndexCursor: Prism[Cursor, PosInt] =
+    Prism[Cursor, PosInt](
+      _.toString match {
+        case PosIntPattern(idx) => PosInt.unapply(java.lang.Integer.parseInt(idx))
+        case _                  => None
+      }
+    ) {
+      idx => new Cursor(idx.value.toString)
+    }
+
 
   implicit val DatasetFilenameScalar: ScalarType[DatasetFilename] =
     ScalarType.fromScalarFormat(
