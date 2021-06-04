@@ -11,7 +11,7 @@ import eu.timepit.refined.types.all.PosInt
 import lucuma.odb.api.model.{DatasetModel, ExecutedStepModel, ExecutionEvent, ExecutionEventModel}
 import sangria.schema._
 
-object ExecutionRecordSchema {
+object ExecutionSchema {
 
   import context._
   import DatasetSchema._
@@ -19,9 +19,9 @@ object ExecutionRecordSchema {
   import ExecutedStepSchema._
   import Paging._
 
-  def ExecutionRecordType[F[_]: Effect]: ObjectType[OdbRepo[F], Observation.Id] =
+  def ExecutionType[F[_]: Effect]: ObjectType[OdbRepo[F], Observation.Id] =
     ObjectType(
-      name     = "ExecutionRecord",
+      name     = "Execution",
       fieldsFn = () => fields(
 
         Field(

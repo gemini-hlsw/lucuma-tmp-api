@@ -29,14 +29,14 @@ object ExecutedStepSchema {
         Field(
           name        = "id",
           fieldType   = StepIdType,
-          description = Some("Step id"),
+          description = "Step id".some,
           resolve     = _.value.stepId
         ),
 
         Field(
           name        = "step",
           fieldType   = StepInterfaceType[F],
-          description = Some("The executed step itself"),
+          description = "The executed step itself".some,
           resolve     = c => c.step(_.unsafeSelectStep(c.value.stepId))
         ),
 
@@ -50,7 +50,7 @@ object ExecutedStepSchema {
         Field(
           name        = "datasets",
           fieldType   = DatasetConnectionType[F],
-          description = Some("Datasets associated with this step"),
+          description = "Datasets associated with this step".some,
           arguments   = List(
             ArgumentPagingFirst,
             ArgumentPagingCursor

@@ -19,7 +19,7 @@ object ObservationSchema {
 
   import AsterismSchema.AsterismType
   import ConstraintSetSchema.ConstraintSetType
-  import ExecutionRecordSchema.ExecutionRecordType
+  import ExecutionSchema.ExecutionType
   import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, NonEmptyStringType, PlannedTimeSummaryType}
   import ProgramSchema.ProgramType
   import TargetSchema.TargetType
@@ -150,9 +150,9 @@ object ObservationSchema {
         ),
 
         Field(
-          name        = "config",
+          name        = "manualConfig",
           fieldType   = OptionType(InstrumentConfigSchema.ConfigType[F]),
-          description = Some("Instrument configuration"),
+          description = Some("Manual instrument configuration"),
           resolve     = c =>
             c.ctx.tables.get.map { tables =>
               c.value.config.flatMap { icm =>
@@ -163,7 +163,7 @@ object ObservationSchema {
 
         Field(
           name        = "execution",
-          fieldType   = ExecutionRecordType[F],
+          fieldType   = ExecutionType[F],
           description = Some("Execution sequence and runtime artifacts"),
           resolve     = _.value.id
         )
