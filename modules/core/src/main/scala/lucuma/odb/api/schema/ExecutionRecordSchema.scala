@@ -5,10 +5,10 @@ package lucuma.odb.api.schema
 
 import lucuma.core.model.{Observation, Step}
 import lucuma.odb.api.repo.OdbRepo
-
 import cats.effect.Effect
+import cats.syntax.all._
 import eu.timepit.refined.types.all.PosInt
-import lucuma.odb.api.model.{DatasetModel, ExecutionEvent, ExecutionEventModel}
+import lucuma.odb.api.model.{DatasetModel, ExecutedStepModel, ExecutionEvent, ExecutionEventModel}
 import sangria.schema._
 
 object ExecutionRecordSchema {
@@ -16,6 +16,7 @@ object ExecutionRecordSchema {
   import context._
   import DatasetSchema._
   import ExecutionEventSchema._
+  import ExecutedStepSchema._
   import Paging._
 
   def ExecutionRecordType[F[_]: Effect]: ObjectType[OdbRepo[F], Observation.Id] =
@@ -26,7 +27,7 @@ object ExecutionRecordSchema {
         Field(
           name        = "datasets",
           fieldType   = DatasetConnectionType[F],
-          description = Some("Datasets associated with the observation"),
+          description = "Datasets associated with the observation".some,
           arguments   = List(
             ArgumentPagingFirst,
             ArgumentPagingCursor
@@ -42,7 +43,7 @@ object ExecutionRecordSchema {
         Field(
           name        = "events",
           fieldType   = ExecutionEventConnectionType[F],
-          description = Some("Events associated with the observation"),
+          description = "Events associated with the observation".some,
           arguments   = List(
             ArgumentPagingFirst,
             ArgumentPagingCursor
@@ -53,6 +54,22 @@ object ExecutionRecordSchema {
               (e: ExecutionEventModel) => Cursor.gid[ExecutionEvent.Id].reverseGet(e.id),
               // TODO: here we're going to want the events sorted by timestamp, not GID
               eid => c.ctx.executionEvent.selectEventsForObservation(c.value, c.pagingFirst, eid)
+            )
+        ),
+
+        Field(
+          name        = "executedSteps",
+          fieldType   = ExecutedStepConnectionType[F],
+          description = "Executed steps associated with the observation".some,
+          arguments   = List(
+            ArgumentPagingFirst,
+            ArgumentPagingCursor
+          ),
+          resolve     = c =>
+            unsafeSelectPageFuture[F, Step.Id, ExecutedStepModel](
+              c.pagingStepId,
+              (s: ExecutedStepModel) => Cursor.gid[Step.Id].reverseGet(s.stepId),
+              sid => c.ctx.executionEvent.selectExecutedStepsForObservation(c.value, c.pagingFirst, sid)
             )
         )
 

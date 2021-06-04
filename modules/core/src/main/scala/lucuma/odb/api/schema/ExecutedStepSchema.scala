@@ -67,4 +67,19 @@ object ExecutedStepSchema {
     )
   }
 
+  def ExecutedStepEdgeType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Edge[ExecutedStepModel]] =
+    Paging.EdgeType(
+      "ExecutedStepEdge",
+      "An executed step and its cursor",
+      ExecutedStepType[F]
+    )
+
+  def ExecutedStepConnectionType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Connection[ExecutedStepModel]] =
+    Paging.ConnectionType(
+      "ExecutedStepConnection",
+      "Executed steps in the current page",
+      ExecutedStepType[F],
+      ExecutedStepEdgeType[F]
+    )
+
 }

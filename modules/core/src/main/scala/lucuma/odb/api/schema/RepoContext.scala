@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.core.model.{Asterism, Observation, Program, Target}
+import lucuma.core.model.{Asterism, Observation, Program, Step, Target}
 import lucuma.odb.api.repo.{AsterismRepo, AtomRepo, ExecutionEventRepo, ObservationRepo, OdbRepo, ProgramRepo, StepRepo, TargetRepo}
 import cats.effect.Effect
 import cats.effect.implicits._
@@ -79,6 +79,9 @@ final class RepoContextOps[F[_]: Effect](val self: Context[OdbRepo[F], _]) {
 
   def pagingProgramId: Either[InputError, Option[Program.Id]] =
     pagingGid[Program.Id]("ProgramId")
+
+  def pagingStepId: Either[InputError, Option[Step.Id]] =
+    pagingGid[Step.Id]("StepId")
 
   def pagingTargetId: Either[InputError, Option[Target.Id]] =
     pagingGid[Target.Id]("TargetId")
