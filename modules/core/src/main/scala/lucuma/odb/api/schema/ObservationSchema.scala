@@ -114,7 +114,7 @@ object ObservationSchema {
 
         Field(
           name        = "constraintSet",
-          fieldType   = OptionType(ConstraintSetType[F]),
+          fieldType   = ConstraintSetType[F],
           description = Some("The constraint set for the observation"),
           resolve     = c => c.value.constraintSet
         ),
