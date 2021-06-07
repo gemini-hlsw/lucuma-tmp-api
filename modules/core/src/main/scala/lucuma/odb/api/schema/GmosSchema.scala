@@ -175,17 +175,17 @@ object GmosSchema {
       )
     )
 
-  private def location(s: Site): String =
+  private def gmos(s: Site): Instrument =
     s match {
-      case Site.GN => "North"
-      case Site.GS => "South"
+      case Site.GN => Instrument.GmosN
+      case Site.GS => Instrument.GmosS
     }
 
   def GmosStaticConfig[F[_]: Effect, S: EnumType, G <: GmosModel.Static[S]: ClassTag](
     site: Site
   ): ObjectType[OdbRepo[F], G] =
     ObjectType(
-      name        = s"Gmos${location(site)}StaticConfig",
+      name        = s"${gmos(site).tag}Static",
       description = "Unchanging (over the course of the sequence) configuration values",
       fieldsFn    = () => fields(
 
@@ -297,14 +297,14 @@ object GmosSchema {
     site: Site
   ): ObjectType[OdbRepo[F], GmosModel.Grating[D]] =
     ObjectType(
-      name        = s"Gmos${location(site)}Grating",
-      description = s"GMOS ${location(site)} Grating",
+      name        = s"${gmos(site).tag}Grating",
+      description = s"${gmos(site).longName} Grating",
       fieldsFn    = () => fields(
 
         Field(
           name        = "disperser",
           fieldType   = implicitly[EnumType[D]],
-          description = Some(s"GMOS ${location(site)} Disperser"),
+          description = Some(s"${gmos(site).longName} Disperser"),
           resolve     = _.value.disperser
         ),
 
@@ -329,14 +329,14 @@ object GmosSchema {
     site: Site
   ): ObjectType[OdbRepo[F], U] =
     ObjectType(
-      name        = s"Gmos${location(site)}BuiltinFpu",
-      description = s"GMOS ${location(site)} builtin-in FPU",
+      name        = s"${gmos(site).tag}BuiltinFpu",
+      description = s"${gmos(site).longName} builtin-in FPU",
       fieldsFn    = () => fields(
 
         Field(
           name        = "builtin",
           fieldType   = implicitly[EnumType[U]],
-          description = Some(s"GMOS ${location(site)} builtin-fpu"),
+          description = Some(s"${gmos(site).longName} builtin-fpu"),
           resolve     = _.value
         )
       )
@@ -346,7 +346,7 @@ object GmosSchema {
     site: Site
   ): OutputType[Either[GmosModel.CustomMask, U]] =
     UnionType(
-      name        = s"Gmos${location(site)}FpuUnion",
+      name        = s"${gmos(site).tag}FpuUnion",
       description = Some("Either custom mask or builtin-FPU"),
       types       = List(GmosCustomMaskType[F], GmosBuiltinFpuType[F, U](site))
     ).mapValue[Either[GmosModel.CustomMask, U]](
@@ -360,8 +360,8 @@ object GmosSchema {
     site: Site
   ): ObjectType[OdbRepo[F], G] =
     ObjectType(
-      name        = s"Gmos${location(site)}Dynamic",
-      description = s"GMOS ${location(site)} dynamic step configuration",
+      name        = s"${gmos(site).tag}Dynamic",
+      description = s"${gmos(site).longName} dynamic step configuration",
       fieldsFn    = () => fields(
 
         Field(
@@ -395,21 +395,21 @@ object GmosSchema {
         Field(
           name        = "grating",
           fieldType   = OptionType(GmosGratingType[F,D](site)),
-          description = Some(s"GMOS ${location(site)} grating"),
+          description = Some(s"${gmos(site).longName} grating"),
           resolve     = _.value.grating
         ),
 
         Field(
           name        = "filter",
           fieldType   = OptionType(implicitly[EnumType[L]]),
-          description = Some(s"GMOS ${location(site)} filter"),
+          description = Some(s"${gmos(site).longName} filter"),
           resolve     = _.value.filter
         ),
 
         Field(
           name        = "fpu",
           fieldType   = OptionType(GmosFpuUnionType[F, U](site)),
-          description = Some(s"GMOS ${location(site)} FPU"),
+          description = Some(s"${gmos(site).longName} FPU"),
           resolve     = _.value.fpu
         )
       )

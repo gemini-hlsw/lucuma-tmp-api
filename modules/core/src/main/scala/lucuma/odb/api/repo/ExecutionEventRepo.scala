@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{DatabaseState, DatasetModel, ExecutedStepModel, ExecutionEvent, ExecutionEventModel, InputError, ValidatedInput}
+import lucuma.odb.api.model.{AtomModel, DatabaseState, DatasetModel, DereferencedSequence, ExecutedStepModel, ExecutionEvent, ExecutionEventModel, InputError, StepModel, ValidatedInput}
 import lucuma.odb.api.model.ExecutionEventModel.{DatasetEvent, SequenceEvent, StepEvent}
 import lucuma.core.model.{Atom, Observation, Step}
 import cats.data.{EitherT, State}
@@ -25,29 +25,38 @@ sealed trait ExecutionEventRepo[F[_]] {
     eid: ExecutionEvent.Id
   ): F[Option[ExecutionEventModel]]
 
-  def selectPageForObservation(
+  def selectEventsPageForObservation(
     oid:      Observation.Id,
     count:    Option[Int],
     afterGid: Option[ExecutionEvent.Id] = None
   ): F[ResultPage[ExecutionEventModel]]
 
-  def selectDatasetsForObservation(
+  def selectDatasetsPageForObservation(
     oid:   Observation.Id,
-    count: Int,
+    count: Option[Int],
     after: Option[(Step.Id, PosInt)] = None
   ): F[ResultPage[DatasetModel]]
 
-  def selectDatasetsForStep(
+  def selectDatasetsPageForStep(
     sid:   Step.Id,
-    count: Int,
+    count: Option[Int],
     after: Option[PosInt] = None
   ): F[ResultPage[DatasetModel]]
 
-  def selectExecutedStepsForObservation(
-    oid: Observation.Id,
-    count: Int,
+  def selectExecutedStepsPageForObservation(
+    oid:   Observation.Id,
+    count: Option[Int],
     after: Option[Step.Id] = None
   ): F[ResultPage[ExecutedStepModel]]
+
+  def selectExecutedStepsForObservation(
+    oid: Observation.Id
+  ): F[List[ExecutedStepModel]]
+
+  def selectRemainingAtoms[D](
+    oid: Observation.Id,
+    seq: DereferencedSequence[D]
+  ): F[List[AtomModel[StepModel[D]]]]
 
   def insertSequenceEvent(
     event: SequenceEvent.Add
@@ -115,7 +124,7 @@ object ExecutionEventRepo {
           }
         )
 
-      private def executedSteps(oid: Observation.Id): F[List[ExecutedStepModel]] =
+      override def selectExecutedStepsForObservation(oid: Observation.Id): F[List[ExecutedStepModel]] =
         for {
           as <- stepAtoms
           es <- sortedEvents(oid)
@@ -144,16 +153,16 @@ object ExecutionEventRepo {
 
         }
 
-      override def selectEventsForObservation(
+      override def selectEventsPageForObservation(
         oid:      Observation.Id,
         count:    Option[Int],
         afterGid: Option[ExecutionEvent.Id]
       ): F[ResultPage[ExecutionEventModel]] =
         sortedEvents(oid).map(ResultPage.fromSeq(_, count, afterGid, _.id))
 
-      override def selectDatasetsForObservation(
+      override def selectDatasetsPageForObservation(
         oid:   Observation.Id,
-        count: Int,
+        count: Option[Int],
         after: Option[(Step.Id, PosInt)] = None
       ): F[ResultPage[DatasetModel]] =
 
@@ -172,9 +181,9 @@ object ExecutionEventRepo {
 
         }
 
-      override def selectDatasetsForStep(
+      override def selectDatasetsPageForStep(
         sid:   Step.Id,
-        count: Int,
+        count: Option[Int],
         after: Option[PosInt] = None
       ): F[ResultPage[DatasetModel]] =
 
@@ -194,13 +203,13 @@ object ExecutionEventRepo {
         }
 
 
-      override def selectExecutedStepsForObservation(
+      override def selectExecutedStepsPageForObservation(
         oid:   Observation.Id,
-        count: Int,
+        count: Option[Int],
         after: Option[Step.Id] = None
       ): F[ResultPage[ExecutedStepModel]] = {
 
-        executedSteps(oid).map { steps =>
+        selectExecutedStepsForObservation(oid).map { steps =>
 
           ResultPage.fromSeq(
             steps,
@@ -212,6 +221,34 @@ object ExecutionEventRepo {
         }
 
       }
+
+      private def remainingAtoms[D](
+        sequence: DereferencedSequence[D],
+        executed: List[ExecutedStepModel]
+      ): List[AtomModel[StepModel[D]]] = {
+
+        val isExecutedStep: Set[Step.Id] =
+          executed.map(_.stepId).toSet
+
+        val isExecutedAtom: Set[Atom.Id] =
+          sequence.atoms.collect {
+            case atom if atom.steps.map(_.id).forall(isExecutedStep) => atom.id
+          }.toSet
+
+        executed
+          .lastOption
+          .map(_.atomId)
+          .fold(sequence.atoms) { aid => sequence.atoms.dropWhile(_.id =!= aid) }
+          .filter(atom => !isExecutedAtom(atom.id))
+      }
+
+      override def selectRemainingAtoms[D](
+        oid: Observation.Id,
+        seq: DereferencedSequence[D]
+      ): F[List[AtomModel[StepModel[D]]]] =
+        selectExecutedStepsForObservation(oid).map { steps =>
+          remainingAtoms(seq, steps)
+        }
 
       private def received: F[Instant] =
         Sync[F].delay(Instant.now)

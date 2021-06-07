@@ -5,7 +5,6 @@ package lucuma.odb.api.repo
 
 import lucuma.core.model.Atom
 import lucuma.odb.api.model.AtomModel
-
 import cats.effect.Sync
 import cats.effect.concurrent.Ref
 import cats.syntax.all._
@@ -38,6 +37,7 @@ object AtomRepo {
         aid: Atom.Id
       ): F[AtomModel[_]] =
         selectAtom(aid).map(_.getOrElse(sys.error(s"Atom id '$aid' missing'")))
+
     }
 
 }

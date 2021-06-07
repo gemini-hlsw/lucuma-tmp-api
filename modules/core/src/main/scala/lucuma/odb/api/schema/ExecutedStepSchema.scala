@@ -59,7 +59,7 @@ object ExecutedStepSchema {
             unsafeSelectPageFuture[F, PosInt, DatasetModel](
               c.pagingCursor("index")(IndexCursor.getOption),
               dm => IndexCursor.reverseGet(dm.index),
-              o  => c.ctx.executionEvent.selectDatasetsForStep(c.value.stepId, c.pagingFirst, o)
+              o  => c.ctx.executionEvent.selectDatasetsPageForStep(c.value.stepId, c.pagingFirst, o)
             )
         )
 

@@ -8,7 +8,7 @@ import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
 import cats.syntax.all._
 import eu.timepit.refined.types.all.PosInt
-import lucuma.odb.api.model.{DatasetModel, ExecutedStepModel, ExecutionEvent, ExecutionEventModel}
+import lucuma.odb.api.model.{DatasetModel, ExecutedStepModel, ExecutionEvent, ExecutionEventModel, InstrumentConfigModel}
 import sangria.schema._
 
 object ExecutionSchema {
@@ -36,7 +36,7 @@ object ExecutionSchema {
             unsafeSelectPageFuture[F, (Step.Id, PosInt), DatasetModel](
               c.pagingCursor("(step-id, index)")(StepAndIndexCursor.getOption),
               dm => StepAndIndexCursor.reverseGet((dm.stepId, dm.index)),
-              o  => c.ctx.executionEvent.selectDatasetsForObservation(c.value, c.pagingFirst, o)
+              o  => c.ctx.executionEvent.selectDatasetsPageForObservation(c.value, c.pagingFirst, o)
             )
         ),
 
@@ -52,8 +52,7 @@ object ExecutionSchema {
             unsafeSelectPageFuture[F, ExecutionEvent.Id, ExecutionEventModel](
               c.pagingExecutionEventId,
               (e: ExecutionEventModel) => Cursor.gid[ExecutionEvent.Id].reverseGet(e.id),
-              // TODO: here we're going to want the events sorted by timestamp, not GID
-              eid => c.ctx.executionEvent.selectEventsForObservation(c.value, c.pagingFirst, eid)
+              eid => c.ctx.executionEvent.selectEventsPageForObservation(c.value, c.pagingFirst, eid)
             )
         ),
 
@@ -69,7 +68,38 @@ object ExecutionSchema {
             unsafeSelectPageFuture[F, Step.Id, ExecutedStepModel](
               c.pagingStepId,
               (s: ExecutedStepModel) => Cursor.gid[Step.Id].reverseGet(s.stepId),
-              sid => c.ctx.executionEvent.selectExecutedStepsForObservation(c.value, c.pagingFirst, sid)
+              sid => c.ctx.executionEvent.selectExecutedStepsPageForObservation(c.value, c.pagingFirst, sid)
+            )
+        ),
+
+        Field(
+          name        = "executionConfig",
+          fieldType   = OptionType(ExecutionConfigSchema.ExecutionConfigType[F]),
+          description = "Execution config".some,
+          resolve     = c =>
+            c.observation(
+              _.selectManualConfig(c.value).map(_.flatMap {
+                  case gn: InstrumentConfigModel.GmosNorth =>
+                    ExecutionConfigSchema.ExecutionContext(
+                      c.value,
+                      gn.instrument,
+                      gn.static,
+                      gn.acquisition,
+                      gn.science
+                    ).some
+
+                  case gs: InstrumentConfigModel.GmosSouth =>
+                    ExecutionConfigSchema.ExecutionContext(
+                      c.value,
+                      gs.instrument,
+                      gs.static,
+                      gs.acquisition,
+                      gs.science
+                    ).some
+
+                  case _ => none
+                }
+              )
             )
         )
 
