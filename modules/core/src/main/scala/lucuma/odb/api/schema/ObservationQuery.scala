@@ -3,9 +3,10 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.repo.OdbRepo
+import lucuma.odb.api.repo.{OdbRepo, ResultPage}
 import cats.effect.Effect
 import cats.syntax.all._
+import lucuma.odb.api.model.{InputError, ObservationModel}
 import sangria.schema._
 
 trait ObservationQuery {
@@ -32,11 +33,17 @@ trait ObservationQuery {
       resolve     = c =>
         unsafeSelectTopLevelPageFuture(c.pagingObservationId) { gid =>
           (c.arg(OptionalListObservationIdArgument), c.arg(OptionalProgramIdArgument)) match {
-            case (Some(oids), _) =>
+            case (Some(_), Some(_)) =>
+              Effect[F].raiseError[ResultPage[ObservationModel]](
+                InputError.fromMessage(
+                  s"Specify only one of `${OptionalListObservationIdArgument.name}` or `${OptionalProgramIdArgument.name}`"
+                ).toException
+              )
+            case (Some(oids), None) =>
               c.ctx.observation.selectPageForObservations(oids.toSet, c.pagingFirst, gid, c.includeDeleted)
-            case (_, Some(pid))  =>
+            case (None, Some(pid))  =>
               c.ctx.observation.selectPageForProgram(pid, c.pagingFirst, gid, c.includeDeleted)
-            case _               =>
+            case (None, None)       =>
               c.ctx.observation.selectPage(c.pagingFirst, gid, c.includeDeleted)
           }
         }
