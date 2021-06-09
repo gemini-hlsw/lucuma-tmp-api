@@ -90,7 +90,7 @@ object ExecutionRecordSchema {
               c.pagingExecutionEventId,
               (e: ExecutionEventModel) => Cursor.gid[ExecutionEvent.Id].reverseGet(e.id),
               // TODO: here we're going to want the events sorted by timestamp, not GID
-              eid => c.ctx.executionEvent.selectEventsForObservation(c.value, c.pagingFirst, eid)
+              eid => c.ctx.executionEvent.selectPageForObservation(c.value, c.pagingFirst, eid)
             )
         )
 

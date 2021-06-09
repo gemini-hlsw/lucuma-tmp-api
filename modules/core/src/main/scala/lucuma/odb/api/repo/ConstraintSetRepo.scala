@@ -21,7 +21,7 @@ trait ConstraintSetRepo[F[_]] extends TopLevelRepo[F, ConstraintSet.Id, Constrai
 
   def selectPageForProgram(
     pid:            Program.Id,
-    count:          Int                      = Integer.MAX_VALUE,
+    count:          Option[Int]              = None,
     afterGid:       Option[ConstraintSet.Id] = None,
     includeDeleted: Boolean                  = false
   ): F[ResultPage[ConstraintSetModel]]
@@ -59,7 +59,7 @@ object ConstraintSetRepo {
 
       override def selectPageForProgram(
         pid:            Program.Id,
-        count:          Int,
+        count:          Option[Int],
         afterGid:       Option[ConstraintSet.Id],
         includeDeleted: Boolean
       ): F[ResultPage[ConstraintSetModel]] =

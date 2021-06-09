@@ -32,9 +32,16 @@ trait ProgramRepo[F[_]] extends TopLevelRepo[F, Program.Id, ProgramModel] {
   def selectPageForAsterism(
     aid:                 Asterism.Id,
     includeObservations: Boolean            = true,
-    count:               Int                = Integer.MAX_VALUE,
+    count:               Option[Int]        = None,
     afterGid:            Option[Program.Id] = None,
     includeDeleted:      Boolean            = false
+  ): F[ResultPage[ProgramModel]]
+
+  def selectPageForPrograms(
+    pids:           Set[Program.Id],
+    count:          Option[Int]        = None,
+    afterGid:       Option[Program.Id] = None,
+    includeDeleted: Boolean            = false
   ): F[ResultPage[ProgramModel]]
 
   /**
@@ -54,7 +61,7 @@ trait ProgramRepo[F[_]] extends TopLevelRepo[F, Program.Id, ProgramModel] {
   def selectPageForTarget(
     tid:                 Target.Id,
     includeObservations: Boolean            = true,
-    count:               Int                = Integer.MAX_VALUE,
+    count:               Option[Int]        = None,
     afterGid:            Option[Program.Id] = None,
     includeDeleted:      Boolean            = false
   ): F[ResultPage[ProgramModel]]
@@ -88,7 +95,7 @@ object ProgramRepo {
       override def selectPageForAsterism(
         aid:                 Asterism.Id,
         includeObservations: Boolean,
-        count:               Int,
+        count:               Option[Int],
         afterGid:            Option[Program.Id],
         includeDeleted:      Boolean
       ): F[ResultPage[ProgramModel]] =
@@ -99,10 +106,19 @@ object ProgramRepo {
             else Iterable.empty[Program.Id])
         }
 
+      override def selectPageForPrograms(
+        pids:           Set[Program.Id],
+        count:          Option[Int]        = None,
+        afterGid:       Option[Program.Id] = None,
+        includeDeleted: Boolean            = false
+      ): F[ResultPage[ProgramModel]] =
+
+        selectPageFiltered(count, afterGid, includeDeleted) { p => pids(p.id) }
+
       override def selectPageForTarget(
         tid:                 Target.Id,
         includeObservations: Boolean,
-        count:               Int,
+        count:               Option[Int],
         afterGid:            Option[Program.Id],
         includeDeleted:      Boolean
       ): F[ResultPage[ProgramModel]] =
