@@ -22,21 +22,28 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
   def selectPageForAsterism(
     aid:            Asterism.Id,
     pid:            Option[Program.Id]     = None,
-    count:          Int                    = Integer.MAX_VALUE,
+    count:          Option[Int]            = None,
     afterGid:       Option[Observation.Id] = None,
     includeDeleted: Boolean                = false
   ): F[ResultPage[ObservationModel]]
 
   def selectPageForConstraintSet(
     csid:           ConstraintSet.Id,
-    count:          Int                    = Integer.MAX_VALUE,
+    count:          Option[Int]            = None,
+    afterGid:       Option[Observation.Id] = None,
+    includeDeleted: Boolean                = false
+  ): F[ResultPage[ObservationModel]]
+
+  def selectPageForObservations(
+    oids:           Set[Observation.Id],
+    count:          Option[Int]            = None,
     afterGid:       Option[Observation.Id] = None,
     includeDeleted: Boolean                = false
   ): F[ResultPage[ObservationModel]]
 
   def selectPageForProgram(
     pid:            Program.Id,
-    count:          Int                    = Integer.MAX_VALUE,
+    count:          Option[Int]            = None,
     afterGid:       Option[Observation.Id] = None,
     includeDeleted: Boolean                = false
   ): F[ResultPage[ObservationModel]]
@@ -44,7 +51,7 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
   def selectPageForTarget(
     tid:            Target.Id,
     pid:            Option[Program.Id]     = None,
-    count:          Int                    = Integer.MAX_VALUE,
+    count:          Option[Int]            = None,
     afterGid:       Option[Observation.Id] = None,
     includeDeleted: Boolean                = false
   ): F[ResultPage[ObservationModel]]
@@ -78,7 +85,7 @@ object ObservationRepo {
       override def selectPageForAsterism(
         aid:            Asterism.Id,
         pid:            Option[Program.Id],
-        count:          Int,
+        count:          Option[Int],
         afterGid:       Option[Observation.Id],
         includeDeleted: Boolean
       ): F[ResultPage[ObservationModel]] =
@@ -89,16 +96,25 @@ object ObservationRepo {
 
       override def selectPageForConstraintSet(
         csid:           ConstraintSet.Id,
-        count:          Int,
+        count:          Option[Int],
         afterGid:       Option[Observation.Id],
         includeDeleted: Boolean
       ): F[ResultPage[ObservationModel]] =
 
         selectPageFiltered(count, afterGid, includeDeleted) { _.constraintSetId.exists(_ === csid) }
 
+      override def selectPageForObservations(
+        oids:           Set[Observation.Id],
+        count:          Option[Int],
+        afterGid:       Option[Observation.Id],
+        includeDeleted: Boolean
+      ): F[ResultPage[ObservationModel]] =
+
+        selectPageFiltered(count, afterGid, includeDeleted) { o => oids(o.id) }
+
       override def selectPageForProgram(
         pid:            Program.Id,
-        count:          Int,
+        count:          Option[Int],
         afterGid:       Option[Observation.Id],
         includeDeleted: Boolean
       ): F[ResultPage[ObservationModel]] =
@@ -108,7 +124,7 @@ object ObservationRepo {
       override def selectPageForTarget(
         tid:            Target.Id,
         pid:            Option[Program.Id],
-        count:          Int,
+        count:          Option[Int],
         afterGid:       Option[Observation.Id],
         includeDeleted: Boolean
       ): F[ResultPage[ObservationModel]] =

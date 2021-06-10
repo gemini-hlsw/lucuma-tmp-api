@@ -55,7 +55,7 @@ final class RepoContextOps[F[_]: Effect](val self: Context[OdbRepo[F], _]) {
   def includeDeleted: Boolean =
     self.arg(GeneralSchema.ArgumentIncludeDeleted)
 
-  def pagingFirst: Int =
+  def pagingFirst: Option[Int] =
     self.arg(Paging.ArgumentPagingFirst)
 
   def pagingCursor[A](msg: String)(f: Paging.Cursor => Option[A]): Either[InputError, Option[A]] = {

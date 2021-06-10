@@ -10,6 +10,7 @@ import cats.effect.Effect
 import cats.syntax.foldable._
 import cats.syntax.functor._
 import sangria.schema._
+import scala.collection.immutable.Seq
 
 object ProgramSchema {
 
@@ -35,6 +36,13 @@ object ProgramSchema {
       name         = "programId",
       argumentType = OptionInputType(ProgramIdType),
       description  = "Program ID"
+    )
+
+  val OptionalListProgramIdArgument: Argument[Option[Seq[Program.Id]]] =
+    Argument(
+      name         = "programIds",
+      argumentType = OptionInputType(ListInputType(ProgramIdType)),
+      description  = "Program Ids"
     )
 
   def ProgramType[F[_]: Effect]: ObjectType[OdbRepo[F], ProgramModel] =
@@ -121,7 +129,7 @@ object ProgramSchema {
           description = Some("Program planned time calculation."),
           arguments   = List(ArgumentIncludeDeleted),
           resolve     = c => c.observation {
-            _.selectPageForProgram(c.value.id, Integer.MAX_VALUE, None, c.includeDeleted)
+            _.selectPageForProgram(c.value.id, Some(Integer.MAX_VALUE), None, c.includeDeleted)
              .map(_.nodes.foldMap(_.plannedTimeSummary))
           }
         )

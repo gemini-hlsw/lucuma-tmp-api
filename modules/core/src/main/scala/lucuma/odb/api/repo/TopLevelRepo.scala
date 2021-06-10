@@ -33,24 +33,24 @@ trait TopLevelRepo[F[_], I, T] {
   ): F[List[T]]
 
   def selectPage(
-    count:          Int       = Integer.MAX_VALUE,
-    afterGid:       Option[I] = None,
-    includeDeleted: Boolean   = false
+    count:          Option[Int] = None,
+    afterGid:       Option[I]   = None,
+    includeDeleted: Boolean     = false
   ): F[ResultPage[T]] =
     selectPageFiltered(count, afterGid, includeDeleted) { Function.const(true) }
 
   def selectPageFiltered(
-    count:          Int       = Integer.MAX_VALUE,
-    afterGid:       Option[I] = None,
-    includeDeleted: Boolean   = false
+    count:          Option[Int] = None,
+    afterGid:       Option[I]   = None,
+    includeDeleted: Boolean     = false
   )(
     predicate: T => Boolean
   ): F[ResultPage[T]]
 
   def selectPageFromIds(
-    count:          Int       = Integer.MAX_VALUE,
-    afterGid:       Option[I] = None,
-    includeDeleted: Boolean   = false
+    count:          Option[Int] = None,
+    afterGid:       Option[I]   = None,
+    includeDeleted: Boolean     = false
   )(
     ids: Tables => scala.collection.immutable.SortedSet[I]
   ): F[ResultPage[T]]
@@ -108,13 +108,13 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
     includeDeleted: Boolean
   ): F[List[T]] =
     selectPage(
-      count          = Integer.MAX_VALUE,
+      count          = Some(Integer.MAX_VALUE),
       afterGid       = None,
       includeDeleted = includeDeleted
     ).map(_.nodes)
 
   def selectPageFiltered(
-    count:          Int,
+    count:          Option[Int],
     afterGid:       Option[I],
     includeDeleted: Boolean
   )(
@@ -134,7 +134,7 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
     }
 
   def selectPageFromIds(
-    count:          Int,
+    count:          Option[Int],
     afterGid:       Option[I],
     includeDeleted: Boolean
   )(

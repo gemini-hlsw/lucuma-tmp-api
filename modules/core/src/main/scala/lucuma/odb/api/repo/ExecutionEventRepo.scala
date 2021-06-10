@@ -21,9 +21,9 @@ sealed trait ExecutionEventRepo[F[_]] {
     eid: ExecutionEvent.Id
   ): F[Option[ExecutionEventModel]]
 
-  def selectEventsForObservation(
+  def selectPageForObservation(
     oid:      Observation.Id,
-    count:    Int,
+    count:    Option[Int],
     afterGid: Option[ExecutionEvent.Id] = None
   ): F[ResultPage[ExecutionEventModel]]
 
@@ -53,9 +53,9 @@ object ExecutionEventRepo {
       ): F[Option[ExecutionEventModel]] =
         tablesRef.get.map(Tables.executionEvent(eid).get)
 
-      override def selectEventsForObservation(
+      override def selectPageForObservation(
         oid:      Observation.Id,
-        count:    Int,
+        count:    Option[Int],
         afterGid: Option[ExecutionEvent.Id]
       ): F[ResultPage[ExecutionEventModel]] =
         tablesRef.get.map { tables =>

@@ -73,10 +73,10 @@ object Paging {
       }
     )
 
-  val ArgumentPagingFirst: Argument[Int] =
+  val ArgumentPagingFirst: Argument[Option[Int]] =
     Argument(
       name         = "first",
-      argumentType = IntType,
+      argumentType = OptionInputType(IntType),
       description  = "Retrieve `first` values after the given cursor"
     )
 

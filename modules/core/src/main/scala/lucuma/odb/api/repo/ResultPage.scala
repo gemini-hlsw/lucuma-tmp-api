@@ -20,18 +20,18 @@ object ResultPage {
     ResultPage(Nil, hasNextPage = false, 0)
 
   private def fromIterator[A](
-    count:      Int,
+    count:      Option[Int],
     it:         Iterator[A],
     totalCount: Int
   ): ResultPage[A] = {
     val res = scala.collection.mutable.Buffer.empty[A]
-    while (it.hasNext && (res.size < count)) res += it.next()
+    while (it.hasNext && (res.size < count.getOrElse(Int.MaxValue))) res += it.next()
     ResultPage(res.toList, it.hasNext, totalCount)
   }
 
   def fromSeq[A, B: Eq](
     all:   Seq[A],
-    count: Int,
+    count: Option[Int],
     after: Option[B],
     toB:   A => B
   ): ResultPage[A] =
@@ -45,7 +45,7 @@ object ResultPage {
     )
 
   def select[A: Order, B](
-    count:   Int,
+    count:   Option[Int],
     after:   Option[A],
     keys:    SortedSet[A],
     lookup:  A => B,

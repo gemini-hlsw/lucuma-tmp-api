@@ -45,7 +45,7 @@ trait OdbRepoTest {
     predicate: T => Boolean
   ): F[List[ResultPage[T]]] =
     Stream.unfoldLoopEval(afterGid) { gid =>
-      repo.selectPageFiltered(pageSize.value, gid)(predicate).map { page =>
+      repo.selectPageFiltered(Some(pageSize.value), gid)(predicate).map { page =>
         val next =
           if (page.hasNextPage)
             page.nodes.lastOption.map(t => Option(TopLevelModel[I, T].id(t)))
