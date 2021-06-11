@@ -63,6 +63,15 @@ trait ArbInstrumentConfigModel extends Helper {
       } yield InstrumentConfigModel.CreateGmosNorth(st, aq, sc)
     }
 
+  def arbValidInstrumentConfigCreateGmosNorth: Arbitrary[InstrumentConfigModel.CreateGmosNorth] =
+    Arbitrary {
+      for {
+        st <- arbitrary[GmosModel.CreateNorthStatic]
+        aq <- arbValidSequenceCreate[GmosModel.CreateNorthDynamic].arbitrary
+        sc <- arbValidSequenceCreate[GmosModel.CreateNorthDynamic].arbitrary
+      } yield InstrumentConfigModel.CreateGmosNorth(st, aq, sc)
+    }
+
   implicit def cogInstrumentConfigCreateGmosNorth: Cogen[InstrumentConfigModel.CreateGmosNorth] =
     Cogen[(
       GmosModel.CreateNorthStatic,
@@ -80,6 +89,15 @@ trait ArbInstrumentConfigModel extends Helper {
         st <- arbitrary[GmosModel.CreateSouthStatic]
         aq <- arbitrary[SequenceModel.Create[GmosModel.CreateSouthDynamic]]
         sc <- arbitrary[SequenceModel.Create[GmosModel.CreateSouthDynamic]]
+      } yield InstrumentConfigModel.CreateGmosSouth(st, aq, sc)
+    }
+
+  def arbValidInstrumentConfigCreateGmosSouth: Arbitrary[InstrumentConfigModel.CreateGmosSouth] =
+    Arbitrary {
+      for {
+        st <- arbitrary[GmosModel.CreateSouthStatic]
+        aq <- arbValidSequenceCreate[GmosModel.CreateSouthDynamic].arbitrary
+        sc <- arbValidSequenceCreate[GmosModel.CreateSouthDynamic].arbitrary
       } yield InstrumentConfigModel.CreateGmosSouth(st, aq, sc)
     }
 
@@ -111,7 +129,15 @@ trait ArbInstrumentConfigModel extends Helper {
       in.gmosSouth
     )}
 
-  implicit def arbSequenceModelCreate: Arbitrary[InstrumentConfigModel.Create] =
+  def arbValidInstrumentConfigModelCreate: Arbitrary[InstrumentConfigModel.Create] =
+    Arbitrary {
+      Gen.oneOf(
+        arbValidInstrumentConfigCreateGmosNorth.arbitrary.map(InstrumentConfigModel.Create.gmosNorth),
+        arbValidInstrumentConfigCreateGmosSouth.arbitrary.map(InstrumentConfigModel.Create.gmosSouth)
+      )
+    }
+
+  implicit def arbInstrumentConfigModelCreate: Arbitrary[InstrumentConfigModel.Create] =
     Arbitrary {
       Gen.oneOf(
         arbitrary[InstrumentConfigModel.CreateGmosNorth].map(InstrumentConfigModel.Create.gmosNorth),
@@ -119,7 +145,7 @@ trait ArbInstrumentConfigModel extends Helper {
       )
     }
 
-  implicit def cogSequenceModelCreate: Cogen[InstrumentConfigModel.Create] =
+  implicit def cogInstrumentConfigModelCreate: Cogen[InstrumentConfigModel.Create] =
     Cogen[(
       Option[InstrumentConfigModel.CreateGmosNorth],
       Option[InstrumentConfigModel.CreateGmosSouth]

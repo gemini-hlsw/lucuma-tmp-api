@@ -5,10 +5,11 @@ package lucuma.odb.api.repo
 package arb
 
 import lucuma.core.model.{Asterism, Atom, Observation, Program, Step, Target}
-import lucuma.odb.api.model.{AsterismModel, AtomModel, ExecutionEvent, ExecutionEventModel, ObservationModel, ProgramModel, StepModel, TargetModel}
+import lucuma.odb.api.model.{AsterismModel, AtomModel, ExecutionEvent, ExecutionEventModel, InstrumentConfigModel, ObservationModel, ProgramModel, StepModel, TargetModel}
 import lucuma.odb.api.model.arb._
 import lucuma.core.util.Gid
 import cats.Order
+import cats.data.{Nested, State}
 import cats.kernel.instances.order._
 import cats.syntax.all._
 import org.scalacheck._
@@ -19,6 +20,7 @@ import scala.collection.immutable.SortedMap
 trait ArbTables extends SplitSetHelper {
 
   import ArbAsterismModel._
+  import ArbInstrumentConfigModel._
   import ArbObservationModel._
   import ArbProgramModel._
   import ArbTargetModel._
@@ -86,7 +88,7 @@ trait ArbTables extends SplitSetHelper {
       someBs <- Gen.someOf(bs)
     } yield ManyToMany((for(a <- someAs; b <- someBs) yield (a, b)).toSeq: _*)
 
-  implicit val arbTables: Arbitrary[Tables] =
+  val initArbTables: Arbitrary[Tables] =
     Arbitrary {
       for {
         ps <- mapPrograms
@@ -108,6 +110,27 @@ trait ArbTables extends SplitSetHelper {
         ta <- manyToMany(ts.keys, as.keys)
       } yield Tables(ids, SortedMap.empty, as, SortedMap.empty, os, ps, SortedMap.empty, ts, pa, pt, ta)
     }
+
+  implicit val arbTables: Arbitrary[Tables] =
+    Arbitrary {
+      for {
+        t <- initArbTables.arbitrary
+        c <- Gen.listOfN[Option[InstrumentConfigModel.Create]](t.observations.size, Gen.option(arbValidInstrumentConfigModelCreate.arbitrary))
+      } yield {
+
+        // Create an option random sequence for each observation.
+        val (tʹ, a) = Nested(c).traverse(_.create[State[Tables, *], Tables](TableState)).run(t).value
+        val icms    = a.value.map(_.flatMap(_.toOption))
+
+        // Update the observations to contain the random sequence.
+        Tables.observations.modify { obsMap =>
+          val icmMap = obsMap.keys.zip(icms).toMap
+          obsMap.transform((id, o) => o.copy(config = icmMap.get(id).flatten.map(_.toReference)))
+        }(tʹ)
+
+      }
+    }
+
 }
 
 object ArbTables extends ArbTables

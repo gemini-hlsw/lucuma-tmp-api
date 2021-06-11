@@ -6,7 +6,7 @@ package lucuma.odb.api.model
 import cats.mtl.Stateful
 import lucuma.core.model.{Observation, Step, WithId}
 import lucuma.core.util.Enumerated
-import cats.{Monad, Order}
+import cats.{Eq, Monad, Order}
 import cats.syntax.all._
 import eu.timepit.refined.types.numeric._
 import io.chrisdavenport.cats.time.instances.instant._
@@ -36,6 +36,14 @@ sealed trait ExecutionEventModel {
 }
 
 object ExecutionEventModel {
+
+  implicit val EqExecutionEventModel: Eq[ExecutionEventModel] =
+    Eq.instance {
+      case (e0: SequenceEvent, e1: SequenceEvent) => e0 === e1
+      case (e0: StepEvent,     e1: StepEvent)     => e0 === e1
+      case (e0: DatasetEvent,  e1: DatasetEvent)  => e0 === e1
+      case _                                      => false
+    }
 
   // Sequence-level Events ----------------------------------------------------
 

@@ -35,7 +35,7 @@ trait ArbParallaxModel {
 
   val genParallaxModelInputFromDecimal: Gen[Input] =
     Gen.oneOf(
-      genDecimalInput(microarcseconds, Units.microarcseconds),
+      genLongDecimalInput(microarcseconds, Units.microarcseconds),
       genDecimalInput(milliarcseconds, Units.milliarcseconds)
     ).map(Input.fromDecimal)
 

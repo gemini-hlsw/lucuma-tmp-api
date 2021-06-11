@@ -30,6 +30,14 @@ trait ArbSequenceModel extends Helper {
       } yield SequenceModel.Create(as)
     }
 
+  def arbValidSequenceCreate[D: Arbitrary]: Arbitrary[SequenceModel.Create[D]] =
+    Arbitrary {
+      for {
+        s  <- smallSize
+        as <- Gen.listOfN(s, arbValidCreateAtom[D].arbitrary)
+      } yield SequenceModel.Create(as)
+    }
+
   implicit def cogSequenceCreate[D: Cogen]: Cogen[SequenceModel.Create[D]] =
     Cogen[List[AtomModel.Create[D]]].contramap(_.atoms)
 

@@ -37,7 +37,7 @@ trait ArbOffsetModel {
 
   val genOffsetComponentInputFromDecimal: Gen[ComponentInput] =
     Gen.oneOf(
-      genDecimalInput(microarcseconds, Units.microarcseconds),
+      genLongDecimalInput(microarcseconds, Units.microarcseconds),
       genDecimalInput(milliseconds, Units.milliarcseconds),
       genDecimalInput(arcseconds, Units.arcseconds),
     ).map(ComponentInput.fromDecimal)

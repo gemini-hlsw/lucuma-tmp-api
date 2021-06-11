@@ -129,13 +129,20 @@ trait ArbStepModel {
   implicit def arbCreateStepConfig[A: Arbitrary]: Arbitrary[StepConfig.CreateStepConfig[A]] =
     Arbitrary {
       Gen.oneOf(
-        arbitrary[StepConfig.CreateBias[A]].map(   b => StepConfig.CreateStepConfig(Some(b), None, None, None)),
-        arbitrary[StepConfig.CreateDark[A]].map(   d => StepConfig.CreateStepConfig(None, Some(d), None, None)),
-        arbitrary[StepConfig.CreateGcal[A]].map(   g => StepConfig.CreateStepConfig(None, None, Some(g), None)),
-        arbitrary[StepConfig.CreateScience[A]].map(s => StepConfig.CreateStepConfig(None, None, None, Some(s))),
+        arbValidCreateStepConfig[A].arbitrary,
         arbitrary[(StepConfig.CreateGcal[A], StepConfig.CreateScience[A])].map { case (g, s) =>
           StepConfig.CreateStepConfig(None, None, Some(g), Some(s))  // invalid but possible input
         }
+      )
+    }
+
+  def arbValidCreateStepConfig[A: Arbitrary]: Arbitrary[StepConfig.CreateStepConfig[A]] =
+    Arbitrary {
+      Gen.oneOf(
+        arbitrary[StepConfig.CreateBias[A]].map(   b => StepConfig.CreateStepConfig(Some(b), None, None, None)),
+        arbitrary[StepConfig.CreateDark[A]].map(   d => StepConfig.CreateStepConfig(None, Some(d), None, None)),
+        arbitrary[StepConfig.CreateGcal[A]].map(   g => StepConfig.CreateStepConfig(None, None, Some(g), None)),
+        arbitrary[StepConfig.CreateScience[A]].map(s => StepConfig.CreateStepConfig(None, None, None, Some(s)))
       )
     }
 
@@ -152,7 +159,7 @@ trait ArbStepModel {
       in.science
     )}
 
-    implicit def arbStepModel[A: Arbitrary]: Arbitrary[StepModel[A]] =
+  implicit def arbStepModel[A: Arbitrary]: Arbitrary[StepModel[A]] =
     Arbitrary {
       for {
         i <- arbitrary[Step.Id]
@@ -176,6 +183,15 @@ trait ArbStepModel {
         s <- arbitrary[StepConfig.CreateStepConfig[A]]
       } yield StepModel.Create(i, b, s)
     }
+
+  def arbValidStepModelCreate[A: Arbitrary]: Arbitrary[StepModel.Create[A]] =
+    Arbitrary {
+      for {
+        b <- arbitrary[Breakpoint]
+        s <- arbValidCreateStepConfig[A].arbitrary
+      } yield StepModel.Create(None, b, s)
+    }
+
 
   implicit def cogStepModelCreate[A: Cogen]: Cogen[StepModel.Create[A]] =
     Cogen[(Option[Step.Id], Breakpoint, StepConfig.CreateStepConfig[A])].contramap { in => (

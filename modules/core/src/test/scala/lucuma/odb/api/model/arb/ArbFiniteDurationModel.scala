@@ -10,7 +10,6 @@ import NumericUnits.{LongInput, DecimalInput}
 import lucuma.core.util.arb.ArbEnumerated
 
 import org.scalacheck._
-import org.scalacheck.Arbitrary.arbitrary
 
 
 trait ArbFiniteDurationModel {
@@ -18,26 +17,30 @@ trait ArbFiniteDurationModel {
   import ArbEnumerated._
   import GenNumericUnitsInput._
 
+  private[this] val c_µs = 1000L
+  private[this] val c_ms = c_µs * 1000L
+  private[this] val c_s  = c_ms * 1000L
+  private[this] val c_m  = c_s  * 60L
+  private[this] val c_h  = c_m  * 60L
+  private[this] val c_d  = c_h  * 24L
+
+  private def genBigDecimal(c: Long): Gen[BigDecimal] = {
+    val max = Long.MaxValue/c
+    for {
+      h <- Gen.chooseNum(-max, max)
+      f <- Gen.chooseNum(0, 499)
+    } yield BigDecimal(h) + BigDecimal(f)/1000
+  }
+
   private[this] val nanoseconds: Gen[Long] =
-    arbitrary[Long]
+    Gen.chooseNum[Long](-Long.MaxValue, Long.MaxValue)
 
-  private[this] val microseconds: Gen[BigDecimal] =
-    nanoseconds.map(n => BigDecimal(n)/1000)
-
-  private[this] val milliseconds: Gen[BigDecimal] =
-    microseconds.map(_/1000)
-
-  private[this] val seconds: Gen[BigDecimal] =
-    milliseconds.map(_/1000)
-
-  private[this] val minutes: Gen[BigDecimal] =
-    seconds.map(_/60)
-
-  private[this] val hours: Gen[BigDecimal] =
-    minutes.map(_/60)
-
-  private[this] val days: Gen[BigDecimal] =
-    hours.map(_/24)
+  private[this] val microseconds: Gen[BigDecimal] = genBigDecimal(c_µs)
+  private[this] val milliseconds: Gen[BigDecimal] = genBigDecimal(c_ms)
+  private[this] val seconds: Gen[BigDecimal]      = genBigDecimal(c_s)
+  private[this] val minutes: Gen[BigDecimal]      = genBigDecimal(c_m)
+  private[this] val hours: Gen[BigDecimal]        = genBigDecimal(c_h)
+  private[this] val days: Gen[BigDecimal]         = genBigDecimal(c_d)
 
   val genFiniteDurationModelInputFromLong: Gen[Input] =
     Gen.oneOf(
@@ -52,7 +55,7 @@ trait ArbFiniteDurationModel {
 
   val genFiniteDurationModelInputFromDecimal: Gen[Input] =
     Gen.oneOf(
-      genDecimalInput(nanoseconds,  Units.nanoseconds),
+      genLongDecimalInput(nanoseconds,  Units.nanoseconds),
       genDecimalInput(microseconds, Units.microseconds),
       genDecimalInput(milliseconds, Units.milliseconds),
       genDecimalInput(seconds,      Units.seconds),
