@@ -6,10 +6,10 @@ package lucuma.odb.api.schema
 import lucuma.core.model.Observation
 import lucuma.odb.api.model.{ConstraintSetModel, InputError, ObservationModel}
 import lucuma.odb.api.repo.{OdbRepo, ResultPage}
-
 import cats.effect.Effect
 import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.all._
+import lucuma.odb.api.schema.ProgramSchema.ProgramIdArgument
 import sangria.schema._
 
 trait ObservationQuery {
@@ -67,6 +67,7 @@ trait ObservationQuery {
       fieldType   = ConstraintSetGroupConnectionType[F],
       description = Some("Observations group by commonly held constraints"),
       arguments   = List(
+        ProgramIdArgument,
         ArgumentPagingFirst,
         ArgumentPagingCursor,
         ArgumentIncludeDeleted
@@ -75,6 +76,7 @@ trait ObservationQuery {
         val all: F[List[ConstraintSetModel.Group]] =
           c.ctx.tables.get.map { t =>
             t.observations
+             .filter { case (_, o) => o.programId === c.programId }
              .groupBy { case (_, o) => o.constraintSet }
              .view
              .mapValues(_.keySet)
