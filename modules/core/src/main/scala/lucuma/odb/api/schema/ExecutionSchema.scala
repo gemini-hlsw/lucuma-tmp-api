@@ -3,12 +3,12 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.core.model.{Observation, Step}
+import lucuma.core.model.{ExecutionEvent, Observation, Step}
+import lucuma.odb.api.model.{DatasetModel, ExecutedStepModel, ExecutionEventModel, InstrumentConfigModel}
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
 import cats.syntax.all._
 import eu.timepit.refined.types.all.PosInt
-import lucuma.odb.api.model.{DatasetModel, ExecutedStepModel, ExecutionEvent, ExecutionEventModel, InstrumentConfigModel}
 import sangria.schema._
 
 object ExecutionSchema {

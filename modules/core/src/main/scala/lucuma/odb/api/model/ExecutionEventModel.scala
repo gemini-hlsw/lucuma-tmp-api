@@ -4,7 +4,7 @@
 package lucuma.odb.api.model
 
 import cats.mtl.Stateful
-import lucuma.core.model.{Observation, Step, WithId}
+import lucuma.core.model.{ExecutionEvent, Observation, Step}
 import lucuma.core.util.Enumerated
 import cats.{Eq, Monad, Order}
 import cats.syntax.all._
@@ -16,9 +16,6 @@ import io.circe.refined._
 import eu.timepit.refined.auto._
 
 import java.time.Instant
-
-// TODO: Move to lucuma-core
-object ExecutionEvent extends WithId('e')
 
 /**
  * Shared interface for all execution events: sequence, step and dataset.

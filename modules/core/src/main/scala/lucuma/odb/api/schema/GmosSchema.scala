@@ -177,8 +177,8 @@ object GmosSchema {
 
   private def gmos(s: Site): Instrument =
     s match {
-      case Site.GN => Instrument.GmosN
-      case Site.GS => Instrument.GmosS
+      case Site.GN => Instrument.GmosNorth
+      case Site.GS => Instrument.GmosSouth
     }
 
   def GmosStaticConfig[F[_]: Effect, S: EnumType, G <: GmosModel.Static[S]: ClassTag](

@@ -3,9 +3,9 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{AtomModel, DatabaseState, DatasetModel, DereferencedSequence, ExecutedStepModel, ExecutionEvent, ExecutionEventModel, InputError, StepModel, ValidatedInput}
+import lucuma.odb.api.model.{AtomModel, DatabaseState, DatasetModel, DereferencedSequence, ExecutedStepModel, ExecutionEventModel, InputError, StepModel, ValidatedInput}
 import lucuma.odb.api.model.ExecutionEventModel.{DatasetEvent, SequenceEvent, StepEvent}
-import lucuma.core.model.{Atom, Observation, Step}
+import lucuma.core.model.{Atom, ExecutionEvent, Observation, Step}
 import cats.data.{EitherT, State}
 import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.all._

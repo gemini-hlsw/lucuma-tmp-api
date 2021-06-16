@@ -4,8 +4,8 @@
 package lucuma.odb.api.repo
 package arb
 
-import lucuma.core.model.{Asterism, Atom, Observation, Program, Step, Target}
-import lucuma.odb.api.model.{AsterismModel, AtomModel, ExecutionEvent, ExecutionEventModel, InstrumentConfigModel, ObservationModel, ProgramModel, StepModel, TargetModel}
+import lucuma.core.model.{Asterism, Atom, ExecutionEvent, Observation, Program, Step, Target}
+import lucuma.odb.api.model.{AsterismModel, AtomModel, ExecutionEventModel, InstrumentConfigModel, ObservationModel, ProgramModel, StepModel, TargetModel}
 import lucuma.odb.api.model.arb._
 import lucuma.core.util.Gid
 import cats.Order

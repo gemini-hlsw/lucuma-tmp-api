@@ -119,14 +119,14 @@ object ExecutionConfigSchema {
 
   def GmosNorthExecutionConfigType[F[_]: Effect]: ObjectType[OdbRepo[F], ExecutionContext[GmosModel.NorthStatic, GmosModel.NorthDynamic]] =
     ConcreteExecutionConfigType[F, GmosModel.NorthStatic, GmosModel.NorthDynamic](
-      Instrument.GmosN,
+      Instrument.GmosNorth,
       GmosSchema.GmosNorthStaticConfigType[F],
       GmosSchema.GmosNorthDynamicType[F]
     )
 
   def GmosSouthExecutionConfigType[F[_]: Effect]: ObjectType[OdbRepo[F], ExecutionContext[GmosModel.SouthStatic, GmosModel.SouthDynamic]] =
     ConcreteExecutionConfigType[F, GmosModel.SouthStatic, GmosModel.SouthDynamic](
-      Instrument.GmosS,
+      Instrument.GmosSouth,
       GmosSchema.GmosSouthStaticConfigType[F],
       GmosSchema.GmosSouthDynamicType[F]
     )

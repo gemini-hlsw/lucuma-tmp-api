@@ -3,8 +3,8 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.core.model.{Asterism, Atom, Observation, Program, Step, Target}
-import lucuma.odb.api.model.{AsterismModel, AtomModel, ExecutionEvent, ExecutionEventModel, ObservationModel, ProgramModel, StepModel, TargetModel}
+import lucuma.core.model.{Asterism, Atom, ExecutionEvent, Observation, Program, Step, Target}
+import lucuma.odb.api.model.{AsterismModel, AtomModel,ExecutionEventModel, ObservationModel, ProgramModel, StepModel, TargetModel}
 import cats.instances.order._
 import monocle.Lens
 import monocle.function.At

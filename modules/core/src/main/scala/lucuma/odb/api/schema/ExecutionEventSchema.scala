@@ -3,7 +3,8 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{ExecutionEvent, ExecutionEventModel}
+import lucuma.core.model.ExecutionEvent
+import lucuma.odb.api.model.ExecutionEventModel
 import lucuma.odb.api.repo.OdbRepo
 
 import cats.effect.Effect

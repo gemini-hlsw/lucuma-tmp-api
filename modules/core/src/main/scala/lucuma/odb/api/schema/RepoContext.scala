@@ -3,13 +3,13 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.core.model.{Asterism, Observation, Program, Step, Target}
+import lucuma.core.model.{Asterism, ExecutionEvent, Observation, Program, Step, Target}
 import lucuma.odb.api.repo.{AsterismRepo, AtomRepo, ExecutionEventRepo, ObservationRepo, OdbRepo, ProgramRepo, StepRepo, TargetRepo}
 import cats.effect.Effect
 import cats.effect.implicits._
 import cats.syntax.all._
 import lucuma.core.util.Gid
-import lucuma.odb.api.model.{ExecutionEvent, InputError}
+import lucuma.odb.api.model.InputError
 import sangria.schema.Context
 
 import scala.concurrent.Future

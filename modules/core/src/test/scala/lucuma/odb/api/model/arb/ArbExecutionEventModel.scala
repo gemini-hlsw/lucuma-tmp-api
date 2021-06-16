@@ -7,7 +7,7 @@ package arb
 import ExecutionEventModel._
 
 import lucuma.core.arb.ArbTime
-import lucuma.core.model.{Observation, Step}
+import lucuma.core.model.{ExecutionEvent, Observation, Step}
 import lucuma.core.util.arb.{ArbEnumerated, ArbGid}
 
 import cats.syntax.all._
