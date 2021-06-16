@@ -10,6 +10,18 @@ import io.chrisdavenport.cats.time._
 
 import java.time.Instant
 
+/**
+ * Information associated with an executed step.
+ *
+ * @param stepId corresponding step id
+ * @param atomId atom in which the step appears
+ * @param observationId observation in which the step appears
+ * @param stepEvents step events tied to this step
+ * @param datasetEvents dataset events associated with this step
+ * @param datasets all the datasets produced by this step
+ * @param startTime when the step started
+ * @param endTime when the step finished
+ */
 final case class ExecutedStepModel(
   stepId:        Step.Id,
   atomId:        Atom.Id,
@@ -21,12 +33,18 @@ final case class ExecutedStepModel(
   endTime:       Instant
 ) {
 
+  /**
+   * Whether this is an acquisition or science step.
+   */
   def sequenceType: SequenceModel.SequenceType =
     stepEvents.map(_.sequenceType).distinct match {
       case List(t) => t
       case _       => SequenceModel.SequenceType.Science
     }
 
+  /**
+   * Extracts the step configuration.
+   */
   def dereference[F[_]: Functor, T, D](
     db: DatabaseReader[T]
   )(

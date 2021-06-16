@@ -25,34 +25,44 @@ sealed trait ExecutionEventRepo[F[_]] {
     eid: ExecutionEvent.Id
   ): F[Option[ExecutionEventModel]]
 
+  /** Page events associated with an observation */
   def selectEventsPageForObservation(
     oid:      Observation.Id,
     count:    Option[Int],
     afterGid: Option[ExecutionEvent.Id] = None
   ): F[ResultPage[ExecutionEventModel]]
 
+  /** Page datasets associated with an observation  */
   def selectDatasetsPageForObservation(
     oid:   Observation.Id,
     count: Option[Int],
     after: Option[(Step.Id, PosInt)] = None
   ): F[ResultPage[DatasetModel]]
 
+  /** Page datasets associated with an individual step. */
   def selectDatasetsPageForStep(
     sid:   Step.Id,
     count: Option[Int],
     after: Option[PosInt] = None
   ): F[ResultPage[DatasetModel]]
 
+  /** Page executed steps associated with an observation. */
   def selectExecutedStepsPageForObservation(
     oid:   Observation.Id,
     count: Option[Int],
     after: Option[Step.Id] = None
   ): F[ResultPage[ExecutedStepModel]]
 
+  /** Select all executed steps for an observation at once. */
   def selectExecutedStepsForObservation(
     oid: Observation.Id
   ): F[List[ExecutedStepModel]]
 
+  /**
+   * Select all not-completely-executed atoms after the last executed atom. A
+   * step is considered executed if we've received an end step event.  An atom
+   * is executed if all steps are executed.
+   */
   def selectRemainingAtoms[D](
     oid: Observation.Id,
     seq: DereferencedSequence[D]
@@ -74,6 +84,9 @@ sealed trait ExecutionEventRepo[F[_]] {
 
 object ExecutionEventRepo {
 
+  /**
+   * Groups step and dataset events associated with a particular step.
+   */
   private final case class EventsPair(
     datasetEvents: List[DatasetEvent],
     stepEvents:    List[StepEvent]
@@ -108,6 +121,7 @@ object ExecutionEventRepo {
       ): F[Option[ExecutionEventModel]] =
         tablesRef.get.map(Tables.executionEvent(eid).get)
 
+      // Sort events by generation timestamp + event id
       private def sortedEvents(oid: Observation.Id): F[List[ExecutionEventModel]] =
         tablesRef.get.map(
           _.executionEvents
@@ -117,6 +131,7 @@ object ExecutionEventRepo {
            .sortBy(e => (e.generated, e.id))
         )
 
+      // Map of steps to the atoms that contain them.
       private val stepAtoms: F[Map[Step.Id, Atom.Id]] =
         tablesRef.get.map(
           _.atoms.values.foldLeft(Map.empty[Step.Id, Atom.Id]) { (m, a) =>
@@ -130,6 +145,7 @@ object ExecutionEventRepo {
           es <- sortedEvents(oid)
         } yield  {
 
+          // Steps and their associated dataset and step events.
           val byStep = es.foldRight(SortedMap.empty[Step.Id, EventsPair]) { (e, m) =>
             e match {
               case _: SequenceEvent => m
@@ -138,6 +154,7 @@ object ExecutionEventRepo {
             }
           }
 
+          // Create executed steps from the event information.
           byStep.toList.collect { case (sid, ep: EventsPair) if ep.isExecuted =>
             ExecutedStepModel(
               sid,
@@ -230,6 +247,7 @@ object ExecutionEventRepo {
         val isExecutedStep: Set[Step.Id] =
           executed.map(_.stepId).toSet
 
+        // An atom is executed if all steps are executed.
         val isExecutedAtom: Set[Atom.Id] =
           sequence.atoms.collect {
             case atom if atom.steps.map(_.id).forall(isExecutedStep) => atom.id
