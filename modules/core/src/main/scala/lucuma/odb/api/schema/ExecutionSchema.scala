@@ -80,7 +80,7 @@ object ExecutionSchema {
             c.observation(
               _.selectManualConfig(c.value).map(_.flatMap {
                   case gn: InstrumentConfigModel.GmosNorth =>
-                    ExecutionConfigSchema.ExecutionContext(
+                    ExecutionConfigSchema.GmosNorthExecutionContext(
                       c.value,
                       gn.instrument,
                       gn.static,
@@ -89,7 +89,7 @@ object ExecutionSchema {
                     ).some
 
                   case gs: InstrumentConfigModel.GmosSouth =>
-                    ExecutionConfigSchema.ExecutionContext(
+                    ExecutionConfigSchema.GmosSouthExecutionContext(
                       c.value,
                       gs.instrument,
                       gs.static,

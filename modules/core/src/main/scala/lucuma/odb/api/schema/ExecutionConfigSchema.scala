@@ -17,13 +17,33 @@ object ExecutionConfigSchema {
   import AtomSchema.AtomConcreteType
   import InstrumentConfigSchema.EnumTypeInstrument
 
-  final case class ExecutionContext[S, D](
+  sealed trait ExecutionContext[S, D] extends Product with Serializable {
+    def oid: Observation.Id
+
+    def instrument: Instrument
+
+    def static: S
+
+    def acquisition: DereferencedSequence[D]
+
+    def science: DereferencedSequence[D]
+  }
+
+  final case class GmosNorthExecutionContext(
     oid:         Observation.Id,
     instrument:  Instrument,
-    static:      S,
-    acquisition: DereferencedSequence[D],
-    science:     DereferencedSequence[D]
-  )
+    static:      GmosModel.NorthStatic,
+    acquisition: DereferencedSequence[GmosModel.NorthDynamic],
+    science:     DereferencedSequence[GmosModel.NorthDynamic]
+  ) extends ExecutionContext[GmosModel.NorthStatic, GmosModel.NorthDynamic]
+
+  final case class GmosSouthExecutionContext(
+    oid:         Observation.Id,
+    instrument:  Instrument,
+    static:      GmosModel.SouthStatic,
+    acquisition: DereferencedSequence[GmosModel.SouthDynamic],
+    science:     DereferencedSequence[GmosModel.SouthDynamic]
+  ) extends ExecutionContext[GmosModel.SouthStatic, GmosModel.SouthDynamic]
 
   def ExecutionConfigType[F[_]: Effect]: InterfaceType[OdbRepo[F], ExecutionContext[_, _]] =
     InterfaceType[OdbRepo[F], ExecutionContext[_, _]](
@@ -81,53 +101,62 @@ object ExecutionConfigSchema {
       )
     )
 
-  def ConcreteExecutionConfigType[F[_]: Effect, S, D](
+  def executionConfigFields[F[_]: Effect, S, D, E <: ExecutionContext[S, D]](
     instrument:  Instrument,
     staticType:  OutputType[S],
     dynamicType: OutputType[D]
-  ): ObjectType[OdbRepo[F], ExecutionContext[S, D]] =
-    ObjectType(
-      name        = s"${instrument.tag}ExecutionConfig",
-      description = s"${instrument.longName} Execution Config",
-      interfaces  = List(PossibleInterface.apply[OdbRepo[F], ExecutionContext[S, D]](ExecutionConfigType[F])),
-      fieldsFn    = () => fields(
+  ): List[Field[OdbRepo[F], E]] =
 
-        Field(
-          name        = "static",
-          fieldType   = staticType,
-          description = s"${instrument.longName} static configuration".some,
-          resolve     = _.value.static
-        ),
+    List(
+      Field(
+        name        = "static",
+        fieldType   = staticType,
+        description = s"${instrument.longName} static configuration".some,
+        resolve     = _.value.static
+      ),
 
-        Field(
-          name        = "acquisition",
-          fieldType   = executionSequence[F, D](instrument, dynamicType, _.acquisition),
-          description = s"${instrument.longName} acquisition execution".some,
-          resolve     = _.value
-        ),
+      Field(
+        name        = "acquisition",
+        fieldType   = executionSequence[F, D](instrument, dynamicType, _.acquisition),
+        description = s"${instrument.longName} acquisition execution".some,
+        resolve     = _.value
+      ),
 
-        Field(
-          name        = "science",
-          fieldType   = executionSequence[F, D](instrument, dynamicType, _.science),
-          description = s"${instrument.longName} science execution".some,
-          resolve     = _.value
-        )
-
+      Field(
+        name        = "science",
+        fieldType   = executionSequence[F, D](instrument, dynamicType, _.science),
+        description = s"${instrument.longName} science execution".some,
+        resolve     = _.value
       )
     )
 
+  private def executionConfigName(instrument: Instrument): String =
+    s"${instrument.tag}ExecutionConfig"
 
-  def GmosNorthExecutionConfigType[F[_]: Effect]: ObjectType[OdbRepo[F], ExecutionContext[GmosModel.NorthStatic, GmosModel.NorthDynamic]] =
-    ConcreteExecutionConfigType[F, GmosModel.NorthStatic, GmosModel.NorthDynamic](
-      Instrument.GmosNorth,
-      GmosSchema.GmosNorthStaticConfigType[F],
-      GmosSchema.GmosNorthDynamicType[F]
+  private def executionConfigDescription(instrument: Instrument): String =
+    s"${instrument.longName} Execution Config"
+
+  def GmosNorthExecutionConfigType[F[_]: Effect]: ObjectType[OdbRepo[F], GmosNorthExecutionContext] =
+    ObjectType(
+      name        = executionConfigName(Instrument.GmosNorth),
+      description = executionConfigDescription(Instrument.GmosNorth),
+      interfaces  = List(PossibleInterface.apply[OdbRepo[F], GmosNorthExecutionContext](ExecutionConfigType[F])),
+      fields      = executionConfigFields(
+        Instrument.GmosNorth,
+        GmosSchema.GmosNorthStaticConfigType[F],
+        GmosSchema.GmosNorthDynamicType[F]
+      )
     )
 
-  def GmosSouthExecutionConfigType[F[_]: Effect]: ObjectType[OdbRepo[F], ExecutionContext[GmosModel.SouthStatic, GmosModel.SouthDynamic]] =
-    ConcreteExecutionConfigType[F, GmosModel.SouthStatic, GmosModel.SouthDynamic](
-      Instrument.GmosSouth,
-      GmosSchema.GmosSouthStaticConfigType[F],
-      GmosSchema.GmosSouthDynamicType[F]
+  def GmosSouthExecutionConfigType[F[_]: Effect]: ObjectType[OdbRepo[F], GmosSouthExecutionContext] =
+    ObjectType(
+      name        = executionConfigName(Instrument.GmosSouth),
+      description = executionConfigDescription(Instrument.GmosSouth),
+      interfaces  = List(PossibleInterface.apply[OdbRepo[F], GmosSouthExecutionContext](ExecutionConfigType[F])),
+      fields      = executionConfigFields(
+        Instrument.GmosSouth,
+        GmosSchema.GmosSouthStaticConfigType[F],
+        GmosSchema.GmosSouthDynamicType[F]
+      )
     )
 }
