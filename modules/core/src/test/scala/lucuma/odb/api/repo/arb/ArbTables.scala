@@ -4,26 +4,35 @@
 package lucuma.odb.api.repo
 package arb
 
+import lucuma.core.arb.ArbTime
 import lucuma.core.model.{Asterism, Atom, ExecutionEvent, Observation, Program, Step, Target}
-import lucuma.odb.api.model.{AsterismModel, AtomModel, ExecutionEventModel, InstrumentConfigModel, ObservationModel, ProgramModel, StepModel, TargetModel}
 import lucuma.odb.api.model.arb._
+import lucuma.odb.api.model.{AsterismModel, AtomModel, ExecutionEventModel, InstrumentConfigModel, ObservationModel, ProgramModel, StepModel, TargetModel}
 import lucuma.core.util.Gid
+import lucuma.odb.api.model.SequenceModel.SequenceType.{Acquisition, Science}
+import lucuma.odb.api.model.arb._
+
 import cats.Order
 import cats.data.{Nested, State}
 import cats.kernel.instances.order._
 import cats.syntax.all._
 import org.scalacheck._
+import org.scalacheck.cats.implicits._
 import org.scalacheck.Arbitrary.arbitrary
+
+import java.time.Instant
 
 import scala.collection.immutable.SortedMap
 
 trait ArbTables extends SplitSetHelper {
 
   import ArbAsterismModel._
+  import ArbExecutionEventModel._
   import ArbInstrumentConfigModel._
   import ArbObservationModel._
   import ArbProgramModel._
   import ArbTargetModel._
+  import ArbTime._
 
   private def map[I: Gid, M: Arbitrary](updateId: (M, I) => M): Gen[SortedMap[I, M]] =
     arbitrary[List[M]]
@@ -88,7 +97,7 @@ trait ArbTables extends SplitSetHelper {
       someBs <- Gen.someOf(bs)
     } yield ManyToMany((for(a <- someAs; b <- someBs) yield (a, b)).toSeq: _*)
 
-  val initArbTables: Arbitrary[Tables] =
+  implicit val arbTables: Arbitrary[Tables] =
     Arbitrary {
       for {
         ps <- mapPrograms
@@ -111,13 +120,13 @@ trait ArbTables extends SplitSetHelper {
       } yield Tables(ids, SortedMap.empty, as, SortedMap.empty, os, ps, SortedMap.empty, ts, pa, pt, ta)
     }
 
-  implicit val arbTables: Arbitrary[Tables] =
-    Arbitrary {
-      for {
-        t <- initArbTables.arbitrary
-        c <- Gen.listOfN[Option[InstrumentConfigModel.Create]](t.observations.size, Gen.option(arbValidInstrumentConfigModelCreate.arbitrary))
-      } yield {
+  /**
+   * Arbitrary tables with sequences is slow and since sequences are not always
+   * needed for testing, I've made it not implicit.
+   */
+  val arbTablesWithSequences: Arbitrary[Tables] = {
 
+    def tablesWithSequences(t: Tables, c: List[Option[InstrumentConfigModel.Create]]): Tables = {
         // Create an option random sequence for each observation.
         val (tʹ, a) = Nested(c).traverse(_.create[State[Tables, *], Tables](TableState)).run(t).value
         val icms    = a.value.map(_.flatMap(_.toOption))
@@ -127,10 +136,61 @@ trait ArbTables extends SplitSetHelper {
           val icmMap = obsMap.keys.zip(icms).toMap
           obsMap.transform((id, o) => o.copy(config = icmMap.get(id).flatten.map(_.toReference)))
         }(tʹ)
-
-      }
     }
 
+    Arbitrary {
+      for {
+        t <- arbTables.arbitrary
+        c <- Gen.listOfN[Option[InstrumentConfigModel.Create]](
+               t.observations.size,
+               Gen.option(arbValidInstrumentConfigModelCreate.arbitrary)
+             )
+      } yield tablesWithSequences(t, c)
+    }
+  }
+
+  val arbTablesWithSequencesAndEvents: Arbitrary[Tables] = {
+
+    def addEventsForObservation(t: Tables)(o: ObservationModel): Gen[State[Tables, Unit]] = {
+      val acqAtoms = o.config.toList.flatMap(_.acquisition.atoms)
+      val sciAtoms = o.config.toList.flatMap(_.science.atoms)
+      val acqSteps = acqAtoms.flatMap(aid => t.atoms(aid).steps.toList)
+      val sciSteps = sciAtoms.flatMap(aid => t.atoms(aid).steps.toList)
+
+      for {
+        seqCnt        <- smallSize
+        seqEvents     <- Gen.listOfN(seqCnt, arbSequenceEventAdd(o.id).arbitrary)
+
+        acqIds        <- Gen.someOf[Step.Id](acqSteps).map(_.toList.take(5))
+        sciIds        <- Gen.someOf[Step.Id](sciSteps).map(_.toList.take(5))
+
+        acqCnts       <- acqIds.traverse(sid => tinySize.map(i => (i, sid)))
+        acqStepEvents <- acqCnts.flatTraverse { case (cnt, sid) => Gen.listOfN(cnt, arbStepEventAdd(o.id, sid, Acquisition).arbitrary) }
+
+        sciCnts       <- sciIds.traverse(sid => tinySize.map(i => (i, sid)))
+        sciStepEvents <- sciCnts.flatTraverse { case (cnt, sid) => Gen.listOfN(cnt, arbStepEventAdd(o.id, sid, Science).arbitrary) }
+
+        dstCnts       <- (acqIds ++ sciIds).traverse(sid => tinySize.map(i => (i, sid)))
+        dstEvents     <- dstCnts.flatTraverse { case (cnt, sid) => Gen.listOfN(cnt, arbDatasetEventAdd(o.id, sid).arbitrary) }
+
+        received      <- arbitrary[Instant]
+      } yield
+        for {
+          _ <- seqEvents.traverse(_.add[State[Tables, *], Tables](TableState, received)).void
+          _ <- acqStepEvents.traverse(_.add[State[Tables, *], Tables](TableState, received)).void
+          _ <- sciStepEvents.traverse(_.add[State[Tables, *], Tables](TableState, received)).void
+          _ <- dstEvents.traverse(_.add[State[Tables, *], Tables](TableState, received)).void
+        } yield ()
+    }
+
+    Arbitrary {
+      for {
+        t <- arbTablesWithSequences.arbitrary
+        add = addEventsForObservation(t)(_)
+        e <- t.observations.values.toList.traverse(add).map(_.sequence_)
+      } yield e.runS(t).value
+    }
+  }
 }
 
 object ArbTables extends ArbTables
