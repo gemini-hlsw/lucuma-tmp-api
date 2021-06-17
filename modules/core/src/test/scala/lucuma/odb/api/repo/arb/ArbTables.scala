@@ -161,8 +161,11 @@ trait ArbTables extends SplitSetHelper {
         seqCnt        <- smallSize
         seqEvents     <- Gen.listOfN(seqCnt, arbSequenceEventAdd(o.id).arbitrary)
 
-        acqIds        <- Gen.someOf[Step.Id](acqSteps).map(_.toList.take(5))
-        sciIds        <- Gen.someOf[Step.Id](sciSteps).map(_.toList.take(5))
+        acqIdSize     <- tinyPositiveSize
+        acqIds        <- Gen.someOf[Step.Id](acqSteps).map(_.toList.take(acqIdSize))
+
+        sciIdSize     <- tinyPositiveSize
+        sciIds        <- Gen.someOf[Step.Id](sciSteps).map(_.toList.take(sciIdSize))
 
         acqCnts       <- acqIds.traverse(sid => tinySize.map(i => (i, sid)))
         acqStepEvents <- acqCnts.flatTraverse { case (cnt, sid) => Gen.listOfN(cnt, arbStepEventAdd(o.id, sid, Acquisition).arbitrary) }
