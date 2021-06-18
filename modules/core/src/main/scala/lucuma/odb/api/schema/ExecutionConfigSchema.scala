@@ -4,7 +4,8 @@
 package lucuma.odb.api.schema
 
 import lucuma.core.model.Observation
-import lucuma.odb.api.model.{DereferencedSequence, GmosModel}
+import lucuma.odb.api.model.{DereferencedSequence, GmosModel, SequenceModel}
+import lucuma.odb.api.model.SequenceModel.SequenceType.{Acquisition, Science}
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
 import cats.syntax.all._
@@ -27,6 +28,12 @@ object ExecutionConfigSchema {
     def acquisition: DereferencedSequence[D]
 
     def science: DereferencedSequence[D]
+
+    def sequence(sequenceType: SequenceModel.SequenceType): DereferencedSequence[D] =
+      sequenceType match {
+        case Acquisition => acquisition
+        case Science     => science
+      }
   }
 
   final case class GmosNorthExecutionContext(
@@ -68,9 +75,9 @@ object ExecutionConfigSchema {
     )
 
   def executionSequence[F[_]: Effect, D](
-    instrument:  Instrument,
-    dynamicType: OutputType[D],
-    sequence:    ExecutionContext[_, D] => DereferencedSequence[D]
+    instrument:   Instrument,
+    dynamicType:  OutputType[D],
+    sequenceType: SequenceModel.SequenceType
   ): ObjectType[OdbRepo[F], ExecutionContext[_, D]] =
     ObjectType(
       name        = s"${instrument.tag}ExecutionSequence",
@@ -83,8 +90,12 @@ object ExecutionConfigSchema {
           description = "Next atom to execute, if any".some,
           resolve     = c =>
             c.executionEvent(
-              _.selectRemainingAtoms[D](c.value.oid, sequence(c.value))
-               .map(_.headOption)
+              _.selectRemainingAtoms(c.value.oid, sequenceType)
+               .map(
+                 _.headOption.flatMap { atom =>
+                   c.value.sequence(sequenceType).atoms.find(_.id === atom.id)
+                 }
+               )
             )
         ),
 
@@ -92,11 +103,17 @@ object ExecutionConfigSchema {
           name        = "possibleFuture",
           fieldType   = ListType(AtomConcreteType[F, D](instrument.tag, dynamicType)),
           description = "Remaining atoms to execute, if any".some,
-          resolve     = c =>
+          resolve     = c => {
+            val allDeref = c.value.sequence(sequenceType).atoms.fproductLeft(_.id).toMap
+
             c.executionEvent(
-              _.selectRemainingAtoms[D](c.value.oid, sequence(c.value))
-               .map(_.drop(1))
+              _.selectRemainingAtoms(c.value.oid, sequenceType)
+               .map(
+                 _.drop(1).flatMap { atom => allDeref.get(atom.id).toList }
+               )
             )
+
+          }
         )
       )
     )
@@ -117,14 +134,14 @@ object ExecutionConfigSchema {
 
       Field(
         name        = "acquisition",
-        fieldType   = executionSequence[F, D](instrument, dynamicType, _.acquisition),
+        fieldType   = executionSequence[F, D](instrument, dynamicType, Acquisition),
         description = s"${instrument.longName} acquisition execution".some,
         resolve     = _.value
       ),
 
       Field(
         name        = "science",
-        fieldType   = executionSequence[F, D](instrument, dynamicType, _.science),
+        fieldType   = executionSequence[F, D](instrument, dynamicType, Science),
         description = s"${instrument.longName} science execution".some,
         resolve     = _.value
       )
