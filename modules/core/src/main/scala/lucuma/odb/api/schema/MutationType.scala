@@ -18,7 +18,6 @@ object MutationType {
       name   = "Mutation",
       fields =
         AsterismMutation.allFields[F]      ++
-        ConstraintSetMutation.allFields[F] ++
         ObservationMutation.allFields[F]   ++
         TargetMutation.allFields[F]        ++
         SharingMutation.allFields[F]       ++
