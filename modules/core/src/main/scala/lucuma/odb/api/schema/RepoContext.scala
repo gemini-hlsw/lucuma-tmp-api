@@ -3,13 +3,13 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.repo.{AsterismRepo, ExecutionEventRepo, ObservationRepo, OdbRepo, ProgramRepo, StepRepo, TargetRepo}
-import lucuma.core.model.{Asterism, Observation, Program, Target}
+import lucuma.core.model.{Asterism, ExecutionEvent, Observation, Program, Step, Target}
+import lucuma.odb.api.repo.{AsterismRepo, AtomRepo, ExecutionEventRepo, ObservationRepo, OdbRepo, ProgramRepo, StepRepo, TargetRepo}
 import cats.effect.Effect
 import cats.effect.implicits._
 import cats.syntax.all._
 import lucuma.core.util.Gid
-import lucuma.odb.api.model.{ExecutionEvent, InputError}
+import lucuma.odb.api.model.InputError
 import sangria.schema.Context
 
 import scala.concurrent.Future
@@ -80,11 +80,17 @@ final class RepoContextOps[F[_]: Effect](val self: Context[OdbRepo[F], _]) {
   def pagingProgramId: Either[InputError, Option[Program.Id]] =
     pagingGid[Program.Id]("ProgramId")
 
+  def pagingStepId: Either[InputError, Option[Step.Id]] =
+    pagingGid[Step.Id]("StepId")
+
   def pagingTargetId: Either[InputError, Option[Target.Id]] =
     pagingGid[Target.Id]("TargetId")
 
   def asterism[B](f: AsterismRepo[F] => F[B]): Future[B] =
     f(self.ctx.asterism).toIO.unsafeToFuture()
+
+  def atom[B](f: AtomRepo[F] => F[B]): Future[B] =
+    f(self.ctx.atom).toIO.unsafeToFuture()
 
   def executionEvent[B](f: ExecutionEventRepo[F] => F[B]): Future[B] =
     f(self.ctx.executionEvent).toIO.unsafeToFuture()

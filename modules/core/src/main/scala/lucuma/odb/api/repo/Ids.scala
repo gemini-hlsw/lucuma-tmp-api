@@ -4,8 +4,7 @@
 package lucuma.odb.api.repo
 
 import lucuma.core.model.{Atom, Step}
-import lucuma.core.model.{Asterism, Observation, Program, Target}
-import lucuma.odb.api.model.ExecutionEvent
+import lucuma.core.model.{Asterism, ExecutionEvent, Observation, Program, Target}
 import cats.kernel.BoundedEnumerable
 import monocle.Lens
 

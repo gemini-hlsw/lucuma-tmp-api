@@ -13,8 +13,11 @@ trait GenNumericUnitsInput {
   def genLongInput[A: Numeric, U](g: Gen[A], u: U): Gen[LongInput[U]] =
     g.map(a => LongInput[U](Numeric[A].toLong(a), u))
 
-  def genDecimalInput[A: Numeric, U](g: Gen[A], u: U): Gen[DecimalInput[U]] =
-    g.map(a => DecimalInput[U](Numeric[A].toDouble(a), u))
+  def genLongDecimalInput[U](g: Gen[Long], u: U): Gen[DecimalInput[U]] =
+    g.map(a => DecimalInput[U](BigDecimal(a), u))
+
+  def genDecimalInput[U](g: Gen[BigDecimal], u: U): Gen[DecimalInput[U]] =
+    g.map(a => DecimalInput[U](a, u))
 
   implicit def cogLongInput[U: Cogen]: Cogen[LongInput[U]] =
     Cogen[(Long, U)].contramap { li =>

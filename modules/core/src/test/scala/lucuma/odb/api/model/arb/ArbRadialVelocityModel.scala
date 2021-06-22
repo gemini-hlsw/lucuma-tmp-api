@@ -38,7 +38,7 @@ trait ArbRadialVelocityModel {
 
   val genRadialVelocityModelInputFromDecimal: Gen[Input] =
     Gen.oneOf(
-      genDecimalInput(cmPerSec, Units.centimetersPerSecond),
+      genLongDecimalInput(cmPerSec, Units.centimetersPerSecond),
       genDecimalInput(mPerSec, Units.metersPerSecond),
       genDecimalInput(kmPerSec, Units.kilometersPerSecond)
     ).map(Input.fromDecimal)

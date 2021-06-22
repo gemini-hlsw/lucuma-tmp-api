@@ -4,7 +4,7 @@
 package lucuma.odb.api.repo
 
 import lucuma.core.model.{Asterism, Observation, Program, Target}
-import lucuma.odb.api.model.{AsterismModel, ConstraintSetModel, Event, InputError, ObservationModel, PlannedTimeSummaryModel, TargetModel, ValidatedInput}
+import lucuma.odb.api.model.{AsterismModel, ConstraintSetModel, Event, InputError, InstrumentConfigModel, ObservationModel, PlannedTimeSummaryModel, TargetModel, ValidatedInput}
 import lucuma.odb.api.model.AsterismModel.AsterismEvent
 import lucuma.odb.api.model.ObservationModel.ObservationEvent
 import lucuma.odb.api.model.TargetModel.TargetEvent
@@ -48,6 +48,10 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
     afterGid:       Option[Observation.Id] = None,
     includeDeleted: Boolean                = false
   ): F[ResultPage[ObservationModel]]
+
+  def selectManualConfig(
+    oid: Observation.Id
+  ): F[Option[InstrumentConfigModel]]
 
   def insert(input: ObservationModel.Create): F[ObservationModel]
 
@@ -119,6 +123,16 @@ object ObservationRepo {
           obs.pointing.contains(tid.asRight[Asterism.Id]) && pid.forall(_ === obs.programId)
         }
 
+      override def selectManualConfig(
+        oid: Observation.Id
+      ): F[Option[InstrumentConfigModel]] =
+        tablesRef.get.map { tables =>
+          for {
+            o <- tables.observations.get(oid)
+            c <- o.config
+            m <- c.dereference[State[Tables, *], Tables](TableState).runA(tables).value
+          } yield m
+        }
 
       override def insert(newObs: ObservationModel.Create): F[ObservationModel] = {
 

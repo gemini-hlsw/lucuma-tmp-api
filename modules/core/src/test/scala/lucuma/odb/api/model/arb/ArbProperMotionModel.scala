@@ -35,7 +35,7 @@ trait ArbProperMotionModel {
 
   val genProperMotionModelComponentInputFromDecimal: Gen[ComponentInput] =
     Gen.oneOf(
-      genDecimalInput(microarcsecondsPerYear, Units.microarcsecondsPerYear),
+      genLongDecimalInput(microarcsecondsPerYear, Units.microarcsecondsPerYear),
       genDecimalInput(milliArcSecondPerYear, Units.milliarcsecondsPerYear)
     ).map(ComponentInput.fromDecimal)
 

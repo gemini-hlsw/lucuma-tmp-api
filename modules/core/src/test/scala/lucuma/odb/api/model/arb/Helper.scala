@@ -15,7 +15,10 @@ trait Helper {
   def tinyPositiveSize: Gen[Int] =
     Gen.chooseNum(1, 3)
 
+  def tinySize: Gen[Int] =
+    Gen.chooseNum(0, 3)
+
   def smallSize: Gen[Int] =
-    Gen.chooseNum(0, 10)
+    Gen.chooseNum(0, 6)
 
 }

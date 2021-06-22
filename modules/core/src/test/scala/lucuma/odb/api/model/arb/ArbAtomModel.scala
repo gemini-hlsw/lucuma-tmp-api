@@ -44,6 +44,15 @@ trait ArbAtomModel extends Helper {
       } yield AtomModel.Create[A](id, s0 :: ss)
     }
 
+  def arbValidCreateAtom[A: Arbitrary]: Arbitrary[AtomModel.Create[A]] =
+    Arbitrary {
+      for {
+        s0 <- arbValidStepModelCreate[A].arbitrary
+        s  <- tinyPositiveSize
+        ss <- Gen.listOfN(s, arbValidStepModelCreate[A].arbitrary)
+      } yield AtomModel.Create[A](None, s0 :: ss)
+    }
+
   implicit def cogAtomCreate[A: Cogen]: Cogen[AtomModel.Create[A]] =
     Cogen[(Option[Atom.Id], List[StepModel.Create[A]])].contramap { in => (
       in.id,

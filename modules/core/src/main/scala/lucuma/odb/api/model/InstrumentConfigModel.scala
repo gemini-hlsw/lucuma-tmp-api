@@ -69,7 +69,7 @@ object InstrumentConfigModel {
       static:      GmosModel.NorthStatic,
       acquisition: SequenceModel[Atom.Id],
       science:     SequenceModel[Atom.Id]
-    ) extends Reference(Instrument.GmosN) {
+    ) extends Reference(Instrument.GmosNorth) {
 
       def dereferenceGmosNorth[F[_]: Monad, T](db: DatabaseReader[T])(implicit S: Stateful[F, T]): F[Option[InstrumentConfigModel.GmosNorth]] =
         dereferenceSequences(db, _.gmosNorth, (acq, sci) => GmosNorth(static, acq, sci))
@@ -85,7 +85,7 @@ object InstrumentConfigModel {
       static:      GmosModel.SouthStatic,
       acquisition: SequenceModel[Atom.Id],
       science:     SequenceModel[Atom.Id]
-    ) extends Reference(Instrument.GmosS) {
+    ) extends Reference(Instrument.GmosSouth) {
 
       def dereferenceGmosSouth[F[_]: Monad, T](db: DatabaseReader[T])(implicit S: Stateful[F, T]): F[Option[InstrumentConfigModel.GmosSouth]] =
         dereferenceSequences(db, _.gmosSouth, (acq, sci) => GmosSouth(static, acq, sci))
@@ -114,7 +114,7 @@ object InstrumentConfigModel {
   ) extends InstrumentConfigModel {
 
     def instrument: Instrument =
-      Instrument.GmosN
+      Instrument.GmosNorth
 
     override def toReference: Reference.GmosNorthReference =
       Reference.GmosNorthReference(
@@ -167,7 +167,7 @@ object InstrumentConfigModel {
   ) extends InstrumentConfigModel {
 
     def instrument: Instrument =
-      Instrument.GmosS
+      Instrument.GmosSouth
 
     override def toReference: Reference.GmosSouthReference =
       Reference.GmosSouthReference(

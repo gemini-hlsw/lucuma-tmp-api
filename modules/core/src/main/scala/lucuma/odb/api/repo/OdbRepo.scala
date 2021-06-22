@@ -20,6 +20,8 @@ trait OdbRepo[F[_]] {
 
   def asterism: AsterismRepo[F]
 
+  def atom: AtomRepo[F]
+
   def executionEvent: ExecutionEventRepo[F]
 
   def observation: ObservationRepo[F]
@@ -57,6 +59,9 @@ object OdbRepo {
 
       override def asterism: AsterismRepo[F] =
         AsterismRepo.create(r, s)
+
+      override def atom: AtomRepo[F] =
+        AtomRepo.create(r)
 
       override def executionEvent: ExecutionEventRepo[F] =
         ExecutionEventRepo.create(r)
