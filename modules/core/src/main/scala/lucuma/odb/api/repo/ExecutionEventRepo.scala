@@ -250,27 +250,23 @@ object ExecutionEventRepo {
         val isExecutedStep: Set[Step.Id] =
           executed.map(_.stepId).toSet
 
-        val atoms: List[AtomModel[Step.Id]] =
-          tables
-            .observations
-            .get(oid)
-            .flatMap(_.config)
-            .map { ref =>
-              seqType match {
-                case SequenceModel.SequenceType.Acquisition => ref.acquisition
-                case SequenceModel.SequenceType.Science     => ref.science
-              }
-            }.toList.flatMap(_.atoms.map(tables.atoms(_)))
-
-       // An atom is executed if all steps are executed.
-        val isExecutedAtom: Set[Atom.Id] =
-          atoms.filter(_.steps.forall(isExecutedStep)).map(_.id).toSet
-
-        executed
-          .lastOption
-          .map(_.atomId)
-          .fold(atoms) { aid => atoms.dropWhile(_.id =!= aid) }
-          .filter(atom => !isExecutedAtom(atom.id))
+        tables
+          .observations
+          .get(oid)
+          .flatMap(_.config)
+          .map { ref =>
+            seqType match {
+              case SequenceModel.SequenceType.Acquisition => ref.acquisition
+              case SequenceModel.SequenceType.Science     => ref.science
+            }
+          }
+          .toList
+          .flatMap { seq =>
+            seq
+              .atoms
+              .map(tables.atoms(_))
+              .filter(a => !a.steps.forall(isExecutedStep))
+          }
 
       }
 

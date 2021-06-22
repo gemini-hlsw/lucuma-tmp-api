@@ -3,12 +3,13 @@
 
 package lucuma.odb.api.repo
 
-//import lucuma.odb.api.model.InstrumentConfigModel
+import lucuma.core.model.{Atom, Observation, Step}
+import lucuma.odb.api.model.{AtomModel, ExecutionEventModel}
 import lucuma.odb.api.model.ExecutionEventModel.{StepEvent, StepStageType}
-
-//import cats.data.State
-//import cats.effect.IO
+import lucuma.odb.api.model.ExecutionEventModel.StepStageType.EndStep
+import lucuma.odb.api.model.SequenceModel.SequenceType.Science
 import cats.syntax.all._
+import cats.implicits.catsKernelOrderingForOrder
 import munit.ScalaCheckSuite
 import org.scalacheck.Gen
 import org.scalacheck.Prop.forAll
@@ -49,33 +50,55 @@ final class ExecutionEventRepoSpec extends ScalaCheckSuite with OdbRepoTest {
 
   }
 
-  /*
-  property("selectRemainingAtoms") {
+  property("selectExecutedStepsForObservation is ordered") {
 
     forAll(genTables) { (t: Tables) =>
 
       val actual = runTest(t) { repo =>
-
-        t.observations.map { case (oid, om) =>
-          val atoms =
-            om
-            .config
-            .flatMap(_.dereference[State[Tables, *], Tables](TableState).runA(t).value)
-            .map {
-              case InstrumentConfigModel.GmosNorth(_, _, sci) =>
-                repo.executionEvent.selectRemainingAtoms(oid, sci)
-              case InstrumentConfigModel.GmosSouth(_, _, sci) =>
-                repo.executionEvent.selectRemainingAtoms(oid, sci)
-              case _                                          =>
-                IO(List.empty)
-            }.sequence.map(_.toList.flatten.map(_.id))
+        t.observations.keys.toList.traverse { oid =>
+          repo
+            .executionEvent
+            .selectExecutedStepsForObservation(oid)
         }
+      }
 
+      val sorted = actual.map(_.sortBy(e => (e.endTime, e.stepId)))
+
+      assertEquals(actual, sorted)
+    }
+
+  }
+
+  property("selectRemainingAtoms") {
+
+    forAll(genTables) { (t: Tables) =>
+
+      val isExecutedStep: Set[Step.Id] =
+        t.executionEvents.values.collect {
+          case ExecutionEventModel.StepEvent(_, _, _, _, sid, Science, EndStep) => sid
+        }.toSet
+
+      def isExecutedAtom(a: AtomModel[Step.Id]): Boolean =
+        a.steps.forall(isExecutedStep)
+
+      val remaining: Map[Observation.Id, Set[Atom.Id]] =
+        runTest(t) { repo =>
+          t.observations.keys.toList.traverse { oid =>
+            repo
+              .executionEvent
+              .selectRemainingAtoms(oid, Science)
+              .map(_.map(_.id).toSet)
+              .tupleLeft(oid)
+          }
+        }.toMap
+
+      t.observations.view.values.forall { om =>
+        om.config.toList.flatMap(_.science.atoms).forall { aid =>
+          remaining.get(om.id).forall(_.contains(aid)) === !isExecutedAtom(t.atoms(aid))
+        }
       }
 
     }
 
   }
-   */
-
 }

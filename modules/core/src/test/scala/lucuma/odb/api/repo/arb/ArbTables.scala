@@ -6,7 +6,6 @@ package arb
 
 import lucuma.core.arb.ArbTime
 import lucuma.core.model.{Asterism, Atom, ExecutionEvent, Observation, Program, Step, Target}
-import lucuma.odb.api.model.arb._
 import lucuma.odb.api.model.{AsterismModel, AtomModel, ExecutionEventModel, InstrumentConfigModel, ObservationModel, ProgramModel, StepModel, TargetModel}
 import lucuma.core.util.Gid
 import lucuma.odb.api.model.SequenceModel.SequenceType.{Acquisition, Science}
