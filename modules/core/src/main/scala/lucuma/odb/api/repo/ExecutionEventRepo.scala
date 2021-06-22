@@ -21,22 +21,22 @@ sealed trait ExecutionEventRepo[F[_]] {
     eid: ExecutionEvent.Id
   ): F[Option[ExecutionEventModel]]
 
-  def selectEventsForObservation(
+  def selectPageForObservation(
     oid:      Observation.Id,
-    count:    Int,
+    count:    Option[Int],
     afterGid: Option[ExecutionEvent.Id] = None
   ): F[ResultPage[ExecutionEventModel]]
 
   def insertSequenceEvent(
-    event: SequenceEvent.Create
+    event: SequenceEvent.Add
   ): F[SequenceEvent]
 
   def insertStepEvent(
-    event: StepEvent.Create
+    event: StepEvent.Add
   ): F[StepEvent]
 
   def insertDatasetEvent(
-    event: DatasetEvent.Create
+    event: DatasetEvent.Add
   ): F[DatasetEvent]
 
 }
@@ -53,9 +53,9 @@ object ExecutionEventRepo {
       ): F[Option[ExecutionEventModel]] =
         tablesRef.get.map(Tables.executionEvent(eid).get)
 
-      override def selectEventsForObservation(
+      override def selectPageForObservation(
         oid:      Observation.Id,
-        count:    Int,
+        count:    Option[Int],
         afterGid: Option[ExecutionEvent.Id]
       ): F[ResultPage[ExecutionEventModel]] =
         tablesRef.get.map { tables =>
@@ -95,19 +95,19 @@ object ExecutionEventRepo {
         } yield e
 
       override def insertSequenceEvent(
-        event: SequenceEvent.Create
+        event: SequenceEvent.Add
       ): F[SequenceEvent] =
-        insertEvent(event.create[State[Tables, *], Tables])
+        insertEvent(event.add[State[Tables, *], Tables])
 
       override def insertStepEvent(
-        event: StepEvent.Create
+        event: StepEvent.Add
       ): F[StepEvent] =
-        insertEvent(event.create[State[Tables, *], Tables])
+        insertEvent(event.add[State[Tables, *], Tables])
 
       override def insertDatasetEvent(
-        event: DatasetEvent.Create
+        event: DatasetEvent.Add
       ): F[DatasetEvent] =
-        insertEvent(event.create[State[Tables, *], Tables])
+        insertEvent(event.add[State[Tables, *], Tables])
 
     }
 

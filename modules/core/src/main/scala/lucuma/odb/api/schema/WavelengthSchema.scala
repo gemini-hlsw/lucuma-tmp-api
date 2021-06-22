@@ -5,12 +5,16 @@ package lucuma.odb.api.schema
 
 import cats.effect.Effect
 import lucuma.core.math.Wavelength
+import lucuma.odb.api.model.WavelengthModel
 import lucuma.odb.api.repo.OdbRepo
+import sangria.macros.derive._
 import sangria.schema._
 
 import java.math.RoundingMode.HALF_UP
 
 object WavelengthSchema {
+  import NumericUnitsSchema._
+  import syntax.enum._
 
   def WavelengthType[F[_]: Effect]: ObjectType[OdbRepo[F], Wavelength] =
     ObjectType(
@@ -45,6 +49,18 @@ object WavelengthSchema {
           resolve     = _.value.micrometer.value.toBigDecimal(6, HALF_UP)
         )
       )
+    )
+
+  implicit val EnumWavelengthModelUnits: EnumType[WavelengthModel.Units]=
+    EnumType.fromEnumerated(
+      "WavelengthUnits",
+      "Wavelength units"
+    )
+
+  implicit val InputWavelengthModelInput: InputObjectType[WavelengthModel.Input] =
+    deriveInputObjectType[WavelengthModel.Input](
+      InputObjectTypeName("WavelengthModelInput"),
+      InputObjectTypeDescription("Wavelength, choose one of the available units")
     )
 
 }

@@ -12,6 +12,7 @@ import cats.effect.Effect
 import cats.effect.implicits._
 import cats.syntax.all._
 import sangria.schema._
+import scala.collection.immutable.Seq
 
 
 object ObservationSchema {
@@ -47,6 +48,13 @@ object ObservationSchema {
       name         = "observationId",
       argumentType = OptionInputType(ObservationIdType),
       description  = "Observation ID"
+    )
+
+  val OptionalListObservationIdArgument: Argument[Option[Seq[Observation.Id]]] =
+    Argument(
+      name         = "observationIds",
+      argumentType = OptionInputType(ListInputType(ObservationIdType)),
+      description  = "Observation IDs"
     )
 
   def ObservationTargetType[F[_]: Effect]: OutputType[Either[AsterismModel, TargetModel]] =
@@ -106,10 +114,9 @@ object ObservationSchema {
 
         Field(
           name        = "constraintSet",
-          fieldType   = OptionType(ConstraintSetType[F]),
-          description = Some("The constraint set for the observation, if any"),
-          arguments   = List(ArgumentIncludeDeleted),
-          resolve     = c => c.constraintSet(_.selectForObservation(c.value.id))
+          fieldType   = ConstraintSetType[F],
+          description = Some("The constraint set for the observation"),
+          resolve     = c => c.value.constraintSet
         ),
 
         Field(

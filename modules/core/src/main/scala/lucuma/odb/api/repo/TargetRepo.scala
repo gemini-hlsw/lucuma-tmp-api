@@ -17,14 +17,14 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
 
   def selectPageForProgram(
     pid:            Program.Id,
-    count:          Int               = Integer.MAX_VALUE,
+    count:          Option[Int]       = None,
     afterGid:       Option[Target.Id] = None,
     includeDeleted: Boolean           = false
   ): F[ResultPage[TargetModel]]
 
   def selectPageForAsterism(
     aid:            Asterism.Id,
-    count:          Int               = Integer.MAX_VALUE,
+    count:          Option[Int]       = None,
     afterGid:       Option[Target.Id] = None,
     includeDeleted: Boolean           = false
   ): F[ResultPage[TargetModel]]
@@ -61,7 +61,7 @@ object TargetRepo {
 
       override def selectPageForProgram(
         pid:            Program.Id,
-        count:          Int               = Integer.MAX_VALUE,
+        count:          Option[Int]       = None,
         afterGid:       Option[Target.Id] = None,
         includeDeleted: Boolean           = false
       ): F[ResultPage[TargetModel]] =
@@ -75,7 +75,7 @@ object TargetRepo {
 
       override def selectPageForAsterism(
         aid:            Asterism.Id,
-        count:          Int               = Integer.MAX_VALUE,
+        count:          Option[Int]       = None,
         afterGid:       Option[Target.Id] = None,
         includeDeleted: Boolean           = false
       ): F[ResultPage[TargetModel]] =

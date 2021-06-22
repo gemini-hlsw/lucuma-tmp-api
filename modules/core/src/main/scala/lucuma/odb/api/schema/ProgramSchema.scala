@@ -10,6 +10,7 @@ import cats.effect.Effect
 import cats.syntax.foldable._
 import cats.syntax.functor._
 import sangria.schema._
+import scala.collection.immutable.Seq
 
 object ProgramSchema {
 
@@ -35,6 +36,13 @@ object ProgramSchema {
       name         = "programId",
       argumentType = OptionInputType(ProgramIdType),
       description  = "Program ID"
+    )
+
+  val OptionalListProgramIdArgument: Argument[Option[Seq[Program.Id]]] =
+    Argument(
+      name         = "programIds",
+      argumentType = OptionInputType(ListInputType(ProgramIdType)),
+      description  = "Program Ids"
     )
 
   def ProgramType[F[_]: Effect]: ObjectType[OdbRepo[F], ProgramModel] =
@@ -80,7 +88,7 @@ object ProgramSchema {
             ArgumentIncludeDeleted
           ),
           resolve     = c =>
-            unsafeSelectPageFuture(c.pagingAsterismId) { gid =>
+            unsafeSelectTopLevelPageFuture(c.pagingAsterismId) { gid =>
               c.ctx.asterism.selectPageForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
             }
         ),
@@ -95,7 +103,7 @@ object ProgramSchema {
             ArgumentIncludeDeleted
           ),
           resolve     = c =>
-            unsafeSelectPageFuture(c.pagingObservationId) { gid =>
+            unsafeSelectTopLevelPageFuture(c.pagingObservationId) { gid =>
               c.ctx.observation.selectPageForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
             }
         ),
@@ -110,7 +118,7 @@ object ProgramSchema {
             ArgumentIncludeDeleted
           ),
           resolve     = c =>
-            unsafeSelectPageFuture(c.pagingTargetId) { gid =>
+            unsafeSelectTopLevelPageFuture(c.pagingTargetId) { gid =>
               c.ctx.target.selectPageForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
             }
         ),
@@ -121,7 +129,7 @@ object ProgramSchema {
           description = Some("Program planned time calculation."),
           arguments   = List(ArgumentIncludeDeleted),
           resolve     = c => c.observation {
-            _.selectPageForProgram(c.value.id, Integer.MAX_VALUE, None, c.includeDeleted)
+            _.selectPageForProgram(c.value.id, Some(Integer.MAX_VALUE), None, c.includeDeleted)
              .map(_.nodes.foldMap(_.plannedTimeSummary))
           }
         )

@@ -4,14 +4,13 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.Event
-import lucuma.odb.api.model.{AsterismModel, ConstraintSetModel, ObservationModel, ProgramModel, TargetModel}
+import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, TargetModel}
 import lucuma.odb.api.model.AsterismModel.AsterismEvent
-import lucuma.odb.api.model.ConstraintSetModel.ConstraintSetEvent
 import lucuma.odb.api.model.ObservationModel.ObservationEvent
 import lucuma.odb.api.model.ProgramModel.ProgramEvent
 import lucuma.odb.api.model.TargetModel.TargetEvent
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
+import lucuma.core.model.{Asterism, Observation, Program, Target}
 import cats.Eq
 import cats.syntax.applicative._
 import cats.syntax.apply._
@@ -29,7 +28,6 @@ import scala.reflect.ClassTag
 object SubscriptionType {
 
   import AsterismSchema.OptionalAsterismIdArgument
-  import ConstraintSetSchema.OptionalConstraintSetIdArgument
   import ObservationSchema.OptionalObservationIdArgument
   import ProgramSchema.OptionalProgramIdArgument
   import TargetSchema.OptionalTargetIdArgument
@@ -38,9 +36,6 @@ object SubscriptionType {
 
   implicit def asterismType[F[_]: Effect]: ObjectType[OdbRepo[F], AsterismModel] =
     AsterismSchema.AsterismType[F]
-
-  implicit def constraintSetType[F[_]: Effect]: ObjectType[OdbRepo[F], ConstraintSetModel] =
-    ConstraintSetSchema.ConstraintSetType[F]
 
   implicit def observationType[F[_]: Effect]: ObjectType[OdbRepo[F], ObservationModel] =
     ObservationSchema.ObservationType[F]
@@ -171,12 +166,6 @@ object SubscriptionType {
           OptionalAsterismIdArgument,
           _.value.id
         ) { (c, e) => programsForAsterism(c, e.value.id) },
-
-        editedField[F, ConstraintSet.Id, ConstraintSetModel, ConstraintSetEvent](
-          "constraintSet",
-          OptionalConstraintSetIdArgument,
-          _.value.id
-        ) { (_, e) => Set(e.value.programId).pure[F] },
 
         editedField[F, Observation.Id, ObservationModel, ObservationEvent](
           "observation",

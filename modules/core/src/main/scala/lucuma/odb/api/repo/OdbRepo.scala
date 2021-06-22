@@ -20,10 +20,6 @@ trait OdbRepo[F[_]] {
 
   def asterism: AsterismRepo[F]
 
-  def constraintSet: ConstraintSetRepo[F]
-
-  def dataset: DatasetRepo[F]
-
   def executionEvent: ExecutionEventRepo[F]
 
   def observation: ObservationRepo[F]
@@ -61,12 +57,6 @@ object OdbRepo {
 
       override def asterism: AsterismRepo[F] =
         AsterismRepo.create(r, s)
-
-      override def constraintSet: ConstraintSetRepo[F] =
-        ConstraintSetRepo.create(r, s)
-
-      override def dataset: DatasetRepo[F] =
-        DatasetRepo.create(r)
 
       override def executionEvent: ExecutionEventRepo[F] =
         ExecutionEventRepo.create(r)

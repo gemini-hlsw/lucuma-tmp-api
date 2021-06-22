@@ -5,28 +5,34 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
+import cats.syntax.all._
 import sangria.schema._
 
 trait ProgramQuery {
 
   import GeneralSchema.ArgumentIncludeDeleted
   import Paging._
-  import ProgramSchema.{ProgramIdArgument, ProgramType, ProgramConnectionType}
+  import ProgramSchema.{OptionalListProgramIdArgument, ProgramIdArgument, ProgramType, ProgramConnectionType}
   import context._
 
-  def all[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def programs[F[_]: Effect]: Field[OdbRepo[F], Unit] =
     Field(
       name        = "programs",
       fieldType   = ProgramConnectionType[F],
-      description = Some("Pages through all programs."),
+      description = Some("Pages through all requested programs (or all programs if no ids are given)."),
       arguments   = List(
+        OptionalListProgramIdArgument.copy(description = "(Optional) listing of programs to retrieve (all programs if empty)".some),
         ArgumentPagingFirst,
         ArgumentPagingCursor,
         ArgumentIncludeDeleted
       ),
       resolve = c =>
-        unsafeSelectPageFuture(c.pagingProgramId) { gid =>
-          c.ctx.program.selectPage(c.pagingFirst, gid, c.includeDeleted)
+        unsafeSelectTopLevelPageFuture(c.pagingProgramId) { gid =>
+          c.arg(OptionalListProgramIdArgument).fold(
+            c.ctx.program.selectPage(c.pagingFirst, gid, c.includeDeleted)
+          ) { pids =>
+            c.ctx.program.selectPageForPrograms(pids.toSet, c.pagingFirst, gid, c.includeDeleted)
+          }
         }
     )
 
@@ -41,7 +47,7 @@ trait ProgramQuery {
 
   def allFields[F[_]: Effect]: List[Field[OdbRepo[F], Unit]] =
     List(
-      all,
+      programs,
       forId
     )
 

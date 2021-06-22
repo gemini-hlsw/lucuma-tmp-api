@@ -100,32 +100,32 @@ object ExecutionEventModel {
       )}
     }
 
-    final case class Create(
+    final case class Add(
       eventId:       Option[ExecutionEvent.Id],
       observationId: Observation.Id,
       generated:     Instant,
       command:       SequenceCommandType
     ) {
 
-      def create[F[_]: Monad, T](
+      def add[F[_]: Monad, T](
         db:       DatabaseState[T],
         received: Instant
       )(implicit S: Stateful[F, T]): F[ValidatedInput[SequenceEvent]] =
         for {
           i <- db.executionEvent.getUnusedId(eventId)
           o <- db.observation.lookupValidated[F](observationId)
-          e  = (i, o).mapN((iʹ, _) => SequenceEvent(iʹ, observationId, received, generated, command))
+          e  = (i, o).mapN((iʹ, _) => SequenceEvent(iʹ, observationId, generated, received, command))
           _ <- db.executionEvent.saveIfValid(e)(_.id)
         } yield e
 
     }
 
-    object Create {
+    object Add {
 
-      implicit val DecoderCreate: Decoder[Create] =
-        deriveDecoder[Create]
+      implicit val DecoderAdd: Decoder[Add] =
+        deriveDecoder[Add]
 
-      implicit val OrderCreate: Order[Create] =
+      implicit val OrderAdd: Order[Add] =
         Order.by { a => (
           a.eventId,
           a.observationId,
@@ -207,7 +207,7 @@ object ExecutionEventModel {
       )}
 
 
-    final case class Create(
+    final case class Add(
       eventId:       Option[ExecutionEvent.Id],
       observationId: Observation.Id,
       generated:     Instant,
@@ -217,7 +217,7 @@ object ExecutionEventModel {
       stage:         StepStageType
     ) {
 
-      def create[F[_]: Monad, T](
+      def add[F[_]: Monad, T](
         db:           DatabaseState[T],
         received:     Instant
       )(implicit S: Stateful[F, T]): F[ValidatedInput[StepEvent]] =
@@ -231,8 +231,8 @@ object ExecutionEventModel {
             StepEvent(
               iʹ,
               observationId,
-              received,
               generated,
+              received,
               stepId,
               sequenceType,
               stage
@@ -243,12 +243,12 @@ object ExecutionEventModel {
 
     }
 
-    object Create {
+    object Add {
 
-      implicit val DecoderCreate: Decoder[Create] =
-        deriveDecoder[Create]
+      implicit val DecoderAdd: Decoder[Add] =
+        deriveDecoder[Add]
 
-      implicit val OrderCreate: Order[Create] =
+      implicit val OrderAdd: Order[Add] =
         Order.by { a => (
           a.eventId,
           a.observationId,
@@ -312,7 +312,19 @@ object ExecutionEventModel {
     datasetIndex:  PosInt,
     filename:      Option[DatasetFilename],
     stageType:     DatasetStageType
-  ) extends ExecutionEventModel
+  ) extends ExecutionEventModel {
+
+    def toDataset: Option[DatasetModel] =
+      filename.map { fn =>
+        DatasetModel(
+          stepId,
+          datasetIndex,
+          observationId,
+          fn
+        )
+      }
+
+  }
 
   object DatasetEvent {
 
@@ -328,7 +340,7 @@ object ExecutionEventModel {
         a.received
       )}
 
-    final case class Create(
+    final case class Add(
       eventId:       Option[ExecutionEvent.Id],
       observationId: Observation.Id,
       generated:     Instant,
@@ -339,7 +351,7 @@ object ExecutionEventModel {
       stageType:     DatasetStageType
     ) {
 
-      def create[F[_]: Monad, T](
+      def add[F[_]: Monad, T](
         db:           DatabaseState[T],
         received:     Instant
       )(implicit S: Stateful[F, T]): F[ValidatedInput[DatasetEvent]] =
@@ -367,12 +379,12 @@ object ExecutionEventModel {
 
     }
 
-    object Create {
+    object Add {
 
-      implicit val DecoderCreate: Decoder[Create] =
-        deriveDecoder[Create]
+      implicit val DecoderAdd: Decoder[Add] =
+        deriveDecoder[Add]
 
-      implicit val OrderCreate: Order[Create] =
+      implicit val OrderAdd: Order[Add] =
         Order.by { a => (
           a.eventId,
           a.observationId,

@@ -18,11 +18,8 @@ final class ConstraintSetModelSuite extends DisciplineSuite {
   import ArbConstraintSetModel._
   import ArbElevationRange._
   import ArbEnumerated._
-  import ArbGid._
 
   checkAll("Eq[ConstraintSet]", EqTests[ConstraintSetModel].eqv)
-  checkAll("ConstraintSet.id", LensTests(ConstraintSetModel.id))
-  checkAll("ConstraintSet.existence", LensTests(ConstraintSetModel.existence))
   checkAll("ConstraintSet.name", LensTests(ConstraintSetModel.name))
   checkAll("ConstraintSet.imageQuality", LensTests(ConstraintSetModel.imageQuality))
   checkAll("ConstraintSet.cloudExtinction", LensTests(ConstraintSetModel.cloudExtinction))

@@ -5,11 +5,10 @@ package lucuma.odb.api.repo
 
 import lucuma.core.model.{Asterism, Target}
 import lucuma.odb.api.model.{InputError, ObservationModel, ProgramModel}
-import ObservationModel.EditConstraintSet
 import ObservationModel.EditPointing
 
-
 import cats.syntax.all._
+import cats.kernel.instances.order._
 import clue.data.Input
 import eu.timepit.refined.types.numeric.PosLong
 import eu.timepit.refined.types.string.NonEmptyString
@@ -20,6 +19,54 @@ import munit.ScalaCheckSuite
 final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
 
   import arb.ArbTables._
+
+  private def randomSelect(
+    tables: Tables,
+    indices: List[Int]
+  ): List[ObservationModel] = {
+      val size: Int =
+        tables.observations.size
+
+      val keep: Set[Int]            =
+        if (size === 0) Set.empty[Int] else indices.map(i => (i % size).abs).toSet
+
+      tables.observations.zipWithIndex.collect {
+        case ((_, o), i) if keep(i) => o
+      }.toList.sortBy(_.id)
+
+  }
+
+  property("selectPageForObservations") {
+    forAll { (t: Tables, indices: List[Int]) =>
+
+      val expected = randomSelect(t, indices).filter(_.existence.isPresent).map(_.id)
+      val obtained = runTest(t) { _.observation.selectPageForObservations(expected.toSet) }.nodes.map(_.id)
+
+      assertEquals(obtained, expected)
+    }
+  }
+
+  property("selectPageForObservations with deleted") {
+    forAll { (t: Tables, indices: List[Int]) =>
+
+      val expected = randomSelect(t, indices).map(_.id)
+      val obtained = runTest(t) { _.observation.selectPageForObservations(expected.toSet, includeDeleted = true) }.nodes.map(_.id)
+
+      assertEquals(obtained, expected)
+    }
+  }
+
+  property("selectPageForObservations with first") {
+    forAll { (t: Tables, indices: List[Int], first: Int) =>
+
+      val limitedFirst = if (t.observations.size === 0) 0 else (first % t.observations.size).abs
+
+      val expected = randomSelect(t, indices).filter(_.existence.isPresent).map(_.id)
+      val obtained = runTest(t) { _.observation.selectPageForObservations(expected.toSet, count = limitedFirst.some ) }.nodes.map(_.id)
+
+      assertEquals(obtained, expected.take(limitedFirst))
+    }
+  }
 
   private def runEditTest(
     t: Tables
@@ -194,49 +241,4 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
     }
   }
 
-  private def runEditConstraintSetTest(
-    t: Tables
-  )(
-    f: List[ObservationModel] => EditConstraintSet
-  ): List[ObservationModel] = 
-
-    runTest(t) {odb =>
-      for {
-        // Insert a program and observation to insure that at least one exists
-        p  <- odb.program.insert(new ProgramModel.Create(None, None))
-        _  <- odb.observation.insert(new ObservationModel.Create(None, p.id, None, None, None, None, None, None))
-
-        tʹ    <- odb.tables.get
-        before = tʹ.observations.values.toList
-
-        // Do the prescribed edit.
-        after <- odb.observation.editConstraintSet(f(before))
-      } yield after
-    }
-
-  property("editConstraintSet: assign") {
-    forAll{ (t: Tables) =>
-      val csOption = t.constraintSets.values.headOption.map(_.id)
-
-      val edits = runEditConstraintSetTest(t) { os =>
-        val oids = os.map(_.id)
-        csOption.fold(EditConstraintSet.unassign(oids))(c => EditConstraintSet.assign(oids, c))
-      }
-      edits.foreach { after =>
-        assertEquals(after.constraintSetId, csOption)
-      }
-    }
-  }
-
-  property("editConstraintSet: unassign") {
-    forAll { (t: Tables) =>
-      val edits = runEditConstraintSetTest(t) { os =>
-        EditConstraintSet.unassign(os.map(_.id))
-      }
-
-      edits.foreach { after =>
-        assertEquals(after.constraintSetId, None)
-      }
-    }
-  }
 }

@@ -7,7 +7,7 @@ import lucuma.odb.api.model.Existence._
 import lucuma.odb.api.model.syntax.input._
 import lucuma.core.`enum`.ObsStatus
 import lucuma.core.optics.syntax.lens._
-import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
+import lucuma.core.model.{Asterism, Observation, Program, Target}
 import cats.{Eq, Monad}
 import cats.data.{Nested, State}
 import cats.mtl.Stateful
@@ -27,10 +27,9 @@ final case class ObservationModel(
   name:                 Option[NonEmptyString],
   status:               ObsStatus,
   pointing:             Option[Either[Asterism.Id, Target.Id]],
-  constraintSetId:      Option[ConstraintSet.Id],
+  constraintSet:        ConstraintSetModel,
   plannedTimeSummary:   PlannedTimeSummaryModel,
-  config:               Option[InstrumentConfigModel.Reference],
-  executedSteps:        List[ExecutedStep]
+  config:               Option[InstrumentConfigModel.Reference]
 ) {
 
   def asterismId: Option[Asterism.Id] =
@@ -54,10 +53,9 @@ object ObservationModel extends ObservationOptics {
       o.name,
       o.status,
       o.pointing,
-      o.constraintSetId,
+      o.constraintSet,
       o.plannedTimeSummary,
-      o.config,
-      o.executedSteps
+      o.config
     )}
 
 
@@ -67,7 +65,7 @@ object ObservationModel extends ObservationOptics {
     name:            Option[NonEmptyString],
     asterismId:      Option[Asterism.Id],
     targetId:        Option[Target.Id],
-    constraintSetId: Option[ConstraintSet.Id],
+    constraintSet:   Option[ConstraintSetModel.Create],
     status:          Option[ObsStatus],
     config:          Option[InstrumentConfigModel.Create]
   ) {
@@ -86,10 +84,9 @@ object ObservationModel extends ObservationOptics {
           Nested(t).map(_.id).value
         )
 
-        c <- constraintSetId.traverse(db.constraintSet.lookupValidated[F]).map(_.sequence)
         g <- config.traverse(_.create(db)).map(_.sequence)
 
-        o  = (i, p, pointing, c, g).mapN { (iʹ, _, pointingʹ, _, gʹ) =>
+        o  = (i, p, pointing, constraintSet.traverse(_.create), g).mapN { (iʹ, _, pointingʹ, c, gʹ) =>
           ObservationModel(
             iʹ,
             Present,
@@ -97,10 +94,9 @@ object ObservationModel extends ObservationOptics {
             name,
             status.getOrElse(ObsStatus.New),
             pointingʹ,
-            constraintSetId,
+            c.getOrElse(ConstraintSetModel.AnyConstraints),
             s,
-            gʹ.map(_.toReference),
-            List.empty
+            gʹ.map(_.toReference)
           )
         }
 
@@ -121,7 +117,7 @@ object ObservationModel extends ObservationOptics {
         a.name,
         a.asterismId,
         a.targetId,
-        a.constraintSetId,
+        a.constraintSet,
         a.status,
         a.config
       )}
@@ -135,7 +131,7 @@ object ObservationModel extends ObservationOptics {
     status:          Input[ObsStatus]        = Input.ignore,
     asterismId:      Input[Asterism.Id]      = Input.ignore,
     targetId:        Input[Target.Id]        = Input.ignore,
-    constraintSetId: Input[ConstraintSet.Id] = Input.ignore
+    constraintSet:   Option[ConstraintSetModel.Edit] = None
   ) {
 
     def id: Observation.Id =
@@ -149,12 +145,16 @@ object ObservationModel extends ObservationOptics {
 
     def editor: ValidatedInput[State[ObservationModel, Unit]] =
       (existence.validateIsNotNull("existence"),
-       status   .validateIsNotNull("status")
-      ).mapN { (e, s) =>
+       status   .validateIsNotNull("status"),
+       constraintSet.traverse(_.editor)
+      ).mapN { (e, s, c) =>
         for {
           _ <- ObservationModel.existence  := e
           _ <- ObservationModel.name       := name.toOptionOption
           _ <- ObservationModel.status     := s
+          _ <- State.modify[ObservationModel] { o =>
+            c.fold(o) { ed => ObservationModel.constraintSet.modify(ed.runS(_).value)(o) }
+          }
         } yield ()
       }
 
@@ -177,7 +177,7 @@ object ObservationModel extends ObservationOptics {
         a.status,
         a.asterismId,
         a.targetId,
-        a.constraintSetId
+        a.constraintSet
       )}
 
   }
@@ -219,25 +219,6 @@ object ObservationModel extends ObservationOptics {
         a.targetId
       )}
 
-  }
-
-  final case class EditConstraintSet(
-    observationIds:  List[Observation.Id],
-    constraintSetId: Option[ConstraintSet.Id]
-  )
-
-  object EditConstraintSet {
-    def unassign(observationIds: List[Observation.Id]): EditConstraintSet =
-      EditConstraintSet(observationIds, None)
-
-    def assign(observationIds: List[Observation.Id], constraintSetId: ConstraintSet.Id): EditConstraintSet =
-      EditConstraintSet(observationIds, constraintSetId.some)
-
-    implicit val DecoderEditConstraintSet: Decoder[EditConstraintSet] =
-      deriveDecoder[EditConstraintSet]
-
-    implicit val EqEditConstraintSet: Eq[EditConstraintSet] =
-      Eq.by { a => (a.observationIds, a.constraintSetId)}
   }
 
   final case class ObservationEvent (
@@ -283,13 +264,10 @@ trait ObservationOptics { self: ObservationModel.type =>
       _.copy(pointing = t.asRight[Asterism.Id].some)
     }
 
-  val constraintSet: Lens[ObservationModel, Option[ConstraintSet.Id]] =
-    Lens[ObservationModel, Option[ConstraintSet.Id]](_.constraintSetId)(a => _.copy(constraintSetId = a))
+  val constraintSet: Lens[ObservationModel, ConstraintSetModel] =
+    Lens[ObservationModel, ConstraintSetModel](_.constraintSet)(a => _.copy(constraintSet = a))
 
   val config: Lens[ObservationModel, Option[InstrumentConfigModel.Reference]] =
     Lens[ObservationModel, Option[InstrumentConfigModel.Reference]](_.config)(a => _.copy(config = a))
-
-  val executedSteps: Lens[ObservationModel, List[ExecutedStep]] =
-    Lens[ObservationModel, List[ExecutedStep]](_.executedSteps)(a => _.copy(executedSteps = a))
 
 }

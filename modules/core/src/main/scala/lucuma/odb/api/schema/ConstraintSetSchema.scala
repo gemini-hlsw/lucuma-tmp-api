@@ -3,39 +3,21 @@
 
 package lucuma.odb.api.schema
 
-import cats.effect.Effect
 import lucuma.core.enum.{CloudExtinction, ImageQuality, SkyBackground, WaterVapor}
-import lucuma.core.model.ConstraintSet
 import lucuma.odb.api.model.{AirmassRange, ElevationRangeModel, HourAngleRange}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.all._
 import lucuma.odb.api.model.ConstraintSetModel
+import lucuma.odb.api.schema.GeneralSchema.ArgumentIncludeDeleted
+import lucuma.odb.api.schema.ObservationSchema.ObservationConnectionType
+import cats.effect.Effect
 import sangria.schema._
 
 object ConstraintSetSchema {
-  import GeneralSchema.{ ArgumentIncludeDeleted, EnumTypeExistence, NonEmptyStringType }
-  import ObservationSchema.ObservationConnectionType
-  import Paging._
-  import ProgramSchema.ProgramType
-
   import context._
-
-  implicit val ConstraintSetIdType: ScalarType[ConstraintSet.Id] =
-    ObjectIdSchema.idType[ConstraintSet.Id]("ConstraintSetId")
-
-  val ConstraintSetIdArgument: Argument[ConstraintSet.Id] =
-    Argument(
-      name         = "constraintSetId",
-      argumentType = ConstraintSetIdType,
-      description  = "Constraint Set ID"
-    )
-
-  val OptionalConstraintSetIdArgument: Argument[Option[ConstraintSet.Id]] =
-    Argument(
-      name         = "constraintSetId",
-      argumentType = OptionInputType(ConstraintSetIdType),
-      description  = "Constraint Set ID"
-    )
+  import GeneralSchema.NonEmptyStringType
+  import ObservationSchema.ObservationIdType
+  import Paging._
 
   implicit val EnumTypeCloudExtinction: EnumType[CloudExtinction] =
     EnumType.fromEnumerated("CloudExtinction", "Cloud extinction")
@@ -102,25 +84,6 @@ object ConstraintSetSchema {
       fieldsFn = () =>
         fields(
           Field(
-            name        = "id",
-            fieldType   = ConstraintSetIdType,
-            description = Some("Constraint set ID"),
-            resolve     = _.value.id
-          ),
-          Field(
-            name        = "existence",
-            fieldType   = EnumTypeExistence,
-            description = Some("Deleted or Present"),
-            resolve     = _.value.existence
-          ),
-          Field(
-            name        = "program",
-            fieldType   = ProgramType[F],
-            description = Some("The program that contains this constraint set"),
-            arguments   = List(ArgumentIncludeDeleted),
-            resolve     = c => c.program(_.unsafeSelect(c.value.programId, c.includeDeleted))
-          ),
-          Field(
             name        = "name",
             fieldType   = NonEmptyStringType,
             description = Some("Constraint set name"),
@@ -167,36 +130,62 @@ object ConstraintSetSchema {
             fieldType   = OptionType(HourAngleRangeType[F]),
             description = Some("Hour angle range if elevation range is an Hour angle range"),
             resolve     = c => ElevationRangeModel.hourAngleRange.getOption((c.value.elevationRange))
-          ),
-          Field(
-            name        = "observations",
-            fieldType   = ObservationConnectionType[F],
-            description = Some("The observations associated with the constraint set"),
-            arguments   = List(
-              ArgumentPagingFirst,
-              ArgumentPagingCursor,
-              ArgumentIncludeDeleted
-            ),
-            resolve     = c =>
-              unsafeSelectPageFuture(c.pagingObservationId) { gid =>
-                c.ctx.observation.selectPageForConstraintSet(c.value.id, c.pagingFirst, gid, c.includeDeleted)
-              }
           )
         )
     )
 
-    def ConstraintSetEdgeType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Edge[ConstraintSetModel]] =
-      Paging.EdgeType(
-        "ContraintSetEdge",
-        "A Constraint Set and its cursor",
-        ConstraintSetType[F]
-      )
+  def ConstraintSetGroupType[F[_]: Effect]: ObjectType[OdbRepo[F], ConstraintSetModel.Group] =
+    ObjectType(
+      name     = "ConstraintSetGroup",
+      fieldsFn = () => fields(
 
-    def ConstraintSetConnectionType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Connection[ConstraintSetModel]] =
-     Paging.ConnectionType(
-       "ConstraintSetConnection",
-       "Constraint Sets in the current page",
-       ConstraintSetType[F],
-       ConstraintSetEdgeType[F]
-     )
+        Field(
+          name        = "observationIds",
+          fieldType   = ListType(ObservationIdType),
+          description = Some("IDs of observations that use the same constraints"),
+          resolve     = _.value.observationIds.toList
+        ),
+
+        Field(
+          name        = "observations",
+          fieldType   = ObservationConnectionType[F],
+          description = Some("Observations that use this constraint set"),
+          arguments   = List(
+            ArgumentPagingFirst,
+            ArgumentPagingCursor,
+            ArgumentIncludeDeleted
+          ),
+          resolve     = c =>
+            unsafeSelectTopLevelPageFuture(c.pagingObservationId) { gid =>
+              c.ctx.observation.selectPageFromIds(c.pagingFirst, gid, c.includeDeleted) { _ =>
+                c.value.observationIds
+              }
+            }
+        ),
+
+        Field(
+          name        = "constraintSet",
+          fieldType   = ConstraintSetType[F],
+          description = Some("Constraints held in common across the observations"),
+          resolve     = _.value.constraints
+
+        )
+
+      )
+    )
+
+  def ConstraintSetGroupEdgeType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Edge[ConstraintSetModel.Group]] =
+    Paging.EdgeType[F, ConstraintSetModel.Group](
+      "ConstraintSetGroupEdge",
+      "A constraint set group and its cursor",
+      ConstraintSetGroupType[F]
+    )
+
+  def ConstraintSetGroupConnectionType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Connection[ConstraintSetModel.Group]] =
+    Paging.ConnectionType[F, ConstraintSetModel.Group](
+      "ConstraintSetGroupConnection",
+      "Observations group by common constraints",
+      ConstraintSetGroupType[F],
+      ConstraintSetGroupEdgeType[F]
+    )
 }

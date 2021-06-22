@@ -11,6 +11,7 @@ import cats.effect.implicits._
 import cats.{Eq, Order}
 import cats.syntax.all._
 import io.circe.Decoder
+import monocle.Prism
 
 import java.nio.charset.Charset
 import java.util.Base64
@@ -30,9 +31,6 @@ object Paging {
     def toBase64: String =
       Base64.getEncoder.encodeToString(toString.getBytes(Cursor.CharacterSet))
 
-    def asGid[A: Gid]: Option[A] =
-      Gid[A].fromString.getOption(toString)
-
   }
 
   object Cursor {
@@ -47,14 +45,14 @@ object Paging {
     def decode(s: String): Option[Cursor] =
       tryDecode(s).toOption
 
-    def fromGid[A: Gid](a: A): Cursor =
-      new Cursor(Gid[A].show(a))
-
     implicit val OrderCursor: Order[Cursor] =
       Order.by(_.toString)
 
     implicit val DecoderCursor: Decoder[Cursor] =
       Decoder[String].emapTry(tryDecode)
+
+    def gid[A: Gid]: Prism[Cursor, A] =
+      Prism.apply[Cursor, A](c => Gid[A].fromString.getOption(c.toString))(a => new Cursor(Gid[A].show(a)))
 
   }
 
@@ -75,10 +73,10 @@ object Paging {
       }
     )
 
-  val ArgumentPagingFirst: Argument[Int] =
+  val ArgumentPagingFirst: Argument[Option[Int]] =
     Argument(
       name         = "first",
-      argumentType = IntType,
+      argumentType = OptionInputType(IntType),
       description  = "Retrieve `first` values after the given cursor"
     )
 
@@ -264,32 +262,32 @@ object Paging {
       )
     )
 
-  def selectPage[F[_]: Effect, I: Gid, T](
-    afterGid: Either[InputError, Option[I]],
-    getId: T => I
-  )(
-    select: Option[I] => F[ResultPage[T]]
+  def selectPage[F[_]: Effect, I, T](
+    afterId:   Either[InputError, Option[I]],
+    getCursor: T => Cursor,
+    select:    Option[I] => F[ResultPage[T]]
   ): F[Connection[T]] =
-    afterGid.fold(
-      e => Effect[F].raiseError[Connection[T]](e.toException), // if not a valid GID
-      g => select(g).map { page =>
-        Connection.page(page) { t => Cursor.fromGid(getId(t)) }
-      }
+    afterId.fold(
+      e => Effect[F].raiseError[Connection[T]](e.toException),
+      g => select(g).map { page => Connection.page(page)(getCursor) }
     )
 
-  def unsafeSelectPageFuture[F[_]: Effect, I: Gid, T](
+  def unsafeSelectPageFuture[F[_]: Effect, I, T](
+    afterId:   Either[InputError, Option[I]],
+    getCursor: T => Cursor,
+    select:    Option[I] => F[ResultPage[T]]
+  ): Future[Connection[T]] =
+    selectPage[F, I, T](afterId, getCursor, select).toIO.unsafeToFuture()
+
+  def unsafeSelectTopLevelPageFuture[F[_]: Effect, I: Gid, T](
     afterGid: Either[InputError, Option[I]]
   )(
     select: Option[I] => F[ResultPage[T]]
   )(implicit ev: TopLevelModel[I, T]): Future[Connection[T]] =
-    selectPage[F, I, T](afterGid, TopLevelModel[I, T].id(_))(select).toIO.unsafeToFuture()
-
-  def unsafeSelectPageFuture[F[_]: Effect, I: Gid, T](
-    afterGid: Either[InputError, Option[I]],
-    getId:    T => I
-  )(
-    select: Option[I] => F[ResultPage[T]]
-  ): Future[Connection[T]] =
-    selectPage[F, I, T](afterGid, getId)(select).toIO.unsafeToFuture()
+    unsafeSelectPageFuture[F, I, T](
+      afterGid,
+      t => Cursor.gid.reverseGet(TopLevelModel[I, T].id(t)),
+      select
+    )
 
 }

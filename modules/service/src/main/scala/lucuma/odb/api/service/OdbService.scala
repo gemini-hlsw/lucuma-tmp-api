@@ -29,7 +29,6 @@ trait OdbService[F[_]] {
 
 }
 
-
 object OdbService {
 
   def apply[F[_]: Logger](
