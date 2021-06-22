@@ -35,7 +35,7 @@ trait ArbRightAscensionModel {
 
   val genRightAscensionModelInputFromDecimal: Gen[Input] =
     Gen.oneOf(
-      genDecimalInput(microarcseconds, Units.microarcseconds),
+      genLongDecimalInput(microarcseconds, Units.microarcseconds),
       genDecimalInput(degrees, Units.degrees),
       genDecimalInput(hours, Units.hours)
     ).map(Input.fromDecimal)

@@ -3,50 +3,22 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.core.model.Atom
-import lucuma.odb.api.model.{AtomModel, DereferencedSequence, PlannedTime, StepModel}
+import lucuma.odb.api.model.{DereferencedSequence, PlannedTime, SequenceModel}
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
 import sangria.schema._
 
 object SequenceSchema {
 
+  import syntax.`enum`._
+
+  import AtomSchema._
   import PlannedTimeSchema._
-  import StepSchema.InstrumentStepType
 
-  implicit val AtomIdType: ScalarType[Atom.Id] =
-    ObjectIdSchema.idType[Atom.Id](name = "AtomId")
-
-  def AtomType[F[_]: Effect, D](
-    typePrefix:  String,
-    dynamicType: OutputType[D]
-  ): ObjectType[OdbRepo[F], AtomModel[StepModel[D]]] =
-    ObjectType(
-      name        = s"${typePrefix}Atom",
-      description = s"$typePrefix atom, a collection of steps that should be executed in their entirety",
-      fieldsFn    = () => fields(
-
-        Field(
-          name        = "id",
-          fieldType   = AtomIdType,
-          description = Some("Atom id"),
-          resolve     = _.value.id
-        ),
-
-        Field(
-          name        = "steps",
-          fieldType   = ListType(InstrumentStepType[F, D](typePrefix, dynamicType)),
-          description = Some("Individual steps that comprise the atom"),
-          resolve     = _.value.steps.toList
-        ),
-
-        Field(
-          name        = "time",
-          fieldType   = CategorizedTimeType[F],
-          description = Some("Time estimate for this atom's execution, the sum of each step's time."),
-          resolve     = c => PlannedTime.estimateAtom(c.value)
-        )
-      )
+  implicit val EnumTypeSequenceType: EnumType[SequenceModel.SequenceType] =
+    EnumType.fromEnumerated(
+      "SequenceType",
+      "Type of sequence, acquisition or science"
     )
 
   def SequenceType[F[_]: Effect, D](
@@ -60,7 +32,7 @@ object SequenceSchema {
 
         Field(
           name        = "atoms",
-          fieldType   = ListType(AtomType[F, D](typePrefix, dynamicType)),
+          fieldType   = ListType(AtomConcreteType[F, D](typePrefix, dynamicType)),
           description = Some("Sequence atoms"),
           resolve     = _.value.atoms
         ),

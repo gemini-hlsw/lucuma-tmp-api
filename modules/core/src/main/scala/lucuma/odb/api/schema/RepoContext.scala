@@ -3,8 +3,8 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.repo.{AsterismRepo, ConstraintSetRepo, ObservationRepo, OdbRepo, ProgramRepo, TargetRepo}
-import lucuma.core.model.{Asterism, ConstraintSet, Observation, Program, Target}
+import lucuma.core.model.{Asterism, ExecutionEvent, Observation, Program, Step, Target}
+import lucuma.odb.api.repo.{AsterismRepo, AtomRepo, ExecutionEventRepo, ObservationRepo, OdbRepo, ProgramRepo, StepRepo, TargetRepo}
 import cats.effect.Effect
 import cats.effect.implicits._
 import cats.syntax.all._
@@ -22,11 +22,11 @@ final class RepoContextOps[F[_]: Effect](val self: Context[OdbRepo[F], _]) {
   def optionalAsterismId: Option[Asterism.Id] =
     self.arg(AsterismSchema.OptionalAsterismIdArgument)
 
-  def constraintSetId: ConstraintSet.Id =
-    self.arg(ConstraintSetSchema.ConstraintSetIdArgument)
+  def executionEventId: ExecutionEvent.Id =
+    self.arg(ExecutionEventSchema.ExecutionEventArgument)
 
-  def optionConstraintSetId: Option[ConstraintSet.Id] =
-    self.arg(ConstraintSetSchema.OptionalConstraintSetIdArgument)
+  def optionalExecutionEventId: Option[ExecutionEvent.Id] =
+    self.arg(ExecutionEventSchema.OptionalExecutionEventArgument)
 
   def observationId: Observation.Id =
     self.arg(ObservationSchema.ObservationIdArgument)
@@ -49,29 +49,30 @@ final class RepoContextOps[F[_]: Effect](val self: Context[OdbRepo[F], _]) {
   def includeDeleted: Boolean =
     self.arg(GeneralSchema.ArgumentIncludeDeleted)
 
-  def pagingFirst: Int =
+  def pagingFirst: Option[Int] =
     self.arg(Paging.ArgumentPagingFirst)
 
-  def pagingCursor: Option[Paging.Cursor] =
-    self.arg(Paging.ArgumentPagingCursor)
-
-  /** Treats the cursor as a Gid, decoding through Cursor to its Gid representation. */
-  def pagingGid[A: Gid](name: String): Either[InputError, Option[A]] = {
+  def pagingCursor[A](msg: String)(f: Paging.Cursor => Option[A]): Either[InputError, Option[A]] = {
 
     type E[X] = Either[InputError, X]
 
-    pagingCursor.traverse { cursor =>
-      cursor.asGid[A].toRight(
-        InputError.fromMessage(s"Cannot read ${cursor.toString} (${cursor.toBase64}) as $name.`")
+    self.arg(Paging.ArgumentPagingCursor).traverse { cursor =>
+      f(cursor).toRight(
+        InputError.fromMessage(s"Unexpected cursor format ${cursor.toString} (${cursor.toBase64}): $msg")
       ): E[A]
     }
   }
 
+
+  /** Treats the cursor as a Gid, decoding through Cursor to its Gid representation. */
+  def pagingGid[A: Gid](name: String): Either[InputError, Option[A]] =
+    pagingCursor(s"Cannot read as $name")(Paging.Cursor.gid[A].getOption)
+
   def pagingAsterismId: Either[InputError, Option[Asterism.Id]] =
     pagingGid[Asterism.Id]("AsterismId")
 
-  def pagingConstraintSetId: Either[InputError, Option[ConstraintSet.Id]] =
-    pagingGid[ConstraintSet.Id]("ConstraintSetId")
+  def pagingExecutionEventId: Either[InputError, Option[ExecutionEvent.Id]] =
+    pagingGid[ExecutionEvent.Id]("ExecutionEventId")
 
   def pagingObservationId: Either[InputError, Option[Observation.Id]] =
     pagingGid[Observation.Id]("ObservationId")
@@ -79,20 +80,29 @@ final class RepoContextOps[F[_]: Effect](val self: Context[OdbRepo[F], _]) {
   def pagingProgramId: Either[InputError, Option[Program.Id]] =
     pagingGid[Program.Id]("ProgramId")
 
+  def pagingStepId: Either[InputError, Option[Step.Id]] =
+    pagingGid[Step.Id]("StepId")
+
   def pagingTargetId: Either[InputError, Option[Target.Id]] =
     pagingGid[Target.Id]("TargetId")
 
   def asterism[B](f: AsterismRepo[F] => F[B]): Future[B] =
     f(self.ctx.asterism).toIO.unsafeToFuture()
 
-  def constraintSet[B](f: ConstraintSetRepo[F] => F[B]): Future[B] =
-    f(self.ctx.constraintSet).toIO.unsafeToFuture()
+  def atom[B](f: AtomRepo[F] => F[B]): Future[B] =
+    f(self.ctx.atom).toIO.unsafeToFuture()
+
+  def executionEvent[B](f: ExecutionEventRepo[F] => F[B]): Future[B] =
+    f(self.ctx.executionEvent).toIO.unsafeToFuture()
 
   def observation[B](f: ObservationRepo[F] => F[B]): Future[B] =
     f(self.ctx.observation).toIO.unsafeToFuture()
 
   def program[B](f: ProgramRepo[F] => F[B]): Future[B] =
     f(self.ctx.program).toIO.unsafeToFuture()
+
+  def step[B](f: StepRepo[F] => F[B]): Future[B] =
+    f(self.ctx.step).toIO.unsafeToFuture()
 
   def target[B](f: TargetRepo[F] => F[B]): Future[B] =
     f(self.ctx.target).toIO.unsafeToFuture()

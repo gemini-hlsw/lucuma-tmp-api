@@ -17,7 +17,7 @@ import sangria.validation.ValueCoercionViolation
 object ObjectIdSchema {
 
   private def formatString[A: Gid]: String =
-    s"${Gid[A].tag}-(0|[1-9a-f][0-9a-f]*)"
+    s"${Gid[A].tag}-([1-9a-f][0-9a-f]*)"
 
   final case class IdViolation[A: Gid]() extends ValueCoercionViolation(s"Expected an ID of type ${formatString[A]}")
 

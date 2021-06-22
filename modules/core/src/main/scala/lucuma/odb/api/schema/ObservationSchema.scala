@@ -12,12 +12,14 @@ import cats.effect.Effect
 import cats.effect.implicits._
 import cats.syntax.all._
 import sangria.schema._
+import scala.collection.immutable.Seq
 
 
 object ObservationSchema {
 
   import AsterismSchema.AsterismType
   import ConstraintSetSchema.ConstraintSetType
+  import ExecutionSchema.ExecutionType
   import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, NonEmptyStringType, PlannedTimeSummaryType}
   import ProgramSchema.ProgramType
   import TargetSchema.TargetType
@@ -46,6 +48,13 @@ object ObservationSchema {
       name         = "observationId",
       argumentType = OptionInputType(ObservationIdType),
       description  = "Observation ID"
+    )
+
+  val OptionalListObservationIdArgument: Argument[Option[Seq[Observation.Id]]] =
+    Argument(
+      name         = "observationIds",
+      argumentType = OptionInputType(ListInputType(ObservationIdType)),
+      description  = "Observation IDs"
     )
 
   def ObservationTargetType[F[_]: Effect]: OutputType[Either[AsterismModel, TargetModel]] =
@@ -105,10 +114,9 @@ object ObservationSchema {
 
         Field(
           name        = "constraintSet",
-          fieldType   = OptionType(ConstraintSetType[F]),
-          description = Some("The constraint set for the observation, if any"),
-          arguments   = List(ArgumentIncludeDeleted),
-          resolve     = c => c.constraintSet(_.selectForObservation(c.value.id))
+          fieldType   = ConstraintSetType[F],
+          description = Some("The constraint set for the observation"),
+          resolve     = c => c.value.constraintSet
         ),
 
         Field(
@@ -142,15 +150,22 @@ object ObservationSchema {
         ),
 
         Field(
-          name        = "config",
+          name        = "manualConfig",
           fieldType   = OptionType(InstrumentConfigSchema.ConfigType[F]),
-          description = Some("Instrument configuration"),
+          description = Some("Manual instrument configuration"),
           resolve     = c =>
             c.ctx.tables.get.map { tables =>
               c.value.config.flatMap { icm =>
                 icm.dereference[State[Tables, *], Tables](TableState).runA(tables).value
               }
             }.toIO.unsafeToFuture()
+        ),
+
+        Field(
+          name        = "execution",
+          fieldType   = ExecutionType[F],
+          description = Some("Execution sequence and runtime artifacts"),
+          resolve     = _.value.id
         )
 
       )

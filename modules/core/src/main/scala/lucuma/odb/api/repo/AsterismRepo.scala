@@ -19,7 +19,7 @@ sealed trait AsterismRepo[F[_]] extends TopLevelRepo[F, Asterism.Id, AsterismMod
 
   def selectPageForProgram(
     pid:            Program.Id,
-    count:          Int                 = Integer.MAX_VALUE,
+    count:          Option[Int]         = None,
     afterGid:       Option[Asterism.Id] = None,
     includeDeleted: Boolean             = false
   ): F[ResultPage[AsterismModel]]
@@ -27,7 +27,7 @@ sealed trait AsterismRepo[F[_]] extends TopLevelRepo[F, Asterism.Id, AsterismMod
   def selectPageForTarget(
     tid:            Target.Id,
     pid:            Option[Program.Id]  = None,
-    count:          Int                 = Integer.MAX_VALUE,
+    count:          Option[Int]         = None,
     afterGid:       Option[Asterism.Id] = None,
     includeDeleted: Boolean             = false
   ): F[ResultPage[AsterismModel]]
@@ -80,7 +80,7 @@ object AsterismRepo {
 
       override def selectPageForProgram(
         pid:            Program.Id,
-        count:          Int,
+        count:          Option[Int],
         afterGid:       Option[Asterism.Id],
         includeDeleted: Boolean
       ): F[ResultPage[AsterismModel]] =
@@ -90,7 +90,7 @@ object AsterismRepo {
       override def selectPageForTarget(
         tid:            Target.Id,
         pid:            Option[Program.Id],
-        count:          Int,
+        count:          Option[Int],
         afterGid:       Option[Asterism.Id],
         includeDeleted: Boolean
       ): F[ResultPage[AsterismModel]] =

@@ -7,7 +7,7 @@ import lucuma.core.`enum`.Instrument
 import lucuma.odb.api.model.{DereferencedSequence, InstrumentConfigModel, PlannedTime}
 import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Effect
-import lucuma.odb.api.schema.FiniteDurationSchema.DurationType
+import lucuma.odb.api.schema.TimeSchema.DurationType
 import sangria.schema._
 
 

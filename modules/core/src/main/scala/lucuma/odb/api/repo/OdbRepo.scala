@@ -20,11 +20,15 @@ trait OdbRepo[F[_]] {
 
   def asterism: AsterismRepo[F]
 
-  def constraintSet: ConstraintSetRepo[F]
+  def atom: AtomRepo[F]
+
+  def executionEvent: ExecutionEventRepo[F]
 
   def observation: ObservationRepo[F]
 
   def program: ProgramRepo[F]
+
+  def step: StepRepo[F]
 
   def target: TargetRepo[F]
 
@@ -56,14 +60,20 @@ object OdbRepo {
       override def asterism: AsterismRepo[F] =
         AsterismRepo.create(r, s)
 
-      override def constraintSet: ConstraintSetRepo[F] =
-        ConstraintSetRepo.create(r, s)
+      override def atom: AtomRepo[F] =
+        AtomRepo.create(r)
+
+      override def executionEvent: ExecutionEventRepo[F] =
+        ExecutionEventRepo.create(r)
 
       override def observation: ObservationRepo[F] =
         ObservationRepo.create(r, s)
 
       override def program: ProgramRepo[F] =
         ProgramRepo.create(r, s)
+
+      override def step: StepRepo[F] =
+        StepRepo.create[F](r)
 
       override def target: TargetRepo[F] =
         TargetRepo.create(r, s)

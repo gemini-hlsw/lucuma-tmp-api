@@ -5,7 +5,6 @@ package lucuma.odb.api.model
 
 import cats._
 import cats.data.State
-import cats.mtl.Stateful
 import cats.syntax.all._
 import clue.data.Input
 import eu.timepit.refined.types.string.NonEmptyString
@@ -13,18 +12,16 @@ import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
 import lucuma.core.enum._
-import lucuma.core.model.{ConstraintSet, Program}
+import lucuma.core.model.Observation
 import lucuma.core.optics.syntax.lens._
-import lucuma.odb.api.model.Existence._
 import lucuma.odb.api.model.syntax.input._
 import monocle.{Fold, Lens, Optional}
 import monocle.macros.GenLens
 
+import scala.collection.immutable.SortedSet
+
 final case class ConstraintSetModel(
-  id:              ConstraintSet.Id,
-  existence:       Existence,
-  programId:       Program.Id,
-  name:            NonEmptyString,
+  name:            NonEmptyString,  // maybe we eliminate this?
   imageQuality:    ImageQuality,
   cloudExtinction: CloudExtinction,
   skyBackground:   SkyBackground,
@@ -34,14 +31,19 @@ final case class ConstraintSetModel(
 
 object ConstraintSetModel extends ConstraintSetModelOptics {
 
-  implicit val TopLevelConstraintSet: TopLevelModel[ConstraintSet.Id, ConstraintSetModel] =
-    TopLevelModel.instance(_.id, ConstraintSetModel.existence)
-
   implicit val EqConstraintSet: Eq[ConstraintSetModel] = Eq.fromUniversalEquals
 
+  val AnyConstraints: ConstraintSetModel =
+    ConstraintSetModel(
+      NonEmptyString.unsafeFrom("Anything Goes"),
+      ImageQuality.TwoPointZero,
+      CloudExtinction.ThreePointZero,
+      SkyBackground.Bright,
+      WaterVapor.Wet,
+      ElevationRangeModel.airmassRange.reverseGet(AirmassRange.AnyAirmass)
+    )
+
   final case class Create(
-    constraintSetId: Option[ConstraintSet.Id],
-    programId:       Program.Id,
     name:            NonEmptyString,
     imageQuality:    ImageQuality,
     cloudExtinction: CloudExtinction,
@@ -50,25 +52,17 @@ object ConstraintSetModel extends ConstraintSetModelOptics {
     elevationRange:  ElevationRangeModel.Create
   ) {
 
-    def create[F[_]: Monad, T](db: DatabaseState[T])(implicit S: Stateful[F, T]): F[ValidatedInput[ConstraintSetModel]] =
-      for {
-        i <- db.constraintSet.getUnusedId[F](constraintSetId)
-        p <- db.program.lookupValidated[F](programId)
-        c  = (i, p, elevationRange.create).mapN { (iʹ, _, e) =>
-          ConstraintSetModel(
-            iʹ,
-            Present,
-            programId,
-            name,
-            imageQuality,
-            cloudExtinction,
-            skyBackground,
-            waterVapor,
-            e
-          )
-        }
-        _ <- db.constraintSet.saveIfValid[F](c)(_.id)
-      } yield c
+    def create: ValidatedInput[ConstraintSetModel] =
+      elevationRange.create.map { e =>
+        ConstraintSetModel(
+          name,
+          imageQuality,
+          cloudExtinction,
+          skyBackground,
+          waterVapor,
+          e
+        )
+      }
   }
 
   object Create {
@@ -79,35 +73,29 @@ object ConstraintSetModel extends ConstraintSetModelOptics {
   }
 
   final case class Edit(
-    constraintSetId: ConstraintSet.Id,
-    existence:       Input[Existence] = Input.ignore,
-    name:            Input[NonEmptyString] = Input.ignore,
-    imageQuality:    Input[ImageQuality] = Input.ignore,
-    cloudExtinction: Input[CloudExtinction] = Input.ignore,
-    skyBackground:   Input[SkyBackground] = Input.ignore,
-    waterVapor:      Input[WaterVapor] = Input.ignore,
+    name:            Input[NonEmptyString]             = Input.ignore,
+    imageQuality:    Input[ImageQuality]               = Input.ignore,
+    cloudExtinction: Input[CloudExtinction]            = Input.ignore,
+    skyBackground:   Input[SkyBackground]              = Input.ignore,
+    waterVapor:      Input[WaterVapor]                 = Input.ignore,
     elevationRange:  Input[ElevationRangeModel.Create] = Input.ignore
   ) {
 
-    def id: ConstraintSet.Id = constraintSetId
-
     def editor: ValidatedInput[State[ConstraintSetModel, Unit]] =
-      (existence.validateIsNotNull("existence"),
-       name.validateIsNotNull("name"),
+      (name.validateIsNotNull("name"),
        imageQuality.validateIsNotNull("imageQuality"),
        cloudExtinction.validateIsNotNull("cloudExtinction"),
        skyBackground.validateIsNotNull("skyBackground"),
        waterVapor.validateIsNotNull("waterVapor"),
        elevationRange.validateNotNullable("elevationRange")(_.create)
-      ).mapN { (e, n, i, c, s, w, el) =>
+      ).mapN { (n, i, c, s, w, el) =>
         for {
-          _ <- ConstraintSetModel.existence := e
-          _ <- ConstraintSetModel.name := n
-          _ <- ConstraintSetModel.imageQuality := i
+          _ <- ConstraintSetModel.name            := n
+          _ <- ConstraintSetModel.imageQuality    := i
           _ <- ConstraintSetModel.cloudExtinction := c
-          _ <- ConstraintSetModel.skyBackground := s
-          _ <- ConstraintSetModel.waterVapor := w
-          _ <- ConstraintSetModel.elevationRange := el
+          _ <- ConstraintSetModel.skyBackground   := s
+          _ <- ConstraintSetModel.waterVapor      := w
+          _ <- ConstraintSetModel.elevationRange  := el
         } yield ()
       }
   }
@@ -122,30 +110,40 @@ object ConstraintSetModel extends ConstraintSetModelOptics {
     implicit val EqEdit: Eq[Edit] = Eq.fromUniversalEquals
   }
 
-  final case class ConstraintSetEvent(
-    id:       Long,
-    editType: Event.EditType,
-    value:    ConstraintSetModel
-  ) extends Event.Edit[ConstraintSetModel]
 
-  object ConstraintSetEvent {
-    def created(value: ConstraintSetModel)(id: Long): ConstraintSetEvent =
-      ConstraintSetEvent(id, Event.EditType.Created, value)
+  final case class BulkEdit(
+    constraintSet:  Edit,
+    observationIds: List[Observation.Id]
+  )
 
-    def updated(value: ConstraintSetModel)(id: Long): ConstraintSetEvent =
-      ConstraintSetEvent(id, Event.EditType.Updated, value)
+  object BulkEdit {
+
+    implicit val DecoderEdit: Decoder[BulkEdit] =
+      deriveDecoder[BulkEdit]
+
+    implicit val EqBulkEdit: Eq[BulkEdit] =
+      Eq.fromUniversalEquals
+
   }
+
+  final case class Group(
+    constraints:    ConstraintSetModel,
+    observationIds: SortedSet[Observation.Id]
+  )
+
+  object Group {
+
+    implicit val EqGroup: Eq[Group] =
+      Eq.by { a => (
+        a.constraints,
+        a.observationIds
+      )}
+
+  }
+
 }
 
 trait ConstraintSetModelOptics {
-
-  /** @group Optics */
-  lazy val id: Lens[ConstraintSetModel, ConstraintSet.Id] =
-    GenLens[ConstraintSetModel](_.id)
-
-  /** @group Optics */
-  lazy val existence: Lens[ConstraintSetModel, Existence] =
-    GenLens[ConstraintSetModel](_.existence)
 
   /** @group Optics */
   lazy val name: Lens[ConstraintSetModel, NonEmptyString] =

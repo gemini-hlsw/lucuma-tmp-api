@@ -18,7 +18,6 @@ import monocle.function.At
 import monocle.state.all._
 
 import scala.collection.immutable.SortedMap
-import scala.collection.mutable
 
 
 trait TopLevelRepo[F[_], I, T] {
@@ -34,24 +33,24 @@ trait TopLevelRepo[F[_], I, T] {
   ): F[List[T]]
 
   def selectPage(
-    count:          Int       = Integer.MAX_VALUE,
-    afterGid:       Option[I] = None,
-    includeDeleted: Boolean   = false
+    count:          Option[Int] = None,
+    afterGid:       Option[I]   = None,
+    includeDeleted: Boolean     = false
   ): F[ResultPage[T]] =
     selectPageFiltered(count, afterGid, includeDeleted) { Function.const(true) }
 
   def selectPageFiltered(
-    count:          Int       = Integer.MAX_VALUE,
-    afterGid:       Option[I] = None,
-    includeDeleted: Boolean   = false
+    count:          Option[Int] = None,
+    afterGid:       Option[I]   = None,
+    includeDeleted: Boolean     = false
   )(
     predicate: T => Boolean
   ): F[ResultPage[T]]
 
   def selectPageFromIds(
-    count:          Int       = Integer.MAX_VALUE,
-    afterGid:       Option[I] = None,
-    includeDeleted: Boolean   = false
+    count:          Option[Int] = None,
+    afterGid:       Option[I]   = None,
+    includeDeleted: Boolean     = false
   )(
     ids: Tables => scala.collection.immutable.SortedSet[I]
   ): F[ResultPage[T]]
@@ -109,70 +108,48 @@ abstract class TopLevelRepoBase[F[_]: Monad, I: Gid, T: TopLevelModel[I, *]: Eq]
     includeDeleted: Boolean
   ): F[List[T]] =
     selectPage(
-      count          = Integer.MAX_VALUE,
+      count          = Some(Integer.MAX_VALUE),
       afterGid       = None,
       includeDeleted = includeDeleted
     ).map(_.nodes)
 
   def selectPageFiltered(
-    count:          Int,
+    count:          Option[Int],
     afterGid:       Option[I],
     includeDeleted: Boolean
   )(
     predicate: T => Boolean
-  ): F[ResultPage[T]] = {
-
-    val isSelected: T => Boolean =
-      t => (includeDeleted || t.isPresent) && predicate(t)
+  ): F[ResultPage[T]] =
 
     tablesRef.get.map { tables =>
       val all = mapLens.get(tables)
 
-      page(
+      ResultPage.select(
         count,
-        afterGid
-          .fold(all.valuesIterator)(gid => all.valuesIteratorFrom(gid).dropWhile(t => TopLevelModel[I, T].id(t) === gid))
-          .filter(isSelected),
-        all.count { case (_, t) => isSelected(t) }
+        afterGid,
+        all.keySet,
+        all.apply,
+        t => (includeDeleted || t.isPresent) && predicate(t)
       )
     }
-  }
 
   def selectPageFromIds(
-    count:          Int,
+    count:          Option[Int],
     afterGid:       Option[I],
     includeDeleted: Boolean
   )(
     ids: Tables => scala.collection.immutable.SortedSet[I]
-  ): F[ResultPage[T]] = {
-
-    val isSelected: T => Boolean =
-      t => includeDeleted || t.isPresent
+  ): F[ResultPage[T]] =
 
     tablesRef.get.map { tables =>
-      val all    = ids(tables)
-      val lookup = mapLens.get(tables)
-
-      page(
+      ResultPage.select(
         count,
-        afterGid
-          .fold(all.iterator)(gid => all.iteratorFrom(gid).dropWhile(_ === gid))
-          .map(lookup)
-          .filter(isSelected),
-        all.count(k => isSelected(lookup(k)))
+        afterGid,
+        ids(tables),
+        mapLens.get(tables).apply,
+        t => includeDeleted || t.isPresent
       )
     }
-  }
-
-  private def page(
-    count:      Int,
-    it:         Iterator[T],
-    totalCount: Int
-  ): ResultPage[T] = {
-    val res = mutable.Buffer.empty[T]
-    while (it.hasNext && (res.size < count)) res += it.next()
-    ResultPage(res.toList, it.hasNext, totalCount)
-  }
 
   def constructAndPublish[U <: T](
     cons: Tables => ValidatedInput[State[Tables, U]]

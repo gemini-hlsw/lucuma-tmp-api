@@ -4,11 +4,9 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.ConstraintSetModel
-import lucuma.odb.api.repo.OdbRepo
 
 import lucuma.odb.api.schema.syntax.inputtype._
 
-import cats.effect.Effect
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -16,10 +14,9 @@ import lucuma.odb.api.model.{AirmassRange, ElevationRangeModel, HourAngleRange}
 
 trait ConstraintSetMutation {
 
-  import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
+  import GeneralSchema.NonEmptyStringType
   import ConstraintSetSchema._
-  import ProgramSchema.ProgramIdType
-  import context._
+  import ObservationSchema.ObservationIdType
   import syntax.inputobjecttype._
 
   implicit val InputObjectTypeAirmassRangeCreate: InputObjectType[AirmassRange.Create] =
@@ -40,7 +37,7 @@ trait ConstraintSetMutation {
       InputObjectTypeDescription("Elevation range creation parameters")
     )
 
-  val InputObjectTypeConstraintSetCreate: InputObjectType[ConstraintSetModel.Create] =
+  implicit val InputObjectTypeConstraintSetCreate: InputObjectType[ConstraintSetModel.Create] =
     deriveInputObjectType[ConstraintSetModel.Create](
       InputObjectTypeName("CreateConstraintSetInput"),
       InputObjectTypeDescription("Constraint set creation parameters")
@@ -52,11 +49,10 @@ trait ConstraintSetMutation {
       "Constraint set description"
     )
 
-  val InputObjectTypeConstraintSetEdit: InputObjectType[ConstraintSetModel.Edit] =
+  implicit val InputObjectTypeConstraintSetEdit: InputObjectType[ConstraintSetModel.Edit] =
     deriveInputObjectType[ConstraintSetModel.Edit](
       InputObjectTypeName("EditConstraintSetInput"),
       InputObjectTypeDescription("Edit constraint set"),
-      ReplaceInputField("existence", EnumTypeExistence.notNullableField("existence")),
       ReplaceInputField("name", NonEmptyStringType.notNullableField("name")),
       ReplaceInputField("imageQuality", EnumTypeImageQuality.notNullableField("imageQuality")),
       ReplaceInputField("cloudExtinction",
@@ -75,49 +71,18 @@ trait ConstraintSetMutation {
       "Edit constraint set"
     )
 
-  def create[F[_]: Effect]: Field[OdbRepo[F], Unit] =
-    Field(
-      name      = "createConstraintSet",
-      fieldType = OptionType(ConstraintSetType[F]),
-      arguments = List(ArgumentConstraintSetCreate),
-      resolve   = c => c.constraintSet(_.insert(c.arg(ArgumentConstraintSetCreate)))
+  implicit val InputObjectTypeConstraintSetBulkEdit: InputObjectType[ConstraintSetModel.BulkEdit] =
+    deriveInputObjectType[ConstraintSetModel.BulkEdit](
+      InputObjectTypeName("BulkEditConstraintSetInput"),
+      InputObjectTypeDescription("Bulk edit constraint set of multiple observations")
     )
 
-  def update[F[_]: Effect]: Field[OdbRepo[F], Unit] =
-    Field(
-      name      = "updateConstraintSet",
-      fieldType = ConstraintSetType[F],
-      arguments = List(ArgumentConstraintSetEdit),
-      resolve   = c =>
-        c.constraintSet {
-          val e = c.arg(ArgumentConstraintSetEdit)
-          _.edit(e.id, e.editor)
-        }
+  val ArgumentConstraintSetBulkEdit: Argument[ConstraintSetModel.BulkEdit] =
+    InputObjectTypeConstraintSetBulkEdit.argument(
+      "input",
+      "Bulk edit constraint set"
     )
 
-  def delete[F[_]: Effect]: Field[OdbRepo[F], Unit] =
-    Field(
-      name      = "deleteConstraintSet",
-      fieldType = ConstraintSetType[F],
-      arguments = List(ConstraintSetIdArgument),
-      resolve   = c => c.constraintSet(_.delete(c.constraintSetId))
-    )
-
-  def undelete[F[_]: Effect]: Field[OdbRepo[F], Unit] =
-    Field(
-      name      = "undeleteContraintSet",
-      fieldType = ConstraintSetType[F],
-      arguments = List(ConstraintSetIdArgument),
-      resolve   = c => c.constraintSet(_.undelete(c.constraintSetId))
-    )
-
-  def allFields[F[_]: Effect]: List[Field[OdbRepo[F], Unit]] =
-    List(
-      create,
-      update,
-      delete,
-      undelete
-    )
 }
 
 object ConstraintSetMutation extends ConstraintSetMutation

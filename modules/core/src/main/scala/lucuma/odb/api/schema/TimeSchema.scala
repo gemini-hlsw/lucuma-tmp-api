@@ -3,13 +3,32 @@
 
 package lucuma.odb.api.schema
 
-import cats.effect.Effect
+import lucuma.core.optics.Format
+import lucuma.odb.api.model.format.ScalarFormat
+import lucuma.odb.api.schema.syntax.scalar._
 import lucuma.odb.api.repo.OdbRepo
-import sangria.schema.{BigDecimalType, Field, LongType, ObjectType, fields}
+import cats.effect.Effect
+import sangria.schema._
+
+import java.time.Instant
 
 import scala.concurrent.duration.FiniteDuration
+import scala.util.Try
 
-object FiniteDurationSchema {
+object TimeSchema {
+
+  val InstantFormat: Format[String, Instant] =
+    Format.apply[String, Instant](
+      s => Try(Instant.parse(s)).toOption,
+      _.toString
+    )
+
+  implicit val InstantScalar: ScalarType[Instant] =
+    ScalarType.fromScalarFormat(
+      name         = "Instant",
+      description  = "Instant of time in ISO-8601 representation",
+      scalarFormat =  ScalarFormat(InstantFormat, "2011-12-03T10:15:30Z")
+    )
 
   def DurationType[F[_]: Effect]: ObjectType[OdbRepo[F], FiniteDuration] =
     ObjectType(

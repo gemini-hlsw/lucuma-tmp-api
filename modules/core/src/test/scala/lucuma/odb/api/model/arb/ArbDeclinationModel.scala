@@ -33,7 +33,7 @@ trait ArbDeclinationModel {
 
   val genDeclinationModelInputFromDecimal: Gen[Input] =
     Gen.oneOf(
-      genDecimalInput(microarcseconds, Units.microarcseconds),
+      genLongDecimalInput(microarcseconds, Units.microarcseconds),
       genDecimalInput(degrees, Units.degrees)
     ).map(Input.fromDecimal)
 

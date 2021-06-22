@@ -5,30 +5,23 @@ package lucuma.odb.api.model
 package arb
 
 import WavelengthModel.{Input, Units}
-import NumericUnits.{LongInput, DecimalInput}
-
+import NumericUnits.{DecimalInput, LongInput}
+import lucuma.core.math.Wavelength
 import lucuma.core.util.arb.ArbEnumerated
-
 import org.scalacheck._
-import org.scalacheck.Arbitrary.arbitrary
-
 
 trait ArbWavelengthModel {
 
   import ArbEnumerated._
   import GenNumericUnitsInput._
 
-  private[this] val picometers: Gen[Long] =
-    arbitrary[Int].map(_.toLong)
+  private def genBigDecimal(max: Int): Gen[BigDecimal] =
+    Gen.chooseNum(1,  max).map(BigDecimal(_))
 
-  private[this] val angstroms: Gen[BigDecimal] =
-    picometers.map(n => BigDecimal(n)/100)
-
-  private[this] val nanometers: Gen[BigDecimal] =
-    angstroms.map(_/10)
-
-  private[this] val micrometers: Gen[BigDecimal] =
-    nanometers.map(_/1000)
+  private[this] val picometers: Gen[Long]        = Gen.chooseNum(1, Wavelength.Max.toPicometers.value.value).map(_.toLong)
+  private[this] val angstroms: Gen[BigDecimal]   = genBigDecimal(Wavelength.MaxAngstrom)
+  private[this] val nanometers: Gen[BigDecimal]  = genBigDecimal(Wavelength.MaxNanometer)
+  private[this] val micrometers: Gen[BigDecimal] = genBigDecimal(Wavelength.MaxMicrometer)
 
   val genWavelengthModelInputFromLong: Gen[Input] =
     Gen.oneOf(
@@ -40,7 +33,7 @@ trait ArbWavelengthModel {
 
   val genWavelengthModelInputFromDecimal: Gen[Input] =
     Gen.oneOf(
-      genDecimalInput(picometers,  Units.picometers),
+      genLongDecimalInput(picometers,  Units.picometers),
       genDecimalInput(angstroms,   Units.angstroms),
       genDecimalInput(nanometers,  Units.nanometers),
       genDecimalInput(micrometers, Units.micrometers)
