@@ -57,7 +57,7 @@ trait ArbObservationModel {
       in.programId,
       in.name.map(_.value),
       in.status,
-      in.active,
+      in.activeStatus,
       in.pointing,
       in.constraintSet
     )}
@@ -103,7 +103,7 @@ trait ArbObservationModel {
       in.targetId,
       in.constraintSet,
       in.status,
-      in.active
+      in.activeStatus
     )}
 
 }

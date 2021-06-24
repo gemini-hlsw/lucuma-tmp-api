@@ -104,10 +104,10 @@ object ObservationSchema {
         ),
 
         Field(
-          name        = "active",
+          name        = "activeStatus",
           fieldType   = ObsActiveStatusType,
           description = "Observation operational status".some,
-          resolve     = _.value.active
+          resolve     = _.value.activeStatus
         ),
 
         Field(

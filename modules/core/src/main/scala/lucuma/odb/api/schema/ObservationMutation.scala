@@ -42,7 +42,7 @@ trait ObservationMutation {
       ReplaceInputField("existence",       EnumTypeExistence.notNullableField("existence")),
       ReplaceInputField("name",            NonEmptyStringType.nullableField("name")),
       ReplaceInputField("status",          ObsStatusType.notNullableField("status")),
-      ReplaceInputField("active",          ObsActiveStatusType.notNullableField("active")),
+      ReplaceInputField("activeStatus",    ObsActiveStatusType.notNullableField("activeStatus")),
       ReplaceInputField("asterismId",      AsterismIdType.nullableField("asterismId")),
       ReplaceInputField("targetId",        TargetIdType.nullableField("targetId")),
       ReplaceInputField("constraintSet",   InputObjectTypeConstraintSetEdit.nullableField("constraintSet"))
