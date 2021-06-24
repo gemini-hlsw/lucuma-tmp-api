@@ -7,7 +7,6 @@ import lucuma.odb.api.model.PlannedTime
 import lucuma.odb.api.model.PlannedTime.{CategorizedTime, Category}
 import lucuma.odb.api.model.time._
 import lucuma.odb.api.repo.OdbRepo
-import cats.effect.Effect
 import sangria.schema._
 
 
@@ -22,7 +21,7 @@ object PlannedTimeSchema {
       "Step time category"
     )
 
-  def CategorizedTimeType[F[_]: Effect]: ObjectType[OdbRepo[F], CategorizedTime] = {
+  def CategorizedTimeType[F[_]]: ObjectType[OdbRepo[F], CategorizedTime] = {
 
     def field(
       name: String,
@@ -50,7 +49,7 @@ object PlannedTimeSchema {
     )
   }
 
-  def PlannedTimeType[F[_]: Effect]: ObjectType[OdbRepo[F], PlannedTime] =
+  def PlannedTimeType[F[_]]: ObjectType[OdbRepo[F], PlannedTime] =
     ObjectType(
       name        = "PlannedTime",
       description = "Time estimates for executing this configuration",

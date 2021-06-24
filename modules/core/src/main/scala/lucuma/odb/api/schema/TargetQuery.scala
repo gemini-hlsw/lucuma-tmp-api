@@ -4,7 +4,9 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.repo.OdbRepo
-import cats.effect.Effect
+
+import cats.MonadError
+import cats.effect.std.Dispatcher
 import sangria.schema._
 
 trait TargetQuery {
@@ -15,7 +17,7 @@ trait TargetQuery {
   import TargetSchema.{TargetIdArgument, TargetType, TargetConnectionType}
   import context._
 
-  def forId[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def forId[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name        = "target",
       fieldType   = OptionType(TargetType[F]),
@@ -24,7 +26,7 @@ trait TargetQuery {
       resolve     = c => c.target(_.select(c.targetId, c.includeDeleted))
     )
 
-  def allForProgram[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def allForProgram[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name        = "targets",
       fieldType   = TargetConnectionType[F],
@@ -41,7 +43,7 @@ trait TargetQuery {
         }
     )
 
-  def allFields[F[_]: Effect]: List[Field[OdbRepo[F], Unit]] =
+  def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
     List(
       allForProgram,
       forId

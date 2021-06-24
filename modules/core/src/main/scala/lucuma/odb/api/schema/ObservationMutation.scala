@@ -6,7 +6,9 @@ package lucuma.odb.api.schema
 import lucuma.odb.api.model.ObservationModel
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.inputtype._
-import cats.effect.Effect
+
+import cats.MonadError
+import cats.effect.std.Dispatcher
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -66,7 +68,7 @@ trait ObservationMutation {
       "Edit observation asterism / target"
     )
 
-  def create[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def create[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "createObservation",
       fieldType = OptionType(ObservationType[F]),
@@ -74,7 +76,7 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.insert(c.arg(ArgumentObservationCreate)))
     )
 
-  def update[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def update[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "updateObservation",
       fieldType = ObservationType[F],
@@ -82,7 +84,7 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.edit(c.arg(ArgumentObservationEdit)))
     )
 
-  def updatePointing[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def updatePointing[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "updatePointing",
       fieldType = ListType(ObservationType[F]), // Should change to a Payload where the observations and asterisms and targets, etc. can be included
@@ -90,7 +92,7 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.editPointing(c.arg(ArgumentObservationEditPointing)))
     )
 
-  def updateConstraintSet[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def updateConstraintSet[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "updateConstraintSet",
       fieldType = ListType(ObservationType[F]),
@@ -98,7 +100,7 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.bulkEditConstraintSet(c.arg(ArgumentConstraintSetBulkEdit)))
     )
 
-  def delete[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def delete[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "deleteObservation",
       fieldType = ObservationType[F],
@@ -106,7 +108,7 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.delete(c.observationId))
     )
 
-  def undelete[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def undelete[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "undeleteObservation",
       fieldType = ObservationType[F],
@@ -114,7 +116,7 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.undelete(c.observationId))
     )
 
-  def allFields[F[_]: Effect]: List[Field[OdbRepo[F], Unit]] =
+  def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
     List(
       create,
       update,

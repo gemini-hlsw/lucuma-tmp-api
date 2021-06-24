@@ -9,7 +9,9 @@ import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.`enum`.{CatalogName, EphemerisKeyType, MagnitudeBand, MagnitudeSystem}
 import lucuma.core.math.{Coordinates, Declination, MagnitudeValue, Parallax, ProperMotion, RadialVelocity, RightAscension, VelocityAxis}
 import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, SiderealTracking, Target}
-import cats.effect.Effect
+
+import cats.MonadError
+import cats.effect.std.Dispatcher
 import sangria.schema._
 
 object TargetSchema extends TargetScalars {
@@ -62,7 +64,7 @@ object TargetSchema extends TargetScalars {
       "Ephemeris key type options"
     )
 
-  def NonsiderealType[F[_]: Effect]: ObjectType[OdbRepo[F], EphemerisKey] =
+  def NonsiderealType[F[_]]: ObjectType[OdbRepo[F], EphemerisKey] =
     ObjectType(
       name     = "Nonsidereal",
       fieldsFn = () => fields(
@@ -83,7 +85,7 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-  def CatalogIdType[F[_]: Effect]: ObjectType[OdbRepo[F], CatalogId] =
+  def CatalogIdType[F[_]]: ObjectType[OdbRepo[F], CatalogId] =
     ObjectType(
       name = "CatalogId",
       fieldsFn = () => fields(
@@ -104,7 +106,7 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-  def MagnitudeType[F[_]: Effect]: ObjectType[OdbRepo[F], Magnitude] =
+  def MagnitudeType[F[_]]: ObjectType[OdbRepo[F], Magnitude] =
     ObjectType(
       name = "Magnitude",
       fieldsFn = () => fields(
@@ -133,7 +135,7 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-  def ProperMotionComponentType[A, F[_]: Effect](
+  def ProperMotionComponentType[A, F[_]](
     name: String,
     componentName: String
   ): ObjectType[OdbRepo[F], ProperMotion.AngularVelocityComponent[A]] =
@@ -158,7 +160,7 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-  def ProperMotionType[F[_]: Effect](name: String): ObjectType[OdbRepo[F], ProperMotion] =
+  def ProperMotionType[F[_]](name: String): ObjectType[OdbRepo[F], ProperMotion] =
     ObjectType(
       name     = name.capitalize,
       fieldsFn = () => fields(
@@ -179,7 +181,7 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-  def RightAscensionType[F[_]: Effect]: ObjectType[OdbRepo[F], RightAscension] =
+  def RightAscensionType[F[_]]: ObjectType[OdbRepo[F], RightAscension] =
     ObjectType(
       name     = "RightAscension",
       fieldsFn = () => fields(
@@ -214,7 +216,7 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-  def DeclinationType[F[_]: Effect]: ObjectType[OdbRepo[F], Declination] =
+  def DeclinationType[F[_]]: ObjectType[OdbRepo[F], Declination] =
     ObjectType(
       name     = "Declination",
       fieldsFn = () => fields(
@@ -242,7 +244,7 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-  def CoordinateType[F[_]: Effect]: ObjectType[OdbRepo[F], Coordinates] =
+  def CoordinateType[F[_]]: ObjectType[OdbRepo[F], Coordinates] =
     ObjectType(
       name     = "Coordinates",
       fieldsFn = () => fields(
@@ -263,7 +265,7 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-  def RadialVelocityType[F[_]: Effect]: ObjectType[OdbRepo[F], RadialVelocity] =
+  def RadialVelocityType[F[_]]: ObjectType[OdbRepo[F], RadialVelocity] =
     ObjectType(
       name     = "RadialVelocity",
       fieldsFn = () => fields(
@@ -292,7 +294,7 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-  def ParallaxType[F[_]: Effect]: ObjectType[OdbRepo[F], Parallax] =
+  def ParallaxType[F[_]]: ObjectType[OdbRepo[F], Parallax] =
     ObjectType(
       name     = "Parallax",
       fieldsFn = () => fields(
@@ -315,7 +317,7 @@ object TargetSchema extends TargetScalars {
     )
 
 
-  def SiderealType[F[_]: Effect]: ObjectType[OdbRepo[F], SiderealTracking] =
+  def SiderealType[F[_]]: ObjectType[OdbRepo[F], SiderealTracking] =
     ObjectType(
       name     = "Sidereal",
       fieldsFn = () => fields(
@@ -365,7 +367,7 @@ object TargetSchema extends TargetScalars {
     )
 
 
-  def TrackingType[F[_]: Effect]: OutputType[Either[EphemerisKey, SiderealTracking]] =
+  def TrackingType[F[_]]: OutputType[Either[EphemerisKey, SiderealTracking]] =
     UnionType(
       name        = "Tracking",
       description = Some("Either Nonsidereal ephemeris lookup key or Sidereal proper motion."),
@@ -377,7 +379,7 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-  def TargetType[F[_]: Effect]: ObjectType[OdbRepo[F], TargetModel] =
+  def TargetType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], TargetModel] =
     ObjectType(
       name     = "Target",
       fieldsFn = () => fields(
@@ -465,14 +467,14 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-  def TargetEdgeType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Edge[TargetModel]] =
+  def TargetEdgeType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Edge[TargetModel]] =
     Paging.EdgeType(
       "TargetEdge",
       "A Target and its cursor",
       TargetType[F]
     )
 
-  def TargetConnectionType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Connection[TargetModel]] =
+  def TargetConnectionType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Connection[TargetModel]] =
     Paging.ConnectionType(
       "TargetConnection",
       "Targets in the current page",

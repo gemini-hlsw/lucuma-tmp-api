@@ -3,7 +3,6 @@
 
 package lucuma.odb.api.schema
 
-import cats.effect.Effect
 import lucuma.core.math.Wavelength
 import lucuma.odb.api.model.WavelengthModel
 import lucuma.odb.api.repo.OdbRepo
@@ -16,7 +15,7 @@ object WavelengthSchema {
   import NumericUnitsSchema._
   import syntax.enum._
 
-  def WavelengthType[F[_]: Effect]: ObjectType[OdbRepo[F], Wavelength] =
+  def WavelengthType[F[_]]: ObjectType[OdbRepo[F], Wavelength] =
     ObjectType(
       name     = "Wavelength",
       fieldsFn = () => fields(

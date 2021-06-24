@@ -6,7 +6,9 @@ package lucuma.odb.api.schema
 import lucuma.odb.api.model.AsterismModel
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.model.Asterism
-import cats.effect.Effect
+
+import cats.MonadError
+import cats.effect.std.Dispatcher
 import sangria.schema._
 
 object AsterismSchema {
@@ -35,7 +37,7 @@ object AsterismSchema {
       description  = "Asterism ID"
     )
 
-  def AsterismType[F[_]: Effect]: ObjectType[OdbRepo[F], AsterismModel] =
+  def AsterismType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], AsterismModel] =
     ObjectType[OdbRepo[F], AsterismModel](
       name        = "Asterism",
       description = "Collection of stars observed in a single observation",
@@ -117,14 +119,14 @@ object AsterismSchema {
       )
     )
 
-  def AsterismEdgeType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Edge[AsterismModel]] =
+  def AsterismEdgeType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Edge[AsterismModel]] =
     Paging.EdgeType(
       "AsterismEdge",
       "An Asterism and its cursor",
       AsterismType[F]
     )
 
-  def AsterismConnectionType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Connection[AsterismModel]] =
+  def AsterismConnectionType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Connection[AsterismModel]] =
     Paging.ConnectionType(
       "AsterismConnection",
       "Asterisms in the current page",

@@ -7,11 +7,13 @@ import lucuma.odb.api.model.{AsterismModel, ObservationModel, TargetModel}
 import lucuma.odb.api.repo.{OdbRepo, TableState, Tables}
 import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.Observation
+
+import cats.{Monad, MonadError}
 import cats.data.{OptionT, State}
-import cats.effect.Effect
-import cats.effect.implicits._
+import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import sangria.schema._
+
 import scala.collection.immutable.Seq
 
 
@@ -63,14 +65,14 @@ object ObservationSchema {
       description  = "Observation IDs"
     )
 
-  def ObservationTargetType[F[_]: Effect]: OutputType[Either[AsterismModel, TargetModel]] =
+  def ObservationTargetType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): OutputType[Either[AsterismModel, TargetModel]] =
     UnionType(
       name        = "ObservationTarget",
       description = Some("Either asterism or target"),
       types       = List(AsterismType[F], TargetType[F])
     ).mapValue[Either[AsterismModel, TargetModel]](_.merge)
 
-  def ObservationType[F[_]](implicit F: Effect[F]): ObjectType[OdbRepo[F], ObservationModel] =
+  def ObservationType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], ObservationModel] =
     ObjectType(
       name     = "Observation",
       fieldsFn = () => fields(
@@ -137,12 +139,12 @@ object ObservationSchema {
           fieldType   = OptionType(ObservationTargetType[F]),
           description = Some("The observation's asterism or target (see also `asterism` and `target` fields)"),
           arguments   = List(ArgumentIncludeDeleted),
-          resolve     = c => {
+          resolve     = c => c.unsafeToFuture {
             for {
               a <- asterism[F](c)
               t <- target[F](c)
             } yield a.map(_.asLeft[TargetModel]) orElse t.map(_.asRight[AsterismModel])
-          }.toIO.unsafeToFuture()
+          }
         ),
 
         Field(
@@ -150,7 +152,7 @@ object ObservationSchema {
           fieldType   = OptionType(AsterismType[F]),
           description = Some("The observation's asterism, if a multi-target observation"),
           arguments   = List(ArgumentIncludeDeleted),
-          resolve     = c => asterism[F](c).toIO.unsafeToFuture()
+          resolve     = c => c.unsafeToFuture(asterism[F](c))
 
         ),
 
@@ -159,19 +161,20 @@ object ObservationSchema {
           fieldType   = OptionType(TargetType[F]),
           description = Some("The observation's target, if a single-target observation"),
           arguments   = List(ArgumentIncludeDeleted),
-          resolve     = c => target[F](c).toIO.unsafeToFuture()
+          resolve     = c => c.unsafeToFuture(target[F](c))
         ),
 
         Field(
           name        = "manualConfig",
           fieldType   = OptionType(InstrumentConfigSchema.ConfigType[F]),
           description = Some("Manual instrument configuration"),
-          resolve     = c =>
+          resolve     = c => c.unsafeToFuture {
             c.ctx.tables.get.map { tables =>
               c.value.config.flatMap { icm =>
                 icm.dereference[State[Tables, *], Tables](TableState).runA(tables).value
               }
-            }.toIO.unsafeToFuture()
+            }
+          }
         ),
 
         Field(
@@ -184,32 +187,32 @@ object ObservationSchema {
       )
     )
 
-  private def asterism[F[_]](
+  private def asterism[F[_]: Monad](
     c: Context[OdbRepo[F], ObservationModel]
-  )(implicit F: Effect[F]): F[Option[AsterismModel]] =
-    c.value.pointing.fold(F.pure(Option.empty[AsterismModel])) { e =>
+  ): F[Option[AsterismModel]] =
+    c.value.pointing.fold(Monad[F].pure(Option.empty[AsterismModel])) { e =>
       OptionT(e.swap.toOption.pure[F]).flatMap { aid =>
         OptionT(c.ctx.asterism.select(aid, c.includeDeleted))
       }.value
     }
 
-  private def target[F[_]](
+  private def target[F[_]: Monad](
     c: Context[OdbRepo[F], ObservationModel]
-  )(implicit F: Effect[F]): F[Option[TargetModel]] =
-    c.value.pointing.fold(F.pure(Option.empty[TargetModel])) { e =>
+  ): F[Option[TargetModel]] =
+    c.value.pointing.fold(Monad[F].pure(Option.empty[TargetModel])) { e =>
       OptionT(e.toOption.pure[F]).flatMap { tid =>
         OptionT(c.ctx.target.select(tid, c.includeDeleted))
       }.value
     }
 
-  def ObservationEdgeType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Edge[ObservationModel]] =
+  def ObservationEdgeType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Edge[ObservationModel]] =
     Paging.EdgeType[F, ObservationModel](
       "ObservationEdge",
       "An observation and its cursor",
       ObservationType[F]
     )
 
-  def ObservationConnectionType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Connection[ObservationModel]] =
+  def ObservationConnectionType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Connection[ObservationModel]] =
     Paging.ConnectionType[F, ObservationModel](
       "ObservationConnection",
       "Matching observations",

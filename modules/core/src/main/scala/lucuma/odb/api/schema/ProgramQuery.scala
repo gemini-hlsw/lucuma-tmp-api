@@ -4,7 +4,9 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.repo.OdbRepo
-import cats.effect.Effect
+
+import cats.MonadError
+import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import sangria.schema._
 
@@ -15,7 +17,7 @@ trait ProgramQuery {
   import ProgramSchema.{OptionalListProgramIdArgument, ProgramIdArgument, ProgramType, ProgramConnectionType}
   import context._
 
-  def programs[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def programs[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name        = "programs",
       fieldType   = ProgramConnectionType[F],
@@ -36,7 +38,7 @@ trait ProgramQuery {
         }
     )
 
-  def forId[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def forId[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name        = "program",
       fieldType   = OptionType(ProgramType[F]),
@@ -45,7 +47,7 @@ trait ProgramQuery {
       resolve     = c => c.program(_.select(c.programId, c.includeDeleted))
     )
 
-  def allFields[F[_]: Effect]: List[Field[OdbRepo[F], Unit]] =
+  def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
     List(
       programs,
       forId

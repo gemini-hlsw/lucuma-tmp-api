@@ -10,7 +10,7 @@ import lucuma.core.util.Gid
 
 import cats._
 import cats.data._
-import cats.effect.concurrent.Ref
+import cats.effect.Ref
 import cats.kernel.BoundedEnumerable
 import cats.syntax.all._
 import monocle.Lens

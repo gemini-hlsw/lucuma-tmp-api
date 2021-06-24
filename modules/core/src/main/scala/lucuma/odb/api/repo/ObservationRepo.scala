@@ -11,8 +11,7 @@ import lucuma.odb.api.model.TargetModel.TargetEvent
 import lucuma.odb.api.model.syntax.validatedinput._
 import cats.Eq
 import cats.data.{EitherT, State}
-import cats.effect.Sync
-import cats.effect.concurrent.Ref
+import cats.effect.{Async, Ref}
 import cats.implicits._
 import clue.data.{Assign, Ignore, Input, Unassign}
 import monocle.state.all._
@@ -65,7 +64,7 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
 
 object ObservationRepo {
 
-  def create[F[_]: Sync](
+  def create[F[_]: Async](
     tablesRef:    Ref[F, Tables],
     eventService: EventService[F]
   ): ObservationRepo[F] =

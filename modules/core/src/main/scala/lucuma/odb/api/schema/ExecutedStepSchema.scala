@@ -6,7 +6,8 @@ package lucuma.odb.api.schema
 import lucuma.odb.api.model.{DatasetModel, ExecutedStepModel}
 import lucuma.odb.api.repo.OdbRepo
 
-import cats.effect.Effect
+import cats.MonadError
+import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import eu.timepit.refined.types.all.PosInt
 import sangria.schema._
@@ -20,7 +21,7 @@ object ExecutedStepSchema {
   import AtomSchema.AtomInterfaceType
   import StepSchema.{StepIdType, StepInterfaceType}
 
-  def ExecutedStepType[F[_]: Effect]: ObjectType[OdbRepo[F], ExecutedStepModel] = {
+  def ExecutedStepType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], ExecutedStepModel] = {
     ObjectType(
       name        = "ExecutedStep",
       description = s"Executed step",
@@ -67,14 +68,14 @@ object ExecutedStepSchema {
     )
   }
 
-  def ExecutedStepEdgeType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Edge[ExecutedStepModel]] =
+  def ExecutedStepEdgeType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Edge[ExecutedStepModel]] =
     Paging.EdgeType(
       "ExecutedStepEdge",
       "An executed step and its cursor",
       ExecutedStepType[F]
     )
 
-  def ExecutedStepConnectionType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Connection[ExecutedStepModel]] =
+  def ExecutedStepConnectionType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Connection[ExecutedStepModel]] =
     Paging.ConnectionType(
       "ExecutedStepConnection",
       "Executed steps in the current page",

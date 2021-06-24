@@ -6,7 +6,9 @@ package lucuma.odb.api.schema
 import lucuma.core.model.{ExecutionEvent, Observation, Step}
 import lucuma.odb.api.model.{DatasetModel, ExecutedStepModel, ExecutionEventModel, InstrumentConfigModel}
 import lucuma.odb.api.repo.OdbRepo
-import cats.effect.Effect
+
+import cats.MonadError
+import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import eu.timepit.refined.types.all.PosInt
 import sangria.schema._
@@ -19,7 +21,7 @@ object ExecutionSchema {
   import ExecutedStepSchema._
   import Paging._
 
-  def ExecutionType[F[_]: Effect]: ObjectType[OdbRepo[F], Observation.Id] =
+  def ExecutionType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Observation.Id] =
     ObjectType(
       name     = "Execution",
       fieldsFn = () => fields(

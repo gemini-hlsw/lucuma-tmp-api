@@ -8,7 +8,7 @@ import lucuma.odb.api.model.TargetModel.{CreateNonsidereal, CreateSidereal, Targ
 import lucuma.core.model.{Asterism, Program, Target}
 import cats._
 import cats.data.{EitherT, State}
-import cats.effect.concurrent.Ref
+import cats.effect.Ref
 import cats.syntax.all._
 import monocle.state.all._
 

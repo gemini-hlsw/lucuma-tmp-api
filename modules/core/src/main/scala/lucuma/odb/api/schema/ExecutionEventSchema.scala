@@ -7,8 +7,8 @@ import lucuma.core.model.ExecutionEvent
 import lucuma.odb.api.model.ExecutionEventModel
 import lucuma.odb.api.repo.OdbRepo
 
-import cats.effect.Effect
-
+import cats.MonadError
+import cats.effect.std.Dispatcher
 import sangria.schema._
 
 
@@ -55,7 +55,7 @@ object ExecutionEventSchema {
       "Execution stage or phase of an individual dataset"
     )
 
-  def ExecutionEventType[F[_]: Effect]: InterfaceType[OdbRepo[F], ExecutionEventModel] =
+  def ExecutionEventType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): InterfaceType[OdbRepo[F], ExecutionEventModel] =
     InterfaceType[OdbRepo[F], ExecutionEventModel](
       name         = "ExecutionEvent",
       description  = "Execution event (sequence, step, or dataset events)",
@@ -96,7 +96,7 @@ object ExecutionEventSchema {
       PossibleObject[OdbRepo[F], ExecutionEventModel](DatasetEventType[F])
     ))
 
-  def SequenceEventType[F[_]: Effect]: ObjectType[OdbRepo[F], SequenceEvent] =
+  def SequenceEventType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], SequenceEvent] =
     ObjectType[OdbRepo[F], SequenceEvent](
       name        = "SequenceEvent",
       description = "Sequence-level events",
@@ -113,7 +113,7 @@ object ExecutionEventSchema {
       )
     )
 
-  def StepEventType[F[_]: Effect]: ObjectType[OdbRepo[F], StepEvent] =
+  def StepEventType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], StepEvent] =
     ObjectType[OdbRepo[F], StepEvent](
       name        = "StepEvent",
       description = "Step-level events",
@@ -144,7 +144,7 @@ object ExecutionEventSchema {
       )
     )
 
-  def DatasetEventType[F[_]: Effect]: ObjectType[OdbRepo[F], DatasetEvent] =
+  def DatasetEventType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], DatasetEvent] =
     ObjectType[OdbRepo[F], DatasetEvent](
       name        = "DatasetEvent",
       description = "Dataset-level events",
@@ -174,14 +174,14 @@ object ExecutionEventSchema {
       )
     )
 
-  def ExecutionEventEdgeType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Edge[ExecutionEventModel]] =
+  def ExecutionEventEdgeType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Edge[ExecutionEventModel]] =
     Paging.EdgeType(
       "ExecutionEventEdge",
       "An ExecutionEvent and its cursor",
       ExecutionEventType[F]
     )
 
-  def ExecutionEventConnectionType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Connection[ExecutionEventModel]] =
+  def ExecutionEventConnectionType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Connection[ExecutionEventModel]] =
     Paging.ConnectionType(
       "ExecutionEventConnection",
       "ExecutionEvents in the current page",

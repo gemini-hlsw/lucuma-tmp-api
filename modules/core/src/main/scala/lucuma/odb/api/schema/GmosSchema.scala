@@ -6,7 +6,6 @@ package lucuma.odb.api.schema
 import lucuma.core.`enum`._
 import lucuma.odb.api.model.GmosModel
 import lucuma.odb.api.repo.OdbRepo
-import cats.effect.Effect
 import sangria.schema._
 
 import scala.reflect.ClassTag
@@ -133,7 +132,7 @@ object GmosSchema {
       "GMOS Y Binning"
     )
 
-  def GmosNodAndShuffleType[F[_]: Effect]: ObjectType[OdbRepo[F], GmosModel.NodAndShuffle] =
+  def GmosNodAndShuffleType[F[_]]: ObjectType[OdbRepo[F], GmosModel.NodAndShuffle] =
     ObjectType(
       name     =  "GmosNodAndShuffle",
       fieldsFn = () => fields(
@@ -181,7 +180,7 @@ object GmosSchema {
       case Site.GS => Instrument.GmosSouth
     }
 
-  def GmosStaticConfig[F[_]: Effect, S: EnumType, G <: GmosModel.Static[S]: ClassTag](
+  def GmosStaticConfig[F[_], S: EnumType, G <: GmosModel.Static[S]: ClassTag](
     site: Site
   ): ObjectType[OdbRepo[F], G] =
     ObjectType(
@@ -220,13 +219,13 @@ object GmosSchema {
       )
     )
 
-  def GmosNorthStaticConfigType[F[_]: Effect]: ObjectType[OdbRepo[F], GmosModel.NorthStatic] =
+  def GmosNorthStaticConfigType[F[_]]: ObjectType[OdbRepo[F], GmosModel.NorthStatic] =
     GmosStaticConfig[F, GmosNorthStageMode, GmosModel.NorthStatic](Site.GN)
 
-  def GmosSouthStaticConfigType[F[_]: Effect]: ObjectType[OdbRepo[F], GmosModel.SouthStatic] =
+  def GmosSouthStaticConfigType[F[_]]: ObjectType[OdbRepo[F], GmosModel.SouthStatic] =
     GmosStaticConfig[F, GmosSouthStageMode, GmosModel.SouthStatic](Site.GS)
 
-  def GmosCcdReadoutType[F[_]: Effect]: ObjectType[OdbRepo[F], GmosModel.CcdReadout] =
+  def GmosCcdReadoutType[F[_]]: ObjectType[OdbRepo[F], GmosModel.CcdReadout] =
     ObjectType(
       name        = "GmosCcdMode",
       description = "CCD Readout Configuration",
@@ -269,7 +268,7 @@ object GmosSchema {
       )
     )
 
-  def GmosCustomMaskType[F[_]: Effect]: ObjectType[OdbRepo[F], GmosModel.CustomMask] =
+  def GmosCustomMaskType[F[_]]: ObjectType[OdbRepo[F], GmosModel.CustomMask] =
     ObjectType(
       name        = "GmosCustomMask",
       description = "GMOS Custom Mask",
@@ -293,7 +292,7 @@ object GmosSchema {
       )
     )
 
-  def GmosGratingType[F[_]: Effect, D: EnumType](
+  def GmosGratingType[F[_], D: EnumType](
     site: Site
   ): ObjectType[OdbRepo[F], GmosModel.Grating[D]] =
     ObjectType(
@@ -325,7 +324,7 @@ object GmosSchema {
       )
     )
 
-  def GmosBuiltinFpuType[F[_]: Effect, U: EnumType: ClassTag](
+  def GmosBuiltinFpuType[F[_], U: EnumType: ClassTag](
     site: Site
   ): ObjectType[OdbRepo[F], U] =
     ObjectType(
@@ -342,7 +341,7 @@ object GmosSchema {
       )
     )
 
-  def GmosFpuUnionType[F[_]: Effect, U: EnumType: ClassTag](
+  def GmosFpuUnionType[F[_], U: EnumType: ClassTag](
     site: Site
   ): OutputType[Either[GmosModel.CustomMask, U]] =
     UnionType(
@@ -356,7 +355,7 @@ object GmosSchema {
       )
     )
 
-  def GmosDynamicType[F[_]: Effect, D: EnumType, L: EnumType, U: EnumType: ClassTag, G <: GmosModel.Dynamic[D, L, U] : ClassTag](
+  def GmosDynamicType[F[_], D: EnumType, L: EnumType, U: EnumType: ClassTag, G <: GmosModel.Dynamic[D, L, U] : ClassTag](
     site: Site
   ): ObjectType[OdbRepo[F], G] =
     ObjectType(
@@ -415,10 +414,10 @@ object GmosSchema {
       )
     )
 
-  def GmosNorthDynamicType[F[_]: Effect]: ObjectType[OdbRepo[F], GmosModel.NorthDynamic] =
+  def GmosNorthDynamicType[F[_]]: ObjectType[OdbRepo[F], GmosModel.NorthDynamic] =
     GmosDynamicType[F, GmosNorthDisperser, GmosNorthFilter, GmosNorthFpu, GmosModel.NorthDynamic](Site.GN)
 
-  def GmosSouthDynamicType[F[_]: Effect]: ObjectType[OdbRepo[F], GmosModel.SouthDynamic] =
+  def GmosSouthDynamicType[F[_]]: ObjectType[OdbRepo[F], GmosModel.SouthDynamic] =
     GmosDynamicType[F, GmosSouthDisperser, GmosSouthFilter, GmosSouthFpu, GmosModel.SouthDynamic](Site.GS)
 
 }

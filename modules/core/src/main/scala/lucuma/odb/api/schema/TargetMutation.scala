@@ -7,7 +7,9 @@ import lucuma.odb.api.model.{CatalogIdModel, CoordinatesModel, DeclinationModel,
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
 import lucuma.core.`enum`.MagnitudeSystem
-import cats.effect.Effect
+
+import cats.MonadError
+import cats.effect.std.Dispatcher
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -167,7 +169,7 @@ trait TargetMutation extends TargetScalars {
       "Sidereal target edit"
     )
 
-  def createNonsidereal[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def createNonsidereal[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "createNonsiderealTarget",
       fieldType = OptionType(TargetType[F]),
@@ -175,7 +177,7 @@ trait TargetMutation extends TargetScalars {
       resolve   = c => c.target(_.insertNonsidereal(c.arg(ArgumentTargetCreateNonsidereal)))
     )
 
-  def createSidereal[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def createSidereal[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "createSiderealTarget",
       fieldType = OptionType(TargetType[F]),
@@ -184,7 +186,7 @@ trait TargetMutation extends TargetScalars {
     )
 
   //noinspection MutatorLikeMethodIsParameterless
-  def updateSidereal[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def updateSidereal[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "updateSiderealTarget",
       fieldType = TargetType[F],
@@ -196,7 +198,7 @@ trait TargetMutation extends TargetScalars {
         }
     )
 
-  def delete[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def delete[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "deleteTarget",
       fieldType = TargetType[F],
@@ -204,7 +206,7 @@ trait TargetMutation extends TargetScalars {
       resolve   = c => c.target(_.delete(c.targetId))
     )
 
-  def undelete[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def undelete[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "undeleteTarget",
       fieldType = TargetType[F],
@@ -212,7 +214,7 @@ trait TargetMutation extends TargetScalars {
       resolve   = c => c.target(_.undelete(c.targetId))
     )
 
-  def allFields[F[_]: Effect]: List[Field[OdbRepo[F], Unit]] =
+  def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
     List(
       createNonsidereal,
       createSidereal,

@@ -3,19 +3,30 @@
 
 package lucuma.odb.api.model.arb
 
+import eu.timepit.refined.api.Refined
 import eu.timepit.refined.scalacheck._
-import eu.timepit.refined.scalacheck.numeric.intervalClosedArbitrary
 import lucuma.core.util.arb.ArbEnumerated
-import lucuma.odb.api.model.{ AirmassRange, ElevationRangeModel, HourAngleRange }
+import lucuma.odb.api.model.{AirmassRange, ElevationRangeModel, HourAngleRange}
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
 trait ArbElevationRange {
   import ArbEnumerated._
 
-  // needed to prevent diverging implicits.
-  implicit val arbDecimalValue: Arbitrary[AirmassRange.DecimalValue] = intervalClosedArbitrary
-  implicit val arbDecimalHour: Arbitrary[HourAngleRange.DecimalHour] = intervalClosedArbitrary
+  implicit val arbDecimalValue: Arbitrary[AirmassRange.DecimalValue] =
+    Arbitrary {
+      Gen.chooseNum(AirmassRange.MinValue.doubleValue, AirmassRange.MaxValue.doubleValue).map { d =>
+        Refined.unsafeApply[BigDecimal, AirmassRange.Value](d)
+      }
+    }
+
+  implicit val arbDecimalHour: Arbitrary[HourAngleRange.DecimalHour] =
+    Arbitrary {
+      Gen.chooseNum(HourAngleRange.MinHour.doubleValue, HourAngleRange.MaxHour.doubleValue).map { d =>
+        Refined.unsafeApply[BigDecimal, HourAngleRange.DeciHour](d)
+      }
+    }
+
 
   implicit val arbAirmassRange: Arbitrary[AirmassRange] =
     Arbitrary {

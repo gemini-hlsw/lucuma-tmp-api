@@ -3,10 +3,10 @@
 
 package lucuma.odb.api.repo
 
+import cats.Functor
 import lucuma.core.model.Step
 import lucuma.odb.api.model.StepModel
-import cats.effect.Sync
-import cats.effect.concurrent.Ref
+import cats.effect.Ref
 import cats.syntax.all._
 
 sealed trait StepRepo[F[_]] {
@@ -23,7 +23,7 @@ sealed trait StepRepo[F[_]] {
 
 object StepRepo {
 
-  def create[F[_]: Sync](
+  def create[F[_]: Functor](
     tablesRef: Ref[F, Tables]
   ): StepRepo[F] =
 

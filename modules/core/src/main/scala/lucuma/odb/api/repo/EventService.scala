@@ -4,9 +4,8 @@
 package lucuma.odb.api.repo
 
 import lucuma.odb.api.model.Event
-import cats.effect.Concurrent
+import cats.effect.{Concurrent, Ref}
 import cats.implicits._
-import cats.effect.concurrent.Ref
 import org.typelevel.log4cats.Logger
 
 
@@ -22,11 +21,7 @@ final class EventService[F[_]: Logger](
 )(implicit F: Concurrent[F]) {
 
   def subscribe: Stream[F, Event] =
-    topic.subscribeSize(100)
-      .evalTap { case (e, i) =>
-        Logger[F].info(s"subscription event ($i still queued): $e")
-      }
-      .map(_._1)
+    topic.subscribe(100)
 
   def publish(f: Long => Event): F[Unit] =
     for {
@@ -39,6 +34,6 @@ final class EventService[F[_]: Logger](
 object EventService {
 
   def apply[F[_]: Concurrent: Logger](r: Ref[F, Tables]): F[EventService[F]] =
-    Topic(Event.initialize).map(t => new EventService[F](t, r))
+    Topic[F, Event].map(t => new EventService[F](t, r))
 
 }

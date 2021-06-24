@@ -3,14 +3,14 @@
 
 package lucuma.odb.api.repo
 
+import cats.{Functor, MonadError}
 import lucuma.odb.api.model.{AtomModel, DatabaseState, DatasetModel, ExecutedStepModel, ExecutionEventModel, InputError, SequenceModel, ValidatedInput}
 import lucuma.odb.api.model.ExecutionEventModel.{DatasetEvent, SequenceEvent, StepEvent}
 import lucuma.core.model.{Atom, ExecutionEvent, Observation, Step}
 import cats.data.{EitherT, State}
 import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.all._
-import cats.effect.Sync
-import cats.effect.concurrent.Ref
+import cats.effect.{Clock, Ref}
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.all.PosInt
 
@@ -111,9 +111,9 @@ object ExecutionEventRepo {
       EventsPair(Nil, List(se))
   }
 
-  def create[F[_]: Sync](
+  def create[F[_]: Clock: Functor](
     tablesRef: Ref[F, Tables]
-  ): ExecutionEventRepo[F] =
+  )(implicit E: MonadError[F, Throwable]): ExecutionEventRepo[F] =
     new ExecutionEventRepo[F] {
 
       override def selectEvent(
@@ -279,7 +279,7 @@ object ExecutionEventRepo {
         }
 
       private def received: F[Instant] =
-        Sync[F].delay(Instant.now)
+        Clock[F].realTime.map(d => Instant.ofEpochMilli(d.toMillis))
 
       private def runState[T](
         s: State[Tables, ValidatedInput[T]]
