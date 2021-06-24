@@ -5,7 +5,7 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.{AsterismModel, ObservationModel, TargetModel}
 import lucuma.odb.api.repo.{OdbRepo, TableState, Tables}
-import lucuma.core.`enum`.ObsStatus
+import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.Observation
 import cats.data.{OptionT, State}
 import cats.effect.Effect
@@ -34,6 +34,12 @@ object ObservationSchema {
     EnumType.fromEnumerated(
       "ObsStatus",
       "Observation status options"
+    )
+
+  implicit val ObsActiveStatusType: EnumType[ObsActiveStatus] =
+    EnumType.fromEnumerated(
+      "ObsActiveStatus",
+      "Observation operational/active status options"
     )
 
   val ObservationIdArgument: Argument[Observation.Id] =
@@ -95,6 +101,13 @@ object ObservationSchema {
           fieldType   = ObsStatusType,
           description = Some("Observation status"),
           resolve     = _.value.status
+        ),
+
+        Field(
+          name        = "activeStatus",
+          fieldType   = ObsActiveStatusType,
+          description = "Observation operational status".some,
+          resolve     = _.value.activeStatus
         ),
 
         Field(

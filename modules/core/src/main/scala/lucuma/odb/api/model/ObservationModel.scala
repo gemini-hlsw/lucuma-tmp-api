@@ -5,7 +5,7 @@ package lucuma.odb.api.model
 
 import lucuma.odb.api.model.Existence._
 import lucuma.odb.api.model.syntax.input._
-import lucuma.core.`enum`.ObsStatus
+import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
 import lucuma.core.optics.syntax.lens._
 import lucuma.core.model.{Asterism, Observation, Program, Target}
 import cats.{Eq, Monad}
@@ -26,6 +26,7 @@ final case class ObservationModel(
   programId:            Program.Id,
   name:                 Option[NonEmptyString],
   status:               ObsStatus,
+  activeStatus:         ObsActiveStatus,
   pointing:             Option[Either[Asterism.Id, Target.Id]],
   constraintSet:        ConstraintSetModel,
   plannedTimeSummary:   PlannedTimeSummaryModel,
@@ -52,6 +53,7 @@ object ObservationModel extends ObservationOptics {
       o.programId,
       o.name,
       o.status,
+      o.activeStatus,
       o.pointing,
       o.constraintSet,
       o.plannedTimeSummary,
@@ -67,6 +69,7 @@ object ObservationModel extends ObservationOptics {
     targetId:        Option[Target.Id],
     constraintSet:   Option[ConstraintSetModel.Create],
     status:          Option[ObsStatus],
+    activeStatus:    Option[ObsActiveStatus],
     config:          Option[InstrumentConfigModel.Create]
   ) {
 
@@ -93,6 +96,7 @@ object ObservationModel extends ObservationOptics {
             programId,
             name,
             status.getOrElse(ObsStatus.New),
+            activeStatus.getOrElse(ObsActiveStatus.Active),
             pointingʹ,
             c.getOrElse(ConstraintSetModel.AnyConstraints),
             s,
@@ -119,6 +123,7 @@ object ObservationModel extends ObservationOptics {
         a.targetId,
         a.constraintSet,
         a.status,
+        a.activeStatus,
         a.config
       )}
 
@@ -129,6 +134,7 @@ object ObservationModel extends ObservationOptics {
     existence:       Input[Existence]        = Input.ignore,
     name:            Input[NonEmptyString]   = Input.ignore,
     status:          Input[ObsStatus]        = Input.ignore,
+    activeStatus:    Input[ObsActiveStatus]  = Input.ignore,
     asterismId:      Input[Asterism.Id]      = Input.ignore,
     targetId:        Input[Target.Id]        = Input.ignore,
     constraintSet:   Option[ConstraintSetModel.Edit] = None
@@ -144,14 +150,16 @@ object ObservationModel extends ObservationOptics {
       }
 
     def editor: ValidatedInput[State[ObservationModel, Unit]] =
-      (existence.validateIsNotNull("existence"),
-       status   .validateIsNotNull("status"),
+      (existence   .validateIsNotNull("existence"),
+       status      .validateIsNotNull("status"),
+       activeStatus.validateIsNotNull("active"),
        constraintSet.traverse(_.editor)
-      ).mapN { (e, s, c) =>
+      ).mapN { (e, s, a, c) =>
         for {
-          _ <- ObservationModel.existence  := e
-          _ <- ObservationModel.name       := name.toOptionOption
-          _ <- ObservationModel.status     := s
+          _ <- ObservationModel.existence    := e
+          _ <- ObservationModel.name         := name.toOptionOption
+          _ <- ObservationModel.status       := s
+          _ <- ObservationModel.activeStatus := a
           _ <- State.modify[ObservationModel] { o =>
             c.fold(o) { ed => ObservationModel.constraintSet.modify(ed.runS(_).value)(o) }
           }
@@ -175,6 +183,7 @@ object ObservationModel extends ObservationOptics {
         a.existence,
         a.name,
         a.status,
+        a.activeStatus,
         a.asterismId,
         a.targetId,
         a.constraintSet
@@ -250,6 +259,9 @@ trait ObservationOptics { self: ObservationModel.type =>
 
   val status: Lens[ObservationModel, ObsStatus] =
     Lens[ObservationModel, ObsStatus](_.status)(a => _.copy(status = a))
+
+  val activeStatus: Lens[ObservationModel, ObsActiveStatus] =
+    Lens[ObservationModel, ObsActiveStatus](_.activeStatus)(a => _.copy(activeStatus = a))
 
   val pointing: Lens[ObservationModel, Option[Either[Asterism.Id, Target.Id]]] =
     Lens[ObservationModel, Option[Either[Asterism.Id, Target.Id]]](_.pointing)(a => _.copy(pointing = a))
