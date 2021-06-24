@@ -16,7 +16,7 @@ trait ObservationMutation {
   import AsterismSchema.AsterismIdType
   import ConstraintSetMutation.{ArgumentConstraintSetBulkEdit, InputObjectTypeConstraintSetCreate, InputObjectTypeConstraintSetEdit}
   import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
-  import ObservationSchema.{ObservationIdType, ObservationIdArgument, ObsStatusType, ObservationType}
+  import ObservationSchema.{ObsActiveStatusType, ObservationIdType, ObservationIdArgument, ObsStatusType, ObservationType}
   import ProgramSchema.ProgramIdType
   import TargetSchema.TargetIdType
   import context._
@@ -42,6 +42,7 @@ trait ObservationMutation {
       ReplaceInputField("existence",       EnumTypeExistence.notNullableField("existence")),
       ReplaceInputField("name",            NonEmptyStringType.nullableField("name")),
       ReplaceInputField("status",          ObsStatusType.notNullableField("status")),
+      ReplaceInputField("active",          ObsActiveStatusType.notNullableField("active")),
       ReplaceInputField("asterismId",      AsterismIdType.nullableField("asterismId")),
       ReplaceInputField("targetId",        TargetIdType.nullableField("targetId")),
       ReplaceInputField("constraintSet",   InputObjectTypeConstraintSetEdit.nullableField("constraintSet"))

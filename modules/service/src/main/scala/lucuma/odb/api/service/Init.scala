@@ -292,6 +292,7 @@ object Init {
       targetId        = target.map(_.id),
       constraintSet   = None,
       status          = ObsStatus.New.some,
+      active          = ObsActiveStatus.Active.some,
       config          =
         InstrumentConfigModel.Create.gmosSouth(
           GmosModel.CreateSouthStatic.Default,
