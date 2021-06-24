@@ -156,10 +156,10 @@ object ObservationModel extends ObservationOptics {
        constraintSet.traverse(_.editor)
       ).mapN { (e, s, a, c) =>
         for {
-          _ <- ObservationModel.existence  := e
-          _ <- ObservationModel.name       := name.toOptionOption
-          _ <- ObservationModel.status     := s
-          _ <- ObservationModel.activeStatus     := a
+          _ <- ObservationModel.existence    := e
+          _ <- ObservationModel.name         := name.toOptionOption
+          _ <- ObservationModel.status       := s
+          _ <- ObservationModel.activeStatus := a
           _ <- State.modify[ObservationModel] { o =>
             c.fold(o) { ed => ObservationModel.constraintSet.modify(ed.runS(_).value)(o) }
           }
