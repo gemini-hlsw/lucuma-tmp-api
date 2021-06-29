@@ -4,7 +4,7 @@
 package lucuma.odb.api.model
 
 import cats.{Eq, Monoid}
-import cats.effect.Sync
+import cats.effect.Async
 import cats.syntax.functor._
 import cats.syntax.flatMap._
 
@@ -26,10 +26,10 @@ object PlannedTimeSummaryModel {
   val Zero: PlannedTimeSummaryModel =
     PlannedTimeSummaryModel(0.microseconds, 0.microseconds)
 
-  def random[F[_]: Sync]: F[PlannedTimeSummaryModel] =
+  def random[F[_]: Async]: F[PlannedTimeSummaryModel] =
     for {
-      p <- Sync[F].delay(Random.between(5L, 120L))
-      u <- Sync[F].delay(Random.between(1L,  15L))
+      p <- Async[F].delay(Random.between(5L, 120L))
+      u <- Async[F].delay(Random.between(1L,  15L))
     } yield PlannedTimeSummaryModel(p.minutes, u.minutes)
 
 

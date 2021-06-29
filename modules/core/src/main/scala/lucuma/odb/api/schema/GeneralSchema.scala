@@ -6,7 +6,6 @@ package lucuma.odb.api.schema
 import lucuma.odb.api.model.{Existence, PlannedTimeSummaryModel}
 import lucuma.odb.api.repo.OdbRepo
 
-import cats.effect.Effect
 import cats.syntax.all._
 import eu.timepit.refined.types.all.NonEmptyString
 import sangria.schema._
@@ -48,7 +47,7 @@ object GeneralSchema {
       }
     )
 
-  def PlannedTimeSummaryType[F[_]](implicit F: Effect[F]): ObjectType[OdbRepo[F], PlannedTimeSummaryModel] =
+  def PlannedTimeSummaryType[F[_]]: ObjectType[OdbRepo[F], PlannedTimeSummaryModel] =
     ObjectType(
       name = "PlannedTimeSummary",
       fieldsFn = () => fields(

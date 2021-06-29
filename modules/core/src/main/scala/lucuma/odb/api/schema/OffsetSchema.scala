@@ -3,7 +3,6 @@
 
 package lucuma.odb.api.schema
 
-import cats.effect.Effect
 import lucuma.core.math.{Angle, Offset}
 import lucuma.core.math.Axis.{P, Q}
 import lucuma.odb.api.repo.OdbRepo
@@ -11,7 +10,7 @@ import sangria.schema._
 
 object OffsetSchema {
 
-  def OffsetComponentType[F[_]: Effect, A](n: String): ObjectType[OdbRepo[F], Offset.Component[A]] =
+  def OffsetComponentType[F[_], A](n: String): ObjectType[OdbRepo[F], Offset.Component[A]] =
     ObjectType(
       name     = n,
       fieldsFn = () => fields(
@@ -40,7 +39,7 @@ object OffsetSchema {
       )
     )
 
-  def OffsetType[F[_]: Effect]: ObjectType[OdbRepo[F], Offset] =
+  def OffsetType[F[_]]: ObjectType[OdbRepo[F], Offset] =
     ObjectType(
       name     = "Offset",
       fieldsFn = () => fields(

@@ -6,9 +6,9 @@ package lucuma.odb.api.schema
 import lucuma.odb.api.repo.{OdbRepo, ResultPage}
 import lucuma.core.util.Gid
 import lucuma.odb.api.model.{InputError, TopLevelModel}
-import cats.effect.Effect
-import cats.effect.implicits._
-import cats.{Eq, Order}
+
+import cats.{ApplicativeError, Eq, Order}
+import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import io.circe.Decoder
 import monocle.Prism
@@ -111,7 +111,7 @@ object Paging {
 
   }
 
-  def PageInfoType[F[_]: Effect]: ObjectType[OdbRepo[F], PageInfo] =
+  def PageInfoType[F[_]]: ObjectType[OdbRepo[F], PageInfo] =
     ObjectType(
       name        = "PageInfo",
       description = "Information that supports paging through a list of elements",
@@ -160,7 +160,7 @@ object Paging {
   /**
    * Simple edge type consisting of a node and a cursor.
    */
-  def EdgeType[F[_]: Effect, A](
+  def EdgeType[F[_], A](
     name:        String,
     description: String,
     nodeType:    OutputType[A]
@@ -217,7 +217,7 @@ object Paging {
 
   }
 
-  def ConnectionType[F[_]: Effect, A](
+  def ConnectionType[F[_], A](
     name:        String,
     description: String,
     nodeType:    ObjectLikeType[OdbRepo[F], A],
@@ -262,28 +262,28 @@ object Paging {
       )
     )
 
-  def selectPage[F[_]: Effect, I, T](
+  def selectPage[F[_], I, T](
     afterId:   Either[InputError, Option[I]],
     getCursor: T => Cursor,
     select:    Option[I] => F[ResultPage[T]]
-  ): F[Connection[T]] =
+  )(implicit E: ApplicativeError[F, Throwable]): F[Connection[T]] =
     afterId.fold(
-      e => Effect[F].raiseError[Connection[T]](e.toException),
+      e => E.raiseError[Connection[T]](e.toException),
       g => select(g).map { page => Connection.page(page)(getCursor) }
     )
 
-  def unsafeSelectPageFuture[F[_]: Effect, I, T](
-    afterId:   Either[InputError, Option[I]],
-    getCursor: T => Cursor,
-    select:    Option[I] => F[ResultPage[T]]
-  ): Future[Connection[T]] =
-    selectPage[F, I, T](afterId, getCursor, select).toIO.unsafeToFuture()
+  def unsafeSelectPageFuture[F[_]: Dispatcher, I, T](
+    afterId:    Either[InputError, Option[I]],
+    getCursor:  T => Cursor,
+    select:     Option[I] => F[ResultPage[T]]
+  )(implicit ev: ApplicativeError[F, Throwable]): Future[Connection[T]] =
+    implicitly[Dispatcher[F]].unsafeToFuture(selectPage[F, I, T](afterId, getCursor, select))
 
-  def unsafeSelectTopLevelPageFuture[F[_]: Effect, I: Gid, T](
-    afterGid: Either[InputError, Option[I]]
+  def unsafeSelectTopLevelPageFuture[F[_]: Dispatcher, I: Gid, T](
+    afterGid:   Either[InputError, Option[I]]
   )(
     select: Option[I] => F[ResultPage[T]]
-  )(implicit ev: TopLevelModel[I, T]): Future[Connection[T]] =
+  )(implicit ev: TopLevelModel[I, T], ev2: ApplicativeError[F, Throwable]): Future[Connection[T]] =
     unsafeSelectPageFuture[F, I, T](
       afterGid,
       t => Cursor.gid.reverseGet(TopLevelModel[I, T].id(t)),

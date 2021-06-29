@@ -6,9 +6,11 @@ package lucuma.odb.api.schema
 import lucuma.odb.api.model.Sharing
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.model.{Asterism, Program, Target}
-import cats.effect.Effect
-import org.typelevel.log4cats.Logger
+
+import cats.MonadError
+import cats.effect.std.Dispatcher
 import io.circe.Decoder
+import org.typelevel.log4cats.Logger
 import sangria.macros.derive._
 import sangria.marshalling.FromInput
 import sangria.marshalling.circe._
@@ -54,7 +56,7 @@ trait SharingMutation {
   val ArgumentAsterismProgramLinks: Argument[Sharing[Asterism.Id, Program.Id]] =
     linksArg[Asterism.Id, Program.Id]("asterism", "program")
 
-  def shareAsterismWithPrograms[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def shareAsterismWithPrograms[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "shareAsterismWithPrograms",
       fieldType = AsterismType[F],
@@ -62,7 +64,7 @@ trait SharingMutation {
       resolve   = c => c.asterism(_.shareWithPrograms(c.arg(ArgumentAsterismProgramLinks)))
     )
 
-  def unshareAsterismWithPrograms[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def unshareAsterismWithPrograms[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "unshareAsterismWithPrograms",
       fieldType = AsterismType[F],
@@ -75,7 +77,7 @@ trait SharingMutation {
   val ArgumentAsterismTargetLinks: Argument[Sharing[Asterism.Id, Target.Id]] =
     linksArg[Asterism.Id, Target.Id]("asterism", "target")
 
-  def shareAsterismWithTargets[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def shareAsterismWithTargets[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "shareAsterismWithTargets",
       fieldType = AsterismType[F],
@@ -83,7 +85,7 @@ trait SharingMutation {
       resolve   = c => c.asterism(_.shareWithTargets(c.arg(ArgumentAsterismTargetLinks)))
     )
 
-  def unshareAsterismWithTargets[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def unshareAsterismWithTargets[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "unshareAsterismWithTargets",
       fieldType = AsterismType[F],
@@ -95,7 +97,7 @@ trait SharingMutation {
   val ArgumentTargetAsterismLinks: Argument[Sharing[Target.Id, Asterism.Id]] =
     linksArg[Target.Id, Asterism.Id]("target", "asterism")
 
-  def shareTargetWithAsterisms[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def shareTargetWithAsterisms[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "shareTargetWithAsterisms",
       fieldType = TargetType[F],
@@ -103,7 +105,7 @@ trait SharingMutation {
       resolve   = c => c.target(_.shareWithAsterisms(c.arg(ArgumentTargetAsterismLinks)))
     )
 
-  def unshareTargetWithAsterisms[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def unshareTargetWithAsterisms[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "unshareTargetWithAsterisms",
       fieldType = TargetType[F],
@@ -115,7 +117,7 @@ trait SharingMutation {
   val ArgumentTargetProgramLinks: Argument[Sharing[Target.Id, Program.Id]] =
     linksArg[Target.Id, Program.Id]("target", "program")
 
-  def shareTargetWithPrograms[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def shareTargetWithPrograms[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "shareTargetWithPrograms",
       fieldType = TargetType[F],
@@ -123,7 +125,7 @@ trait SharingMutation {
       resolve   = c => c.target(_.shareWithPrograms(c.arg(ArgumentTargetProgramLinks)))
     )
 
-  def unshareTargetWithPrograms[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def unshareTargetWithPrograms[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "unshareTargetWithPrograms",
       fieldType = TargetType[F],
@@ -132,7 +134,7 @@ trait SharingMutation {
     )
 
 
-  def allFields[F[_]: Effect: Logger]: List[Field[OdbRepo[F], Unit]] =
+  def allFields[F[_]: Logger: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
     List(
       shareAsterismWithPrograms,
       unshareAsterismWithPrograms,

@@ -10,7 +10,9 @@ import lucuma.odb.api.model.format.ScalarFormat
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.Paging.Cursor
 import lucuma.odb.api.schema.syntax.scalar._
-import cats.effect.Effect
+
+import cats.MonadError
+import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import eu.timepit.refined.types.all.PosInt
 import monocle.Prism
@@ -59,7 +61,7 @@ object DatasetSchema {
       scalarFormat = ScalarFormat(DatasetFilename.fromString, "N20210519S0001.fits")
     )
 
-  def DatasetType[F[_]](implicit F: Effect[F]): ObjectType[OdbRepo[F], DatasetModel] =
+  def DatasetType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], DatasetModel] =
     ObjectType(
       name     = "Dataset",
       fieldsFn = () => fields(
@@ -95,14 +97,14 @@ object DatasetSchema {
       )
     )
 
-  def DatasetEdgeType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Edge[DatasetModel]] =
+  def DatasetEdgeType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Edge[DatasetModel]] =
     Paging.EdgeType(
       "DatasetEdge",
       "A Dataset and its cursor",
       DatasetType[F]
     )
 
-  def DatasetConnectionType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Connection[DatasetModel]] =
+  def DatasetConnectionType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Connection[DatasetModel]] =
     Paging.ConnectionType(
       "DatasetConnection",
       "Datasets in the current page",

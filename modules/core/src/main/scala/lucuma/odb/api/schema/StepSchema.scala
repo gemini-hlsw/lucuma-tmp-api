@@ -8,7 +8,6 @@ import lucuma.core.model.Step
 import lucuma.odb.api.model.{Breakpoint, PlannedTime, StepConfig, StepModel}
 import lucuma.odb.api.repo.OdbRepo
 
-import cats.effect.Effect
 import lucuma.odb.api.schema.PlannedTimeSchema.CategorizedTimeType
 import sangria.schema._
 
@@ -63,7 +62,7 @@ object StepSchema {
       "Step type"
     )
 
-  def StepInterfaceType[F[_]: Effect]: InterfaceType[OdbRepo[F], StepModel[_]] =
+  def StepInterfaceType[F[_]]: InterfaceType[OdbRepo[F], StepModel[_]] =
     InterfaceType[OdbRepo[F], StepModel[_]](
       name        = "Step",
       description = "Sequence step",
@@ -107,7 +106,7 @@ object StepSchema {
       )
     )
 
-  def StepConcreteType[F[_]: Effect, D](
+  def StepConcreteType[F[_], D](
     typePrefix:  String,
     dynamicType: OutputType[D]
   ): ObjectType[OdbRepo[F], StepModel[D]] =
@@ -127,7 +126,7 @@ object StepSchema {
       )
     )
 
-  def StepConfigType[F[_]: Effect]: InterfaceType[OdbRepo[F], StepConfig[_]] =
+  def StepConfigType[F[_]]: InterfaceType[OdbRepo[F], StepConfig[_]] =
     InterfaceType[OdbRepo[F], StepConfig[_]](
       name         = "StepConfig",
       description  = "Step (bias, dark, gcal, science, etc.)",
@@ -148,7 +147,7 @@ object StepSchema {
       PossibleObject[OdbRepo[F], StepConfig[_]](ScienceStepType[F])
     ))
 
-  def BiasStepType[F[_]: Effect]: ObjectType[OdbRepo[F], StepConfig.Bias[_]] =
+  def BiasStepType[F[_]]: ObjectType[OdbRepo[F], StepConfig.Bias[_]] =
     ObjectType[OdbRepo[F], StepConfig.Bias[_]](
       name        = "Bias",
       description = "Bias calibration step",
@@ -156,7 +155,7 @@ object StepSchema {
       fields      = Nil
     )
 
-  def DarkStepType[F[_]: Effect]: ObjectType[OdbRepo[F], StepConfig.Dark[_]] =
+  def DarkStepType[F[_]]: ObjectType[OdbRepo[F], StepConfig.Dark[_]] =
     ObjectType[OdbRepo[F], StepConfig.Dark[_]](
       name        = "Dark",
       description = "Dark calibration step",
@@ -164,7 +163,7 @@ object StepSchema {
       fields      = Nil
     )
 
-  def GcalStepType[F[_]: Effect]: ObjectType[OdbRepo[F], StepConfig.Gcal[_]] =
+  def GcalStepType[F[_]]: ObjectType[OdbRepo[F], StepConfig.Gcal[_]] =
     ObjectType[OdbRepo[F], StepConfig.Gcal[_]](
       name        = "Gcal",
       description = "GCAL calibration step (flat / arc)",
@@ -209,7 +208,7 @@ object StepSchema {
       )
     )
 
-  def ScienceStepType[F[_]: Effect]: ObjectType[OdbRepo[F], StepConfig.Science[_]] =
+  def ScienceStepType[F[_]]: ObjectType[OdbRepo[F], StepConfig.Science[_]] =
     ObjectType[OdbRepo[F], StepConfig.Science[_]] (
       name        = "Science",
       description = "Science step",

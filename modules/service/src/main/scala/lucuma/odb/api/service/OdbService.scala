@@ -5,8 +5,10 @@ package lucuma.odb.api.service
 
 import lucuma.odb.api.schema.OdbSchema
 import lucuma.odb.api.repo.OdbRepo
+
 import cats.implicits._
-import cats.effect.{Async, ConcurrentEffect, ContextShift, IO}
+import cats.effect.Async
+import cats.effect.std.Dispatcher
 import fs2.Stream
 import org.typelevel.log4cats.Logger
 import io.circe._
@@ -31,49 +33,49 @@ trait OdbService[F[_]] {
 
 object OdbService {
 
-  def apply[F[_]: Logger](
+  def apply[F[_]: Async: Logger](
     odb: OdbRepo[F]
-  )(
-    implicit F: ConcurrentEffect[F], cs: ContextShift[F]
   ): OdbService[F] =
 
     new OdbService[F] {
 
       override def query(request: ParsedGraphQLRequest): F[Either[Throwable, Json]] =
 
-        F.async { (cb: Either[Throwable, Json] => Unit) =>
-          Executor.execute(
-            schema           = OdbSchema[F],
-            queryAst         = request.query,
-            userContext      = odb,
-            operationName    = request.op,
-            variables        = request.vars.getOrElse(Json.fromJsonObject(JsonObject())),
-            exceptionHandler = OdbSchema.exceptionHandler
-          ).onComplete {
-            case Success(value) => cb(Right(value))
-            case Failure(error) => cb(Left(error))
-          }
-        }.attempt
+        Dispatcher[F].use { implicit d =>
+          Async[F].async_ { (cb: Either[Throwable, Json] => Unit) =>
+            Executor.execute(
+              schema           = OdbSchema[F],
+              queryAst         = request.query,
+              userContext      = odb,
+              operationName    = request.op,
+              variables        = request.vars.getOrElse(Json.fromJsonObject(JsonObject())),
+              exceptionHandler = OdbSchema.exceptionHandler
+            ).onComplete {
+              case Success(value) => cb(Right(value))
+              case Failure(error) => cb(Left(error))
+            }
+          }.attempt
+        }
 
       override def subscribe(
         user:    Option[User],
         request: ParsedGraphQLRequest
       ): F[Stream[F, Either[Throwable, Json]]] = {
 
-        implicit val subStream: SubscriptionStream[Stream[F, *]] =
-          streaming.fs2.fs2SubscriptionStream[F](ConcurrentEffect[F], scala.concurrent.ExecutionContext.global)
+        implicit def subStream(implicit D: Dispatcher[F]): SubscriptionStream[Stream[F, *]] =
+          streaming.fs2.fs2SubscriptionStream[F](D, Async[F]/*, scala.concurrent.ExecutionContext.global*/)
 
         import sangria.execution.ExecutionScheme.Stream
 
-        Async.fromFuture {
-          Async.liftIO {
-            IO.delay {
+        Dispatcher[F].use { implicit d =>
+          Async[F].fromFuture {
+            Async[F].delay {
               Executor.prepare(
-                schema           = OdbSchema[F],
-                queryAst         = request.query,
-                userContext      = odb,
-                operationName    = request.op,
-                variables        = request.vars.getOrElse(Json.fromJsonObject(JsonObject())),
+                schema = OdbSchema[F],
+                queryAst = request.query,
+                userContext = odb,
+                operationName = request.op,
+                variables = request.vars.getOrElse(Json.fromJsonObject(JsonObject())),
                 exceptionHandler = OdbSchema.exceptionHandler
               ).map { preparedQuery =>
                 preparedQuery

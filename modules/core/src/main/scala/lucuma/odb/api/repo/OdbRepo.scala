@@ -4,8 +4,7 @@
 package lucuma.odb.api.repo
 
 import cats.implicits._
-import cats.effect.Concurrent
-import cats.effect.concurrent.Ref
+import cats.effect.{Async, Ref}
 import org.typelevel.log4cats.Logger
 
 /**
@@ -39,13 +38,13 @@ object OdbRepo {
   /**
    * Creates an empty ODB repository backed by a `Ref` containing `Tables`.
    */
-  def create[F[_]: Concurrent: Logger]: F[OdbRepo[F]] =
+  def create[F[_]: Logger: Async]: F[OdbRepo[F]] =
     fromTables[F](Tables.empty)
 
   /**
    * Creates an ODB repository backed by a `Ref` containing the given `Tables`.
    */
-  def fromTables[F[_]: Concurrent: Logger](t: Tables): F[OdbRepo[F]] =
+  def fromTables[F[_]: Logger: Async](t: Tables): F[OdbRepo[F]] =
     for {
       r <- Ref.of[F, Tables](t)
       s <- EventService(r)

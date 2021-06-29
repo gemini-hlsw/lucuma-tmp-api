@@ -9,7 +9,7 @@ import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.core.model.{Asterism, Observation, Program, Target}
 import cats._
 import cats.data.{EitherT, State}
-import cats.effect.concurrent.Ref
+import cats.effect.Ref
 import cats.mtl.Stateful._
 import cats.syntax.all._
 

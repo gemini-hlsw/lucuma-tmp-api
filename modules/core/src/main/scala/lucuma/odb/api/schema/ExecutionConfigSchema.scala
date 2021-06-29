@@ -3,11 +3,12 @@
 
 package lucuma.odb.api.schema
 
+import cats.Functor
+import cats.effect.std.Dispatcher
 import lucuma.core.model.Observation
 import lucuma.odb.api.model.{DereferencedSequence, GmosModel, SequenceModel}
 import lucuma.odb.api.model.SequenceModel.SequenceType.{Acquisition, Science}
 import lucuma.odb.api.repo.OdbRepo
-import cats.effect.Effect
 import cats.syntax.all._
 import lucuma.core.`enum`.Instrument
 import sangria.schema.{Field, _}
@@ -52,7 +53,7 @@ object ExecutionConfigSchema {
     science:     DereferencedSequence[GmosModel.SouthDynamic]
   ) extends ExecutionContext[GmosModel.SouthStatic, GmosModel.SouthDynamic]
 
-  def ExecutionConfigType[F[_]: Effect]: InterfaceType[OdbRepo[F], ExecutionContext[_, _]] =
+  def ExecutionConfigType[F[_]]: InterfaceType[OdbRepo[F], ExecutionContext[_, _]] =
     InterfaceType[OdbRepo[F], ExecutionContext[_, _]](
       name        = "ExecutionConfig",
       description = "Execution configuration",
@@ -68,13 +69,13 @@ object ExecutionConfigSchema {
       )
     )
 
-  def implementations[F[_]: Effect]: List[Type with Named] =
+  def implementations[F[_]: Functor: Dispatcher]: List[Type with Named] =
     List(
       GmosNorthExecutionConfigType[F],
       GmosSouthExecutionConfigType[F]
     )
 
-  def executionSequence[F[_]: Effect, D](
+  def executionSequence[F[_]: Functor: Dispatcher, D](
     instrument:   Instrument,
     dynamicType:  OutputType[D],
     sequenceType: SequenceModel.SequenceType
@@ -118,7 +119,7 @@ object ExecutionConfigSchema {
       )
     )
 
-  def executionConfigFields[F[_]: Effect, S, D, E <: ExecutionContext[S, D]](
+  def executionConfigFields[F[_]: Functor: Dispatcher, S, D, E <: ExecutionContext[S, D]](
     instrument:  Instrument,
     staticType:  OutputType[S],
     dynamicType: OutputType[D]
@@ -153,7 +154,7 @@ object ExecutionConfigSchema {
   private def executionConfigDescription(instrument: Instrument): String =
     s"${instrument.longName} Execution Config"
 
-  def GmosNorthExecutionConfigType[F[_]: Effect]: ObjectType[OdbRepo[F], GmosNorthExecutionContext] =
+  def GmosNorthExecutionConfigType[F[_]: Functor: Dispatcher]: ObjectType[OdbRepo[F], GmosNorthExecutionContext] =
     ObjectType(
       name        = executionConfigName(Instrument.GmosNorth),
       description = executionConfigDescription(Instrument.GmosNorth),
@@ -165,7 +166,7 @@ object ExecutionConfigSchema {
       )
     )
 
-  def GmosSouthExecutionConfigType[F[_]: Effect]: ObjectType[OdbRepo[F], GmosSouthExecutionContext] =
+  def GmosSouthExecutionConfigType[F[_]: Functor: Dispatcher]: ObjectType[OdbRepo[F], GmosSouthExecutionContext] =
     ObjectType(
       name        = executionConfigName(Instrument.GmosSouth),
       description = executionConfigDescription(Instrument.GmosSouth),

@@ -4,7 +4,9 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.repo.OdbRepo
-import cats.effect.Effect
+
+import cats.MonadError
+import cats.effect.std.Dispatcher
 import sangria.schema._
 
 trait AsterismQuery {
@@ -15,7 +17,7 @@ trait AsterismQuery {
   import ProgramSchema.ProgramIdArgument
   import context._
 
-  def allForProgram[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def allForProgram[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name        = "asterisms",
       fieldType   = AsterismConnectionType[F],
@@ -32,7 +34,7 @@ trait AsterismQuery {
         }
     )
 
-  def forId[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def forId[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name        = "asterism",
       fieldType   = OptionType(AsterismType[F]),
@@ -41,7 +43,7 @@ trait AsterismQuery {
       resolve     = c => c.asterism(_.select(c.asterismId, c.includeDeleted))
     )
 
-  def allFields[F[_]: Effect]: List[Field[OdbRepo[F], Unit]] =
+  def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
     List(
       allForProgram,
       forId

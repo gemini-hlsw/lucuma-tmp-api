@@ -5,8 +5,8 @@ package lucuma.odb.api.schema
 
 import lucuma.core.model.{Asterism, ExecutionEvent, Observation, Program, Step, Target}
 import lucuma.odb.api.repo.{AsterismRepo, AtomRepo, ExecutionEventRepo, ObservationRepo, OdbRepo, ProgramRepo, StepRepo, TargetRepo}
-import cats.effect.Effect
-import cats.effect.implicits._
+
+import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import lucuma.core.util.Gid
 import lucuma.odb.api.model.InputError
@@ -14,7 +14,7 @@ import sangria.schema.Context
 
 import scala.concurrent.Future
 
-final class RepoContextOps[F[_]: Effect](val self: Context[OdbRepo[F], _]) {
+final class RepoContextOps[F[_]](val self: Context[OdbRepo[F], _]) {
 
   def asterismId: Asterism.Id =
     self.arg(AsterismSchema.AsterismIdArgument)
@@ -86,31 +86,34 @@ final class RepoContextOps[F[_]: Effect](val self: Context[OdbRepo[F], _]) {
   def pagingTargetId: Either[InputError, Option[Target.Id]] =
     pagingGid[Target.Id]("TargetId")
 
-  def asterism[B](f: AsterismRepo[F] => F[B]): Future[B] =
-    f(self.ctx.asterism).toIO.unsafeToFuture()
+  def unsafeToFuture[B](fb: F[B])(implicit ev: Dispatcher[F]): Future[B] =
+    implicitly[Dispatcher[F]].unsafeToFuture(fb)
 
-  def atom[B](f: AtomRepo[F] => F[B]): Future[B] =
-    f(self.ctx.atom).toIO.unsafeToFuture()
+  def asterism[B](f: AsterismRepo[F] => F[B])(implicit ev: Dispatcher[F]): Future[B] =
+    unsafeToFuture(f(self.ctx.asterism))
 
-  def executionEvent[B](f: ExecutionEventRepo[F] => F[B]): Future[B] =
-    f(self.ctx.executionEvent).toIO.unsafeToFuture()
+  def atom[B](f: AtomRepo[F] => F[B])(implicit ev: Dispatcher[F]): Future[B] =
+    unsafeToFuture(f(self.ctx.atom))
 
-  def observation[B](f: ObservationRepo[F] => F[B]): Future[B] =
-    f(self.ctx.observation).toIO.unsafeToFuture()
+  def executionEvent[B](f: ExecutionEventRepo[F] => F[B])(implicit ev: Dispatcher[F]): Future[B] =
+    unsafeToFuture(f(self.ctx.executionEvent))
 
-  def program[B](f: ProgramRepo[F] => F[B]): Future[B] =
-    f(self.ctx.program).toIO.unsafeToFuture()
+  def observation[B](f: ObservationRepo[F] => F[B])(implicit ev: Dispatcher[F]): Future[B] =
+    unsafeToFuture(f(self.ctx.observation))
 
-  def step[B](f: StepRepo[F] => F[B]): Future[B] =
-    f(self.ctx.step).toIO.unsafeToFuture()
+  def program[B](f: ProgramRepo[F] => F[B])(implicit ev: Dispatcher[F]): Future[B] =
+    unsafeToFuture(f(self.ctx.program))
 
-  def target[B](f: TargetRepo[F] => F[B]): Future[B] =
-    f(self.ctx.target).toIO.unsafeToFuture()
+  def step[B](f: StepRepo[F] => F[B])(implicit ev: Dispatcher[F]): Future[B] =
+    unsafeToFuture(f(self.ctx.step))
+
+  def target[B](f: TargetRepo[F] => F[B])(implicit ev: Dispatcher[F]): Future[B] =
+    unsafeToFuture(f(self.ctx.target))
 
 }
 
 trait ToRepoContextOps {
-  implicit def toRepoContextOps[F[_]: Effect](self: Context[OdbRepo[F], _]): RepoContextOps[F] =
+  implicit def toRepoContextOps[F[_]](self: Context[OdbRepo[F], _]): RepoContextOps[F] =
     new RepoContextOps[F](self)
 }
 

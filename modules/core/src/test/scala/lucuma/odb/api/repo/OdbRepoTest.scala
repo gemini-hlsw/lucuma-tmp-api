@@ -6,7 +6,9 @@ package lucuma.odb.api.repo
 import lucuma.odb.api.model.{Sharing, TopLevelModel}
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.repo.arb._
-import cats.effect.{Concurrent, ContextShift, IO, Sync}
+
+import cats.effect.{Async, IO, Sync}
+import cats.effect.unsafe.implicits.global
 import cats.syntax.all._
 import eu.timepit.refined.types.all.PosInt
 import fs2.Stream
@@ -16,18 +18,15 @@ import org.scalacheck.Prop
 import org.scalacheck.Prop.forAll
 
 import scala.collection.immutable.SortedMap
-import scala.concurrent.ExecutionContext.global
 
 trait OdbRepoTest {
-
-  implicit val cs: ContextShift[IO] = IO.contextShift(global)
 
   import ArbTables._
 
   def makeRepo(t: Tables): IO[OdbRepo[IO]] =
     for {
       log <- Slf4jLogger.create[IO]
-      odb <- OdbRepo.fromTables[IO](t)(Concurrent[IO], log)
+      odb <- OdbRepo.fromTables[IO](t)(log, Async[IO])
     } yield odb
 
   protected def allPages[F[_]: Sync, I, T: TopLevelModel[I, *]](

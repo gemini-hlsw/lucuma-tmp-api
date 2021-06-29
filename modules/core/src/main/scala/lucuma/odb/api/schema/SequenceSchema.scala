@@ -5,7 +5,6 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.{DereferencedSequence, PlannedTime, SequenceModel}
 import lucuma.odb.api.repo.OdbRepo
-import cats.effect.Effect
 import sangria.schema._
 
 object SequenceSchema {
@@ -21,7 +20,7 @@ object SequenceSchema {
       "Type of sequence, acquisition or science"
     )
 
-  def SequenceType[F[_]: Effect, D](
+  def SequenceType[F[_], D](
     typePrefix:  String,
     dynamicType: OutputType[D]
   ): ObjectType[OdbRepo[F], DereferencedSequence[D]] =

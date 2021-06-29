@@ -5,7 +5,6 @@ package lucuma.odb.api.schema
 
 import cats.syntax.all._
 import lucuma.odb.api.repo.OdbRepo
-import cats.effect.Effect
 import sangria.schema._
 
 trait ConfigurationQuery {
@@ -13,7 +12,7 @@ trait ConfigurationQuery {
   import ConfigurationAlternativesSchema._
 
   // TBD Add return type and hook it to the basic case algorithm
-  def spectroscopy[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def spectroscopy[F[_]]: Field[OdbRepo[F], Unit] =
     Field(
       name        = "spectroscopy",
       fieldType   = IntType,
@@ -23,7 +22,7 @@ trait ConfigurationQuery {
       resolve     = c => c.arg(ArgumentConfigurationAlternativesModelSearch).wavelength.foldMap(_.nanometers.foldMap(_.toInt))
     )
 
-  def allFields[F[_]: Effect]: List[Field[OdbRepo[F], Unit]] =
+  def allFields[F[_]]: List[Field[OdbRepo[F], Unit]] =
     List(
       spectroscopy
     )

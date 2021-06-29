@@ -6,7 +6,6 @@ package lucuma.odb.api.schema
 import lucuma.core.`enum`.Instrument
 import lucuma.odb.api.model.{DereferencedSequence, InstrumentConfigModel, PlannedTime}
 import lucuma.odb.api.repo.OdbRepo
-import cats.effect.Effect
 import lucuma.odb.api.schema.TimeSchema.DurationType
 import sangria.schema._
 
@@ -24,7 +23,7 @@ object InstrumentConfigSchema {
       "Instrument"
     )
 
-  def ConfigType[F[_]: Effect]: InterfaceType[OdbRepo[F], InstrumentConfigModel] =
+  def ConfigType[F[_]]: InterfaceType[OdbRepo[F], InstrumentConfigModel] =
     InterfaceType[OdbRepo[F], InstrumentConfigModel](
       name        = "Config",
       description = "Instrument configuration",
@@ -54,13 +53,13 @@ object InstrumentConfigSchema {
       )
     )
 
-  def implementations[F[_]: Effect]: List[Type with Named] =
+  def implementations[F[_]]: List[Type with Named] =
     List(
       GmosNorthConfigType[F],
       GmosSouthConfigType[F]
     )
 
-  def instrumentConfigFields[F[_]: Effect, I <: InstrumentConfigModel, S, D](
+  def instrumentConfigFields[F[_], I <: InstrumentConfigModel, S, D](
     typePrefix:  String,
     staticType:  OutputType[S],
     dynamicType: OutputType[D],
@@ -93,7 +92,7 @@ object InstrumentConfigSchema {
       )
     )
 
-  def GmosNorthConfigType[F[_]: Effect]: ObjectType[OdbRepo[F], InstrumentConfigModel.GmosNorth] =
+  def GmosNorthConfigType[F[_]]: ObjectType[OdbRepo[F], InstrumentConfigModel.GmosNorth] =
     ObjectType(
       name        = "GmosNorthConfig",
       description = "GMOS North Configuration",
@@ -108,7 +107,7 @@ object InstrumentConfigSchema {
       )
     )
 
-  def GmosSouthConfigType[F[_]: Effect]: ObjectType[OdbRepo[F], InstrumentConfigModel.GmosSouth] =
+  def GmosSouthConfigType[F[_]]: ObjectType[OdbRepo[F], InstrumentConfigModel.GmosSouth] =
     ObjectType(
       name        = "GmosSouthConfig",
       description = "GMOS South Configuration",

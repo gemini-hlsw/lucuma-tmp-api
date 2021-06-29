@@ -10,7 +10,9 @@ import lucuma.odb.api.schema.syntax.all._
 import lucuma.odb.api.model.ConstraintSetModel
 import lucuma.odb.api.schema.GeneralSchema.ArgumentIncludeDeleted
 import lucuma.odb.api.schema.ObservationSchema.ObservationConnectionType
-import cats.effect.Effect
+
+import cats.MonadError
+import cats.effect.std.Dispatcher
 import sangria.schema._
 
 object ConstraintSetSchema {
@@ -31,7 +33,7 @@ object ConstraintSetSchema {
   implicit val EnumTypeWaterVapor: EnumType[WaterVapor] =
     EnumType.fromEnumerated("WaterVapor", "Water vapor")
 
-  def AirMassRangeType[F[_]: Effect]: ObjectType[OdbRepo[F], AirmassRange] =
+  def AirMassRangeType[F[_]]: ObjectType[OdbRepo[F], AirmassRange] =
     ObjectType(
       name     = "AirMassRange",
       fieldsFn = () =>
@@ -51,7 +53,7 @@ object ConstraintSetSchema {
         )
     )
 
-  def HourAngleRangeType[F[_]: Effect]: ObjectType[OdbRepo[F], HourAngleRange] =
+  def HourAngleRangeType[F[_]]: ObjectType[OdbRepo[F], HourAngleRange] =
     ObjectType(
       name     = "HourAngleRange",
       fieldsFn = () =>
@@ -71,14 +73,14 @@ object ConstraintSetSchema {
         )
     )
 
-  def ElevationRangeModelType[F[_]: Effect]: OutputType[ElevationRangeModel] =
+  def ElevationRangeModelType[F[_]]: OutputType[ElevationRangeModel] =
     UnionType(
       name        = "ElevationRange",
       description = Some("Either airmass range or elevation range"),
       types       = List(AirMassRangeType[F], HourAngleRangeType[F])
     ).mapValue[ElevationRangeModel](identity)
 
-  def ConstraintSetType[F[_]: Effect]: ObjectType[OdbRepo[F], ConstraintSetModel] =
+  def ConstraintSetType[F[_]]: ObjectType[OdbRepo[F], ConstraintSetModel] =
     ObjectType(
       name     = "ConstraintSet",
       fieldsFn = () =>
@@ -129,12 +131,12 @@ object ConstraintSetSchema {
             name        = "hourAngleRange",
             fieldType   = OptionType(HourAngleRangeType[F]),
             description = Some("Hour angle range if elevation range is an Hour angle range"),
-            resolve     = c => ElevationRangeModel.hourAngleRange.getOption((c.value.elevationRange))
+            resolve     = c => ElevationRangeModel.hourAngleRange.getOption(c.value.elevationRange)
           )
         )
     )
 
-  def ConstraintSetGroupType[F[_]: Effect]: ObjectType[OdbRepo[F], ConstraintSetModel.Group] =
+  def ConstraintSetGroupType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], ConstraintSetModel.Group] =
     ObjectType(
       name     = "ConstraintSetGroup",
       fieldsFn = () => fields(
@@ -174,14 +176,14 @@ object ConstraintSetSchema {
       )
     )
 
-  def ConstraintSetGroupEdgeType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Edge[ConstraintSetModel.Group]] =
+  def ConstraintSetGroupEdgeType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Edge[ConstraintSetModel.Group]] =
     Paging.EdgeType[F, ConstraintSetModel.Group](
       "ConstraintSetGroupEdge",
       "A constraint set group and its cursor",
       ConstraintSetGroupType[F]
     )
 
-  def ConstraintSetGroupConnectionType[F[_]: Effect]: ObjectType[OdbRepo[F], Paging.Connection[ConstraintSetModel.Group]] =
+  def ConstraintSetGroupConnectionType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Connection[ConstraintSetModel.Group]] =
     Paging.ConnectionType[F, ConstraintSetModel.Group](
       "ConstraintSetGroupConnection",
       "Observations group by common constraints",

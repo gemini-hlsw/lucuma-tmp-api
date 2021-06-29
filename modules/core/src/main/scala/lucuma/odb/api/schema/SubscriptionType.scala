@@ -3,6 +3,7 @@
 
 package lucuma.odb.api.schema
 
+import cats.effect.Async
 import lucuma.odb.api.model.Event
 import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, TargetModel}
 import lucuma.odb.api.model.AsterismModel.AsterismEvent
@@ -11,12 +12,12 @@ import lucuma.odb.api.model.ProgramModel.ProgramEvent
 import lucuma.odb.api.model.TargetModel.TargetEvent
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.model.{Asterism, Observation, Program, Target}
-import cats.Eq
+import cats.{Applicative, Eq, MonadError}
+import cats.effect.std.Dispatcher
 import cats.syntax.applicative._
 import cats.syntax.apply._
 import cats.syntax.eq._
 import cats.syntax.functor._
-import cats.effect.{ConcurrentEffect, Effect}
 import fs2.Stream
 import sangria.schema._
 import sangria.streaming.SubscriptionStream
@@ -34,16 +35,16 @@ object SubscriptionType {
   import syntax.`enum`._
   import context._
 
-  implicit def asterismType[F[_]: Effect]: ObjectType[OdbRepo[F], AsterismModel] =
+  implicit def asterismType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], AsterismModel] =
     AsterismSchema.AsterismType[F]
 
-  implicit def observationType[F[_]: Effect]: ObjectType[OdbRepo[F], ObservationModel] =
+  implicit def observationType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], ObservationModel] =
     ObservationSchema.ObservationType[F]
 
-  implicit def programType[F[_]: Effect]: ObjectType[OdbRepo[F], ProgramModel] =
+  implicit def programType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], ProgramModel] =
     ProgramSchema.ProgramType[F]
 
-  implicit def targetType[F[_]: Effect]: ObjectType[OdbRepo[F], TargetModel] =
+  implicit def targetType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], TargetModel] =
     TargetSchema.TargetType[F]
 
   implicit val EditTypeEnum: EnumType[Event.EditType] =
@@ -52,7 +53,7 @@ object SubscriptionType {
       "Type of edit that triggered an event"
     )
 
-  def EventType[F[_]: Effect]: InterfaceType[OdbRepo[F], Event]  =
+  def EventType[F[_]]: InterfaceType[OdbRepo[F], Event]  =
     InterfaceType[OdbRepo[F], Event](
       "Event",
       "Common fields shared by all events",
@@ -61,7 +62,7 @@ object SubscriptionType {
       )
     )
 
-  def EditEventType[F[_]: Effect, T: OutputType, E <: Event.Edit[T]: ClassTag](
+  def EditEventType[F[_], T: OutputType, E <: Event.Edit[T]: ClassTag](
     name: String
   ): ObjectType[OdbRepo[F], E] =
     ObjectType[OdbRepo[F], E](
@@ -86,7 +87,7 @@ object SubscriptionType {
       )
     )
 
-  def subscriptionField[F[_]: ConcurrentEffect, E <: Event](
+  def subscriptionField[F[_]: Dispatcher: Async, E <: Event](
     fieldName:   String,
     description: String,
     tpe:         ObjectType[OdbRepo[F], E],
@@ -96,7 +97,10 @@ object SubscriptionType {
   ): Field[OdbRepo[F], Unit] = {
 
     implicit val subStream: SubscriptionStream[Stream[F, *]] =
-      fs2SubscriptionStream[F](ConcurrentEffect[F], scala.concurrent.ExecutionContext.global)
+      fs2SubscriptionStream[F](
+        implicitly[Dispatcher[F]],
+        Async[F]
+      )
 
     Field.subs(
       name        = fieldName,
@@ -120,14 +124,14 @@ object SubscriptionType {
   // Produces a function from (context, event) to F[Boolean] that is true when
   // the event is associated with the program id provided as an argument to the
   // subscription field.
-  private def pidMatcher[F[_]: ConcurrentEffect, E](
+  private def pidMatcher[F[_]: Applicative, E](
     pidsExtractor: (Context[OdbRepo[F], Unit], E) => F[Set[Program.Id]]
   ): (Context[OdbRepo[F], Unit], E) => F[Boolean] = (c, e) =>
     c.optionalProgramId.fold(true.pure[F]) { pid =>
       pidsExtractor(c, e).map(_.contains(pid))
     }
 
-  private def editedField[F[_]: ConcurrentEffect, I: Eq, T: OutputType, E <: Event.Edit[T]: ClassTag](
+  private def editedField[F[_]: Dispatcher: Async, I: Eq, T: OutputType, E <: Event.Edit[T]: ClassTag](
     name:  String,
     idArg: Argument[Option[I]],
     id:    E => I
@@ -150,7 +154,7 @@ object SubscriptionType {
         .mapN(_ && _)
     }
 
-  def apply[F[_]: ConcurrentEffect]: ObjectType[OdbRepo[F], Unit] = {
+  def apply[F[_]: Dispatcher: Async]: ObjectType[OdbRepo[F], Unit] = {
     def programsForAsterism(c: Context[OdbRepo[F], Unit], aid: Asterism.Id): F[Set[Program.Id]] =
       c.ctx.program.selectPageForAsterism(aid).map(_.nodes.map(_.id).toSet)
 

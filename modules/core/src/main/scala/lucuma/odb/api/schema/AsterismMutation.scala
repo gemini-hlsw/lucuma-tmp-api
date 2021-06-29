@@ -5,7 +5,9 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.AsterismModel
 import lucuma.odb.api.repo.OdbRepo
-import cats.effect.Effect
+
+import cats.MonadError
+import cats.effect.std.Dispatcher
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -49,7 +51,7 @@ trait AsterismMutation extends TargetScalars {
       "Edit default asterism"
     )
 
-  def create[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def create[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "createAsterism",
       fieldType = OptionType(AsterismType[F]),
@@ -57,7 +59,7 @@ trait AsterismMutation extends TargetScalars {
       resolve   = c => c.asterism[AsterismModel](_.insert(c.arg(ArgumentAsterismCreate)))
     )
 
-  def update[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def update[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "updateAsterism",
       fieldType = AsterismType[F],
@@ -68,7 +70,7 @@ trait AsterismMutation extends TargetScalars {
       }
     )
 
-  def delete[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def delete[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "deleteAsterism",
       fieldType = AsterismType[F],
@@ -76,7 +78,7 @@ trait AsterismMutation extends TargetScalars {
       resolve   = c => c.asterism(_.delete(c.asterismId))
     )
 
-  def undelete[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def undelete[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "undeleteAsterism",
       fieldType = AsterismType[F],
@@ -84,7 +86,7 @@ trait AsterismMutation extends TargetScalars {
       resolve   = c => c.asterism(_.undelete(c.asterismId))
     )
 
-  def allFields[F[_]: Effect]: List[Field[OdbRepo[F], Unit]] =
+  def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
     List(
       create,
       update,

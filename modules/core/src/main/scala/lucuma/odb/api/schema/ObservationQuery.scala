@@ -5,11 +5,13 @@ package lucuma.odb.api.schema
 
 import lucuma.core.model.Observation
 import lucuma.odb.api.model.{ConstraintSetModel, InputError, ObservationModel}
+import lucuma.odb.api.schema.ProgramSchema.ProgramIdArgument
 import lucuma.odb.api.repo.{OdbRepo, ResultPage}
-import cats.effect.Effect
+
+import cats.MonadError
+import cats.effect.std.Dispatcher
 import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.all._
-import lucuma.odb.api.schema.ProgramSchema.ProgramIdArgument
 import sangria.schema._
 
 trait ObservationQuery {
@@ -21,7 +23,7 @@ trait ObservationQuery {
   import ObservationSchema.{ObservationIdArgument, ObservationType, ObservationConnectionType, OptionalListObservationIdArgument}
   import context._
 
-  def observations[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def observations[F[_]: Dispatcher](implicit E: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name        = "observations",
       fieldType   = ObservationConnectionType[F],
@@ -37,7 +39,7 @@ trait ObservationQuery {
         unsafeSelectTopLevelPageFuture(c.pagingObservationId) { gid =>
           (c.arg(OptionalListObservationIdArgument), c.arg(OptionalProgramIdArgument)) match {
             case (Some(_), Some(_)) =>
-              Effect[F].raiseError[ResultPage[ObservationModel]](
+              E.raiseError[ResultPage[ObservationModel]](
                 InputError.fromMessage(
                   s"Specify only one of `${OptionalListObservationIdArgument.name}` or `${OptionalProgramIdArgument.name}`"
                 ).toException
@@ -52,7 +54,7 @@ trait ObservationQuery {
         }
     )
 
-  def forId[F[_]: Effect]: Field[OdbRepo[F], Unit] =
+  def forId[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name        = "observation",
       fieldType   = OptionType(ObservationType[F]),
@@ -61,7 +63,7 @@ trait ObservationQuery {
       resolve     = c => c.observation(_.select(c.observationId, c.includeDeleted))
     )
 
-  def groupByConstraintSet[F[_]: Effect]: Field[OdbRepo[F], Unit] = {
+  def groupByConstraintSet[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] = {
     Field(
       name        = "constraintGroups",
       fieldType   = ConstraintSetGroupConnectionType[F],
@@ -99,7 +101,7 @@ trait ObservationQuery {
     )
   }
 
-  def allFields[F[_]: Effect]: List[Field[OdbRepo[F], Unit]] =
+  def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
     List(
       observations,
       forId,

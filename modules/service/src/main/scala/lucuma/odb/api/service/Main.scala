@@ -3,39 +3,37 @@
 
 package lucuma.odb.api.service
 
-import java.util.concurrent._
+import lucuma.core.model.User
 import lucuma.odb.api.repo.OdbRepo
-import cats.effect.{Blocker, Concurrent, ConcurrentEffect, ContextShift, ExitCode, IO, IOApp, Timer}
+import lucuma.sso.client.SsoClient
+
+import cats.effect.{Async, ExitCode, IO, IOApp}
 import cats.implicits._
 import fs2.Stream
 import org.http4s.implicits._
 import org.http4s.HttpApp
-import org.http4s.server.blaze.BlazeServerBuilder
+import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.middleware.Logger
 import org.http4s.server.staticcontent._
 import org.typelevel.log4cats.{Logger => Log4CatsLogger}
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import lucuma.core.model.User
-import lucuma.sso.client.SsoClient
 
 import scala.concurrent.ExecutionContext.global
 
 // #server
 object Main extends IOApp {
 
-  def stream[F[_]: ConcurrentEffect : ContextShift: Log4CatsLogger](
+  def stream[F[_]: Log4CatsLogger: Async](
     odb: OdbRepo[F],
     cfg: Config
-  )(implicit T: Timer[F]): Stream[F, Nothing] = {
-    val blockingPool = Executors.newFixedThreadPool(4)
-    val blocker      = Blocker.liftExecutorService(blockingPool)
+  ): Stream[F, Nothing] = {
     val odbService   = OdbService.apply[F](odb)
 
     def app(userClient: SsoClient[F, User]): HttpApp[F] =
       Logger.httpApp(logHeaders = true, logBody = false)((
 
         // Routes for static resources, ie. GraphQL Playground
-        resourceService[F](ResourceService.Config("/assets", blocker)) <+>
+        resourceServiceBuilder[F]("/assets").toRoutes <+>
 
         // Routes for the ODB GraphQL service
         Routes.forService[F](odbService, userClient)
@@ -56,11 +54,11 @@ object Main extends IOApp {
 
   def run(args: List[String]): IO[ExitCode] =
     for {
-      cfg  <- Config.fromCiris.load[IO]
+      cfg  <- Config.fromCiris.load(Async[IO])
       log  <- Slf4jLogger.create[IO]
-      odb  <- OdbRepo.create[IO](Concurrent[IO], log)
+      odb  <- OdbRepo.create[IO](log, Async[IO])
       _    <- Init.initialize(odb)
-      _    <- stream(odb, cfg)(ConcurrentEffect[IO], IO.contextShift(global), log, IO.timer(global)).compile.drain
+      _    <- stream(odb, cfg)(log, Async[IO]).compile.drain
     } yield ExitCode.Success
 }
 

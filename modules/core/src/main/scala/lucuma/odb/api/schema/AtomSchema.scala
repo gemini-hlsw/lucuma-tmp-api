@@ -7,7 +7,6 @@ import lucuma.core.model.Atom
 import lucuma.odb.api.model.{AtomModel, PlannedTime, StepModel}
 import lucuma.odb.api.repo.OdbRepo
 
-import cats.effect.Effect
 import cats.syntax.all._
 import sangria.schema._
 
@@ -19,7 +18,7 @@ object AtomSchema {
   implicit val AtomIdType: ScalarType[Atom.Id] =
     ObjectIdSchema.idType[Atom.Id](name = "AtomId")
 
-  def AtomInterfaceType[F[_]: Effect]: InterfaceType[OdbRepo[F], AtomModel[_]] =
+  def AtomInterfaceType[F[_]]: InterfaceType[OdbRepo[F], AtomModel[_]] =
     InterfaceType[OdbRepo[F], AtomModel[_]](
       name          = "Atom",
       description   = "Sequence atom",
@@ -35,7 +34,7 @@ object AtomSchema {
       )
     )
 
-  def AtomConcreteType[F[_]: Effect, D](
+  def AtomConcreteType[F[_], D](
     typePrefix:  String,
     dynamicType: OutputType[D]
   ): ObjectType[OdbRepo[F], AtomModel[StepModel[D]]] =
