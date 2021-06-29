@@ -4,7 +4,7 @@
 package lucuma.odb.api.model
 package arb
 
-import lucuma.core.`enum`.ObsStatus
+import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.{Asterism, Observation, Program, Target}
 import lucuma.core.util.arb.{ArbEnumerated, ArbGid}
 
@@ -27,9 +27,10 @@ trait ArbObservationModel {
         ex <- arbitrary[Existence]
         nm <- arbitrary[Option[NonEmptyString]]
         os <- arbitrary[ObsStatus]
+        as <- arbitrary[ObsActiveStatus]
         ts <- arbitrary[Option[Either[Asterism.Id, Target.Id]]]
         cs <- arbitrary[ConstraintSetModel]
-      } yield ObservationModel(id, ex, pid, nm, os, ts, cs, PlannedTimeSummaryModel.Zero, None)
+      } yield ObservationModel(id, ex, pid, nm, os, as, ts, cs, PlannedTimeSummaryModel.Zero, None)
     }
 
   implicit val arbObservationModel: Arbitrary[ObservationModel] =
@@ -47,6 +48,7 @@ trait ArbObservationModel {
       Program.Id,
       Option[String],
       ObsStatus,
+      ObsActiveStatus,
       Option[Either[Asterism.Id, Target.Id]],
       ConstraintSetModel
     )].contramap { in => (
@@ -55,6 +57,7 @@ trait ArbObservationModel {
       in.programId,
       in.name.map(_.value),
       in.status,
+      in.activeStatus,
       in.pointing,
       in.constraintSet
     )}
@@ -68,6 +71,7 @@ trait ArbObservationModel {
         ts <- arbitrary[Option[Either[Asterism.Id, Target.Id]]]
         cs <- arbitrary[Option[ConstraintSetModel.Create]]
         st <- arbitrary[Option[ObsStatus]]
+        as <- arbitrary[Option[ObsActiveStatus]]
       } yield ObservationModel.Create(
         id,
         pd,
@@ -76,6 +80,7 @@ trait ArbObservationModel {
         ts.flatMap(_.toOption),
         cs,
         st,
+        as,
         None
       )
     }
@@ -87,14 +92,18 @@ trait ArbObservationModel {
       Option[String],
       Option[Asterism.Id],
       Option[Target.Id],
-      Option[ConstraintSetModel.Create]
+      Option[ConstraintSetModel.Create],
+      Option[ObsStatus],
+      Option[ObsActiveStatus]
     )].contramap { in => (
       in.observationId,
       in.programId,
       in.name.map(_.value),
       in.asterismId,
       in.targetId,
-      in.constraintSet
+      in.constraintSet,
+      in.status,
+      in.activeStatus
     )}
 
 }
