@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Association of Universities for Research in Astronomy, Inc. (AURA)
+// Copyright (c) 2016-2021 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
 package lucuma.odb.api.service
@@ -9,7 +9,6 @@ import lucuma.core.`enum`._
 import lucuma.core.optics.syntax.all._
 import lucuma.core.math.syntax.int._
 
-import cats.Applicative
 import cats.data.State
 import cats.effect.Sync
 import cats.syntax.all._
@@ -304,7 +303,7 @@ object Init {
   /**
    * Initializes a (presumably) empty ODB with some demo values.
    */
-  def initialize[F[_]: Sync: Applicative](repo: OdbRepo[F]): F[Unit] =
+  def initialize[F[_]: Sync](repo: OdbRepo[F]): F[Unit] =
     for {
       p  <- repo.program.insert(
               ProgramModel.Create(

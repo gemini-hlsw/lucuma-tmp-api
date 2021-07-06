@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Association of Universities for Research in Astronomy, Inc. (AURA)
+// Copyright (c) 2016-2021 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
 package lucuma.odb.api.schema
@@ -10,12 +10,11 @@ import lucuma.core.model.{Asterism, Program, Target}
 import cats.MonadError
 import cats.effect.std.Dispatcher
 import io.circe.Decoder
-import org.typelevel.log4cats.Logger
 import sangria.macros.derive._
 import sangria.marshalling.FromInput
 import sangria.marshalling.circe._
 import sangria.schema._
-
+import scala.annotation.nowarn
 
 trait SharingMutation {
 
@@ -26,6 +25,7 @@ trait SharingMutation {
   import context._
   import syntax.inputobjecttype._
 
+  @nowarn
   def linksArg[A: ScalarType: Decoder, B: ScalarType: Decoder](
     aName:       String,
     bName:       String
@@ -134,7 +134,7 @@ trait SharingMutation {
     )
 
 
-  def allFields[F[_]: Logger: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
+  def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
     List(
       shareAsterismWithPrograms,
       unshareAsterismWithPrograms,

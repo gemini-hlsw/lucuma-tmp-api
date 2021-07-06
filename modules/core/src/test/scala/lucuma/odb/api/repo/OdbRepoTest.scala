@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Association of Universities for Research in Astronomy, Inc. (AURA)
+// Copyright (c) 2016-2021 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
 package lucuma.odb.api.repo
@@ -13,7 +13,6 @@ import cats.syntax.all._
 import eu.timepit.refined.types.all.PosInt
 import fs2.Stream
 import munit.Assertions.assertEquals
-import org.typelevel.log4cats.slf4j.Slf4jLogger
 import org.scalacheck.Prop
 import org.scalacheck.Prop.forAll
 
@@ -24,10 +23,7 @@ trait OdbRepoTest {
   import ArbTables._
 
   def makeRepo(t: Tables): IO[OdbRepo[IO]] =
-    for {
-      log <- Slf4jLogger.create[IO]
-      odb <- OdbRepo.fromTables[IO](t)(log, Async[IO])
-    } yield odb
+    OdbRepo.fromTables[IO](t)(Async[IO])
 
   protected def allPages[F[_]: Sync, I, T: TopLevelModel[I, *]](
     pageSize: PosInt,

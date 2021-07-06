@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Association of Universities for Research in Astronomy, Inc. (AURA)
+// Copyright (c) 2016-2021 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
 package lucuma.odb.api.model
@@ -8,6 +8,7 @@ import lucuma.core.util.Enumerated
 import cats.Eq
 import io.circe.Decoder
 import io.circe.generic.semiauto._
+import scala.annotation.nowarn
 
 trait NumericUnits[A, U] {
 
@@ -45,6 +46,7 @@ object NumericUnits {
 
   object LongInput {
 
+    @nowarn
     implicit def DecoderLongInput[U: Enumerated]: Decoder[LongInput[U]] =
       deriveDecoder[LongInput[U]]
 
@@ -65,6 +67,7 @@ object NumericUnits {
 
   object DecimalInput {
 
+    @nowarn
     implicit def DecoderDecimalInput[U: Enumerated]: Decoder[DecimalInput[U]] =
       deriveDecoder[DecimalInput[U]]
 

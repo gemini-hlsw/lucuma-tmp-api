@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Association of Universities for Research in Astronomy, Inc. (AURA)
+// Copyright (c) 2016-2021 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
 package lucuma.odb.api.repo
@@ -6,7 +6,6 @@ package lucuma.odb.api.repo
 import lucuma.odb.api.model.{Event, InputError, ProgramModel}
 import lucuma.odb.api.model.ProgramModel.ProgramEvent
 import lucuma.core.model.{Asterism, Program, Target}
-import cats.Monad
 import cats.implicits._
 import cats.MonadError
 import cats.data.{EitherT, State}
@@ -72,7 +71,7 @@ trait ProgramRepo[F[_]] extends TopLevelRepo[F, Program.Id, ProgramModel] {
 
 object ProgramRepo {
 
-  def create[F[_]: Monad](
+  def create[F[_]](
     tablesRef:    Ref[F, Tables],
     eventService: EventService[F]
   )(implicit M: MonadError[F, Throwable]): ProgramRepo[F] =
