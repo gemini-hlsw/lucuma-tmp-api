@@ -283,15 +283,16 @@ object Init {
     target: Option[TargetModel]
   ): ObservationModel.Create =
     ObservationModel.Create(
-      observationId   = None,
-      programId       = pid,
-      name            = target.map(_.target.name) orElse NonEmptyString.from("Observation").toOption,
-      asterismId      = None,
-      targetId        = target.map(_.id),
-      constraintSet   = None,
-      status          = ObsStatus.New.some,
-      activeStatus    = ObsActiveStatus.Active.some,
-      config          =
+      observationId       = None,
+      programId           = pid,
+      name                = target.map(_.target.name) orElse NonEmptyString.from("Observation").toOption,
+      asterismId          = None,
+      targetId            = target.map(_.id),
+      scienceRequirements = ScienceRequirementsModel.Create.Default.some,
+      constraintSet       = None,
+      status              = ObsStatus.New.some,
+      activeStatus        = ObsActiveStatus.Active.some,
+      config              =
         InstrumentConfigModel.Create.gmosSouth(
           GmosModel.CreateSouthStatic.Default,
           acquisitionSequence,

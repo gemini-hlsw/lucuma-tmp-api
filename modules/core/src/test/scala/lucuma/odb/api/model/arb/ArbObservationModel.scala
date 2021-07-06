@@ -13,10 +13,10 @@ import eu.timepit.refined.types.all.NonEmptyString
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
-
 trait ArbObservationModel {
 
   import ArbConstraintSetModel._
+  import ArbScienceRequirements._
   import ArbEnumerated._
   import ArbGid._
 
@@ -30,7 +30,8 @@ trait ArbObservationModel {
         as <- arbitrary[ObsActiveStatus]
         ts <- arbitrary[Option[Either[Asterism.Id, Target.Id]]]
         cs <- arbitrary[ConstraintSetModel]
-      } yield ObservationModel(id, ex, pid, nm, os, as, ts, cs, PlannedTimeSummaryModel.Zero, None)
+        sr <- arbitrary[ScienceRequirements]
+      } yield ObservationModel(id, ex, pid, nm, os, as, ts, cs, PlannedTimeSummaryModel.Zero, None, sr)
     }
 
   implicit val arbObservationModel: Arbitrary[ObservationModel] =
@@ -50,7 +51,8 @@ trait ArbObservationModel {
       ObsStatus,
       ObsActiveStatus,
       Option[Either[Asterism.Id, Target.Id]],
-      ConstraintSetModel
+      ConstraintSetModel,
+      ScienceRequirements
     )].contramap { in => (
       in.id,
       in.existence,
@@ -59,7 +61,8 @@ trait ArbObservationModel {
       in.status,
       in.activeStatus,
       in.pointing,
-      in.constraintSet
+      in.constraintSet,
+      in.scienceRequirements
     )}
 
   implicit val arbObservationModelCreate: Arbitrary[ObservationModel.Create] =
@@ -81,6 +84,7 @@ trait ArbObservationModel {
         cs,
         st,
         as,
+        None,
         None
       )
     }

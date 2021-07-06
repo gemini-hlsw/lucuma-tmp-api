@@ -4,8 +4,9 @@
 package lucuma.odb.api.schema
 
 import cats.syntax.all._
+import eu.timepit.refined.types.all.PosBigDecimal
 import eu.timepit.refined.types.all.PosInt
-import sangria.schema.{InputType, IntType, ScalarAlias}
+import sangria.schema.{InputType, IntType, BigDecimalType, ScalarAlias}
 import sangria.validation.ValueCoercionViolation
 
 trait RefinedSchema {
@@ -14,6 +15,11 @@ trait RefinedSchema {
 
   implicit val InputObjectPosInt: InputType[PosInt] =
     ScalarAlias[PosInt, Int](IntType, _.value, v => PosInt.from(v).leftMap(_ => PosIntCoercionViolation))
+
+  case object PosBigDecimalCoercionViolation extends ValueCoercionViolation("A positive decimal is expected")
+
+  implicit val InputObjectPosBigDecimal: InputType[PosBigDecimal] =
+    ScalarAlias[PosBigDecimal, BigDecimal](BigDecimalType, _.value, v => PosBigDecimal.from(v).leftMap(_ => PosBigDecimalCoercionViolation))
 
 }
 

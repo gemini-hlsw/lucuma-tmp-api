@@ -18,7 +18,7 @@ import eu.timepit.refined.types.string._
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
-import monocle.{Lens, Optional}
+import monocle.{Focus, Lens, Optional}
 
 final case class ObservationModel(
   id:                   Observation.Id,
@@ -30,7 +30,8 @@ final case class ObservationModel(
   pointing:             Option[Either[Asterism.Id, Target.Id]],
   constraintSet:        ConstraintSetModel,
   plannedTimeSummary:   PlannedTimeSummaryModel,
-  config:               Option[InstrumentConfigModel.Reference]
+  config:               Option[InstrumentConfigModel.Reference],
+  scienceRequirements:  ScienceRequirements
 ) {
 
   def asterismId: Option[Asterism.Id] =
@@ -57,20 +58,22 @@ object ObservationModel extends ObservationOptics {
       o.pointing,
       o.constraintSet,
       o.plannedTimeSummary,
-      o.config
+      o.config,
+      o.scienceRequirements
     )}
 
 
   final case class Create(
-    observationId:   Option[Observation.Id],
-    programId:       Program.Id,
-    name:            Option[NonEmptyString],
-    asterismId:      Option[Asterism.Id],
-    targetId:        Option[Target.Id],
-    constraintSet:   Option[ConstraintSetModel.Create],
-    status:          Option[ObsStatus],
-    activeStatus:    Option[ObsActiveStatus],
-    config:          Option[InstrumentConfigModel.Create]
+    observationId:       Option[Observation.Id],
+    programId:           Program.Id,
+    name:                Option[NonEmptyString],
+    asterismId:          Option[Asterism.Id],
+    targetId:            Option[Target.Id],
+    constraintSet:       Option[ConstraintSetModel.Create],
+    status:              Option[ObsStatus],
+    activeStatus:        Option[ObsActiveStatus],
+    config:              Option[InstrumentConfigModel.Create],
+    scienceRequirements: Option[ScienceRequirementsModel.Create]
   ) {
 
     def create[F[_]: Monad, T](db: DatabaseState[T], s: PlannedTimeSummaryModel)(implicit S: Stateful[F, T]): F[ValidatedInput[ObservationModel]] =
@@ -89,7 +92,7 @@ object ObservationModel extends ObservationOptics {
 
         g <- config.traverse(_.create(db)).map(_.sequence)
 
-        o  = (i, p, pointing, constraintSet.traverse(_.create), g).mapN { (iʹ, _, pointingʹ, c, gʹ) =>
+        o  = (i, p, pointing, constraintSet.traverse(_.create), scienceRequirements.traverse(_.create), g).mapN { (iʹ, _, pointingʹ, c, q, gʹ) =>
           ObservationModel(
             iʹ,
             Present,
@@ -100,7 +103,8 @@ object ObservationModel extends ObservationOptics {
             pointingʹ,
             c.getOrElse(ConstraintSetModel.AnyConstraints),
             s,
-            gʹ.map(_.toReference)
+            gʹ.map(_.toReference),
+            q.getOrElse(ScienceRequirements.Default)
           )
         }
 
@@ -130,14 +134,15 @@ object ObservationModel extends ObservationOptics {
   }
 
   final case class Edit(
-    observationId:   Observation.Id,
-    existence:       Input[Existence]        = Input.ignore,
-    name:            Input[NonEmptyString]   = Input.ignore,
-    status:          Input[ObsStatus]        = Input.ignore,
-    activeStatus:    Input[ObsActiveStatus]  = Input.ignore,
-    asterismId:      Input[Asterism.Id]      = Input.ignore,
-    targetId:        Input[Target.Id]        = Input.ignore,
-    constraintSet:   Option[ConstraintSetModel.Edit] = None
+    observationId:       Observation.Id,
+    existence:           Input[Existence]                      = Input.ignore,
+    name:                Input[NonEmptyString]                 = Input.ignore,
+    status:              Input[ObsStatus]                      = Input.ignore,
+    activeStatus:        Input[ObsActiveStatus]                = Input.ignore,
+    asterismId:          Input[Asterism.Id]                    = Input.ignore,
+    targetId:            Input[Target.Id]                      = Input.ignore,
+    scienceRequirements: Option[ScienceRequirementsModel.Edit] = None,
+    constraintSet:       Option[ConstraintSetModel.Edit]       = None
   ) {
 
     def id: Observation.Id =
@@ -153,13 +158,17 @@ object ObservationModel extends ObservationOptics {
       (existence   .validateIsNotNull("existence"),
        status      .validateIsNotNull("status"),
        activeStatus.validateIsNotNull("active"),
+       scienceRequirements.traverse(_.editor),
        constraintSet.traverse(_.editor)
-      ).mapN { (e, s, a, c) =>
+      ).mapN { (e, s, a, r, c) =>
         for {
           _ <- ObservationModel.existence    := e
           _ <- ObservationModel.name         := name.toOptionOption
           _ <- ObservationModel.status       := s
           _ <- ObservationModel.activeStatus := a
+          _ <- State.modify[ObservationModel] { o =>
+            r.fold(o) { ed => ObservationModel.scienceRequirements.modify(ed.runS(_).value)(o) }
+          }
           _ <- State.modify[ObservationModel] { o =>
             c.fold(o) { ed => ObservationModel.constraintSet.modify(ed.runS(_).value)(o) }
           }
@@ -275,6 +284,9 @@ trait ObservationOptics { self: ObservationModel.type =>
     Optional[ObservationModel, Target.Id](_.pointing.flatMap(_.toOption)) { t =>
       _.copy(pointing = t.asRight[Asterism.Id].some)
     }
+
+  val scienceRequirements: Lens[ObservationModel, ScienceRequirements] =
+    Focus[ObservationModel](_.scienceRequirements)
 
   val constraintSet: Lens[ObservationModel, ConstraintSetModel] =
     Lens[ObservationModel, ConstraintSetModel](_.constraintSet)(a => _.copy(constraintSet = a))
