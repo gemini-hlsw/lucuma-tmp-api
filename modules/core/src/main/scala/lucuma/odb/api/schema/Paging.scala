@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Association of Universities for Research in Astronomy, Inc. (AURA)
+// Copyright (c) 2016-2021 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
 package lucuma.odb.api.schema
@@ -138,7 +138,6 @@ object Paging {
           resolve     = _.value.hasNextPage
         )
 
-
       )
     )
 
@@ -198,7 +197,7 @@ object Paging {
     def empty[A]: Connection[A] =
       Connection(Nil, 0, PageInfo.Empty)
 
-    implicit def EqConnection[A: Eq](implicit ev: Eq[Edge[A]]): Eq[Connection[A]] =
+    implicit def EqConnection[A](implicit ev: Eq[Edge[A]]): Eq[Connection[A]] =
       Eq.by { a => (
         a.edges,
         a.pageInfo

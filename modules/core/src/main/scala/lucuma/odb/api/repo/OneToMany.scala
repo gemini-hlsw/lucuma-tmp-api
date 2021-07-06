@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Association of Universities for Research in Astronomy, Inc. (AURA)
+// Copyright (c) 2016-2021 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
 package lucuma.odb.api.repo
@@ -36,7 +36,7 @@ sealed trait OneToMany[A, B] {
 
 object OneToMany {
 
-  private def insert[A: Order, B: Order](
+  private def insert[A, B: Order](
     m: SortedMap[A, SortedSet[B]],
     l: (A, B)
   ): SortedMap[A, SortedSet[B]] =
@@ -45,7 +45,7 @@ object OneToMany {
       case Some(bs) => Some(bs + l._2)
     }
 
-  private def delete[A: Order, B: Order](
+  private def delete[A, B](
     map:  SortedMap[A, SortedSet[B]],
     link: (A, B)
   ): SortedMap[A, SortedSet[B]] =

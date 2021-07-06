@@ -1,9 +1,9 @@
-// Copyright (c) 2016-2020 Association of Universities for Research in Astronomy, Inc. (AURA)
+// Copyright (c) 2016-2021 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
 package lucuma.odb.api.repo
 
-import cats.{Functor, MonadError}
+import cats.MonadError
 import lucuma.odb.api.model.{AtomModel, DatabaseState, DatasetModel, ExecutedStepModel, ExecutionEventModel, InputError, SequenceModel, ValidatedInput}
 import lucuma.odb.api.model.ExecutionEventModel.{DatasetEvent, SequenceEvent, StepEvent}
 import lucuma.core.model.{Atom, ExecutionEvent, Observation, Step}
@@ -111,7 +111,7 @@ object ExecutionEventRepo {
       EventsPair(Nil, List(se))
   }
 
-  def create[F[_]: Clock: Functor](
+  def create[F[_]: Clock](
     tablesRef: Ref[F, Tables]
   )(implicit E: MonadError[F, Throwable]): ExecutionEventRepo[F] =
     new ExecutionEventRepo[F] {

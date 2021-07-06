@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Association of Universities for Research in Astronomy, Inc. (AURA)
+// Copyright (c) 2016-2021 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
 package lucuma.odb.api.model
@@ -12,6 +12,7 @@ import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import monocle.{Lens, Optional}
 import monocle.macros.Lenses
+import scala.annotation.nowarn
 
 // For now, just bias, dark, gcal and science.  Pending smart-gcal.
 
@@ -167,6 +168,7 @@ object StepConfig {
         a.offset
       )}
 
+    @nowarn
     implicit def DecoderCreateScience[A: Decoder]: Decoder[CreateScience[A]] =
       deriveDecoder[CreateScience[A]]
 
@@ -187,6 +189,7 @@ object StepConfig {
     implicit def EqCreateBias[A: Eq]: Eq[CreateBias[A]] =
       Eq.by(_.config)
 
+    @nowarn
     implicit def DecoderCreateBias[A: Decoder]: Decoder[CreateBias[A]] =
       deriveDecoder[CreateBias[A]]
 
@@ -207,6 +210,7 @@ object StepConfig {
     implicit def EqCreateDark[A: Eq]: Eq[CreateDark[A]] =
       Eq.by(_.config)
 
+    @nowarn
     implicit def DecoderCreateDark[A: Decoder]: Decoder[CreateDark[A]] =
       deriveDecoder[CreateDark[A]]
 
@@ -232,6 +236,7 @@ object StepConfig {
         a.gcalConfig
       )}
 
+    @nowarn
     implicit def DecoderCreateGcal[A: Decoder]: Decoder[CreateGcal[A]] =
       deriveDecoder[CreateGcal[A]]
 
@@ -277,6 +282,7 @@ object StepConfig {
         a.science
       )}
 
+    @nowarn
     implicit def DecoderCreateStep[A: Decoder]: Decoder[CreateStepConfig[A]] =
       deriveDecoder[CreateStepConfig[A]]
 

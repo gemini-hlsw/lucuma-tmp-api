@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Association of Universities for Research in Astronomy, Inc. (AURA)
+// Copyright (c) 2016-2021 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
 package lucuma.odb.api.model
@@ -21,6 +21,7 @@ import monocle.macros.Lenses
 import monocle.std.option.some
 
 import scala.concurrent.duration._
+import scala.annotation.nowarn
 
 
 object GmosModel {
@@ -426,6 +427,7 @@ object GmosModel {
 
   object CreateGrating {
 
+    @nowarn
     implicit def DecoderCreateGrating[D: Decoder]: Decoder[CreateGrating[D]] =
       deriveDecoder[CreateGrating[D]]
 

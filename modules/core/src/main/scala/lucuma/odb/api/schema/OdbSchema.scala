@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Association of Universities for Research in Astronomy, Inc. (AURA)
+// Copyright (c) 2016-2021 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
 package lucuma.odb.api.schema
@@ -8,7 +8,6 @@ import lucuma.odb.api.repo.OdbRepo
 
 import cats.effect.Async
 import cats.effect.std.Dispatcher
-import org.typelevel.log4cats.Logger
 import sangria.execution.{ExceptionHandler, HandledException}
 import sangria.schema.Schema
 
@@ -32,7 +31,7 @@ object OdbSchema {
       }
     )
 
-  def apply[F[_]: Logger: Dispatcher: Async]: Schema[OdbRepo[F], Unit] =
+  def apply[F[_]: Dispatcher: Async]: Schema[OdbRepo[F], Unit] =
     Schema(
       QueryType[F],
       Some(MutationType[F]),

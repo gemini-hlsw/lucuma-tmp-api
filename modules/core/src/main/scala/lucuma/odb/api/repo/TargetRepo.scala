@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Association of Universities for Research in Astronomy, Inc. (AURA)
+// Copyright (c) 2016-2021 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
 package lucuma.odb.api.repo
@@ -45,7 +45,7 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
 
 object TargetRepo {
 
-  def create[F[_]: Monad](
+  def create[F[_]](
     tablesRef:    Ref[F, Tables],
     eventService: EventService[F]
   )(implicit M: MonadError[F, Throwable]): TargetRepo[F] =

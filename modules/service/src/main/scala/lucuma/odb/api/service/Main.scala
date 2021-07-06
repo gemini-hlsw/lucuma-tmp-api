@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Association of Universities for Research in Astronomy, Inc. (AURA)
+// Copyright (c) 2016-2021 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
 package lucuma.odb.api.service
@@ -56,7 +56,7 @@ object Main extends IOApp {
     for {
       cfg  <- Config.fromCiris.load(Async[IO])
       log  <- Slf4jLogger.create[IO]
-      odb  <- OdbRepo.create[IO](log, Async[IO])
+      odb  <- OdbRepo.create[IO]
       _    <- Init.initialize(odb)
       _    <- stream(odb, cfg)(log, Async[IO]).compile.drain
     } yield ExitCode.Success
