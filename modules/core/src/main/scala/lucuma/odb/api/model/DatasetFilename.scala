@@ -12,12 +12,11 @@ import cats.Order
 import io.chrisdavenport.cats.time.instances.localdate._
 import eu.timepit.refined.types.all.PosInt
 import io.circe.Decoder
-import monocle.macros.Lenses
 
 /**
  * Describes the components of a valid dataset filename.
  */
-@Lenses final case class DatasetFilename(
+final case class DatasetFilename(
   site:      Site,
   localDate: FourDigitYearLocalDate,
   index:     PosInt

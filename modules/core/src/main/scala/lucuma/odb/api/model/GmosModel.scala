@@ -17,11 +17,11 @@ import io.circe.generic.semiauto.deriveDecoder
 import io.circe.generic.extras.semiauto.deriveConfiguredDecoder
 import io.circe.generic.extras.Configuration
 import monocle.Optional
-import monocle.macros.Lenses
-import monocle.std.option.some
 
 import scala.concurrent.duration._
 import scala.annotation.nowarn
+import monocle.Lens
+import monocle.macros.GenLens
 
 
 object GmosModel {
@@ -30,7 +30,7 @@ object GmosModel {
 
   // --- Static Configuration ---
 
-  @Lenses final case class NodAndShuffle(
+  final case class NodAndShuffle(
     posA:          Offset,
     posB:          Offset,
     eOffset:       GmosEOffsetting,
@@ -39,6 +39,11 @@ object GmosModel {
   )
 
   object NodAndShuffle {
+    val posA: Lens[NodAndShuffle, Offset]             = GenLens[NodAndShuffle](_.posA)
+    val posB: Lens[NodAndShuffle, Offset]             = GenLens[NodAndShuffle](_.posB)
+    val eOffset: Lens[NodAndShuffle, GmosEOffsetting] = GenLens[NodAndShuffle](_.eOffset)
+    val shuffleOffset: Lens[NodAndShuffle, Int]       = GenLens[NodAndShuffle](_.shuffleOffset)
+    val shuffleCycles: Lens[NodAndShuffle, Int]       = GenLens[NodAndShuffle](_.shuffleCycles)
 
     val Default: NodAndShuffle =
       NodAndShuffle(
@@ -60,7 +65,7 @@ object GmosModel {
 
   }
 
-  @Lenses final case class CreateNodAndShuffle(
+  final case class CreateNodAndShuffle(
     posA:          OffsetModel.Input,
     posB:          OffsetModel.Input,
     eOffset:       GmosEOffsetting,
@@ -190,7 +195,7 @@ object GmosModel {
     def stageMode:     S
   }
 
-  @Lenses final case class NorthStatic(
+  final case class NorthStatic(
     detector:      GmosDetector,
     mosPreImaging: MosPreImaging,
     nodAndShuffle: Option[NodAndShuffle],
@@ -210,7 +215,7 @@ object GmosModel {
 
   }
 
-  @Lenses final case class SouthStatic(
+  final case class SouthStatic(
     detector:      GmosDetector,
     mosPreImaging: MosPreImaging,
     nodAndShuffle: Option[NodAndShuffle],
@@ -230,7 +235,7 @@ object GmosModel {
 
   }
 
-  @Lenses final case class CreateNorthStatic(
+  final case class CreateNorthStatic(
     detector:      GmosDetector                = GmosDetector.HAMAMATSU,
     mosPreImaging: MosPreImaging               = MosPreImaging.IsNotMosPreImaging,
     nodAndShuffle: Option[CreateNodAndShuffle] = None,
@@ -262,7 +267,7 @@ object GmosModel {
 
   }
 
-  @Lenses final case class CreateSouthStatic(
+  final case class CreateSouthStatic(
     detector:      GmosDetector                = GmosDetector.HAMAMATSU,
     mosPreImaging: MosPreImaging               = MosPreImaging.IsNotMosPreImaging,
     nodAndShuffle: Option[CreateNodAndShuffle] = None,
@@ -299,7 +304,7 @@ object GmosModel {
 
   // --- Dynamic Configuration ---
 
-  @Lenses final case class CcdReadout(
+  final case class CcdReadout(
     xBin:     GmosXBinning,
     yBin:     GmosYBinning,
     ampCount: GmosAmpCount,
@@ -329,7 +334,7 @@ object GmosModel {
 
   }
 
-  @Lenses final case class CreateCcdReadout(
+  final case class CreateCcdReadout(
     xBin:     GmosXBinning    = GmosXBinning.One,
     yBin:     GmosYBinning    = GmosYBinning.One,
     ampCount: GmosAmpCount    = GmosAmpCount.Twelve,
@@ -343,6 +348,9 @@ object GmosModel {
   }
 
   object CreateCcdReadout {
+    val ampRead: Lens[CreateCcdReadout, GmosAmpReadMode] = GenLens[CreateCcdReadout](_.ampRead)
+    val xBin: Lens[CreateCcdReadout, GmosXBinning]       = GenLens[CreateCcdReadout](_.xBin)
+    val yBin: Lens[CreateCcdReadout, GmosYBinning]       = GenLens[CreateCcdReadout](_.yBin)
 
     implicit val DecoderCreateCcdReadout: Decoder[CreateCcdReadout] =
       deriveDecoder[CreateCcdReadout]
@@ -358,7 +366,7 @@ object GmosModel {
 
   }
 
-  @Lenses final case class CustomMask(
+  final case class CustomMask(
     filename: NonEmptyString,
     slitWidth: GmosCustomSlitWidth
   )
@@ -373,7 +381,7 @@ object GmosModel {
 
   }
 
-  @Lenses final case class CreateCustomMask(
+  final case class CreateCustomMask(
     filename: String,
     slitWidth: GmosCustomSlitWidth
   ) {
@@ -397,7 +405,7 @@ object GmosModel {
   }
 
 
-  @Lenses final case class Grating[D](
+  final case class Grating[D](
     disperser:  D,
     order:      GmosDisperserOrder,
     wavelength: Wavelength
@@ -414,7 +422,7 @@ object GmosModel {
 
   }
 
-  @Lenses final case class CreateGrating[D](
+  final case class CreateGrating[D](
     disperser:  D,
     order:      GmosDisperserOrder,
     wavelength: WavelengthModel.Input
@@ -426,6 +434,8 @@ object GmosModel {
   }
 
   object CreateGrating {
+    def wavelength[D]: Lens[CreateGrating[D], WavelengthModel.Input] =
+      GenLens[CreateGrating[D]](_.wavelength)
 
     @nowarn
     implicit def DecoderCreateGrating[D: Decoder]: Decoder[CreateGrating[D]] =
@@ -450,7 +460,7 @@ object GmosModel {
     def fpu:      Option[Either[CustomMask, U]]
   }
 
-  @Lenses final case class NorthDynamic (
+  final case class NorthDynamic (
     exposure: FiniteDuration,
     readout:  CcdReadout,
     dtax:     GmosDtax,
@@ -475,7 +485,7 @@ object GmosModel {
 
   }
 
-  @Lenses final case class SouthDynamic (
+  final case class SouthDynamic (
     exposure: FiniteDuration,
     readout:  CcdReadout,
     dtax:     GmosDtax,
@@ -504,7 +514,7 @@ object GmosModel {
   implicit val DecoderNorthFpu: Decoder[Either[CreateCustomMask, GmosNorthFpu]] =
     Decoder[CreateCustomMask].either(Decoder[GmosNorthFpu])
 
-  @Lenses final case class CreateNorthDynamic(
+  final case class CreateNorthDynamic(
     exposure: FiniteDurationModel.Input,
     readout:  CreateCcdReadout                               = CreateCcdReadout(),
     dtax:     GmosDtax                                       = GmosDtax.Zero,
@@ -548,7 +558,7 @@ object GmosModel {
   implicit val DecoderSouthFpu: Decoder[Either[CreateCustomMask, GmosSouthFpu]] =
     Decoder[CreateCustomMask].either(Decoder[GmosSouthFpu])
 
-  @Lenses final case class CreateSouthDynamic(
+  final case class CreateSouthDynamic(
     exposure: FiniteDurationModel.Input,
     readout:  CreateCcdReadout                               = CreateCcdReadout(),
     dtax:     GmosDtax                                       = GmosDtax.Zero,
@@ -569,6 +579,23 @@ object GmosModel {
   }
 
   object CreateSouthDynamic {
+    val exposure: Lens[CreateSouthDynamic, FiniteDurationModel.Input] =
+      GenLens[CreateSouthDynamic](_.exposure)
+
+    val readout: Lens[CreateSouthDynamic, CreateCcdReadout] =
+      GenLens[CreateSouthDynamic](_.readout)
+
+    val roi: Lens[CreateSouthDynamic, GmosRoi] =
+      GenLens[CreateSouthDynamic](_.roi)
+
+    val grating: Lens[CreateSouthDynamic, Option[CreateGrating[GmosSouthDisperser]]] =
+      GenLens[CreateSouthDynamic](_.grating)
+
+    val filter: Lens[CreateSouthDynamic, Option[GmosSouthFilter]] =
+      GenLens[CreateSouthDynamic](_.filter)
+
+    val fpu: Lens[CreateSouthDynamic, Option[Either[CreateCustomMask, GmosSouthFpu]]] =
+      GenLens[CreateSouthDynamic](_.fpu)
 
     implicit def EqCreateSouthDynamic: Eq[CreateSouthDynamic] =
       Eq.by { a => (
@@ -590,10 +617,10 @@ object GmosModel {
     object instrument {
 
       val grating: Optional[CreateSouthDynamic, CreateGrating[GmosSouthDisperser]] =
-        CreateSouthDynamic.grating ^<-? some
+        CreateSouthDynamic.grating.some
 
       val wavelength: Optional[CreateSouthDynamic, WavelengthModel.Input] =
-        grating ^|-> CreateGrating.wavelength[GmosSouthDisperser]
+        grating.andThen(CreateGrating.wavelength[GmosSouthDisperser])
 
     }
 
@@ -602,7 +629,7 @@ object GmosModel {
         StepConfig.CreateStepConfig.instrumentConfig[CreateSouthDynamic]
 
       val exposure: Optional[StepConfig.CreateStepConfig[CreateSouthDynamic], FiniteDurationModel.Input] =
-        instrumentConfig ^|-> CreateSouthDynamic.exposure
+        instrumentConfig.andThen(CreateSouthDynamic.exposure)
 
       val p: Optional[StepConfig.CreateStepConfig[CreateSouthDynamic], OffsetModel.ComponentInput] =
         StepConfig.CreateStepConfig.p[CreateSouthDynamic]
@@ -611,10 +638,10 @@ object GmosModel {
         StepConfig.CreateStepConfig.q[CreateSouthDynamic]
 
       val grating: Optional[StepConfig.CreateStepConfig[CreateSouthDynamic], CreateGrating[GmosSouthDisperser]] =
-        instrumentConfig ^|-? instrument.grating
+        instrumentConfig.andThen(instrument.grating)
 
       val wavelength: Optional[StepConfig.CreateStepConfig[CreateSouthDynamic], WavelengthModel.Input] =
-        grating ^|-> CreateGrating.wavelength[GmosSouthDisperser]
+        grating.andThen(CreateGrating.wavelength[GmosSouthDisperser])
 
     }
   }

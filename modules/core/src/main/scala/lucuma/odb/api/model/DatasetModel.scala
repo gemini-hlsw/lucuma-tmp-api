@@ -6,10 +6,8 @@ package lucuma.odb.api.model
 import lucuma.core.model.{Observation, Step}
 import cats.Order
 import eu.timepit.refined.types.numeric._
-import monocle.macros.Lenses
 
-
-@Lenses final case class DatasetModel(
+final case class DatasetModel(
   stepId:        Step.Id,
   index:         PosInt,
   observationId: Observation.Id,

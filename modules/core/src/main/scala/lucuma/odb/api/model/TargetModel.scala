@@ -9,6 +9,7 @@ import lucuma.core.math.{Coordinates, Declination, Epoch, Parallax, ProperMotion
 import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, Program, SiderealTracking, Target}
 import lucuma.core.optics.syntax.lens._
 import lucuma.core.optics.syntax.optional._
+import lucuma.core.optics.state.all._
 import lucuma.odb.api.model.syntax.input._
 import cats.{Eq, Monad}
 import cats.data._
@@ -21,7 +22,6 @@ import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
 import monocle.{Lens, Optional}
-import monocle.state.all._
 
 import scala.collection.immutable.SortedMap
 
@@ -373,44 +373,44 @@ trait TargetOptics { self: TargetModel.type =>
     Lens[TargetModel, Target](_.target)(a => b => b.copy(target = a))
 
   val name: Lens[TargetModel, NonEmptyString] =
-    lucumaTarget.composeLens(Target.name)
+    lucumaTarget.andThen(Target.name)
 
   private val gemTargetEphemerisKey: Optional[Target, EphemerisKey] =
-    Target.track.composePrism(monocle.std.either.stdLeft)
+    Target.track.andThen(monocle.std.either.stdLeft[EphemerisKey, SiderealTracking])
 
   val ephemerisKey: Optional[TargetModel, EphemerisKey] =
-    lucumaTarget.composeOptional(gemTargetEphemerisKey)
+    lucumaTarget.andThen(gemTargetEphemerisKey)
 
   private val gemTargetSiderealTracking: Optional[Target, SiderealTracking] =
-    Target.track.composePrism(monocle.std.either.stdRight)
+    Target.track.andThen(monocle.std.either.stdRight[EphemerisKey, SiderealTracking])
 
   val siderealTracking: Optional[TargetModel, SiderealTracking] =
-    lucumaTarget.composeOptional(gemTargetSiderealTracking)
+    lucumaTarget.andThen(gemTargetSiderealTracking)
 
   val catalogId: Optional[TargetModel, Option[CatalogId]] =
-    siderealTracking.composeLens(SiderealTracking.catalogId)
+    siderealTracking.andThen(SiderealTracking.catalogId)
 
   val coordinates: Optional[TargetModel, Coordinates] =
-    siderealTracking.composeLens(SiderealTracking.baseCoordinates)
+    siderealTracking.andThen(SiderealTracking.baseCoordinates)
 
   val ra: Optional[TargetModel, RightAscension] =
-    coordinates.composeLens(Coordinates.rightAscension)
+    coordinates.andThen(Coordinates.rightAscension)
 
   val dec: Optional[TargetModel, Declination] =
-    coordinates.composeLens(Coordinates.declination)
+    coordinates.andThen(Coordinates.declination)
 
   val epoch: Optional[TargetModel, Epoch] =
-    siderealTracking.composeLens(SiderealTracking.epoch)
+    siderealTracking.andThen(SiderealTracking.epoch)
 
   val properMotion: Optional[TargetModel, Option[ProperMotion]] =
-    siderealTracking.composeLens(SiderealTracking.properMotion)
+    siderealTracking.andThen(SiderealTracking.properMotion)
 
   val radialVelocity: Optional[TargetModel, Option[RadialVelocity]] =
-    siderealTracking.composeLens(SiderealTracking.radialVelocity)
+    siderealTracking.andThen(SiderealTracking.radialVelocity)
 
   val parallax: Optional[TargetModel, Option[Parallax]] =
-    siderealTracking.composeLens(SiderealTracking.parallax)
+    siderealTracking.andThen(SiderealTracking.parallax)
 
   val magnitudes: Lens[TargetModel, SortedMap[MagnitudeBand, Magnitude]] =
-    lucumaTarget.composeLens(Target.magnitudes)
+    lucumaTarget.andThen(Target.magnitudes)
 }

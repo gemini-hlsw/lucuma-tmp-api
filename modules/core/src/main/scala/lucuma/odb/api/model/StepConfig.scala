@@ -11,8 +11,8 @@ import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import monocle.{Lens, Optional}
-import monocle.macros.Lenses
 import scala.annotation.nowarn
+import monocle.macros.GenLens
 
 // For now, just bias, dark, gcal and science.  Pending smart-gcal.
 
@@ -80,10 +80,10 @@ sealed abstract class StepConfig[A] extends Product with Serializable {
 
 object StepConfig {
 
-  @Lenses final case class Bias   [A](instrumentConfig: A)                        extends StepConfig[A]
-  @Lenses final case class Dark   [A](instrumentConfig: A)                        extends StepConfig[A]
-  @Lenses final case class Gcal   [A](instrumentConfig: A, gcalConfig: GcalModel) extends StepConfig[A]
-  @Lenses final case class Science[A](instrumentConfig: A, offset: Offset)        extends StepConfig[A]
+  final case class Bias   [A](instrumentConfig: A)                        extends StepConfig[A]
+  final case class Dark   [A](instrumentConfig: A)                        extends StepConfig[A]
+  final case class Gcal   [A](instrumentConfig: A, gcalConfig: GcalModel) extends StepConfig[A]
+  final case class Science[A](instrumentConfig: A, offset: Offset)        extends StepConfig[A]
 
   implicit val TraverseStepConfig: Traverse[StepConfig] =
     new Traverse[StepConfig] {
@@ -150,7 +150,7 @@ object StepConfig {
       case _                                => false
     }
 
-  @Lenses final case class CreateScience[A](
+  final case class CreateScience[A](
     config: A,
     offset: OffsetModel.Input
   ) {
@@ -161,6 +161,7 @@ object StepConfig {
   }
 
   object CreateScience {
+    def offset[A]: Lens[CreateScience[A], OffsetModel.Input] = GenLens[CreateScience[A]](_.offset)
 
     implicit def EqCreateScience[A: Eq]: Eq[CreateScience[A]] =
       Eq.by { a => (
@@ -177,7 +178,7 @@ object StepConfig {
 
   }
 
-  @Lenses final case class CreateBias[A](config: A) {
+  final case class CreateBias[A](config: A) {
 
     def create[B](implicit V: InputValidator[A, B]): ValidatedInput[Bias[B]] =
       config.validateAndCreate.map(Bias(_))
@@ -198,7 +199,7 @@ object StepConfig {
 
   }
 
-  @Lenses final case class CreateDark[A](config: A) {
+  final case class CreateDark[A](config: A) {
 
     def create[B](implicit V: InputValidator[A, B]): ValidatedInput[Dark[B]] =
       config.validateAndCreate.map(Dark(_))
@@ -219,7 +220,7 @@ object StepConfig {
 
   }
 
-  @Lenses final case class CreateGcal[A](
+  final case class CreateGcal[A](
     config: A,
     gcalConfig: GcalModel.Create
   ) {
@@ -229,6 +230,7 @@ object StepConfig {
   }
 
   object CreateGcal {
+    def gcalConfig[A]: Lens[CreateGcal[A], GcalModel.Create] = GenLens[CreateGcal[A]](_.gcalConfig)
 
     implicit def EqCreateGcal[A: Eq]: Eq[CreateGcal[A]] =
       Eq.by { a => (
@@ -246,7 +248,7 @@ object StepConfig {
   }
 
 
-  @Lenses final case class CreateStepConfig[A](
+  final case class CreateStepConfig[A](
     bias:    Option[CreateBias[A]],
     dark:    Option[CreateDark[A]],
     gcal:    Option[CreateGcal[A]],
@@ -321,7 +323,7 @@ object StepConfig {
      */
     def gcalConfig[A]: Optional[CreateStepConfig[A], GcalModel.Create] =
       Optional[CreateStepConfig[A], GcalModel.Create](_.gcal.map(_.gcalConfig)) { a => c =>
-        c.copy(gcal = c.gcal.map(CreateGcal.gcalConfig[A].set(a)))
+        c.copy(gcal = c.gcal.map(CreateGcal.gcalConfig[A].replace(a)))
       }
 
     /**
@@ -329,14 +331,14 @@ object StepConfig {
      */
     def offset[A]: Optional[CreateStepConfig[A], OffsetModel.Input] =
       Optional[CreateStepConfig[A], OffsetModel.Input](_.science.map(_.offset)) { a => c =>
-        c.copy(science = c.science.map(CreateScience.offset[A].set(a)))
+        c.copy(science = c.science.map(CreateScience.offset[A].replace(a)))
       }
 
     def p[A]: Optional[CreateStepConfig[A], OffsetModel.ComponentInput] =
-      offset[A] ^|-> OffsetModel.Input.p
+      offset[A].andThen(OffsetModel.Input.p)
 
     def q[A]: Optional[CreateStepConfig[A], OffsetModel.ComponentInput] =
-      offset[A] ^|-> OffsetModel.Input.q
+      offset[A].andThen(OffsetModel.Input.q)
   }
 
 }

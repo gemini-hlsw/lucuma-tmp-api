@@ -6,11 +6,11 @@ package lucuma.odb.api.repo
 import lucuma.odb.api.model.{AsterismModel, Event, InputError, ProgramModel, Sharing, TargetModel, ValidatedInput}
 import lucuma.odb.api.model.TargetModel.{CreateNonsidereal, CreateSidereal, TargetEvent}
 import lucuma.core.model.{Asterism, Program, Target}
+import lucuma.core.optics.state.all._
 import cats._
 import cats.data.{EitherT, State}
 import cats.effect.Ref
 import cats.syntax.all._
-import monocle.state.all._
 
 
 sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {

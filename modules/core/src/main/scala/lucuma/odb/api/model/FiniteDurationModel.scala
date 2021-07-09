@@ -9,7 +9,6 @@ import cats.syntax.option._
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import monocle.Prism
-import monocle.macros.Lenses
 
 import scala.concurrent.duration._
 import scala.math.BigDecimal.RoundingMode
@@ -77,7 +76,7 @@ object FiniteDurationModel {
   implicit val NumericUnitsFiniteDuration: NumericUnits[FiniteDuration, Units] =
     NumericUnits.fromRead(_.readLong(_), _.readDecimal(_))
 
-  @Lenses final case class Input(
+  final case class Input(
     nanoseconds:  Option[Long],
     microseconds: Option[BigDecimal],
     milliseconds: Option[BigDecimal],

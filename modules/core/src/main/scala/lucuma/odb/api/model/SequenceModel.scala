@@ -10,7 +10,7 @@ import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import lucuma.core.util.Enumerated
-import monocle.macros.Lenses
+import scala.annotation.nowarn
 
 /**
  * Sequence representation.
@@ -19,7 +19,7 @@ import monocle.macros.Lenses
  *
  * @tparam A atom type
  */
-@Lenses final case class SequenceModel[A](
+final case class SequenceModel[A](
   atoms: List[A]
 )
 
@@ -62,6 +62,7 @@ object SequenceModel {
     implicit def EdCreate[D: Eq]: Eq[Create[D]] =
       Eq.by { _.atoms }
 
+    @nowarn
     implicit def DecoderCreate[D: Decoder]:Decoder[Create[D]] =
       deriveDecoder[Create[D]]
 

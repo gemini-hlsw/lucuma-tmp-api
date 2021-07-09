@@ -12,9 +12,9 @@ import cats.mtl.Stateful
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
-import monocle.macros.Lenses
+import scala.annotation.nowarn
 
-@Lenses final case class AtomModel[A](
+final case class AtomModel[A](
   id:    Atom.Id,
   steps: NonEmptyList[A]
 )
@@ -60,7 +60,7 @@ object AtomModel {
   }
 
 
-  @Lenses final case class Create[A](
+  final case class Create[A](
     id:    Option[Atom.Id],
     steps: List[StepModel.Create[A]]
   ) {
@@ -97,6 +97,7 @@ object AtomModel {
     def continueTo[A](step: CreateStepConfig[A]): Create[A] =
       singleton(StepModel.Create.continueTo(step))
 
+    @nowarn
     implicit def DecoderCreate[A: Decoder]: Decoder[Create[A]] =
       deriveDecoder[Create[A]]
 

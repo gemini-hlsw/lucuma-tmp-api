@@ -56,70 +56,70 @@ sealed trait TableOptics { self: Tables.type =>
     Lens[Tables, Ids](_.ids)(b => a => a.copy(ids = b))
 
   val lastEventId: Lens[Tables, Long] =
-    ids ^|-> Ids.lastEvent
+    ids.andThen(Ids.lastEvent)
 
   val lastAtomId: Lens[Tables, Atom.Id] =
-    ids ^|-> Ids.lastAtom
+    ids.andThen(Ids.lastAtom)
 
   val lastAsterismId: Lens[Tables, Asterism.Id] =
-    ids ^|-> Ids.lastAsterism
+    ids.andThen(Ids.lastAsterism)
 
   val lastExecutionEventId: Lens[Tables, ExecutionEvent.Id] =
-    ids ^|-> Ids.lastExecutionEvent
+    ids.andThen(Ids.lastExecutionEvent)
 
   val lastObservationId: Lens[Tables, Observation.Id] =
-    ids ^|-> Ids.lastObservation
+    ids.andThen(Ids.lastObservation)
 
   val lastProgramId: Lens[Tables, Program.Id] =
-    ids ^|-> Ids.lastProgram
+    ids.andThen(Ids.lastProgram)
 
   val lastStepId: Lens[Tables, Step.Id] =
-    ids ^|-> Ids.lastStep
+    ids.andThen(Ids.lastStep)
 
   val lastTargetId: Lens[Tables, Target.Id] =
-    ids ^|-> Ids.lastTarget
+    ids.andThen(Ids.lastTarget)
 
   val atoms: Lens[Tables, SortedMap[Atom.Id, AtomModel[Step.Id]]] =
     Lens[Tables, SortedMap[Atom.Id, AtomModel[Step.Id]]](_.atoms)(b => a => a.copy(atoms = b))
 
   def atom(aid: Atom.Id): Lens[Tables, Option[AtomModel[Step.Id]]] =
-    atoms ^|-> At.at(aid)
+    atoms.andThen(At.at(aid))
 
   val asterisms: Lens[Tables, SortedMap[Asterism.Id, AsterismModel]] =
     Lens[Tables, SortedMap[Asterism.Id, AsterismModel]](_.asterisms)(b => a => a.copy(asterisms = b))
 
   def asterism(aid: Asterism.Id): Lens[Tables, Option[AsterismModel]] =
-    asterisms ^|-> At.at(aid)
+    asterisms.andThen(At.at(aid))
 
   val executionEvents: Lens[Tables, SortedMap[ExecutionEvent.Id, ExecutionEventModel]] =
     Lens[Tables, SortedMap[ExecutionEvent.Id, ExecutionEventModel]](_.executionEvents)(b => a => a.copy(executionEvents = b))
 
   def executionEvent(eid: ExecutionEvent.Id): Lens[Tables, Option[ExecutionEventModel]] =
-    executionEvents ^|-> At.at(eid)
+    executionEvents.andThen(At.at(eid))
 
   val observations: Lens[Tables, SortedMap[Observation.Id, ObservationModel]] =
     Lens[Tables, SortedMap[Observation.Id, ObservationModel]](_.observations)(b => a => a.copy(observations = b))
 
   def observation(oid: Observation.Id): Lens[Tables, Option[ObservationModel]] =
-    observations ^|-> At.at(oid)
+    observations.andThen(At.at(oid))
 
   val programs: Lens[Tables, SortedMap[Program.Id, ProgramModel]] =
     Lens[Tables, SortedMap[Program.Id, ProgramModel]](_.programs)(b => a => a.copy(programs = b))
 
   def program(pid: Program.Id): Lens[Tables, Option[ProgramModel]] =
-    programs ^|-> At.at(pid)
+    programs.andThen(At.at(pid))
 
   val steps: Lens[Tables, SortedMap[Step.Id, StepModel[_]]] =
     Lens[Tables, SortedMap[Step.Id, StepModel[_]]](_.steps)(b => a => a.copy(steps = b))
 
   def step(sid: Step.Id): Lens[Tables, Option[StepModel[_]]] =
-    steps ^|-> At.at(sid)
+    steps.andThen(At.at(sid))
 
   val targets: Lens[Tables, SortedMap[Target.Id, TargetModel]] =
     Lens[Tables, SortedMap[Target.Id, TargetModel]](_.targets)(b => a => a.copy(targets = b))
 
   def target(tid: Target.Id): Lens[Tables, Option[TargetModel]] =
-    targets ^|-> At.at(tid)
+    targets.andThen(At.at(tid))
 
 
   val programAsterism: Lens[Tables, ManyToMany[Program.Id, Asterism.Id]] =

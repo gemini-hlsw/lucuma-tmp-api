@@ -15,7 +15,7 @@ import cats.kernel.BoundedEnumerable
 import cats.syntax.all._
 import monocle.Lens
 import monocle.function.At
-import monocle.state.all._
+import lucuma.core.optics.state.all._
 
 import scala.collection.immutable.SortedMap
 
@@ -90,7 +90,7 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, *]: Eq](
     ff.filter(t => includeDeleted || t.isPresent)
 
   def focusOn(id: I): Lens[Tables, Option[T]] =
-    mapLens ^|-> At.at(id)
+    mapLens.andThen(At.at(id))
 
   def select(id: I, includeDeleted: Boolean = false): F[Option[T]] =
     selectUnconditional(id).map(deletionFilter(includeDeleted))
@@ -186,7 +186,7 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, *]: Eq](
         }
 
         val tables = result.toOption.flatMap(_.toOption)
-                       .map(t => lens.set(t.some)(oldTables))
+                       .map(t => lens.replace(t.some)(oldTables))
                        .getOrElse(oldTables)
 
         (tables, result)
