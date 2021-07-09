@@ -11,8 +11,6 @@ import cats.mtl.Stateful
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
-import monocle.macros.Lenses
-
 
 sealed trait InstrumentConfigModel extends Product with Serializable {
 
@@ -65,7 +63,7 @@ object InstrumentConfigModel {
 
   object Reference {
 
-    @Lenses final case class GmosNorthReference(
+    final case class GmosNorthReference(
       static:      GmosModel.NorthStatic,
       acquisition: SequenceModel[Atom.Id],
       science:     SequenceModel[Atom.Id]
@@ -81,7 +79,7 @@ object InstrumentConfigModel {
         Eq.by { a => (a.static, a.acquisition, a.science) }
     }
 
-    @Lenses final case class GmosSouthReference(
+    final case class GmosSouthReference(
       static:      GmosModel.SouthStatic,
       acquisition: SequenceModel[Atom.Id],
       science:     SequenceModel[Atom.Id]
@@ -107,7 +105,7 @@ object InstrumentConfigModel {
 
   }
 
-  @Lenses final case class GmosNorth(
+  final case class GmosNorth(
     static:      GmosModel.NorthStatic,
     acquisition: SequenceModel[AtomModel[StepModel[GmosModel.NorthDynamic]]],
     science:     SequenceModel[AtomModel[StepModel[GmosModel.NorthDynamic]]]
@@ -160,7 +158,7 @@ object InstrumentConfigModel {
 
   }
 
-  @Lenses final case class GmosSouth(
+  final case class GmosSouth(
     static:      GmosModel.SouthStatic,
     acquisition: SequenceModel[AtomModel[StepModel[GmosModel.SouthDynamic]]],
     science:     SequenceModel[AtomModel[StepModel[GmosModel.SouthDynamic]]]

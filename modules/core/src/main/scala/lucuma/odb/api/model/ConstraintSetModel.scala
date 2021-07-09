@@ -171,25 +171,25 @@ trait ConstraintSetModelOptics {
 
   /** @group Optics */
   lazy val airmass: Optional[ConstraintSetModel, AirmassRange] =
-    elevationRange.composePrism(ElevationRangeModel.airmassRange)
+    elevationRange.andThen(ElevationRangeModel.airmassRange)
 
   /** @group Optics */
   lazy val airMassMin: Fold[ConstraintSetModel, AirmassRange.DecimalValue] =
-    airmass.composeGetter(AirmassRange.min)
+    airmass.andThen(AirmassRange.min)
 
   /** @group Optics */
   lazy val airMassMax: Fold[ConstraintSetModel, AirmassRange.DecimalValue] =
-    airmass.composeGetter(AirmassRange.max)
+    airmass.andThen(AirmassRange.max)
 
   /** @group Optics */
   lazy val hourAngle: Optional[ConstraintSetModel, HourAngleRange] =
-    elevationRange.composePrism(ElevationRangeModel.hourAngleRange)
+    elevationRange.andThen(ElevationRangeModel.hourAngleRange)
 
   /** @group Optics */
   lazy val hourAngleMin: Fold[ConstraintSetModel, HourAngleRange.DecimalHour] =
-    hourAngle.composeGetter(HourAngleRange.minHours)
+    hourAngle.andThen(HourAngleRange.minHours)
 
   /** @group Optics */
   lazy val hourAngleMax: Fold[ConstraintSetModel, HourAngleRange.DecimalHour] =
-    hourAngle.composeGetter(HourAngleRange.maxHours)
+    hourAngle.andThen(HourAngleRange.maxHours)
 }

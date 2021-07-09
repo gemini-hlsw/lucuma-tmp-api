@@ -11,8 +11,8 @@ import cats.syntax.validated._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import lucuma.core.util.{Display, Enumerated}
-import monocle.macros.Lenses
-
+import monocle.macros.GenLens
+import monocle.Lens
 
 object OffsetModel {
 
@@ -61,7 +61,7 @@ object OffsetModel {
   implicit def NumericUnitsOffsetComponent[A]: NumericUnits[Offset.Component[A], Units] =
     NumericUnits.fromRead(_.readLong(_), _.readDecimal(_))
 
-  @Lenses final case class ComponentInput(
+  final case class ComponentInput(
     microarcseconds: Option[Long],
     milliarcseconds: Option[BigDecimal],
     arcseconds:      Option[BigDecimal],
@@ -119,7 +119,7 @@ object OffsetModel {
       ))
   }
 
-  @Lenses final case class Input(
+  final case class Input(
     p: ComponentInput,
     q: ComponentInput
   ) {
@@ -132,6 +132,8 @@ object OffsetModel {
   }
 
   object Input {
+    val p: Lens[Input, ComponentInput] = GenLens[Input](_.p)
+    val q: Lens[Input, ComponentInput] = GenLens[Input](_.q)
 
     val Zero: Input =
       Input(

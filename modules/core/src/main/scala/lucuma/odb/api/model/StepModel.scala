@@ -10,10 +10,9 @@ import cats.mtl.Stateful
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
-import monocle.macros.Lenses
+import scala.annotation.nowarn
 
-
-@Lenses final case class StepModel[A](
+final case class StepModel[A](
   id:         Step.Id,
   breakpoint: Breakpoint,
   config:     StepConfig[A]
@@ -56,7 +55,7 @@ object StepModel {
       a.config
     )}
 
-  @Lenses final case class Create[A](
+  final case class Create[A](
     id:         Option[Step.Id],
     breakpoint: Breakpoint,
     config:     CreateStepConfig[A]
@@ -86,6 +85,7 @@ object StepModel {
         a.config
       )}
 
+    @nowarn
     implicit def DecoderCreate[A: Decoder]: Decoder[Create[A]] =
       deriveDecoder[Create[A]]
 

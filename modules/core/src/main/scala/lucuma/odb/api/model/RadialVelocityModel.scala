@@ -35,7 +35,7 @@ object RadialVelocityModel {
   ) extends Product with Serializable {
 
     val decimal: Prism[BigDecimal, RadialVelocity] =
-      scalingBy(powerOf10).composePrism(RadialVelocity.fromMetersPerSecond)
+      scalingBy(powerOf10).andThen(RadialVelocity.fromMetersPerSecond)
 
     val long: Prism[Long, RadialVelocity] =
       rounding(decimal)

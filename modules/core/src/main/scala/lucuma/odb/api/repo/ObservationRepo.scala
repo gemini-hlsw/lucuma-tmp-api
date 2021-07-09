@@ -9,12 +9,12 @@ import lucuma.odb.api.model.AsterismModel.AsterismEvent
 import lucuma.odb.api.model.ObservationModel.ObservationEvent
 import lucuma.odb.api.model.TargetModel.TargetEvent
 import lucuma.odb.api.model.syntax.validatedinput._
+import lucuma.core.optics.state.all._
 import cats.Eq
 import cats.data.{EitherT, State}
 import cats.effect.{Async, Ref}
 import cats.implicits._
 import clue.data.{Assign, Ignore, Input, Unassign}
-import monocle.state.all._
 
 sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, ObservationModel] {
 

@@ -9,10 +9,8 @@ import cats.data.OneAnd
 import cats.implicits._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
-import monocle.macros.Lenses
 
-
-@Lenses final case class GcalModel(
+final case class GcalModel(
   lamp:         GcalModel.Lamp,
   filter:       GcalFilter,
   diffuser:     GcalDiffuser,
@@ -72,7 +70,7 @@ object GcalModel {
     )}
 
 
-  @Lenses final case class Create(
+  final case class Create(
     continuum:    Option[GcalContinuum],
     arcs:         List[GcalArc],
     filter:       GcalFilter,

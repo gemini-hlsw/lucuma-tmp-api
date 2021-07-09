@@ -9,7 +9,6 @@ import eu.timepit.refined.types.numeric.PosShort
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import monocle.Prism
-import monocle.macros.Lenses
 
 final case class CoAddsModel(
   toPosShort: PosShort
@@ -26,7 +25,7 @@ object CoAddsModel {
   implicit val EqCoAddsModel: Eq[CoAddsModel] =
     Eq.by(_.toPosShort.value)
 
-  @Lenses final case class Input(
+  final case class Input(
     coadds: Int
   ) {
 

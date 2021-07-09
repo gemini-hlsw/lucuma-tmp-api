@@ -17,7 +17,6 @@ import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.parser.decode
 import lucuma.core.model.Program
 import lucuma.odb.api.model.OffsetModel.ComponentInput
-import monocle.state.all._
 
 import scala.concurrent.duration._
 
@@ -189,17 +188,17 @@ object Init {
   val ac2: CreateStepConfig[CreateSouthDynamic] =
     edit(ac1) {
       for {
-        _ <- step.p                                         := ComponentInput(10.arcsec)
-        _ <- step.exposure                                  := FiniteDurationModel.Input(20.seconds)
-        _ <- (step.instrumentConfig ^|-> readout ^|-> xBin) := GmosXBinning.One
-        _ <- (step.instrumentConfig ^|-> readout ^|-> yBin) := GmosYBinning.One
-        _ <- (step.instrumentConfig ^|-> roi)               := GmosRoi.CentralStamp
-        _ <- (step.instrumentConfig ^|-> fpu)               := GmosSouthFpu.LongSlit_1_00.asRight.some
+        _ <- step.p                                               := ComponentInput(10.arcsec)
+        _ <- step.exposure                                        := FiniteDurationModel.Input(20.seconds)
+        _ <- step.instrumentConfig.andThen(readout).andThen(xBin) := GmosXBinning.One
+        _ <- step.instrumentConfig.andThen(readout).andThen(yBin) := GmosYBinning.One
+        _ <- step.instrumentConfig.andThen(roi)                   := GmosRoi.CentralStamp
+        _ <- step.instrumentConfig.andThen(fpu)                   := GmosSouthFpu.LongSlit_1_00.asRight.some
       } yield ()
     }
 
   val ac3: CreateStepConfig[CreateSouthDynamic] =
-    step.exposure.assign_(FiniteDurationModel.Input(30.seconds)).runS(ac2).value
+    (step.exposure := (FiniteDurationModel.Input(30.seconds))).runS(ac2).value
 
   val acquisitionSequence: SequenceModel.Create[CreateSouthDynamic] =
     SequenceModel.Create(
@@ -222,14 +221,14 @@ object Init {
   val gmos520: CreateSouthDynamic =
     edit(gmosAc) {
       for {
-        _ <- exposure               := FiniteDurationModel.Input.fromSeconds(950.0)
-        _ <- (readout ^|-> ampRead) := GmosAmpReadMode.Slow
-        _ <- (readout ^|-> xBin)    := GmosXBinning.Two
-        _ <- (readout ^|-> yBin)    := GmosYBinning.Two
-        _ <- roi                    := GmosRoi.CentralSpectrum
-        _ <- grating                := GmosModel.CreateGrating[GmosSouthDisperser](GmosSouthDisperser.B600_G5323, GmosDisperserOrder.One, WavelengthModel.Input.fromNanometers(520.0)).some
-        _ <- filter                 := Option.empty[GmosSouthFilter]
-        _ <- fpu                    := GmosSouthFpu.LongSlit_1_00.asRight.some
+        _ <- exposure                 := FiniteDurationModel.Input.fromSeconds(950.0)
+        _ <- readout.andThen(ampRead) := GmosAmpReadMode.Slow
+        _ <- readout.andThen(xBin)    := GmosXBinning.Two
+        _ <- readout.andThen(yBin)    := GmosYBinning.Two
+        _ <- roi                      := GmosRoi.CentralSpectrum
+        _ <- grating                  := GmosModel.CreateGrating[GmosSouthDisperser](GmosSouthDisperser.B600_G5323, GmosDisperserOrder.One, WavelengthModel.Input.fromNanometers(520.0)).some
+        _ <- filter                   := Option.empty[GmosSouthFilter]
+        _ <- fpu                      := GmosSouthFpu.LongSlit_1_00.asRight.some
       } yield ()
     }
 
