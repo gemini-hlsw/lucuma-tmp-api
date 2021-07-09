@@ -32,7 +32,7 @@ object ValidatedInput {
       case (None,     Some(bʹ)) => bʹ.asRight[A].some.validNec[InputError]
       case (Some(_),  Some(_) ) => InputError.fromMessage(s"Either $nameA or $nameB are permitted but not both").invalidNec
       case (None,     None    ) => Option.empty[Either[A, B]].validNec[InputError]
-    }.fold(_.invalid[Option[Either[A, B]]], identity)
+    }.valueOr(_.invalid)
 
   def nonEmptyString(name: String, s: String): ValidatedInput[NonEmptyString] =
     NonEmptyString
