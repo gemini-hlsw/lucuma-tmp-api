@@ -11,7 +11,7 @@ import lucuma.odb.api.model.ConfigurationAlternativesModel
 object ConfigurationAlternativesSchema {
   import WavelengthSchema._
   import RefinedSchema._
-  import TargetMutation.InputObjectMagnitude
+  import TargetMutation.InputObjectMagnitudeCreate
   import SpatialProfileSchema._
   import SpectralDistributionSchema._
   import syntax.inputobjecttype._

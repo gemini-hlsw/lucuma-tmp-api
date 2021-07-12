@@ -6,25 +6,34 @@ package lucuma.odb.api.model
 import lucuma.core.`enum`.{MagnitudeBand, MagnitudeSystem}
 import lucuma.core.math.MagnitudeValue
 import lucuma.core.model.Magnitude
+import lucuma.core.optics.syntax.lens._
+import lucuma.odb.api.model.syntax.input._
 import cats.Eq
+import cats.data.State
 import cats.syntax.all._
+import clue.data.Input
 import io.circe.Decoder
 import io.circe.generic.semiauto._
+import monocle.Lens
+import monocle.function.At
+import monocle.state.all._
+
+import scala.collection.immutable.SortedMap
 
 object MagnitudeModel {
 
-  final case class Input(
-    value:  BigDecimal,
+  private def toMagnitudeValue(field: String, d: BigDecimal): ValidatedInput[MagnitudeValue] =
+    MagnitudeValue
+      .fromBigDecimal
+      .getOption(d)
+      .toValidNec(InputError.fromMessage(s"Could not read '$field' field value $d as a magnitude value"))
+
+  final case class Create(
     band:   MagnitudeBand,
+    value:  BigDecimal,
     system: Option[MagnitudeSystem],
     error:  Option[BigDecimal]
   ) {
-
-    private def toMagnitudeValue(field: String, d: BigDecimal): ValidatedInput[MagnitudeValue] =
-      MagnitudeValue
-        .fromBigDecimal
-        .getOption(d)
-        .toValidNec(InputError.fromMessage(s"Could not read '$field' field value $d as a magnitude value"))
 
     val toMagnitude: ValidatedInput[Magnitude] =
       (toMagnitudeValue("value", value),
@@ -35,18 +44,152 @@ object MagnitudeModel {
 
   }
 
-  object Input {
+  object Create {
 
-    implicit val DecoderInput: Decoder[Input] =
-      deriveDecoder[Input]
+    implicit val DecoderCreate: Decoder[Create] =
+      deriveDecoder[Create]
 
-    implicit val EqInput: Eq[Input] =
-      Eq.by(in => (
-        in.value,
+    implicit val EqCreate: Eq[Create] =
+      Eq.by { in => (
         in.band,
+        in.value,
         in.system,
         in.error
-      ))
+      )}
+
   }
+
+  final case class Edit(
+    band:   MagnitudeBand,
+    value:  Input[BigDecimal]      = Input.ignore,
+    system: Input[MagnitudeSystem] = Input.ignore,
+    error:  Input[BigDecimal]      = Input.ignore
+  ) {
+
+    def editor: ValidatedInput[State[Magnitude, Unit]] =
+      (
+        value.validateNotNullable("value")(toMagnitudeValue("value", _)),
+        system.validateIsNotNull("system"),
+        error.validateNotNullable("error")(toMagnitudeValue("error", _))
+      ).mapN { (v, s, e) =>
+        for {
+          _ <- Magnitude.value  := v
+          _ <- Magnitude.system := s
+          _ <- Magnitude.error  := e
+        } yield ()
+      }
+
+  }
+
+  object Edit {
+
+    import io.circe.generic.extras.semiauto._
+    import io.circe.generic.extras.Configuration
+    implicit val customConfig: Configuration = Configuration.default.withDefaults
+
+    implicit val DecoderEdit: Decoder[Edit] =
+      deriveConfiguredDecoder[Edit]
+
+    implicit val EqEdit: Eq[Edit] =
+      Eq.by { a => (
+        a.band,
+        a.value,
+        a.system,
+        a.error
+      )}
+
+  }
+
+  type MagnitudeMap = SortedMap[MagnitudeBand, Magnitude]
+
+  final case class EditAction(
+    add:    Option[Create],
+    delete: Option[MagnitudeBand],
+    edit:   Option[Edit]
+  ) {
+
+    import EditAction.magAt
+
+    def editor: ValidatedInput[State[MagnitudeMap, Option[Magnitude]]] =
+      (add, delete, edit) match {
+
+        // add
+        case (Some(a), None, None) =>
+          a.toMagnitude.map { mag =>
+            magAt(mag.band).mod(_ => mag.some)
+          }
+
+        // delete
+        case (None, Some(d), None) =>
+          magAt(d).modo(_ => None).validNec
+
+        // edit
+        case (None, None, Some(e)) =>
+          e.editor.map { ed =>
+            magAt(e.band).mod(_.map(mag => ed.runS(mag).value))
+          }
+
+        // no action
+        case (None, None, None)    =>
+          InputError.missingInput("edit action").invalidNec
+
+        // multiple actions
+        case _                     =>
+          InputError.fromMessage(s"Multiple edit actions are not permitted in a single list element").invalidNec
+      }
+
+
+  }
+
+  object EditAction {
+
+    def magAt(band: MagnitudeBand): Lens[MagnitudeMap, Option[Magnitude]] =
+      At.at[MagnitudeMap, MagnitudeBand, Option[Magnitude]](band)
+
+    implicit val DecoderEditActionInput: Decoder[EditAction] =
+      deriveDecoder[EditAction]
+
+    implicit val EqEditActionInput: Eq[EditAction] =
+      Eq.by { a => (
+        a.add,
+        a.delete,
+        a.edit
+      )}
+
+  }
+
+  final case class EditList(
+    replaceList: Option[List[Create]],
+    editList:    Option[List[EditAction]]
+  ) {
+
+    def editor: ValidatedInput[State[MagnitudeMap, Unit]] = {
+
+      val ed: ValidatedInput[Either[List[Magnitude], State[MagnitudeMap, Unit]]] =
+        ValidatedInput.optionEither(
+          "replaceList",
+          "editList",
+          replaceList.traverse(_.traverse(_.toMagnitude)),
+          editList.traverse(_.traverse(_.editor).map(_.sequence.void))
+        ).map(_.getOrElse(State.get[MagnitudeMap].void.asRight))
+
+      ed.map(_.leftMap(lst => State.set(SortedMap.from(lst.fproductLeft(_.band)))).merge)
+    }
+
+  }
+
+  object EditList {
+
+    implicit val DecoderListInput: Decoder[EditList] =
+      deriveDecoder[EditList]
+
+    implicit val EqListInput: Eq[EditList] =
+      Eq.by { a => (
+        a.replaceList,
+        a.editList
+      )}
+
+  }
+
 
 }

@@ -5,7 +5,7 @@ package lucuma.odb.api.model
 package arb
 
 import TargetModel.{CreateNonsidereal, CreateSidereal, EditNonsidereal, EditSidereal}
-import lucuma.core.`enum`.{EphemerisKeyType, MagnitudeBand}
+import lucuma.core.`enum`.EphemerisKeyType
 import lucuma.core.model.{EphemerisKey, Program, Target}
 import lucuma.core.model.arb.{ArbEphemerisKey, ArbTarget}
 import lucuma.core.math.Epoch
@@ -48,7 +48,7 @@ trait ArbTargetModel {
         pm    <- arbitrary[Option[ProperMotionModel.Input]]
         rv    <- arbitrary[Option[RadialVelocityModel.Input]]
         px    <- arbitrary[Option[ParallaxModel.Input]]
-        mags  <- arbitrary[Option[List[MagnitudeModel.Input]]]
+        mags  <- arbitrary[Option[List[MagnitudeModel.Create]]]
       } yield CreateSidereal(
         id,
         pids,
@@ -76,7 +76,7 @@ trait ArbTargetModel {
       Option[ProperMotionModel.Input],
       Option[RadialVelocityModel.Input],
       Option[ParallaxModel.Input],
-      Option[List[MagnitudeModel.Input]]
+      Option[List[MagnitudeModel.Create]]
     )].contramap { in => (
       in.targetId,
       in.programIds,
@@ -99,7 +99,7 @@ trait ArbTargetModel {
         name <- arbitrary[NonEmptyString]
         key  <- arbitrary[EphemerisKeyType]
         des  <- arbitrary[NonEmptyString]
-        mags <- arbitrary[Option[List[MagnitudeModel.Input]]]
+        mags <- arbitrary[Option[List[MagnitudeModel.Create]]]
       } yield CreateNonsidereal(
         id,
         pids,
@@ -117,7 +117,7 @@ trait ArbTargetModel {
       String,
       EphemerisKeyType,
       String,
-      Option[List[MagnitudeModel.Input]]
+      Option[List[MagnitudeModel.Create]]
     )].contramap { in => (
       in.targetId, in.programIds, in.name.value, in.key, in.des, in.magnitudes
     )}
@@ -135,9 +135,7 @@ trait ArbTargetModel {
         pm    <- arbitrary[Input[ProperMotionModel.Input]]
         rv    <- arbitrary[Input[RadialVelocityModel.Input]]
         px    <- arbitrary[Input[ParallaxModel.Input]]
-        mags  <- arbitrary[Option[List[MagnitudeModel.Input]]]
-        mmags <- arbitrary[Option[List[MagnitudeModel.Input]]]
-        dmags <- arbitrary[Option[List[MagnitudeBand]]]
+        mags  <- arbitrary[Option[MagnitudeModel.EditList]]
       } yield EditSidereal(
         id,
         ex,
@@ -149,9 +147,7 @@ trait ArbTargetModel {
         pm,
         rv,
         px,
-        mags,
-        mmags,
-        dmags
+        mags
       )
     }
 

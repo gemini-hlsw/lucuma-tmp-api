@@ -16,7 +16,7 @@ object ConfigurationAlternativesModel {
     signalToNoise: Option[PosInt],
     spatialProfile: Option[SpatialProfileModel.Input],
     spectralDistribution: Option[SpectralDistributionModel.Input],
-    magnitude: Option[MagnitudeModel.Input],
+    magnitude: Option[MagnitudeModel.Create],
     redshift: Option[BigDecimal]
 )
   object Search {
