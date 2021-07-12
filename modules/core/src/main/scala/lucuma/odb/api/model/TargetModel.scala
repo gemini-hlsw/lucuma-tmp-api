@@ -276,13 +276,6 @@ object TargetModel extends TargetOptics {
     def id: Target.Id =
       targetId
 
-//    private def validateMags(
-//      ms: Option[List[MagnitudeModel.Input]]
-//    ): ValidatedInput[Option[SortedMap[MagnitudeBand, Magnitude]]] =
-//      ms.traverse(_.traverse(_.toMagnitude).map { lst =>
-//        SortedMap.from(lst.map(m => m.band -> m))
-//      })
-
     val editor: ValidatedInput[State[TargetModel, Unit]] =
       (existence     .validateIsNotNull("existence"),
        name          .validateIsNotNull("name"),
