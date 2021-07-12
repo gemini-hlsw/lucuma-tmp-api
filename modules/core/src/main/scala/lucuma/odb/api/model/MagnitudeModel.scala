@@ -6,6 +6,7 @@ package lucuma.odb.api.model
 import lucuma.core.`enum`.{MagnitudeBand, MagnitudeSystem}
 import lucuma.core.math.MagnitudeValue
 import lucuma.core.model.Magnitude
+import lucuma.core.optics.state.all._
 import lucuma.core.optics.syntax.lens._
 import lucuma.odb.api.model.syntax.input._
 import cats.Eq
@@ -16,7 +17,6 @@ import io.circe.Decoder
 import io.circe.generic.semiauto._
 import monocle.Lens
 import monocle.function.At
-import monocle.state.all._
 
 import scala.collection.immutable.SortedMap
 
