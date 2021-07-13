@@ -49,13 +49,11 @@ object ScienceRequirementsModel {
 
   final case class Edit(
     mode:                     Input[ScienceMode]                                = Input.ignore,
-    spectroscopyRequirements: Input[SpectroscopyScienceRequirementsModel.Input] = Input.ignore
+    spectroscopyRequirements: Option[SpectroscopyScienceRequirementsModel.Input] = None
   ) {
 
     def editor: ValidatedInput[State[ScienceRequirements, Unit]] =
-      (mode.validateIsNotNull("mode"),
-       spectroscopyRequirements.validateNotNullable("scienceRequirements")(_.edit)
-       ).mapN { (m, s) =>
+      (mode.validateIsNotNull("mode"), spectroscopyRequirements.traverse(_.edit)).mapN { (m, s) =>
         for {
           _ <- ScienceRequirements.mode                     := m
           _ <- ScienceRequirements.spectroscopyRequirements := s
