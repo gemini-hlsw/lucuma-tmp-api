@@ -3,16 +3,12 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.core.model.{Asterism, Target}
-import lucuma.odb.api.model.{InputError, ObservationModel, ProgramModel}
-import ObservationModel.EditPointing
+import lucuma.odb.api.model.{ObservationModel, ProgramModel}
 
 import cats.syntax.all._
 import cats.kernel.instances.order._
 import clue.data.Input
-import eu.timepit.refined.types.numeric.PosLong
 import eu.timepit.refined.types.string.NonEmptyString
-import org.scalacheck.Prop
 import org.scalacheck.Prop.forAll
 import munit.ScalaCheckSuite
 
@@ -77,8 +73,8 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
     runTest(t) { odb =>
       for {
         // Insert a program and observation to insure that at least one exists
-        p  <- odb.program.insert(new ProgramModel.Create(None, None))
-        _  <- odb.observation.insert(new ObservationModel.Create(None, p.id, None, None, None, None, None, None, None, None, None))
+        p  <- odb.program.insert(ProgramModel.Create(None, None))
+        _  <- odb.observation.insert(ObservationModel.Create.empty(p.id))
 
         // Pick whatever the first observation may be
         tʹ    <- odb.tables.get
@@ -110,27 +106,7 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
 
   }
 
-  private def asterismTest(f: Tables => Input[Asterism.Id]): Prop =
-    forAll { (t: Tables) =>
-      val in = f(t)
-      val (before, after) = runEditTest(t) { o =>
-        ObservationModel.Edit(o.id, asterismId = in)
-      }
-      assertEquals(after.asterismId, in.fold(before.asterismId, None, _.some))
-    }
-
-  property("set asterism") {
-    asterismTest(_.asterisms.values.headOption.fold(Input.ignore[Asterism.Id])(a => Input.apply(a.id)))
-  }
-
-  property("ignore asterism") {
-    asterismTest(_ => Input.ignore)
-  }
-
-  property("unassign asterism") {
-    asterismTest(_ => Input.unassign)
-  }
-
+  /*
   private def targetTest(f: Tables => Input[Target.Id]): Prop =
     forAll { (t: Tables) =>
       val in = f(t)
@@ -240,5 +216,6 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
       Prop.passed
     }
   }
+*/
 
 }

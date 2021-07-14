@@ -31,10 +31,13 @@ final class TargetModelSuite extends DisciplineSuite {
   checkAll("ProperMotionModel.Input", EqTests[ProperMotionModel.Input].eqv)
   checkAll("RadialVelocityModel.Input", EqTests[RadialVelocityModel.Input].eqv)
   checkAll("RightAscensionModel.Input", EqTests[RightAscensionModel.Input].eqv)
-  checkAll("TargetModel", EqTests[TargetModel].eqv)
+  checkAll("TargetModel.Create", EqTests[TargetModel.Create].eqv)
   checkAll("TargetModel.CreateNonsidereal", EqTests[TargetModel.CreateNonsidereal].eqv)
   checkAll("TargetModel.CreateSidereal", EqTests[TargetModel.CreateSidereal].eqv)
+  checkAll("TargetModel.Edit", EqTests[TargetModel.Edit].eqv)
   checkAll("TargetModel.EditNonsidereal", EqTests[TargetModel.EditNonsidereal].eqv)
   checkAll("TargetModel.EditSidereal", EqTests[TargetModel.EditSidereal].eqv)
+  checkAll("TargetModel.EditTargetAction", EqTests[TargetModel.EditTargetAction].eqv)
+  checkAll("TargetModel.EditTargetList", EqTests[TargetModel.EditTargetList].eqv)
 
 }

@@ -5,18 +5,17 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.repo.OdbRepo
 
-import cats.MonadError
-import cats.effect.std.Dispatcher
 import sangria.schema._
 
 trait TargetQuery {
 
-  import GeneralSchema.ArgumentIncludeDeleted
-  import Paging._
-  import ProgramSchema.ProgramIdArgument
-  import TargetSchema.{TargetIdArgument, TargetType, TargetConnectionType}
-  import context._
+//  import GeneralSchema.ArgumentIncludeDeleted
+//  import Paging._
+//  import ProgramSchema.ProgramIdArgument
+//  import TargetSchema.{TargetIdArgument, TargetType, TargetConnectionType}
+//  import context._
 
+  /*
   def forId[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name        = "target",
@@ -43,11 +42,16 @@ trait TargetQuery {
         }
     )
 
-  def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
-    List(
-      allForProgram,
-      forId
-    )
+   */
+
+  def allFields[F[_]]: List[Field[OdbRepo[F], Unit]] =
+    Nil
+
+//  def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
+//    List(
+//      allForProgram,
+//      forId
+//    )
 
 }
 

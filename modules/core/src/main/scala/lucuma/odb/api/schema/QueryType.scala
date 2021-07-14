@@ -18,7 +18,6 @@ object QueryType {
     ObjectType(
       name   = "Query",
       fields =
-        AsterismQuery.allFields[F]      ++
         ConfigurationQuery.allFields[F] ++
         ObservationQuery.allFields[F]   ++
         ProgramQuery.allFields[F]       ++

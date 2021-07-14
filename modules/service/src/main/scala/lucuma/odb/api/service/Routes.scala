@@ -14,7 +14,6 @@ import cats.implicits._
 import clue.model.StreamingMessage.{FromClient, FromServer}
 import clue.model.json._
 import fs2.Stream
-import org.typelevel.log4cats.Logger
 import io.circe._
 import io.circe.syntax._
 import org.http4s.circe._
@@ -23,6 +22,7 @@ import org.http4s.server.websocket.WebSocketBuilder
 import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame.{Close, Text}
 import org.http4s.{Header, Headers, HttpRoutes, InvalidMessageBodyFailure, ParseFailure, QueryParamDecoder, Request, Response}
+import org.typelevel.log4cats.Logger
 import org.typelevel.ci.CIString
 import sangria.ast.Document
 import sangria.parser.QueryParser

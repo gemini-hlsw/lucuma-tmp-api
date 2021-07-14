@@ -17,11 +17,9 @@ import scala.collection.immutable.Seq
 
 object ProgramSchema {
 
-  import AsterismSchema.AsterismConnectionType
   import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, NonEmptyStringType, PlannedTimeSummaryType}
   import ObservationSchema.ObservationConnectionType
   import Paging._
-  import TargetSchema.TargetConnectionType
   import context._
 
   implicit val ProgramIdType: ScalarType[Program.Id] =
@@ -74,13 +72,7 @@ object ProgramSchema {
           resolve     = _.value.name
         ),
 
-        // Targets are extracted from the "database" as they are not directly
-        // referenced in the Program model class itself.
-
-        // QUESTION: I didn't bother with DeferredResolvers because it is an
-        // in-memory "repository" anyway.  Is there any reason we should use
-        // them for this toy service?
-
+        /*
         Field(
           name        = "asterisms",
           fieldType   = AsterismConnectionType[F],
@@ -95,6 +87,7 @@ object ProgramSchema {
               c.ctx.asterism.selectPageForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
             }
         ),
+         */
 
         Field(
           name        = "observations",
@@ -111,6 +104,7 @@ object ProgramSchema {
             }
         ),
 
+        /*
         Field(
           name        = "targets",
           fieldType   = TargetConnectionType[F],
@@ -125,6 +119,7 @@ object ProgramSchema {
               c.ctx.target.selectPageForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
             }
         ),
+         */
 
         Field(
           name        = "plannedTime",

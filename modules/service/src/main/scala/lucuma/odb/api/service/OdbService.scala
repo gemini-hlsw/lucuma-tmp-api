@@ -63,7 +63,7 @@ object OdbService {
       ): F[Stream[F, Either[Throwable, Json]]] = {
 
         implicit def subStream(implicit D: Dispatcher[F]): SubscriptionStream[Stream[F, *]] =
-          streaming.fs2.fs2SubscriptionStream[F](D, Async[F]/*, scala.concurrent.ExecutionContext.global*/)
+          streaming.fs2.fs2SubscriptionStream[F](D, Async[F])
 
         import sangria.execution.ExecutionScheme.Stream
 

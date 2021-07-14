@@ -4,7 +4,7 @@
 package lucuma.odb.api.repo
 
 import lucuma.core.model.{Atom, Step}
-import lucuma.core.model.{Asterism, ExecutionEvent, Observation, Program, Target}
+import lucuma.core.model.{ExecutionEvent, Observation, Program}
 import cats.kernel.BoundedEnumerable
 import monocle.Lens
 
@@ -13,13 +13,11 @@ import monocle.Lens
  */
 final case class Ids(
   event:          Long,
-  asterism:       Asterism.Id,
   atom:           Atom.Id,
   executionEvent: ExecutionEvent.Id,
   observation:    Observation.Id,
   program:        Program.Id,
-  step:           Step.Id,
-  target:         Target.Id
+  step:           Step.Id
 )
 
 object Ids extends IdsOptics {
@@ -27,13 +25,11 @@ object Ids extends IdsOptics {
   val zero: Ids =
     Ids(
       event          = 0L,
-      asterism       = BoundedEnumerable[Asterism.Id].minBound,
       atom           = BoundedEnumerable[Atom.Id].minBound,
       executionEvent = BoundedEnumerable[ExecutionEvent.Id].minBound,
       observation    = BoundedEnumerable[Observation.Id].minBound,
       program        = BoundedEnumerable[Program.Id].minBound,
-      step           = BoundedEnumerable[Step.Id].minBound,
-      target         = BoundedEnumerable[Target.Id].minBound
+      step           = BoundedEnumerable[Step.Id].minBound
     )
 
 }
@@ -42,9 +38,6 @@ sealed trait IdsOptics { self: Ids.type =>
 
   val lastEvent: Lens[Ids, Long] =
     Lens[Ids, Long](_.event)(b => a => a.copy(event = b))
-
-  val lastAsterism: Lens[Ids, Asterism.Id] =
-    Lens[Ids, Asterism.Id](_.asterism)(b => a => a.copy(asterism = b))
 
   val lastAtom: Lens[Ids, Atom.Id] =
     Lens[Ids, Atom.Id](_.atom)(b => a => a.copy(atom = b))
@@ -60,8 +53,5 @@ sealed trait IdsOptics { self: Ids.type =>
 
   val lastStep: Lens[Ids, Step.Id] =
     Lens[Ids, Step.Id](_.step)(b => a => a.copy(step = b))
-
-  val lastTarget: Lens[Ids, Target.Id] =
-    Lens[Ids, Target.Id](_.target)(b => a => a.copy(target = b))
 
 }

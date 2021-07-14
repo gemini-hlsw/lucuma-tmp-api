@@ -4,15 +4,11 @@
 package lucuma.odb.api.model
 package json
 
-import lucuma.core.math.{
-  Declination,
-  Epoch,
-  RightAscension
-}
-
+import lucuma.core.math.{Declination, Epoch, RightAscension}
 import io.circe.Decoder
+import lucuma.core.model.EphemerisKey
 
-trait TargetMathJson {
+trait TargetJson {
 
   import format.target._
 
@@ -25,6 +21,9 @@ trait TargetMathJson {
   implicit val DecoderRightAscension: Decoder[RightAscension] =
     FormatRightAscension.decoder
 
+  implicit val DecoderEphemerisKey: Decoder[EphemerisKey] =
+    FormatEphemerisKey.decoder
+
 }
 
-object targetmath extends TargetMathJson
+object target extends TargetJson
