@@ -5,7 +5,7 @@ package lucuma.odb.api.model
 package arb
 
 import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
-import lucuma.core.model.{Asterism, Observation, Program, Target}
+import lucuma.core.model.{Observation, Program}
 import lucuma.core.util.arb.{ArbEnumerated, ArbGid}
 
 import eu.timepit.refined.scalacheck.all._
@@ -19,6 +19,7 @@ trait ArbObservationModel {
   import ArbScienceRequirements._
   import ArbEnumerated._
   import ArbGid._
+  import ArbTargetEnvironmentModel._
 
   def arbObservationModelWithPid(pid: Program.Id): Arbitrary[ObservationModel] =
     Arbitrary {
@@ -28,10 +29,10 @@ trait ArbObservationModel {
         nm <- arbitrary[Option[NonEmptyString]]
         os <- arbitrary[ObsStatus]
         as <- arbitrary[ObsActiveStatus]
-        ts <- arbitrary[Option[Either[Asterism.Id, Target.Id]]]
+        ts <- arbitrary[TargetEnvironmentModel]
         cs <- arbitrary[ConstraintSetModel]
         sr <- arbitrary[ScienceRequirements]
-      } yield ObservationModel(id, ex, pid, nm, os, as, ts, cs, sr, PlannedTimeSummaryModel.Zero, None, None)
+      } yield ObservationModel(id, ex, pid, nm, os, as, ts, cs, sr, None, None, PlannedTimeSummaryModel.Zero)
     }
 
   implicit val arbObservationModel: Arbitrary[ObservationModel] =
@@ -50,7 +51,7 @@ trait ArbObservationModel {
       Option[String],
       ObsStatus,
       ObsActiveStatus,
-      Option[Either[Asterism.Id, Target.Id]],
+      TargetEnvironmentModel,
       ConstraintSetModel,
       ScienceRequirements
     )].contramap { in => (
@@ -60,7 +61,7 @@ trait ArbObservationModel {
       in.name.map(_.value),
       in.status,
       in.activeStatus,
-      in.pointing,
+      in.targets,
       in.constraintSet,
       in.scienceRequirements
     )}
@@ -73,7 +74,7 @@ trait ArbObservationModel {
         nm <- arbitrary[Option[NonEmptyString]]
         st <- arbitrary[Option[ObsStatus]]
         as <- arbitrary[Option[ObsActiveStatus]]
-        ts <- arbitrary[Option[Either[Asterism.Id, Target.Id]]]
+        ts <- arbitrary[Option[TargetEnvironmentModel.Create]]
         cs <- arbitrary[Option[ConstraintSetModel.Create]]
       } yield ObservationModel.Create(
         id,
@@ -81,8 +82,7 @@ trait ArbObservationModel {
         nm,
         st,
         as,
-        ts.flatMap(_.swap.toOption),
-        ts.flatMap(_.toOption),
+        ts,
         cs,
         None,
         None,
@@ -97,8 +97,7 @@ trait ArbObservationModel {
       Option[String],
       Option[ObsStatus],
       Option[ObsActiveStatus],
-      Option[Asterism.Id],
-      Option[Target.Id],
+      Option[TargetEnvironmentModel.Create],
       Option[ConstraintSetModel.Create]
     )].contramap { in => (
       in.observationId,
@@ -106,8 +105,7 @@ trait ArbObservationModel {
       in.name.map(_.value),
       in.status,
       in.activeStatus,
-      in.asterismId,
-      in.targetId,
+      in.targets,
       in.constraintSet
     )}
 

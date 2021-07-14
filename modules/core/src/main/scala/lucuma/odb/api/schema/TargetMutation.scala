@@ -3,13 +3,10 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{CatalogIdModel, CoordinatesModel, DeclinationModel, MagnitudeModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel, TargetModel}
+import lucuma.odb.api.model.{CatalogIdModel, CoordinatesModel, DeclinationModel, MagnitudeModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel, TargetEnvironmentModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
 import lucuma.core.`enum`.MagnitudeSystem
-
-import cats.MonadError
-import cats.effect.std.Dispatcher
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -17,12 +14,9 @@ import sangria.schema._
 
 trait TargetMutation extends TargetScalars {
 
-  import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
+  import GeneralSchema.NonEmptyStringType
   import NumericUnitsSchema._
-  import ProgramSchema.ProgramIdType
-  import TargetSchema.{EnumTypeCatalogName, EphemerisKeyType, EnumTypeMagnitudeBand, EnumTypeMagnitudeSystem, TargetIdArgument, TargetIdType, TargetType}
-
-  import context._
+  import TargetSchema.{EnumTypeCatalogName, EphemerisKeyTypeEnumType, EnumTypeMagnitudeBand, EnumTypeMagnitudeSystem}
 
   import syntax.inputtype._
   import syntax.inputobjecttype._
@@ -152,7 +146,13 @@ trait TargetMutation extends TargetScalars {
       InputObjectTypeDescription("Magnitude list editing (choose one option only)")
     )
 
-  val InputObjectTypeCreateSidereal: InputObjectType[TargetModel.CreateSidereal] =
+  implicit val InputObjectTypeCreateNonsidereal: InputObjectType[TargetModel.CreateNonsidereal] =
+    deriveInputObjectType[TargetModel.CreateNonsidereal](
+      InputObjectTypeName("CreateNonsiderealInput"),
+      InputObjectTypeDescription("Nonsidereal target parameters")
+    )
+
+  implicit val InputObjectTypeCreateSidereal: InputObjectType[TargetModel.CreateSidereal] =
     deriveInputObjectType[TargetModel.CreateSidereal](
       InputObjectTypeName("CreateSiderealInput"),
       InputObjectTypeDescription("Sidereal target parameters")
@@ -164,14 +164,36 @@ trait TargetMutation extends TargetScalars {
       "Sidereal target description"
     )
 
-  val InputObjectTypeTargetEditSidereal: InputObjectType[TargetModel.EditSidereal] =
+  implicit val InputObjectTypeTargetCreate: InputObjectType[TargetModel.Create] =
+    deriveInputObjectType[TargetModel.Create](
+      InputObjectTypeName("CreateTargetInput"),
+      InputObjectTypeDescription("Target creation parameters")
+    )
+
+  val ArgumentTargetCreate: Argument[TargetModel.Create] =
+    InputObjectTypeTargetCreate.argument(
+      "input",
+      "Target creation parameters.  Choose 'nonSidereal' or 'sidereal'."
+    )
+
+
+  implicit val InputObjectTypeEditNonsidereal: InputObjectType[TargetModel.EditNonsidereal] =
+    deriveInputObjectType[TargetModel.EditNonsidereal](
+      InputObjectTypeName("EditNonsiderealInput"),
+      InputObjectTypeDescription("Nonsidereal target edit parameters"),
+
+      ReplaceInputField("name", StringType      .notNullableField("name")),
+      ReplaceInputField("key",  EphemerisKeyType.notNullableField("key"))
+    )
+
+
+  implicit val InputObjectTypeTargetEditSidereal: InputObjectType[TargetModel.EditSidereal] =
     deriveInputObjectType[TargetModel.EditSidereal](
       InputObjectTypeName("EditSiderealInput"),
       InputObjectTypeDescription("Sidereal target edit parameters"),
 
       DocumentInputField("magnitudes",    "Edit magnitudes"                                               ),
 
-      ReplaceInputField("existence",      EnumTypeExistence        .notNullableField("existence"  )),
       ReplaceInputField("name",           StringType               .notNullableField("name"       )),
       ReplaceInputField("catalogId",      InputObjectCatalogId     .nullableField("catalogId"     )),
       ReplaceInputField("ra",             InputObjectRightAscension.notNullableField("ra"         )),
@@ -188,6 +210,51 @@ trait TargetMutation extends TargetScalars {
       "Sidereal target edit"
     )
 
+  implicit val InputObjectTypeTargetEditName: InputObjectType[TargetModel.EditName] =
+    deriveInputObjectType[TargetModel.EditName](
+      InputObjectTypeName("EditTargetNameInput"),
+      InputObjectTypeDescription("Target name edit parameters")
+    )
+
+  implicit val InputObjectTypeTargetEdit: InputObjectType[TargetModel.Edit] =
+    deriveInputObjectType[TargetModel.Edit](
+      InputObjectTypeName("EditTargetInput"),
+      InputObjectTypeDescription("Target editing parameters")
+    )
+
+  val ArgumentTargetEdit: Argument[TargetModel.Edit] =
+    InputObjectTypeTargetEdit.argument(
+      "input",
+      "Target edit"
+    )
+
+  implicit val InputObjectTypeTargetEditAction: InputObjectType[TargetModel.EditTargetAction] =
+    deriveInputObjectType[TargetModel.EditTargetAction](
+      InputObjectTypeName("EditTargetActionInput"),
+      InputObjectTypeDescription("Target edit action (choose one of 'add', 'delete', or 'edit'.")
+    )
+
+  implicit val InputObjectTypeTargetEditList: InputObjectType[TargetModel.EditTargetList] =
+    deriveInputObjectType[TargetModel.EditTargetList](
+      InputObjectTypeName("EditTargetListInput"),
+      InputObjectTypeDescription("Target list edit input (choose one of 'replaceList' or 'editList'.")
+    )
+
+  implicit val InputObjectTypeTargetEnvironmentCreate: InputObjectType[TargetEnvironmentModel.Create] =
+    deriveInputObjectType[TargetEnvironmentModel.Create](
+      InputObjectTypeName("CreateTargetEnvironmentInput"),
+      InputObjectTypeDescription("Target environment creation input parameters")
+    )
+
+  implicit val InputObjectTypeTargetEnvironmentEdit: InputObjectType[TargetEnvironmentModel.Edit] =
+    deriveInputObjectType[TargetEnvironmentModel.Edit](
+      InputObjectTypeName("EditTargetEnvironmentInput"),
+      InputObjectTypeDescription("Target environment edit input parameters"),
+
+      ReplaceInputField("explicitBase", InputObjectTypeCoordinates.nullableField("explicitBase"))
+    )
+
+  /*
   def createNonsidereal[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "createNonsiderealTarget",
@@ -232,15 +299,19 @@ trait TargetMutation extends TargetScalars {
       arguments = List(TargetIdArgument),
       resolve   = c => c.target(_.undelete(c.targetId))
     )
+*/
 
-  def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
-    List(
-      createNonsidereal,
-      createSidereal,
-      updateSidereal,
-      delete,
-      undelete
-    )
+  def allFields[F[_]]: List[Field[OdbRepo[F], Unit]] =
+    Nil
+
+//  def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
+//    List(
+//      createNonsidereal,
+//      createSidereal,
+//      updateSidereal,
+//      delete,
+//      undelete
+//    )
 
 }
 

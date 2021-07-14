@@ -7,23 +7,30 @@ import lucuma.odb.api.model.Existence._
 import lucuma.odb.api.model.ScienceConfigurationModel.ScienceConfigurationModelEdit
 import lucuma.odb.api.model.syntax.input._
 import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
-import lucuma.core.optics.syntax.lens._
+import lucuma.core.math.Coordinates
+import lucuma.core.model.{Observation, Program, Target}
 import lucuma.core.optics.state.all._
-import lucuma.core.model.{Asterism, Observation, Program, Target}
-import cats.{Eq, Monad}
-import cats.Order.catsKernelOrderingForOrder
-import cats.data.{Nested, State}
+import lucuma.core.optics.syntax.lens._
+
+import cats.{Eq, Functor, Monad}
+import cats.data.State
+import cats.implicits.catsKernelOrderingForOrder
 import cats.mtl.Stateful
-import cats.syntax.all._
-import clue.data.{Assign, Input}
+import cats.syntax.apply._
+import cats.syntax.flatMap._
+import cats.syntax.functor._
+import cats.syntax.option._
+import cats.syntax.traverse._
+import clue.data.Input
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string._
-import io.circe.{Decoder, HCursor}
+import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
 import monocle.{Focus, Lens, Optional}
 
-import scala.collection.immutable.SortedSet
+import scala.collection.immutable.{SortedMap, SortedSet}
+
 
 final case class ObservationModel(
   id:                   Observation.Id,
@@ -32,21 +39,14 @@ final case class ObservationModel(
   name:                 Option[NonEmptyString],
   status:               ObsStatus,
   activeStatus:         ObsActiveStatus,
-  pointing:             Option[Either[Asterism.Id, Target.Id]],
+  targets:              TargetEnvironmentModel,
   constraintSet:        ConstraintSetModel,
   scienceRequirements:  ScienceRequirements,
-  plannedTimeSummary:   PlannedTimeSummaryModel,
-  config:               Option[InstrumentConfigModel.Reference],
   scienceConfiguration: Option[ScienceConfigurationModel],
-) {
+  config:               Option[InstrumentConfigModel.Reference],
+  plannedTimeSummary:   PlannedTimeSummaryModel
+)
 
-  def asterismId: Option[Asterism.Id] =
-    pointing.flatMap(_.swap.toOption)
-
-  def targetId: Option[Target.Id] =
-    pointing.flatMap(_.toOption)
-
-}
 
 object ObservationModel extends ObservationOptics {
 
@@ -61,12 +61,12 @@ object ObservationModel extends ObservationOptics {
       o.name,
       o.status,
       o.activeStatus,
-      o.pointing,
+      o.targets,
       o.constraintSet,
       o.scienceRequirements,
-      o.plannedTimeSummary,
+      o.scienceConfiguration,
       o.config,
-      o.scienceConfiguration
+      o.plannedTimeSummary
     )}
 
 
@@ -76,34 +76,27 @@ object ObservationModel extends ObservationOptics {
     name:                 Option[NonEmptyString],
     status:               Option[ObsStatus],
     activeStatus:         Option[ObsActiveStatus],
-    asterismId:           Option[Asterism.Id],
-    targetId:             Option[Target.Id],
+    targets:              Option[TargetEnvironmentModel.Create],
     constraintSet:        Option[ConstraintSetModel.Create],
     scienceRequirements:  Option[ScienceRequirementsModel.Create],
-    config:               Option[InstrumentConfigModel.Create],
-    scienceConfiguration: Option[ScienceConfigurationModel.Create]
+    scienceConfiguration: Option[ScienceConfigurationModel.Create],
+    config:               Option[InstrumentConfigModel.Create]
   ) {
 
-    def create[F[_]: Monad, T](db: DatabaseState[T], s: PlannedTimeSummaryModel)(implicit S: Stateful[F, T]): F[ValidatedInput[ObservationModel]] =
+    def create[F[_]: Monad, T](
+      db: DatabaseState[T],
+      s:  PlannedTimeSummaryModel
+    )(implicit S: Stateful[F, T]): F[ValidatedInput[ObservationModel]] =
+
       for {
         i <- db.observation.getUnusedId(observationId)
         p <- db.program.lookupValidated(programId)
-        a <- asterismId.traverse(db.asterism.lookupValidated[F]).map(_.sequence)
-        t <- targetId.traverse(db.target.lookupValidated[F]).map(_.sequence)
-
-        pointing = ValidatedInput.optionEither(
-          "asterismId",
-          "targetId",
-          Nested(a).map(_.id).value,
-          Nested(t).map(_.id).value
-        )
+        t  = targets.traverse(_.create)
         c  = constraintSet.traverse(_.create)
         q  = scienceRequirements.traverse(_.create)
-
+        u  = scienceConfiguration.traverse(_.create)
         g <- config.traverse(_.create(db)).map(_.sequence)
-
-        u = scienceConfiguration.traverse(_.create)
-        o  = (i, p, pointing, c, q, g, u).mapN { (iʹ, _, pointingʹ, cʹ, qʹ, gʹ, uʹ) =>
+        o  = (i, p, t, c, q, u, g).mapN { (iʹ, _, tʹ, cʹ, qʹ, uʹ,  gʹ) =>
           ObservationModel(
             iʹ,
             Present,
@@ -111,12 +104,12 @@ object ObservationModel extends ObservationOptics {
             name,
             status.getOrElse(ObsStatus.New),
             activeStatus.getOrElse(ObsActiveStatus.Active),
-            pointingʹ,
+            tʹ.getOrElse(TargetEnvironmentModel.Empty),
             cʹ.getOrElse(ConstraintSetModel.AnyConstraints),
             qʹ.getOrElse(ScienceRequirements.Default),
-            s,
+            uʹ,
             gʹ.map(_.toReference),
-            uʹ
+            s
           )
         }
         _ <- db.observation.saveIfValid(o)(_.id)
@@ -125,6 +118,20 @@ object ObservationModel extends ObservationOptics {
   }
 
   object Create {
+
+    def empty(programId: Program.Id): Create =
+      Create(
+        observationId        = None,
+        programId            = programId,
+        name                 = None,
+        status               = None,
+        activeStatus         = None,
+        targets              = None,
+        constraintSet        = None,
+        scienceRequirements  = None,
+        scienceConfiguration = None,
+        config               = None
+      )
 
     implicit val DecoderCreate: Decoder[Create] =
       deriveDecoder[Create]
@@ -136,10 +143,10 @@ object ObservationModel extends ObservationOptics {
         a.name,
         a.status,
         a.activeStatus,
-        a.asterismId,
-        a.targetId,
+        a.targets,
         a.constraintSet,
         a.scienceRequirements,
+        a.scienceConfiguration,
         a.config
       )}
 
@@ -147,55 +154,88 @@ object ObservationModel extends ObservationOptics {
 
   final case class Edit(
     observationId:        Observation.Id,
-    existence:            Input[Existence]                       = Input.ignore,
-    name:                 Input[NonEmptyString]                  = Input.ignore,
-    status:               Input[ObsStatus]                       = Input.ignore,
-    activeStatus:         Input[ObsActiveStatus]                 = Input.ignore,
-    asterismId:           Input[Asterism.Id]                     = Input.ignore,
-    targetId:             Input[Target.Id]                       = Input.ignore,
-    constraintSet:        Option[ConstraintSetModel.Edit]        = None,
-    scienceRequirements:  Option[ScienceRequirementsModel.Edit]  = None,
-    scienceConfiguration: Input[ScienceConfigurationModelEdit]   = Input.ignore
+    existence:            Input[Existence]                      = Input.ignore,
+    name:                 Input[NonEmptyString]                 = Input.ignore,
+    status:               Input[ObsStatus]                      = Input.ignore,
+    activeStatus:         Input[ObsActiveStatus]                = Input.ignore,
+    targets:              Option[TargetEnvironmentModel.Edit]   = None,
+    constraintSet:        Option[ConstraintSetModel.Edit]       = None,
+    scienceRequirements:  Option[ScienceRequirementsModel.Edit] = None,
+    scienceConfiguration: Input[ScienceConfigurationModelEdit]  = Input.ignore
   ) {
 
     val id: Observation.Id =
       observationId
 
-    val pointing: ValidatedInput[(Input[Asterism.Id], Input[Target.Id])] =
-      (asterismId, targetId) match {
-        case (Assign(_), Assign(_)) => InputError.fromMessage(s"Cannot assign both an asterism and a target to the observation").invalidNec
-        case _                      => (asterismId, targetId).validNec
-      }
-
-    def editOrCreateSciConfig(ed: Option[Option[Either[ScienceConfigurationModel, State[ScienceConfigurationModel, Unit]]]])(m: Option[ScienceConfigurationModel]): Option[ScienceConfigurationModel] =
+    def editOrCreateSciConfig(
+      ed: Option[Option[Either[ScienceConfigurationModel, State[ScienceConfigurationModel, Unit]]]]
+    )(
+      m: Option[ScienceConfigurationModel]
+    ): Option[ScienceConfigurationModel] =
       ed.flatMap {
         case Some(Left(s))  => s.some
         case Some(Right(s)) => m.map(s.runS(_).value)
         case _              => None
       }
 
-    def editor: ValidatedInput[State[ObservationModel, Unit]] =
+    def edit(o: ObservationModel): ValidatedInput[ObservationModel] =
+      editor(
+        targets.traverse(_.edit(o.targets))
+      ).map(_.runS(o).value)
+
+    /*
+        def editor: ValidatedInput[State[ObservationModel, Unit]] =
+          (existence   .validateIsNotNull("existence"),
+           status      .validateIsNotNull("status"),
+           activeStatus.validateIsNotNull("active"),
+           targets.traverse(_.editor),
+           constraintSet.traverse(_.editor),
+           scienceRequirements.traverse(_.editor)
+          ).mapN { (e, s, a, t, c, r) =>
+            for {
+              _ <- ObservationModel.existence    := e
+              _ <- ObservationModel.name         := name.toOptionOption
+              _ <- ObservationModel.status       := s
+              _ <- ObservationModel.activeStatus := a
+              _ <- t.fold(State.get[ObservationModel].void) { ed =>
+                ObservationModel.targets.mod_(ed.runS(_).value)
+              }
+              _ <- c.fold(State.get[ObservationModel].void) { ed =>
+                ObservationModel.constraintSet.mod_(ed.runS(_).value)
+              }
+              _ <- r.fold(State.get[ObservationModel].void) { ed =>
+                ObservationModel.scienceRequirements.mod_(ed.runS(_).value)
+              }
+            } yield ()
+          }
+    */
+
+    private def editor(
+      targets: ValidatedInput[Option[TargetEnvironmentModel]]
+    ): ValidatedInput[State[ObservationModel, Unit]] =
       (existence   .validateIsNotNull("existence"),
        status      .validateIsNotNull("status"),
        activeStatus.validateIsNotNull("active"),
+       targets,
        constraintSet.traverse(_.editor),
        scienceRequirements.traverse(_.editor),
        scienceConfiguration.validateNullable(_.editor)
-      ).mapN { (e, s, a, c, sr, sc) =>
+      ).mapN { (e, s, a, t, c, sr, sc) =>
         for {
           _ <- ObservationModel.existence    := e
           _ <- ObservationModel.name         := name.toOptionOption
           _ <- ObservationModel.status       := s
           _ <- ObservationModel.activeStatus := a
+          _ <- ObservationModel.targets      := t
           _ <- c.fold(State.get[ObservationModel].void) { ed =>
-              ObservationModel.constraintSet.mod_(ed.runS(_).value)
-            }
+            ObservationModel.constraintSet.mod_(ed.runS(_).value)
+          }
           _ <- sr.fold(State.get[ObservationModel].void) { ed =>
-              ObservationModel.scienceRequirements.mod_(ed.runS(_).value)
-            }
+            ObservationModel.scienceRequirements.mod_(ed.runS(_).value)
+          }
           _ <- sc.fold(State.get[ObservationModel].void) { ed =>
-              ObservationModel.scienceConfiguration.mod_(editOrCreateSciConfig(ed))
-            }
+            ObservationModel.scienceConfiguration.mod_(editOrCreateSciConfig(ed))
+          }
         } yield ()
       }
 
@@ -217,51 +257,17 @@ object ObservationModel extends ObservationOptics {
         a.name,
         a.status,
         a.activeStatus,
-        a.asterismId,
-        a.targetId,
+        a.targets,
         a.constraintSet
       )}
 
   }
 
-  final case class EditPointing(
+
+  final case class EditTargetEnvironment(
     observationIds: List[Observation.Id],
-    asterismId:     Option[Asterism.Id],
-    targetId:       Option[Target.Id]
-  ) {
-
-    def pointing: ValidatedInput[Option[Either[Asterism.Id, Target.Id]]] =
-      (asterismId, targetId) match {
-        case (Some(_), Some(_)) => InputError.fromMessage("Cannot assign both an asterism and a target to the observation").invalidNec[Option[Either[Asterism.Id, Target.Id]]]
-        case (Some(a), None)    => a.asLeft[Target.Id].some.validNec[InputError]
-        case (None,    Some(t)) => t.asRight[Asterism.Id].some.validNec[InputError]
-        case (None,    None)    => Option.empty[Either[Asterism.Id, Target.Id]].validNec
-      }
-
-  }
-
-  object EditPointing {
-
-    def unassign(observationIds: List[Observation.Id]): EditPointing =
-      EditPointing(observationIds, None, None)
-
-    def assignAsterism(observationIds: List[Observation.Id], asterismId: Asterism.Id): EditPointing =
-      unassign(observationIds).copy(asterismId = Some(asterismId))
-
-    def assignTarget(observationIds: List[Observation.Id], targetId: Target.Id): EditPointing =
-      unassign(observationIds).copy(targetId = Some(targetId))
-
-    implicit val DecoderEditPointing: Decoder[EditPointing] =
-      deriveDecoder[EditPointing]
-
-    implicit val EqEditPointing: Eq[EditPointing] =
-      Eq.by { a => (
-        a.observationIds,
-        a.asterismId,
-        a.targetId
-      )}
-
-  }
+    targets:        TargetEnvironmentModel.Edit
+  )
 
   final case class ObservationEvent (
     id:       Long,
@@ -296,6 +302,12 @@ object ObservationModel extends ObservationOptics {
         a.observationIds
       )}
 
+    implicit def FunctorGroup: Functor[Group] =
+      new Functor[Group] {
+        override def map[A, B](fa: Group[A])(f: A => B): Group[B] =
+          Group(f(fa.value), fa.observationIds)
+      }
+
     def from[A](
       value:          A,
       observationIds: IterableOnce[Observation.Id]
@@ -304,26 +316,58 @@ object ObservationModel extends ObservationOptics {
 
   }
 
-  final case class BulkEdit[A](
-    input:          A,
-    observationIds: List[Observation.Id]
+  final case class BulkEdit[S, E](
+    select: S,
+    edit:   E
   )
 
   object BulkEdit {
 
-    def decoder[A: Decoder](
-      editorName: String
-    ): Decoder[BulkEdit[A]] =
-      (c: HCursor) =>
-        for {
-          input <- c.downField(editorName).as[A]
-          oids  <- c.downField("observationIds").as[List[Observation.Id]]
-        } yield BulkEdit(input, oids)
+    implicit def DecoderBulkEdit[S: Decoder, E: Decoder]: Decoder[BulkEdit[S, E]] =
+      deriveDecoder[BulkEdit[S, E]]
 
-    implicit def EqBulkEdit[A: Eq]: Eq[BulkEdit[A]] =
+    implicit def EqBulkEdit[S: Eq, E: Eq]: Eq[BulkEdit[S, E]] =
       Eq.by { a => (
-        a.input,
+        a.select,
+        a.edit
+      )}
+
+  }
+
+  final case class ObservationSelector(
+    programId:      Option[Program.Id],
+    observationIds: Option[List[Observation.Id]]
+  )
+
+  object ObservationSelector {
+
+    implicit val DecoderObsSelectorInput: Decoder[ObservationSelector] =
+      deriveDecoder[ObservationSelector]
+
+    implicit val EqObsSelectorInput: Eq[ObservationSelector] =
+      Eq.by { a => (
+        a.programId,
         a.observationIds
+      )}
+
+  }
+
+  final case class SingleTargetObservationSelector(
+    programId:      Option[Program.Id],
+    observationIds: Option[List[Observation.Id]],
+    scienceTarget:  NonEmptyString
+  )
+
+  object SingleTargetObservationSelector {
+
+    implicit val DecoderSingleTargetObsSelectorInput: Decoder[SingleTargetObservationSelector] =
+      deriveDecoder[SingleTargetObservationSelector]
+
+    implicit val EqObsSelectorInput: Eq[SingleTargetObservationSelector] =
+      Eq.by { a => (
+        a.programId,
+        a.observationIds,
+        a.scienceTarget
       )}
 
   }
@@ -347,29 +391,34 @@ trait ObservationOptics { self: ObservationModel.type =>
   val activeStatus: Lens[ObservationModel, ObsActiveStatus] =
     Lens[ObservationModel, ObsActiveStatus](_.activeStatus)(a => _.copy(activeStatus = a))
 
-  val pointing: Lens[ObservationModel, Option[Either[Asterism.Id, Target.Id]]] =
-    Lens[ObservationModel, Option[Either[Asterism.Id, Target.Id]]](_.pointing)(a => _.copy(pointing = a))
+  val targets: Lens[ObservationModel, TargetEnvironmentModel] =
+    Lens[ObservationModel, TargetEnvironmentModel](_.targets)(a => _.copy(targets = a))
 
-  val asterism: Optional[ObservationModel, Asterism.Id] =
-    Optional[ObservationModel, Asterism.Id](_.pointing.flatMap(_.swap.toOption)) { a =>
-      _.copy(pointing = a.asLeft[Target.Id].some)
-    }
+  val explicitBase: Lens[ObservationModel, Option[Coordinates]] =
+    targets.andThen(TargetEnvironmentModel.explicitBase)
 
-  val target: Optional[ObservationModel, Target.Id] =
-    Optional[ObservationModel, Target.Id](_.pointing.flatMap(_.toOption)) { t =>
-      _.copy(pointing = t.asRight[Asterism.Id].some)
-    }
+  val scienceTargets: Lens[ObservationModel, SortedMap[NonEmptyString, Target]] =
+    targets.andThen(TargetEnvironmentModel.science)
 
-  val scienceRequirements: Lens[ObservationModel, ScienceRequirements] =
-    Focus[ObservationModel](_.scienceRequirements)
+  def scienceTarget(name: NonEmptyString): Optional[ObservationModel, Target] =
+    scienceTargets.index(name)
+
+  def nonsiderealScienceTarget(name: NonEmptyString): Optional[ObservationModel, Target] =
+    scienceTarget(name).andThen(TargetModel.nonsiderealTarget)
+
+  def siderealScienceTarget(name: NonEmptyString): Optional[ObservationModel, Target] =
+    scienceTarget(name).andThen(TargetModel.siderealTarget)
 
   val constraintSet: Lens[ObservationModel, ConstraintSetModel] =
     Lens[ObservationModel, ConstraintSetModel](_.constraintSet)(a => _.copy(constraintSet = a))
 
-  val config: Lens[ObservationModel, Option[InstrumentConfigModel.Reference]] =
-    Lens[ObservationModel, Option[InstrumentConfigModel.Reference]](_.config)(a => _.copy(config = a))
+  val scienceRequirements: Lens[ObservationModel, ScienceRequirements] =
+    Focus[ObservationModel](_.scienceRequirements)
 
   val scienceConfiguration: Lens[ObservationModel, Option[ScienceConfigurationModel]] =
     Focus[ObservationModel](_.scienceConfiguration)
+
+  val config: Lens[ObservationModel, Option[InstrumentConfigModel.Reference]] =
+    Lens[ObservationModel, Option[InstrumentConfigModel.Reference]](_.config)(a => _.copy(config = a))
 
 }

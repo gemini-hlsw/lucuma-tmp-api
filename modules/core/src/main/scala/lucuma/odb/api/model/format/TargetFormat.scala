@@ -4,6 +4,7 @@
 package lucuma.odb.api.model.format
 
 import lucuma.core.math.{Declination, Epoch, RightAscension}
+import lucuma.core.model.EphemerisKey
 import lucuma.core.optics.Format
 
 trait TargetFormat {
@@ -16,6 +17,9 @@ trait TargetFormat {
 
   val FormatRightAscension: ScalarFormat[RightAscension] =
     ScalarFormat(RightAscension.fromStringHMS, "HH:MM:SS.sss")
+
+  val FormatEphemerisKey: ScalarFormat[EphemerisKey] =
+    ScalarFormat(EphemerisKey.fromString, "[Comet|AsteroidNew|AsteroidOld|MajorBody]_des")
 
 }
 

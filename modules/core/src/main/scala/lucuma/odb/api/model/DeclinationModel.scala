@@ -4,7 +4,7 @@
 package lucuma.odb.api.model
 
 import cats.Eq
-import lucuma.odb.api.model.json.targetmath._
+import lucuma.odb.api.model.json.target._
 import lucuma.core.math.{Angle, Declination}
 import lucuma.core.optics.SplitMono
 import lucuma.core.util.{Display, Enumerated}

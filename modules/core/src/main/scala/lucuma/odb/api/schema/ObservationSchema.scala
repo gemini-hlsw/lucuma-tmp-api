@@ -3,15 +3,15 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{AsterismModel, ObservationModel, TargetModel}
+import lucuma.odb.api.model.ObservationModel
 import lucuma.odb.api.repo.{OdbRepo, TableState, Tables}
 import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.Observation
-
-import cats.{Monad, MonadError}
-import cats.data.{OptionT, State}
+import cats.MonadError
+import cats.data.State
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
+import lucuma.odb.api.schema.TargetSchema.TargetEnvironmentType
 import sangria.schema._
 
 import scala.collection.immutable.Seq
@@ -19,13 +19,11 @@ import scala.collection.immutable.Seq
 
 object ObservationSchema {
 
-  import AsterismSchema.AsterismType
   import ConstraintSetSchema.ConstraintSetType
   import ScienceConfigurationSchema._
   import ExecutionSchema.ExecutionType
   import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, NonEmptyStringType, PlannedTimeSummaryType}
   import ProgramSchema.ProgramType
-  import TargetSchema.TargetType
   import ScienceRequirementsSchema.ScienceRequirementsType
 
   import context._
@@ -66,13 +64,6 @@ object ObservationSchema {
       argumentType = OptionInputType(ListInputType(ObservationIdType)),
       description  = "Observation IDs"
     )
-
-  def ObservationTargetType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): OutputType[Either[AsterismModel, TargetModel]] =
-    UnionType(
-      name        = "ObservationTarget",
-      description = Some("Either asterism or target"),
-      types       = List(AsterismType[F], TargetType[F])
-    ).mapValue[Either[AsterismModel, TargetModel]](_.merge)
 
   def ObservationType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], ObservationModel] =
     ObjectType(
@@ -130,6 +121,13 @@ object ObservationSchema {
         ),
 
         Field(
+          name        = "targets",
+          fieldType   = TargetEnvironmentType[F],
+          description = "The observation's target(s)".some,
+          resolve     = _.value.targets
+        ),
+
+        Field(
           name        = "constraintSet",
           fieldType   = ConstraintSetType[F],
           description = Some("The constraint set for the observation"),
@@ -150,36 +148,6 @@ object ObservationSchema {
           description = Some("The science configuration"),
           arguments   = List(ArgumentIncludeDeleted),
           resolve     = c => c.value.scienceConfiguration
-        ),
-
-        Field(
-          name        = "observationTarget",
-          fieldType   = OptionType(ObservationTargetType[F]),
-          description = Some("The observation's asterism or target (see also `asterism` and `target` fields)"),
-          arguments   = List(ArgumentIncludeDeleted),
-          resolve     = c => c.unsafeToFuture {
-            for {
-              a <- asterism[F](c)
-              t <- target[F](c)
-            } yield a.map(_.asLeft[TargetModel]) orElse t.map(_.asRight[AsterismModel])
-          }
-        ),
-
-        Field(
-          name        = "asterism",
-          fieldType   = OptionType(AsterismType[F]),
-          description = Some("The observation's asterism, if a multi-target observation"),
-          arguments   = List(ArgumentIncludeDeleted),
-          resolve     = c => c.unsafeToFuture(asterism[F](c))
-
-        ),
-
-        Field(
-          name        = "target",
-          fieldType   = OptionType(TargetType[F]),
-          description = Some("The observation's target, if a single-target observation"),
-          arguments   = List(ArgumentIncludeDeleted),
-          resolve     = c => c.unsafeToFuture(target[F](c))
         ),
 
         Field(
@@ -204,24 +172,6 @@ object ObservationSchema {
 
       )
     )
-
-  private def asterism[F[_]: Monad](
-    c: Context[OdbRepo[F], ObservationModel]
-  ): F[Option[AsterismModel]] =
-    c.value.pointing.fold(Monad[F].pure(Option.empty[AsterismModel])) { e =>
-      OptionT(e.swap.toOption.pure[F]).flatMap { aid =>
-        OptionT(c.ctx.asterism.select(aid, c.includeDeleted))
-      }.value
-    }
-
-  private def target[F[_]: Monad](
-    c: Context[OdbRepo[F], ObservationModel]
-  ): F[Option[TargetModel]] =
-    c.value.pointing.fold(Monad[F].pure(Option.empty[TargetModel])) { e =>
-      OptionT(e.toOption.pure[F]).flatMap { tid =>
-        OptionT(c.ctx.target.select(tid, c.includeDeleted))
-      }.value
-    }
 
   def ObservationEdgeType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Edge[ObservationModel]] =
     Paging.EdgeType[F, ObservationModel](

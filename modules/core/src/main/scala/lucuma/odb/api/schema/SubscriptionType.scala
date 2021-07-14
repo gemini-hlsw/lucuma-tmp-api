@@ -5,13 +5,11 @@ package lucuma.odb.api.schema
 
 import cats.effect.Async
 import lucuma.odb.api.model.Event
-import lucuma.odb.api.model.{AsterismModel, ObservationModel, ProgramModel, TargetModel}
-import lucuma.odb.api.model.AsterismModel.AsterismEvent
+import lucuma.odb.api.model.{ObservationModel, ProgramModel}
 import lucuma.odb.api.model.ObservationModel.ObservationEvent
 import lucuma.odb.api.model.ProgramModel.ProgramEvent
-import lucuma.odb.api.model.TargetModel.TargetEvent
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.core.model.{Asterism, Observation, Program, Target}
+import lucuma.core.model.{Observation, Program}
 import cats.{Applicative, Eq, MonadError}
 import cats.effect.std.Dispatcher
 import cats.syntax.applicative._
@@ -28,24 +26,16 @@ import scala.reflect.ClassTag
 
 object SubscriptionType {
 
-  import AsterismSchema.OptionalAsterismIdArgument
   import ObservationSchema.OptionalObservationIdArgument
   import ProgramSchema.OptionalProgramIdArgument
-  import TargetSchema.OptionalTargetIdArgument
   import syntax.`enum`._
   import context._
-
-  implicit def asterismType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], AsterismModel] =
-    AsterismSchema.AsterismType[F]
 
   implicit def observationType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], ObservationModel] =
     ObservationSchema.ObservationType[F]
 
   implicit def programType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], ProgramModel] =
     ProgramSchema.ProgramType[F]
-
-  implicit def targetType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], TargetModel] =
-    TargetSchema.TargetType[F]
 
   implicit val EditTypeEnum: EnumType[Event.EditType] =
     EnumType.fromEnumerated(
@@ -155,21 +145,10 @@ object SubscriptionType {
     }
 
   def apply[F[_]: Dispatcher: Async]: ObjectType[OdbRepo[F], Unit] = {
-    def programsForAsterism(c: Context[OdbRepo[F], Unit], aid: Asterism.Id): F[Set[Program.Id]] =
-      c.ctx.program.selectPageForAsterism(aid).map(_.nodes.map(_.id).toSet)
-
-    def programsForTarget(c: Context[OdbRepo[F], Unit], tid: Target.Id): F[Set[Program.Id]] =
-      c.ctx.program.selectPageForTarget(tid).map(_.nodes.map(_.id).toSet)
 
     ObjectType(
       name   = "Subscription",
       fields = fields(
-
-        editedField[F, Asterism.Id, AsterismModel, AsterismEvent](
-          "asterism",
-          OptionalAsterismIdArgument,
-          _.value.id
-        ) { (c, e) => programsForAsterism(c, e.value.id) },
 
         editedField[F, Observation.Id, ObservationModel, ObservationEvent](
           "observation",
@@ -188,13 +167,8 @@ object SubscriptionType {
             |""".stripMargin,
           EditEventType[F, ProgramModel, ProgramEvent]("ProgramEdit"),
           List(OptionalProgramIdArgument)
-        ) { (c, e) => c.optionalProgramId.fold(true)(_ === e.value.id).pure[F] },
+        ) { (c, e) => c.optionalProgramId.fold(true)(_ === e.value.id).pure[F] }
 
-        editedField[F, Target.Id, TargetModel, TargetEvent](
-          "target",
-          OptionalTargetIdArgument,
-          _.value.id
-        ) { (c, e) => programsForTarget(c, e.value.id) }
       )
     )
   }
