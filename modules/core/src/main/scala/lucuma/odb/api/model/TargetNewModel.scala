@@ -7,7 +7,6 @@ import lucuma.odb.api.model.json.target._
 import lucuma.core.`enum`.{EphemerisKeyType, MagnitudeBand}
 import lucuma.core.math.{Coordinates, Declination, Epoch, Parallax, ProperMotion, RadialVelocity, RightAscension}
 import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, SiderealTracking, Target}
-import lucuma.core.optics.syntax.lens._
 import lucuma.core.optics.syntax.optional._
 import lucuma.core.optics.state.all._
 import lucuma.odb.api.model.syntax.input._
@@ -83,7 +82,7 @@ object TargetNewModel extends TargetNewOptics {
     name:       NonEmptyString,
     key:        EphemerisKeyType,
     des:        String,
-    magnitudes: Option[List[MagnitudeModel.Input]]
+    magnitudes: Option[List[MagnitudeModel.Create]]
   ) {
 
     val toEphemerisKey: ValidatedInput[EphemerisKey] =
@@ -93,7 +92,7 @@ object TargetNewModel extends TargetNewOptics {
       (toEphemerisKey,
        magnitudes.toList.flatten.traverse(_.toMagnitude)
       ).mapN { (k, ms) =>
-        Target(name, Left(k), SortedMap.from(ms.map(m => m.band -> m)))
+        Target(name, Left(k), SortedMap.from(ms.fproductLeft(_.band)))
       }
     }
 
@@ -134,7 +133,7 @@ object TargetNewModel extends TargetNewOptics {
     properMotion:   Option[ProperMotionModel.Input],
     radialVelocity: Option[RadialVelocityModel.Input],
     parallax:       Option[ParallaxModel.Input],
-    magnitudes:     Option[List[MagnitudeModel.Input]]
+    magnitudes:     Option[List[MagnitudeModel.Create]]
   ) {
 
     val toSiderealTracking: ValidatedInput[SiderealTracking] =
@@ -159,7 +158,7 @@ object TargetNewModel extends TargetNewOptics {
       (toSiderealTracking,
        magnitudes.toList.flatten.traverse(_.toMagnitude)
       ).mapN { (pm, ms) =>
-        Target(name, Right(pm), SortedMap.from(ms.map(m => m.band -> m)))
+        Target(name, Right(pm), SortedMap.from(ms.fproductLeft(_.band)))
       }
 
   }
@@ -271,17 +270,8 @@ object TargetNewModel extends TargetNewOptics {
     properMotion:     Input[ProperMotionModel.Input]   = Input.ignore,
     radialVelocity:   Input[RadialVelocityModel.Input] = Input.ignore,
     parallax:         Input[ParallaxModel.Input]       = Input.ignore,
-    magnitudes:       Option[List[MagnitudeModel.Input]],
-    modifyMagnitudes: Option[List[MagnitudeModel.Input]],
-    deleteMagnitudes: Option[List[MagnitudeBand]]
+    magnitudes:       Option[MagnitudeModel.EditList],
   ) {
-
-    private def validateMags(
-      ms: Option[List[MagnitudeModel.Input]]
-    ): ValidatedInput[Option[SortedMap[MagnitudeBand, Magnitude]]] =
-      ms.traverse(_.traverse(_.toMagnitude).map { lst =>
-        SortedMap.from(lst.map(m => m.band -> m))
-      })
 
     val editor: ValidatedInput[State[Target, Unit]] =
       (catalogId     .validateNullable(_.toCatalogId),
@@ -291,9 +281,8 @@ object TargetNewModel extends TargetNewOptics {
        properMotion  .validateNullable(_.toProperMotion),
        radialVelocity.validateNullable(_.toRadialVelocity),
        parallax      .validateNullable(_.toParallax),
-       validateMags(magnitudes),
-       validateMags(modifyMagnitudes)
-      ).mapN { (catalogId, ra, dec, epoch, pm, rv, px, ms, mp) =>
+       magnitudes    .traverse(_.editor)
+      ).mapN { (catalogId, ra, dec, epoch, pm, rv, px, ms) =>
         for {
           _ <- TargetNewModel.catalogId      := catalogId
           _ <- TargetNewModel.ra             := ra
@@ -302,9 +291,7 @@ object TargetNewModel extends TargetNewOptics {
           _ <- TargetNewModel.properMotion   := pm
           _ <- TargetNewModel.radialVelocity := rv
           _ <- TargetNewModel.parallax       := px
-          _ <- TargetNewModel.magnitudes     := ms
-          _ <- TargetNewModel.magnitudes.mod(_ ++ mp.getOrElse(SortedMap.empty[MagnitudeBand, Magnitude]))
-          _ <- TargetNewModel.magnitudes.mod(_ -- deleteMagnitudes.toList.flatten)
+          _ <- TargetNewModel.magnitudes.mod(m => ms.fold(m)(_.runS(m).value))
         } yield ()
       }
 
@@ -330,12 +317,87 @@ object TargetNewModel extends TargetNewOptics {
         es.properMotion,
         es.radialVelocity,
         es.parallax,
-        es.magnitudes,
-        es.modifyMagnitudes,
-        es.deleteMagnitudes
+        es.magnitudes
       ))
 
   }
+
+
+  final case class EditTargetAction(
+    add:    Option[TargetNewModel.Create],
+    delete: Option[NonEmptyString],
+    edit:   Option[TargetNewModel.Edit]
+  ) {
+
+    val editor: ValidatedInput[State[SortedMap[NonEmptyString, Target], Unit]] =
+      ValidatedInput.requireOne(
+        "edit",
+        add.map(_.toGemTarget).map(_.map { t =>
+          State.modify[SortedMap[NonEmptyString, Target]](_.updated(t.name, t))
+        }),
+        delete.map(n => State.modify[SortedMap[NonEmptyString, Target]](_.removed(n)).validNec),
+        edit.map { e =>
+          e.editor.map { s =>
+            State.modify[SortedMap[NonEmptyString, Target]] { m =>
+              e.name.flatMap(m.get).fold(m) { t =>
+                m.updated(t.name, s.runS(t).value)
+              }
+            }
+          }
+        }
+      )
+
+  }
+
+  object EditTargetAction {
+
+    implicit val DecoderEditTargetAction: Decoder[EditTargetAction] =
+      deriveDecoder[EditTargetAction]
+
+    implicit val EqEditTargetAction: Eq[EditTargetAction] =
+      Eq.by { a => (
+        a.add,
+        a.delete,
+        a.edit
+      )}
+
+  }
+
+  final case class EditTargetList(
+    replaceList: Option[List[TargetNewModel.Create]],
+    editList:    Option[List[EditTargetAction]]
+  ) {
+
+    /**
+     * @param listName for example "science", "blindOffset"
+     * @return validated editor
+     */
+    def editor(listName: String): ValidatedInput[State[SortedMap[NonEmptyString, Target], Unit]] =
+      ValidatedInput.requireOne(
+        listName,
+        replaceList.map(_.traverse(_.toGemTarget).map { ts =>
+          State.set[SortedMap[NonEmptyString, Target]](
+            SortedMap.from(ts.fproductLeft(_.name))
+          )
+        }),
+        editList.map(_.traverse(_.editor).map(_.sequence.void))
+      )
+
+  }
+
+  object EditTargetList {
+
+    implicit val DecoderEditTargetList: Decoder[EditTargetList] =
+      deriveDecoder[EditTargetList]
+
+    implicit val EqEditTargetList: Eq[EditTargetList] =
+      Eq.by { a => (
+        a.replaceList,
+        a.editList
+      )}
+  }
+
+
 
 }
 

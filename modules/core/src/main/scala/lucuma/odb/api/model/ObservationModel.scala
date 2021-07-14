@@ -6,6 +6,7 @@ package lucuma.odb.api.model
 import lucuma.odb.api.model.Existence._
 import lucuma.odb.api.model.syntax.input._
 import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
+import lucuma.core.optics.state.all._
 import lucuma.core.optics.syntax.lens._
 import lucuma.core.model.{Asterism, Observation, Program, Target}
 import cats.{Eq, Monad}
@@ -160,8 +161,8 @@ object ObservationModel extends ObservationOptics {
           _ <- ObservationModel.name         := name.toOptionOption
           _ <- ObservationModel.status       := s
           _ <- ObservationModel.activeStatus := a
-          _ <- State.modify[ObservationModel] { o =>
-            c.fold(o) { ed => ObservationModel.constraintSet.modify(ed.runS(_).value)(o) }
+          _ <- c.fold(State.get[ObservationModel].void) { ed =>
+            ObservationModel.constraintSet.mod_(ed.runS(_).value)
           }
         } yield ()
       }
