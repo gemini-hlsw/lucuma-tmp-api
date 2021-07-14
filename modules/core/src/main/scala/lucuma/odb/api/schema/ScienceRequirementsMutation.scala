@@ -16,10 +16,10 @@ trait ScienceRequirementsMutation {
   import RefinedSchema._
   import syntax.inputtype._
 
-  implicit val InputObjectTypeSpectroscopyRequirements: InputObjectType[SpectroscopyScienceRequirementsModel.Input] =
-    deriveInputObjectType[SpectroscopyScienceRequirementsModel.Input](
-      InputObjectTypeName("SpectroscopyScienceRequirementsInput"),
-      InputObjectTypeDescription("Spectroscopy science requirements params")
+  implicit val InputObjectTypeSpectroscopyRequirements: InputObjectType[SpectroscopyScienceRequirementsModel.Create] =
+    deriveInputObjectType[SpectroscopyScienceRequirementsModel.Create](
+      InputObjectTypeName("SpectroscopyScienceRequirementsCreate"),
+      InputObjectTypeDescription("Spectroscopy science requirements create params")
     )
 
   implicit val InputObjectTypeScienceRequirementsCreate: InputObjectType[ScienceRequirementsModel.Create] =
@@ -34,6 +34,20 @@ trait ScienceRequirementsMutation {
       InputObjectTypeDescription("Edit science requirements"),
       ReplaceInputField("mode", EnumTypeScienceMode.notNullableField("mode")),
       ReplaceInputField("spectroscopyRequirements", InputObjectTypeSpectroscopyRequirements.notNullableField("spectroscopyRequirements")),
+    )
+
+  implicit val InputObjectTypeSpectroscopyEdit: InputObjectType[SpectroscopyScienceRequirementsModel.Edit] =
+    deriveInputObjectType[SpectroscopyScienceRequirementsModel.Edit](
+      InputObjectTypeName("SpectroscopyScienceRequirementsEdit"),
+      InputObjectTypeDescription("Edit spectroscopy science requirements"),
+      ReplaceInputField("wavelength", InputWavelengthModelInput.notNullableField("wavelength")),
+      ReplaceInputField("resolution", InputObjectPosInt.notNullableField("resolution")),
+      ReplaceInputField("signalToNoise", InputObjectPosBigDecimal.notNullableField("signalToNoise")),
+      ReplaceInputField("signalToNoiseAt", InputWavelengthModelInput.notNullableField("signalToNoiseAt")),
+      ReplaceInputField("wavelengthRange", InputWavelengthModelInput.notNullableField("wavelengthRange")),
+      ReplaceInputField("focalPlane", EnumTypeFocalPlane.notNullableField("focalPlane")),
+      ReplaceInputField("focalPlaneAngle", InputFocalPlaneAngleInput.notNullableField("focalPlaneAngle")),
+      ReplaceInputField("capabilities", EnumTypeSpectroscopyCapabilities.notNullableField("capabilities")),
     )
 
 }

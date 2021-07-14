@@ -5,6 +5,8 @@ package lucuma.odb.api.model
 
 import cats.Eq
 import cats.syntax.all._
+import cats.data.State
+import clue.data.Input
 import eu.timepit.refined._
 import eu.timepit.refined.numeric.Positive
 import eu.timepit.refined.cats._
@@ -15,10 +17,14 @@ import io.circe.generic.semiauto._
 import io.circe.refined._
 import lucuma.odb.api.model.FocalPlane
 import lucuma.odb.api.model.SpectroscopyCapabilities
+import lucuma.odb.api.model.syntax.input._
 import lucuma.core.math.Angle
 import lucuma.core.util.Display
 import lucuma.core.math.Wavelength
 import lucuma.core.util.Enumerated
+import lucuma.core.optics.syntax.lens._
+import monocle.Focus
+import monocle.Lens
 
 final case class SpectroscopyScienceRequirements(
   wavelength:       Option[Wavelength],
@@ -31,7 +37,7 @@ final case class SpectroscopyScienceRequirements(
   capabilities:     Option[SpectroscopyCapabilities]
 )
 
-object SpectroscopyScienceRequirements {
+object SpectroscopyScienceRequirements extends SpectroscopyScienceRequirementsOptics {
   val Default = SpectroscopyScienceRequirements(None, refineMV[Positive](1).some, None, None, None, None, None, None)
 
   implicit val eqSpectroscopyConfigurationOptions: Eq[SpectroscopyScienceRequirements] = Eq.by(x =>
@@ -48,7 +54,7 @@ object SpectroscopyScienceRequirements {
 }
 
 object SpectroscopyScienceRequirementsModel {
-  final case class Input(
+  final case class Create(
     wavelength:       Option[WavelengthModel.Input],
     resolution:       Option[PosInt],
     signalToNoise:    Option[PosBigDecimal],
@@ -66,15 +72,52 @@ object SpectroscopyScienceRequirementsModel {
       ).mapN { (cw, signalToNoiseAt, wavelengthRange, focalPlaneAngle) =>
         SpectroscopyScienceRequirements(cw, resolution, signalToNoise, signalToNoiseAt, wavelengthRange, focalPlane, focalPlaneAngle, capabilities)
       }
-    val edit: ValidatedInput[SpectroscopyScienceRequirements] =
-      create
+
   }
 
-  object Input {
-    val Default: Input = Input(None, None, None, None, None, None, None, None)
+  object Create {
+    val Default: Create = Create(None, None, None, None, None, None, None, None)
 
-    implicit val DecoderCreate: Decoder[Input] = deriveDecoder
+    implicit val DecoderCreate: Decoder[Create] = deriveDecoder
   }
+
+  final case class Edit(
+    wavelength:       Input[WavelengthModel.Input]    = Input.ignore,
+    resolution:       Input[PosInt]                   = Input.ignore,
+    signalToNoise:    Input[PosBigDecimal]            = Input.ignore,
+    signalToNoiseAt:  Input[WavelengthModel.Input]    = Input.ignore,
+    wavelengthRange:  Input[WavelengthModel.Input]    = Input.ignore,
+    focalPlane:       Input[FocalPlane]               = Input.ignore,
+    focalPlaneAngle:  Input[FocalPlaneAngleInput]     = Input.ignore,
+    capabilities:     Input[SpectroscopyCapabilities] = Input.ignore
+  ) {
+    val edit: ValidatedInput[State[SpectroscopyScienceRequirements, Unit]] =
+      (wavelength.validateNullable(_.toWavelength("wavelength")),
+       signalToNoiseAt.validateNullable(_.toWavelength("signalToNoiseAt")),
+       wavelengthRange.validateNullable(_.toWavelength("wavelengthRange")),
+       focalPlaneAngle.validateNullable(_.toAngle)
+      ).mapN { (cw, signalToNoiseAt, wavelengthRange, focalPlaneAngle) =>
+        for {
+          _ <- SpectroscopyScienceRequirements.wavelength      := cw
+          _ <- SpectroscopyScienceRequirements.resolution      := resolution.toOptionOption
+          _ <- SpectroscopyScienceRequirements.signalToNoise   := signalToNoise.toOptionOption
+          _ <- SpectroscopyScienceRequirements.signalToNoiseAt := signalToNoiseAt
+          _ <- SpectroscopyScienceRequirements.wavelengthRange := wavelengthRange
+          _ <- SpectroscopyScienceRequirements.focalPlane      := focalPlane.toOptionOption
+          _ <- SpectroscopyScienceRequirements.focalPlaneAngle := focalPlaneAngle
+          _ <- SpectroscopyScienceRequirements.capabilities    := capabilities.toOptionOption
+        } yield ()
+      }
+  }
+
+  object Edit {
+    import io.circe.generic.extras.semiauto._
+    import io.circe.generic.extras.Configuration
+    implicit val customConfig: Configuration = Configuration.default.withDefaults
+
+    implicit val DecoderEdit: Decoder[Edit] = deriveConfiguredDecoder[Edit]
+  }
+
 
   final case class FocalPlaneAngleInput(
     microarcseconds: Option[Long],
@@ -130,4 +173,38 @@ object SpectroscopyScienceRequirementsModel {
 
   }
 
+}
+
+trait SpectroscopyScienceRequirementsOptics {
+  /** @group Optics */
+  lazy val wavelength: Lens[SpectroscopyScienceRequirements, Option[Wavelength]] =
+    Focus[SpectroscopyScienceRequirements](_.wavelength)
+
+  /** @group Optics */
+  lazy val resolution: Lens[SpectroscopyScienceRequirements, Option[PosInt]] =
+    Focus[SpectroscopyScienceRequirements](_.resolution)
+
+  /** @group Optics */
+  lazy val signalToNoise: Lens[SpectroscopyScienceRequirements, Option[PosBigDecimal]] =
+    Focus[SpectroscopyScienceRequirements](_.signalToNoise)
+
+  /** @group Optics */
+  lazy val signalToNoiseAt: Lens[SpectroscopyScienceRequirements, Option[Wavelength]] =
+    Focus[SpectroscopyScienceRequirements](_.signalToNoiseAt)
+
+  /** @group Optics */
+  lazy val wavelengthRange: Lens[SpectroscopyScienceRequirements, Option[Wavelength]] =
+    Focus[SpectroscopyScienceRequirements](_.wavelengthRange)
+
+  /** @group Optics */
+  lazy val focalPlane: Lens[SpectroscopyScienceRequirements, Option[FocalPlane]] =
+    Focus[SpectroscopyScienceRequirements](_.focalPlane)
+
+  /** @group Optics */
+  lazy val focalPlaneAngle: Lens[SpectroscopyScienceRequirements, Option[Angle]] =
+    Focus[SpectroscopyScienceRequirements](_.focalPlaneAngle)
+
+  /** @group Optics */
+  lazy val capabilities: Lens[SpectroscopyScienceRequirements, Option[SpectroscopyCapabilities]] =
+    Focus[SpectroscopyScienceRequirements](_.capabilities)
 }

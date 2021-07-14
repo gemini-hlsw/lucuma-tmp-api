@@ -29,7 +29,7 @@ object ScienceRequirementsSchema {
     EnumType.fromEnumerated("SpectroscopyCapabilities", "Spectroscopy capabilities Nod&Shuffle/Polarimetry/Corongraphy")
 
   implicit val EnumSpectroscopyModelAnglUnits: EnumType[SpectroscopyScienceRequirementsModel.Units] =
-    EnumType.fromEnumerated(
+    EnumType.fromEnumerated[SpectroscopyScienceRequirementsModel.Units](
       "FocalPlaneAngleUnits",
       "Focal plane angle units"
     )

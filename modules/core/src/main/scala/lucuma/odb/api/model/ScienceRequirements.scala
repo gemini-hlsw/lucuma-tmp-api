@@ -32,7 +32,7 @@ object ScienceRequirements {
 object ScienceRequirementsModel {
   final case class Create(
     mode: ScienceMode,
-    spectroscopyRequirements: SpectroscopyScienceRequirementsModel.Input
+    spectroscopyRequirements: SpectroscopyScienceRequirementsModel.Create
   ) {
     val create: ValidatedInput[ScienceRequirements] =
       spectroscopyRequirements.create.map { s =>
@@ -41,7 +41,7 @@ object ScienceRequirementsModel {
   }
 
   object Create {
-    val Default: Create = Create(ScienceMode.Spectroscopy, SpectroscopyScienceRequirementsModel.Input.Default)
+    val Default: Create = Create(ScienceMode.Spectroscopy, SpectroscopyScienceRequirementsModel.Create.Default)
 
     implicit val DecoderCreate: Decoder[Create] = deriveDecoder
 
@@ -49,14 +49,17 @@ object ScienceRequirementsModel {
 
   final case class Edit(
     mode:                     Input[ScienceMode]                                = Input.ignore,
-    spectroscopyRequirements: Option[SpectroscopyScienceRequirementsModel.Input] = None
+    spectroscopyRequirements: Option[SpectroscopyScienceRequirementsModel.Edit] = None
   ) {
 
     def editor: ValidatedInput[State[ScienceRequirements, Unit]] =
       (mode.validateIsNotNull("mode"), spectroscopyRequirements.traverse(_.edit)).mapN { (m, s) =>
+        println(s)
         for {
           _ <- ScienceRequirements.mode                     := m
-          _ <- ScienceRequirements.spectroscopyRequirements := s
+          _ <- State.modify[ScienceRequirements] { o =>
+            s.fold(o) { ed => ScienceRequirements.spectroscopyRequirements.modify(ed.runS(_).value)(o) }
+          }
         } yield ()
       }
 
