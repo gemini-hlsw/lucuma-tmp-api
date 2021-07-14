@@ -18,6 +18,7 @@ import lucuma.core.math.Angle
 
 object ScienceRequirementsSchema {
   import WavelengthSchema._
+  import RefinedSchema._
 
   implicit val EnumTypeScienceMode: EnumType[ScienceMode] =
     EnumType.fromEnumerated("ScienceMode", "Mode Spectroscopy/Imaging")
@@ -83,16 +84,16 @@ object ScienceRequirementsSchema {
 
           Field(
             name        = "resolution",
-            fieldType   = OptionType(IntType),
+            fieldType   = OptionType(PosIntType),
             description = Some("Requested resolution"),
-            resolve     = _.value.resolution.map(_.value)
+            resolve     = _.value.resolution
           ),
 
           Field(
             name        = "signalToNoise",
-            fieldType   = OptionType(BigDecimalType),
+            fieldType   = OptionType(PosBigDecimalType),
             description = Some("Requested signal to noise ratio"),
-            resolve     = _.value.signalToNoise.map(_.value)
+            resolve     = _.value.signalToNoise
           ),
 
           Field(
