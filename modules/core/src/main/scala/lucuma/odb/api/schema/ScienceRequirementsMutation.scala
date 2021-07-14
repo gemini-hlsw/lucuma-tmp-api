@@ -21,7 +21,7 @@ trait ScienceRequirementsMutation {
 
   implicit val InputObjectTypeSpectroscopyRequirements: InputObjectType[SpectroscopyScienceRequirementsModel.Create] =
     deriveInputObjectType[SpectroscopyScienceRequirementsModel.Create](
-      InputObjectTypeName("SpectroscopyScienceRequirementsCreate"),
+      InputObjectTypeName("SpectroscopyScienceRequirementsInput"),
       InputObjectTypeDescription("Spectroscopy science requirements create params")
     )
 
