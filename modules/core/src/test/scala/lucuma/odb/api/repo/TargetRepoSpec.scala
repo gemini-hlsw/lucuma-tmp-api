@@ -56,7 +56,7 @@ final class TargetRepoSpec extends ScalaCheckSuite with OdbRepoTest {
       val target = runTest(tables) { odb =>
 
         val edit = tables.targets.values.headOption.filter(_.target.track.isRight).map { t =>
-          TargetModel.EditSidereal(t.id, name = Input(name), magnitudes = None, modifyMagnitudes = None, deleteMagnitudes = None)
+          TargetModel.EditSidereal(t.id, name = Input(name), magnitudes = None)
         }
 
         edit.traverse(e => odb.target.edit(e.id, e.editor))

@@ -92,7 +92,7 @@ object TargetModel extends TargetOptics {
     name:       NonEmptyString,
     key:        EphemerisKeyType,
     des:        String,
-    magnitudes: Option[List[MagnitudeModel.Input]]
+    magnitudes: Option[List[MagnitudeModel.Create]]
   ) {
 
     val toEphemerisKey: ValidatedInput[EphemerisKey] =
@@ -102,7 +102,7 @@ object TargetModel extends TargetOptics {
       (toEphemerisKey,
        magnitudes.toList.flatten.traverse(_.toMagnitude)
       ).mapN { (k, ms) =>
-        Target(name, Left(k), SortedMap.from(ms.map(m => m.band -> m)))
+        Target(name, Left(k), SortedMap.from(ms.fproductLeft(_.band)))
       }
     }
 
@@ -154,7 +154,7 @@ object TargetModel extends TargetOptics {
     properMotion:   Option[ProperMotionModel.Input],
     radialVelocity: Option[RadialVelocityModel.Input],
     parallax:       Option[ParallaxModel.Input],
-    magnitudes:     Option[List[MagnitudeModel.Input]]
+    magnitudes:     Option[List[MagnitudeModel.Create]]
   ) {
 
     val toSiderealTracking: ValidatedInput[SiderealTracking] =
@@ -179,7 +179,7 @@ object TargetModel extends TargetOptics {
       (toSiderealTracking,
        magnitudes.toList.flatten.traverse(_.toMagnitude)
       ).mapN { (pm, ms) =>
-        Target(name, Right(pm), SortedMap.from(ms.map(m => m.band -> m)))
+        Target(name, Right(pm), SortedMap.from(ms.fproductLeft(_.band)))
       }
 
     def create[F[_]: Monad, T](db: DatabaseState[T])(implicit S: Stateful[F, T]): F[ValidatedInput[TargetModel]] =
@@ -270,20 +270,11 @@ object TargetModel extends TargetOptics {
     properMotion:     Input[ProperMotionModel.Input]   = Input.ignore,
     radialVelocity:   Input[RadialVelocityModel.Input] = Input.ignore,
     parallax:         Input[ParallaxModel.Input]       = Input.ignore,
-    magnitudes:       Option[List[MagnitudeModel.Input]],
-    modifyMagnitudes: Option[List[MagnitudeModel.Input]],
-    deleteMagnitudes: Option[List[MagnitudeBand]]
+    magnitudes:       Option[MagnitudeModel.EditList]
   ) {
 
     def id: Target.Id =
       targetId
-
-    private def validateMags(
-      ms: Option[List[MagnitudeModel.Input]]
-    ): ValidatedInput[Option[SortedMap[MagnitudeBand, Magnitude]]] =
-      ms.traverse(_.traverse(_.toMagnitude).map { lst =>
-        SortedMap.from(lst.map(m => m.band -> m))
-      })
 
     val editor: ValidatedInput[State[TargetModel, Unit]] =
       (existence     .validateIsNotNull("existence"),
@@ -295,9 +286,8 @@ object TargetModel extends TargetOptics {
        properMotion  .validateNullable(_.toProperMotion),
        radialVelocity.validateNullable(_.toRadialVelocity),
        parallax      .validateNullable(_.toParallax),
-       validateMags(magnitudes),
-       validateMags(modifyMagnitudes)
-      ).mapN { (ex, name, catalogId, ra, dec, epoch, pm, rv, px, ms, mp) =>
+       magnitudes.traverse(_.editor)
+      ).mapN { (ex, name, catalogId, ra, dec, epoch, pm, rv, px, ms) =>
         for {
           _ <- TargetModel.existence      := ex
           _ <- TargetModel.name           := name
@@ -308,9 +298,7 @@ object TargetModel extends TargetOptics {
           _ <- TargetModel.properMotion   := pm
           _ <- TargetModel.radialVelocity := rv
           _ <- TargetModel.parallax       := px
-          _ <- TargetModel.magnitudes     := ms
-          _ <- TargetModel.magnitudes.mod(_ ++ mp.getOrElse(SortedMap.empty[MagnitudeBand, Magnitude]))
-          _ <- TargetModel.magnitudes.mod(_ -- deleteMagnitudes.toList.flatten)
+          _ <- TargetModel.magnitudes.mod(m => ms.fold(m)(_.runS(m).value))
         } yield ()
       }
 
@@ -338,9 +326,7 @@ object TargetModel extends TargetOptics {
         es.properMotion,
         es.radialVelocity,
         es.parallax,
-        es.magnitudes,
-        es.modifyMagnitudes,
-        es.deleteMagnitudes
+        es.magnitudes
       ))
 
   }
