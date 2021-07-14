@@ -9,6 +9,7 @@ import cats.data.State
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import lucuma.core.optics.syntax.lens._
+import lucuma.core.model.Observation
 import lucuma.odb.api.model.syntax.input._
 import clue.data.Input
 import monocle.Lens
@@ -54,7 +55,6 @@ object ScienceRequirementsModel {
 
     def editor: ValidatedInput[State[ScienceRequirements, Unit]] =
       (mode.validateIsNotNull("mode"), spectroscopyRequirements.traverse(_.edit)).mapN { (m, s) =>
-        println(s)
         for {
           _ <- ScienceRequirements.mode                     := m
           _ <- State.modify[ScienceRequirements] { o =>
@@ -68,4 +68,20 @@ object ScienceRequirementsModel {
   object Edit {
     implicit val DecoderEdit: Decoder[Edit] = deriveDecoder
   }
+
+  final case class BulkEdit(
+    scienceRequirements: Edit,
+    observationIds:      List[Observation.Id]
+  )
+
+  object BulkEdit {
+
+    implicit val DecoderEdit: Decoder[BulkEdit] =
+      deriveDecoder[BulkEdit]
+
+    implicit val EqBulkEdit: Eq[BulkEdit] =
+      Eq.fromUniversalEquals
+
+  }
+
 }

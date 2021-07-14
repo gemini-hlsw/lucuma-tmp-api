@@ -6,6 +6,7 @@ package lucuma.odb.api.schema
 import lucuma.odb.api.model.ScienceRequirementsModel
 
 import sangria.macros.derive._
+import sangria.marshalling.circe._
 import sangria.schema._
 import lucuma.odb.api.model.SpectroscopyScienceRequirementsModel
 
@@ -14,7 +15,9 @@ trait ScienceRequirementsMutation {
   import ScienceRequirementsSchema._
   import WavelengthSchema._
   import RefinedSchema._
+  import ObservationSchema.ObservationIdType
   import syntax.inputtype._
+  import syntax.inputobjecttype._
 
   implicit val InputObjectTypeSpectroscopyRequirements: InputObjectType[SpectroscopyScienceRequirementsModel.Create] =
     deriveInputObjectType[SpectroscopyScienceRequirementsModel.Create](
@@ -50,6 +53,17 @@ trait ScienceRequirementsMutation {
       ReplaceInputField("capabilities", EnumTypeSpectroscopyCapabilities.notNullableField("capabilities")),
     )
 
+  implicit val InputObjectTypeScienceRequirementsSetBulkEdit: InputObjectType[ScienceRequirementsModel.BulkEdit] =
+    deriveInputObjectType[ScienceRequirementsModel.BulkEdit](
+      InputObjectTypeName("BulkEditScienceRequirementSetInput"),
+      InputObjectTypeDescription("Bulk edit science requirements set of multiple observations")
+    )
+
+  val ArgumentScienceRequirementsBulkEdit: Argument[ScienceRequirementsModel.BulkEdit] =
+    InputObjectTypeScienceRequirementsSetBulkEdit.argument(
+      "input",
+      "Bulk edit science requirements set"
+    )
 }
 
 object ScienceRequirementsMutation extends ScienceRequirementsMutation

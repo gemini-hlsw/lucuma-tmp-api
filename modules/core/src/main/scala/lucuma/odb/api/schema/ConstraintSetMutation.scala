@@ -65,12 +65,6 @@ trait ConstraintSetMutation {
       )
     )
 
-  val ArgumentConstraintSetEdit: Argument[ConstraintSetModel.Edit] =
-    InputObjectTypeConstraintSetEdit.argument(
-      "input",
-      "Edit constraint set"
-    )
-
   implicit val InputObjectTypeConstraintSetBulkEdit: InputObjectType[ConstraintSetModel.BulkEdit] =
     deriveInputObjectType[ConstraintSetModel.BulkEdit](
       InputObjectTypeName("BulkEditConstraintSetInput"),
