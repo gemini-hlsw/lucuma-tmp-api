@@ -28,13 +28,19 @@ trait RefinedSchema {
       name            =  "PosInt",
       description     = Some("An `Int` in the range from 1 to `Int.MaxValue`"),
       coerceUserInput = {
-        case s: Int  => PosInt.from(s).leftMap(_ => PosIntCoercionViolation)
-        case _       => Left(PosIntCoercionViolation)
+        case s: Int  =>
+          PosInt.from(s).leftMap(_ => PosIntCoercionViolation)
+        case _       =>
+          Left(PosIntCoercionViolation)
       },
       coerceOutput    = (a, _) => a.value,
       coerceInput     = {
-        case sangria.ast.IntValue(s, _, _) => PosInt.from(s).leftMap(_ => EmptyStringViolation)
-        case _                             => Left(PosIntCoercionViolation)
+        case sangria.ast.BigIntValue(s, _, _) =>
+          PosInt.from(s.intValue).leftMap(_ => PosIntCoercionViolation)
+        case sangria.ast.IntValue(s, _, _)    =>
+          PosInt.from(s).leftMap(_ => PosIntCoercionViolation)
+        case _                                =>
+          Left(PosIntCoercionViolation)
       }
     )
 
@@ -48,8 +54,8 @@ trait RefinedSchema {
       },
       coerceOutput    = (a, _) => a.value,
       coerceInput     = {
-        case sangria.ast.BigDecimalValue(s, _, _) => PosBigDecimal.from(s).leftMap(_ => EmptyStringViolation)
-        case _                             => Left(PosBigDecimalCoercionViolation)
+        case sangria.ast.BigDecimalValue(s, _, _) => PosBigDecimal.from(s).leftMap(_ => PosBigDecimalCoercionViolation)
+        case _                                    => Left(PosBigDecimalCoercionViolation)
       }
     )
 }
