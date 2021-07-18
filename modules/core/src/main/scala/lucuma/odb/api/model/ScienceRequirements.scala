@@ -66,7 +66,11 @@ object ScienceRequirementsModel {
   }
 
   object Edit {
-    implicit val DecoderEdit: Decoder[Edit] = deriveDecoder
+    import io.circe.generic.extras.semiauto._
+    import io.circe.generic.extras.Configuration
+    implicit val customConfig: Configuration = Configuration.default.withDefaults
+
+    implicit val DecoderEdit: Decoder[Edit] = deriveConfiguredDecoder
   }
 
   final case class BulkEdit(

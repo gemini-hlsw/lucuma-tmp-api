@@ -23,15 +23,18 @@ trait RefinedSchema {
 
   final case object EmptyStringViolation extends ValueCoercionViolation("Expected a non-empty string")
 
+  case class UnsupportedTypeCoercionViolation[A](value: A) extends ValueCoercionViolation(s"Unexpected value $value of type ${value.getClass}")
   implicit val PosIntType: ScalarType[PosInt] =
     ScalarType[PosInt](
       name            =  "PosInt",
       description     = Some("An `Int` in the range from 1 to `Int.MaxValue`"),
       coerceUserInput = {
+        case s: BigInt  =>
+          PosInt.from(s.intValue).leftMap(_ => PosIntCoercionViolation)
         case s: Int  =>
           PosInt.from(s).leftMap(_ => PosIntCoercionViolation)
-        case _       =>
-          Left(PosIntCoercionViolation)
+        case x       =>
+          Left(UnsupportedTypeCoercionViolation(x))
       },
       coerceOutput    = (a, _) => a.value,
       coerceInput     = {
@@ -39,8 +42,8 @@ trait RefinedSchema {
           PosInt.from(s.intValue).leftMap(_ => PosIntCoercionViolation)
         case sangria.ast.IntValue(s, _, _)    =>
           PosInt.from(s).leftMap(_ => PosIntCoercionViolation)
-        case _                                =>
-          Left(PosIntCoercionViolation)
+        case x                                =>
+          Left(UnsupportedTypeCoercionViolation(x))
       }
     )
 
@@ -49,13 +52,15 @@ trait RefinedSchema {
       name            =  "PosBigDecimal",
       description     = Some("A `BigDecimal` greater than 0"),
       coerceUserInput = {
-        case s: Int  => PosBigDecimal.from(s).leftMap(_ => PosBigDecimalCoercionViolation)
-        case _       => Left(PosBigDecimalCoercionViolation)
+        case s: BigDecimal => PosBigDecimal.from(s).leftMap(_ => PosBigDecimalCoercionViolation)
+        case x             =>
+          Left(UnsupportedTypeCoercionViolation(x))
       },
       coerceOutput    = (a, _) => a.value,
       coerceInput     = {
         case sangria.ast.BigDecimalValue(s, _, _) => PosBigDecimal.from(s).leftMap(_ => PosBigDecimalCoercionViolation)
-        case _                                    => Left(PosBigDecimalCoercionViolation)
+        case x                                =>
+          Left(UnsupportedTypeCoercionViolation(x))
       }
     )
 }
