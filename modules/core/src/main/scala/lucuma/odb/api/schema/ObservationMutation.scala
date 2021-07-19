@@ -17,6 +17,7 @@ trait ObservationMutation {
 
   import AsterismSchema.AsterismIdType
   import ConstraintSetMutation.{ArgumentConstraintSetBulkEdit, InputObjectTypeConstraintSetCreate, InputObjectTypeConstraintSetEdit}
+  import ScienceRequirementsMutation.{ArgumentScienceRequirementsBulkEdit, InputObjectTypeScienceRequirementsCreate, InputObjectTypeScienceRequirementsEdit}
   import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
   import ObservationSchema.{ObsActiveStatusType, ObservationIdType, ObservationIdArgument, ObsStatusType, ObservationType}
   import ProgramSchema.ProgramIdType
@@ -41,13 +42,14 @@ trait ObservationMutation {
     deriveInputObjectType[ObservationModel.Edit](
       InputObjectTypeName("EditObservationInput"),
       InputObjectTypeDescription("Edit observation"),
-      ReplaceInputField("existence",       EnumTypeExistence.notNullableField("existence")),
-      ReplaceInputField("name",            NonEmptyStringType.nullableField("name")),
-      ReplaceInputField("status",          ObsStatusType.notNullableField("status")),
-      ReplaceInputField("activeStatus",    ObsActiveStatusType.notNullableField("activeStatus")),
-      ReplaceInputField("asterismId",      AsterismIdType.nullableField("asterismId")),
-      ReplaceInputField("targetId",        TargetIdType.nullableField("targetId")),
-      ReplaceInputField("constraintSet",   InputObjectTypeConstraintSetEdit.nullableField("constraintSet"))
+      ReplaceInputField("existence",           EnumTypeExistence.notNullableField("existence")),
+      ReplaceInputField("name",                NonEmptyStringType.nullableField("name")),
+      ReplaceInputField("status",              ObsStatusType.notNullableField("status")),
+      ReplaceInputField("activeStatus",        ObsActiveStatusType.notNullableField("activeStatus")),
+      ReplaceInputField("asterismId",          AsterismIdType.nullableField("asterismId")),
+      ReplaceInputField("targetId",            TargetIdType.nullableField("targetId")),
+      ReplaceInputField("scienceRequirements", InputObjectTypeScienceRequirementsEdit.nullableField("scienceRequirements")),
+      ReplaceInputField("constraintSet",       InputObjectTypeConstraintSetEdit.nullableField("constraintSet"))
     )
 
   val ArgumentObservationEdit: Argument[ObservationModel.Edit] =
@@ -92,6 +94,14 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.editPointing(c.arg(ArgumentObservationEditPointing)))
     )
 
+  def updateScienceRequirements[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+    Field(
+      name      = "updateScienceRequirements",
+      fieldType = ListType(ObservationType[F]),
+      arguments = List(ArgumentScienceRequirementsBulkEdit),
+      resolve   = c => c.observation(_.bulkEditScienceRequirements(c.arg(ArgumentScienceRequirementsBulkEdit)))
+    )
+
   def updateConstraintSet[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "updateConstraintSet",
@@ -122,6 +132,7 @@ trait ObservationMutation {
       update,
       updatePointing,
       updateConstraintSet,
+      updateScienceRequirements,
       delete,
       undelete,
     )

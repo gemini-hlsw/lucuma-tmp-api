@@ -25,6 +25,7 @@ object ObservationSchema {
   import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, NonEmptyStringType, PlannedTimeSummaryType}
   import ProgramSchema.ProgramType
   import TargetSchema.TargetType
+  import ScienceRequirementsSchema.ScienceRequirementsType
 
   import context._
   import syntax.`enum`._
@@ -132,6 +133,14 @@ object ObservationSchema {
           fieldType   = ConstraintSetType[F],
           description = Some("The constraint set for the observation"),
           resolve     = c => c.value.constraintSet
+        ),
+
+        Field(
+          name        = "scienceRequirements",
+          fieldType   = ScienceRequirementsType[F],
+          description = Some("The top level science requirements"),
+          arguments   = List(ArgumentIncludeDeleted),
+          resolve     = c => c.value.scienceRequirements
         ),
 
         Field(

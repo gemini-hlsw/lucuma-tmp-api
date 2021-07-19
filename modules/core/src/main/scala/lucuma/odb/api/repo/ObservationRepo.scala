@@ -4,7 +4,7 @@
 package lucuma.odb.api.repo
 
 import lucuma.core.model.{Asterism, Observation, Program, Target}
-import lucuma.odb.api.model.{AsterismModel, ConstraintSetModel, Event, InputError, InstrumentConfigModel, ObservationModel, PlannedTimeSummaryModel, TargetModel, ValidatedInput}
+import lucuma.odb.api.model.{AsterismModel, ConstraintSetModel, ScienceRequirementsModel, Event, InputError, InstrumentConfigModel, ObservationModel, PlannedTimeSummaryModel, TargetModel, ValidatedInput}
 import lucuma.odb.api.model.AsterismModel.AsterismEvent
 import lucuma.odb.api.model.ObservationModel.ObservationEvent
 import lucuma.odb.api.model.TargetModel.TargetEvent
@@ -59,6 +59,8 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
   def editPointing(edit: ObservationModel.EditPointing): F[List[ObservationModel]]
 
   def bulkEditConstraintSet(edit: ConstraintSetModel.BulkEdit): F[List[ObservationModel]]
+
+  def bulkEditScienceRequirements(edit: ScienceRequirementsModel.BulkEdit): F[List[ObservationModel]]
 
 }
 
@@ -297,6 +299,23 @@ object ObservationRepo {
 
       }
 
+      override def bulkEditScienceRequirements(edit: ScienceRequirementsModel.BulkEdit): F[List[ObservationModel]] = {
+        val update =
+          for {
+            vos <- TableState.observation.lookupAllValidated[State[Tables, *]](edit.observationIds)
+            os  <- (vos, edit.scienceRequirements.editor).mapN { (os, ed) =>
+                     val os2 = os.map {
+                       ObservationModel.scienceRequirements.modify { cs => ed.runS(cs).value }
+                     }
+                     Tables.observations.mod(_ ++ os2.map(o => o.id -> o)).as(os2)
+                   }.sequence
+          } yield os
+
+        for {
+          os <- tablesRef.modifyState(update).flatMap(_.liftTo[F])
+          _  <- os.traverse_(o => eventService.publish(ObservationModel.ObservationEvent.updated(o)))
+        } yield os
+      }
 
     }
 }
