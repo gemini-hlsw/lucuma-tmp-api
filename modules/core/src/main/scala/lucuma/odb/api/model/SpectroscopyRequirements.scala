@@ -38,7 +38,8 @@ final case class SpectroscopyScienceRequirements(
 )
 
 object SpectroscopyScienceRequirements extends SpectroscopyScienceRequirementsOptics {
-  val Default = SpectroscopyScienceRequirements(None, refineMV[Positive](1).some, None, None, None, None, None, None)
+  val Default: SpectroscopyScienceRequirements =
+    SpectroscopyScienceRequirements(None, refineMV[Positive](1).some, None, None, None, None, None, None)
 
   implicit val eqSpectroscopyConfigurationOptions: Eq[SpectroscopyScienceRequirements] = Eq.by(x =>
     (x.wavelength,
@@ -79,6 +80,18 @@ object SpectroscopyScienceRequirementsModel {
     val Default: Create = Create(None, None, None, None, None, None, None, None)
 
     implicit val DecoderCreate: Decoder[Create] = deriveDecoder
+
+    implicit val EqCreate: Eq[Create] =
+      Eq.by { a => (
+        a.wavelength,
+        a.resolution,
+        a.signalToNoise,
+        a.signalToNoiseAt,
+        a.wavelengthRange,
+        a.focalPlane,
+        a.focalPlaneAngle,
+        a.capabilities
+      )}
   }
 
   final case class Edit(
@@ -137,6 +150,13 @@ object SpectroscopyScienceRequirementsModel {
   object FocalPlaneAngleInput {
     implicit def DecoderFocalPlaneAngleInput: Decoder[FocalPlaneAngleInput] =
       deriveDecoder[FocalPlaneAngleInput]
+
+    implicit val EqFocalPlaneAngleInput: Eq[FocalPlaneAngleInput] =
+      Eq.by { a => (
+        a.microarcseconds,
+        a.milliarcseconds,
+        a.arcseconds
+      )}
 
   }
 

@@ -31,7 +31,7 @@ trait ArbObservationModel {
         ts <- arbitrary[Option[Either[Asterism.Id, Target.Id]]]
         cs <- arbitrary[ConstraintSetModel]
         sr <- arbitrary[ScienceRequirements]
-      } yield ObservationModel(id, ex, pid, nm, os, as, ts, cs, PlannedTimeSummaryModel.Zero, None, sr)
+      } yield ObservationModel(id, ex, pid, nm, os, as, ts, cs, sr, PlannedTimeSummaryModel.Zero, None)
     }
 
   implicit val arbObservationModel: Arbitrary[ObservationModel] =
@@ -71,19 +71,19 @@ trait ArbObservationModel {
         id <- arbitrary[Option[Observation.Id]]
         pd <- arbitrary[Program.Id]
         nm <- arbitrary[Option[NonEmptyString]]
-        ts <- arbitrary[Option[Either[Asterism.Id, Target.Id]]]
-        cs <- arbitrary[Option[ConstraintSetModel.Create]]
         st <- arbitrary[Option[ObsStatus]]
         as <- arbitrary[Option[ObsActiveStatus]]
+        ts <- arbitrary[Option[Either[Asterism.Id, Target.Id]]]
+        cs <- arbitrary[Option[ConstraintSetModel.Create]]
       } yield ObservationModel.Create(
         id,
         pd,
         nm,
+        st,
+        as,
         ts.flatMap(_.swap.toOption),
         ts.flatMap(_.toOption),
         cs,
-        st,
-        as,
         None,
         None
       )
@@ -94,20 +94,20 @@ trait ArbObservationModel {
       Option[Observation.Id],
       Program.Id,
       Option[String],
+      Option[ObsStatus],
+      Option[ObsActiveStatus],
       Option[Asterism.Id],
       Option[Target.Id],
-      Option[ConstraintSetModel.Create],
-      Option[ObsStatus],
-      Option[ObsActiveStatus]
+      Option[ConstraintSetModel.Create]
     )].contramap { in => (
       in.observationId,
       in.programId,
       in.name.map(_.value),
+      in.status,
+      in.activeStatus,
       in.asterismId,
       in.targetId,
-      in.constraintSet,
-      in.status,
-      in.activeStatus
+      in.constraintSet
     )}
 
 }
