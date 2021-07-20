@@ -144,8 +144,8 @@ object ObservationModel extends ObservationOptics {
     activeStatus:        Input[ObsActiveStatus]                = Input.ignore,
     asterismId:          Input[Asterism.Id]                    = Input.ignore,
     targetId:            Input[Target.Id]                      = Input.ignore,
-    scienceRequirements: Option[ScienceRequirementsModel.Edit] = None,
-    constraintSet:       Option[ConstraintSetModel.Edit]       = None
+    constraintSet:       Option[ConstraintSetModel.Edit]       = None,
+    scienceRequirements: Option[ScienceRequirementsModel.Edit] = None
   ) {
 
     def id: Observation.Id =
@@ -161,19 +161,19 @@ object ObservationModel extends ObservationOptics {
       (existence   .validateIsNotNull("existence"),
        status      .validateIsNotNull("status"),
        activeStatus.validateIsNotNull("active"),
-       scienceRequirements.traverse(_.editor),
-       constraintSet.traverse(_.editor)
-      ).mapN { (e, s, a, r, c) =>
+       constraintSet.traverse(_.editor),
+       scienceRequirements.traverse(_.editor)
+      ).mapN { (e, s, a, c, r) =>
         for {
           _ <- ObservationModel.existence    := e
           _ <- ObservationModel.name         := name.toOptionOption
           _ <- ObservationModel.status       := s
           _ <- ObservationModel.activeStatus := a
           _ <- State.modify[ObservationModel] { o =>
-            r.fold(o) { ed => ObservationModel.scienceRequirements.modify(ed.runS(_).value)(o) }
+            c.fold(o) { ed => ObservationModel.constraintSet.modify(ed.runS(_).value)(o) }
           }
           _ <- State.modify[ObservationModel] { o =>
-            c.fold(o) { ed => ObservationModel.constraintSet.modify(ed.runS(_).value)(o) }
+            r.fold(o) { ed => ObservationModel.scienceRequirements.modify(ed.runS(_).value)(o) }
           }
         } yield ()
       }
