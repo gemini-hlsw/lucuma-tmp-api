@@ -46,6 +46,12 @@ object ScienceRequirementsModel {
 
     implicit val DecoderCreate: Decoder[Create] = deriveDecoder
 
+    implicit val EqCreate: Eq[Create] =
+      Eq.by { a => (
+        a.mode,
+        a.spectroscopyRequirements
+      )}
+
   }
 
   final case class Edit(

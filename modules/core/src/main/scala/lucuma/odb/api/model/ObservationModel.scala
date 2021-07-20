@@ -29,9 +29,9 @@ final case class ObservationModel(
   activeStatus:         ObsActiveStatus,
   pointing:             Option[Either[Asterism.Id, Target.Id]],
   constraintSet:        ConstraintSetModel,
+  scienceRequirements:  ScienceRequirements,
   plannedTimeSummary:   PlannedTimeSummaryModel,
-  config:               Option[InstrumentConfigModel.Reference],
-  scienceRequirements:  ScienceRequirements
+  config:               Option[InstrumentConfigModel.Reference]
 ) {
 
   def asterismId: Option[Asterism.Id] =
@@ -57,9 +57,9 @@ object ObservationModel extends ObservationOptics {
       o.activeStatus,
       o.pointing,
       o.constraintSet,
+      o.scienceRequirements,
       o.plannedTimeSummary,
-      o.config,
-      o.scienceRequirements
+      o.config
     )}
 
 
@@ -67,13 +67,13 @@ object ObservationModel extends ObservationOptics {
     observationId:       Option[Observation.Id],
     programId:           Program.Id,
     name:                Option[NonEmptyString],
+    status:              Option[ObsStatus],
+    activeStatus:        Option[ObsActiveStatus],
     asterismId:          Option[Asterism.Id],
     targetId:            Option[Target.Id],
     constraintSet:       Option[ConstraintSetModel.Create],
-    status:              Option[ObsStatus],
-    activeStatus:        Option[ObsActiveStatus],
-    config:              Option[InstrumentConfigModel.Create],
-    scienceRequirements: Option[ScienceRequirementsModel.Create]
+    scienceRequirements: Option[ScienceRequirementsModel.Create],
+    config:              Option[InstrumentConfigModel.Create]
   ) {
 
     def create[F[_]: Monad, T](db: DatabaseState[T], s: PlannedTimeSummaryModel)(implicit S: Stateful[F, T]): F[ValidatedInput[ObservationModel]] =
@@ -89,10 +89,12 @@ object ObservationModel extends ObservationOptics {
           Nested(a).map(_.id).value,
           Nested(t).map(_.id).value
         )
+        c  = constraintSet.traverse(_.create)
+        q  = scienceRequirements.traverse(_.create)
 
         g <- config.traverse(_.create(db)).map(_.sequence)
 
-        o  = (i, p, pointing, constraintSet.traverse(_.create), scienceRequirements.traverse(_.create), g).mapN { (iʹ, _, pointingʹ, c, q, gʹ) =>
+        o  = (i, p, pointing, c, q, g).mapN { (iʹ, _, pointingʹ, cʹ, qʹ, gʹ) =>
           ObservationModel(
             iʹ,
             Present,
@@ -101,10 +103,10 @@ object ObservationModel extends ObservationOptics {
             status.getOrElse(ObsStatus.New),
             activeStatus.getOrElse(ObsActiveStatus.Active),
             pointingʹ,
-            c.getOrElse(ConstraintSetModel.AnyConstraints),
+            cʹ.getOrElse(ConstraintSetModel.AnyConstraints),
+            qʹ.getOrElse(ScienceRequirements.Default),
             s,
-            gʹ.map(_.toReference),
-            q.getOrElse(ScienceRequirements.Default)
+            gʹ.map(_.toReference)
           )
         }
 
@@ -123,11 +125,12 @@ object ObservationModel extends ObservationOptics {
         a.observationId,
         a.programId,
         a.name,
+        a.status,
+        a.activeStatus,
         a.asterismId,
         a.targetId,
         a.constraintSet,
-        a.status,
-        a.activeStatus,
+        a.scienceRequirements,
         a.config
       )}
 
