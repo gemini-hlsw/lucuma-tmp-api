@@ -58,6 +58,8 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
 
   def editPointing(edit: ObservationModel.EditPointing): F[List[ObservationModel]]
 
+  def groupByConstraintSet(pid: Program.Id): F[List[ObservationModel.Group[ConstraintSetModel]]]
+
   def bulkEditConstraintSet(edit: ConstraintSetModel.BulkEdit): F[List[ObservationModel]]
 
   def bulkEditScienceRequirements(edit: ScienceRequirementsModel.BulkEdit): F[List[ObservationModel]]
@@ -276,6 +278,20 @@ object ObservationRepo {
           doEdit(List(edit.observationId), e, a, t)
         }.liftTo[F].flatten.map(_.head)
 
+
+      override def groupByConstraintSet(
+        pid: Program.Id
+      ): F[List[ObservationModel.Group[ConstraintSetModel]]] =
+        tablesRef.get.map { t =>
+          t.observations
+           .filter { case (_, o) => o.programId === pid }
+           .groupBy { case (_, o) => o.constraintSet }
+           .view
+           .mapValues(_.keySet)
+           .toList
+           .sortBy(_._2.head)
+           .map { case (c, oids) => ObservationModel.Group(c, oids) }
+        }
 
       override def bulkEditConstraintSet(
         edit: ConstraintSetModel.BulkEdit

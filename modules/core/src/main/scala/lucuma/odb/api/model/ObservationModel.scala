@@ -20,6 +20,8 @@ import io.circe.generic.semiauto._
 import io.circe.refined._
 import monocle.{Focus, Lens, Optional}
 
+import scala.collection.immutable.SortedSet
+
 final case class ObservationModel(
   id:                   Observation.Id,
   existence:            Existence,
@@ -254,6 +256,27 @@ object ObservationModel extends ObservationOptics {
 
     def updated(value: ObservationModel)(id: Long): ObservationEvent =
       ObservationEvent(id, Event.EditType.Updated, value)
+  }
+
+  /**
+   * A grouping of observations according to some commonly held value.
+   *
+   * @param value value held in common
+   * @param observationIds observations sharing the same value
+   */
+  final case class Group[A](
+    value:          A,
+    observationIds: SortedSet[Observation.Id]
+  )
+
+  object Group {
+
+    implicit def EqGroup[A: Eq]: Eq[Group[A]] =
+      Eq.by { a => (
+        a.value,
+        a.observationIds
+      )}
+
   }
 
 }

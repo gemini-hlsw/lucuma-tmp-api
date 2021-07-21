@@ -8,18 +8,11 @@ import lucuma.odb.api.model.{AirmassRange, ElevationRangeModel, HourAngleRange}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.all._
 import lucuma.odb.api.model.ConstraintSetModel
-import lucuma.odb.api.schema.GeneralSchema.ArgumentIncludeDeleted
-import lucuma.odb.api.schema.ObservationSchema.ObservationConnectionType
 
-import cats.MonadError
-import cats.effect.std.Dispatcher
 import sangria.schema._
 
 object ConstraintSetSchema {
-  import context._
   import GeneralSchema.NonEmptyStringType
-  import ObservationSchema.ObservationIdType
-  import Paging._
 
   implicit val EnumTypeCloudExtinction: EnumType[CloudExtinction] =
     EnumType.fromEnumerated("CloudExtinction", "Cloud extinction")
@@ -136,58 +129,4 @@ object ConstraintSetSchema {
         )
     )
 
-  def ConstraintSetGroupType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], ConstraintSetModel.Group] =
-    ObjectType(
-      name     = "ConstraintSetGroup",
-      fieldsFn = () => fields(
-
-        Field(
-          name        = "observationIds",
-          fieldType   = ListType(ObservationIdType),
-          description = Some("IDs of observations that use the same constraints"),
-          resolve     = _.value.observationIds.toList
-        ),
-
-        Field(
-          name        = "observations",
-          fieldType   = ObservationConnectionType[F],
-          description = Some("Observations that use this constraint set"),
-          arguments   = List(
-            ArgumentPagingFirst,
-            ArgumentPagingCursor,
-            ArgumentIncludeDeleted
-          ),
-          resolve     = c =>
-            unsafeSelectTopLevelPageFuture(c.pagingObservationId) { gid =>
-              c.ctx.observation.selectPageFromIds(c.pagingFirst, gid, c.includeDeleted) { _ =>
-                c.value.observationIds
-              }
-            }
-        ),
-
-        Field(
-          name        = "constraintSet",
-          fieldType   = ConstraintSetType[F],
-          description = Some("Constraints held in common across the observations"),
-          resolve     = _.value.constraints
-
-        )
-
-      )
-    )
-
-  def ConstraintSetGroupEdgeType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Edge[ConstraintSetModel.Group]] =
-    Paging.EdgeType[F, ConstraintSetModel.Group](
-      "ConstraintSetGroupEdge",
-      "A constraint set group and its cursor",
-      ConstraintSetGroupType[F]
-    )
-
-  def ConstraintSetGroupConnectionType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Connection[ConstraintSetModel.Group]] =
-    Paging.ConnectionType[F, ConstraintSetModel.Group](
-      "ConstraintSetGroupConnection",
-      "Observations group by common constraints",
-      ConstraintSetGroupType[F],
-      ConstraintSetGroupEdgeType[F]
-    )
 }
