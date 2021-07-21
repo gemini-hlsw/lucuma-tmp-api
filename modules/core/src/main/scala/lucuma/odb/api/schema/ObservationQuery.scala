@@ -3,20 +3,17 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.core.model.Observation
 import lucuma.odb.api.model.{ConstraintSetModel, InputError, ObservationModel}
-import lucuma.odb.api.schema.ProgramSchema.ProgramIdArgument
+import lucuma.odb.api.schema.ConstraintSetSchema.ConstraintSetType
 import lucuma.odb.api.repo.{OdbRepo, ResultPage}
 
 import cats.MonadError
 import cats.effect.std.Dispatcher
-import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.all._
 import sangria.schema._
 
 trait ObservationQuery {
 
-  import ConstraintSetSchema.ConstraintSetGroupConnectionType
   import GeneralSchema.ArgumentIncludeDeleted
   import Paging._
   import ProgramSchema.OptionalProgramIdArgument
@@ -63,43 +60,14 @@ trait ObservationQuery {
       resolve     = c => c.observation(_.select(c.observationId, c.includeDeleted))
     )
 
-  def groupByConstraintSet[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] = {
-    Field(
-      name        = "constraintGroups",
-      fieldType   = ConstraintSetGroupConnectionType[F],
-      description = Some("Observations group by commonly held constraints"),
-      arguments   = List(
-        ProgramIdArgument,
-        ArgumentPagingFirst,
-        ArgumentPagingCursor,
-        ArgumentIncludeDeleted
-      ),
-      resolve    = c => {
-        val all: F[List[ConstraintSetModel.Group]] =
-          c.ctx.tables.get.map { t =>
-            t.observations
-             .filter { case (_, o) => o.programId === c.programId }
-             .groupBy { case (_, o) => o.constraintSet }
-             .view
-             .mapValues(_.keySet)
-             .toList
-             .sortBy(_._2.head)
-             .map { case (c, oids) => ConstraintSetModel.Group(c, oids) }
-          }
+  def groupByConstraintSet[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
 
-        Paging.unsafeSelectPageFuture[F, Observation.Id, ConstraintSetModel.Group](
-          c.pagingObservationId,
-          g => Cursor.gid[Observation.Id].reverseGet(g.observationIds.head),
-          oid => all.map { gs =>
-            ResultPage.fromSeq(gs, c.arg(ArgumentPagingFirst), oid, _.observationIds.head)
-          }
-
-        )
-
-      }
-
+     ObservationGroupSchema.groupingField[F, ConstraintSetModel](
+      "constraintSet",
+      "Observations grouped by commonly held constraints",
+      ConstraintSetType[F],
+      (repo, pid) => repo.groupByConstraintSet(pid)
     )
-  }
 
   def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
     List(

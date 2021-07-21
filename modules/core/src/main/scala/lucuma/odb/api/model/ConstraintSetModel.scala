@@ -18,7 +18,6 @@ import lucuma.odb.api.model.syntax.input._
 import monocle.{Fold, Lens, Optional}
 import monocle.macros.GenLens
 
-import scala.collection.immutable.SortedSet
 
 final case class ConstraintSetModel(
   name:            NonEmptyString,  // maybe we eliminate this?
@@ -123,21 +122,6 @@ object ConstraintSetModel extends ConstraintSetModelOptics {
 
     implicit val EqBulkEdit: Eq[BulkEdit] =
       Eq.fromUniversalEquals
-
-  }
-
-  final case class Group(
-    constraints:    ConstraintSetModel,
-    observationIds: SortedSet[Observation.Id]
-  )
-
-  object Group {
-
-    implicit val EqGroup: Eq[Group] =
-      Eq.by { a => (
-        a.constraints,
-        a.observationIds
-      )}
 
   }
 
