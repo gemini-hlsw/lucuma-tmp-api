@@ -15,7 +15,7 @@ import cats.syntax.all._
 import clue.data.{Assign, Input}
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string._
-import io.circe.Decoder
+import io.circe.{Decoder, HCursor}
 import io.circe.generic.semiauto._
 import io.circe.refined._
 import monocle.{Focus, Lens, Optional}
@@ -278,6 +278,31 @@ object ObservationModel extends ObservationOptics {
       )}
 
   }
+
+  final case class BulkEdit[A](
+    input:          A,
+    observationIds: List[Observation.Id]
+  )
+
+  object BulkEdit {
+
+    def decoder[A: Decoder](
+      editorName: String
+    ): Decoder[BulkEdit[A]] =
+      (c: HCursor) =>
+        for {
+          input <- c.downField(editorName).as[A]
+          oids  <- c.downField("observationIds").as[List[Observation.Id]]
+        } yield BulkEdit(input, oids)
+
+    implicit def EqBulkEdit[A: Eq]: Eq[BulkEdit[A]] =
+      Eq.by { a => (
+        a.input,
+        a.observationIds
+      )}
+
+  }
+
 
 }
 
