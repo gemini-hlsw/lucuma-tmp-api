@@ -23,7 +23,7 @@ object ObservationGroupSchema {
   def ObservationGroupType[F[_]: Dispatcher, A](
     prefix:      String,
     valueName:   String,
-    fieldType:   ObjectType[OdbRepo[F], A]
+    outType:     OutputType[A]
   )(implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], ObservationModel.Group[A]] =
 
     ObjectType(
@@ -56,7 +56,7 @@ object ObservationGroupSchema {
 
         Field(
           name        = valueName,
-          fieldType   = fieldType,
+          fieldType   = outType,
           description = s"Commonly held value across the observations".some,
           resolve     = _.value.value
         )
@@ -89,7 +89,7 @@ object ObservationGroupSchema {
   def groupingField[F[_]: Dispatcher, A](
     name:        String,
     description: String,
-    objectType:  ObjectType[OdbRepo[F], A],
+    outType:     OutputType[A],
     lookupAll:   (ObservationRepo[F], Program.Id) => F[List[ObservationModel.Group[A]]]
   )(
     implicit ev: MonadError[F, Throwable]
@@ -99,7 +99,7 @@ object ObservationGroupSchema {
       ObservationGroupSchema.ObservationGroupType[F, A](
         name.capitalize,
         name,
-        objectType
+        outType
       )
 
     val edgeType =
