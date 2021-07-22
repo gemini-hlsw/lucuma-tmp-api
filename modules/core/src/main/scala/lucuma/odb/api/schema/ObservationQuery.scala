@@ -3,8 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{ConstraintSetModel, InputError, ObservationModel}
-import lucuma.odb.api.schema.ConstraintSetSchema.ConstraintSetType
+import lucuma.odb.api.model.{ConstraintSetModel, InputError, ObservationModel, ScienceRequirements}
 import lucuma.odb.api.repo.{OdbRepo, ResultPage}
 
 import cats.MonadError
@@ -14,11 +13,13 @@ import sangria.schema._
 
 trait ObservationQuery {
 
+  import ConstraintSetSchema.ConstraintSetType
+  import context._
   import GeneralSchema.ArgumentIncludeDeleted
   import Paging._
   import ProgramSchema.OptionalProgramIdArgument
   import ObservationSchema.{ObservationIdArgument, ObservationType, ObservationConnectionType, OptionalListObservationIdArgument}
-  import context._
+  import ScienceRequirementsSchema.ScienceRequirementsType
 
   def observations[F[_]: Dispatcher](implicit E: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
@@ -69,11 +70,21 @@ trait ObservationQuery {
       (repo, pid) => repo.groupByConstraintSet(pid)
     )
 
+  def groupByScienceRequirements[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+
+     ObservationGroupSchema.groupingField[F, ScienceRequirements](
+      "scienceRequirements",
+      "Observations grouped by commonly held science requirements",
+      ScienceRequirementsType[F],
+      (repo, pid) => repo.groupByScienceRequirements(pid)
+    )
+
   def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
     List(
       observations,
       forId,
-      groupByConstraintSet
+      groupByConstraintSet,
+      groupByScienceRequirements
     )
 }
 

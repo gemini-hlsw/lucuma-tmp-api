@@ -9,6 +9,7 @@ import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
 import lucuma.core.optics.syntax.lens._
 import lucuma.core.model.{Asterism, Observation, Program, Target}
 import cats.{Eq, Monad}
+import cats.Order.catsKernelOrderingForOrder
 import cats.data.{Nested, State}
 import cats.mtl.Stateful
 import cats.syntax.all._
@@ -276,6 +277,12 @@ object ObservationModel extends ObservationOptics {
         a.value,
         a.observationIds
       )}
+
+    def from[A](
+      value:          A,
+      observationIds: IterableOnce[Observation.Id]
+    ): Group[A] =
+      Group(value, SortedSet.from(observationIds))
 
   }
 
