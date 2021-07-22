@@ -12,7 +12,6 @@ import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
 import lucuma.core.enum._
-import lucuma.core.model.Observation
 import lucuma.core.optics.syntax.lens._
 import lucuma.odb.api.model.syntax.input._
 import monocle.{Fold, Lens, Optional}
@@ -107,22 +106,6 @@ object ConstraintSetModel extends ConstraintSetModelOptics {
     implicit val DecoderEdit: Decoder[Edit] = deriveConfiguredDecoder[Edit]
 
     implicit val EqEdit: Eq[Edit] = Eq.fromUniversalEquals
-  }
-
-
-  final case class BulkEdit(
-    constraintSet:  Edit,
-    observationIds: List[Observation.Id]
-  )
-
-  object BulkEdit {
-
-    implicit val DecoderEdit: Decoder[BulkEdit] =
-      deriveDecoder[BulkEdit]
-
-    implicit val EqBulkEdit: Eq[BulkEdit] =
-      Eq.fromUniversalEquals
-
   }
 
 }

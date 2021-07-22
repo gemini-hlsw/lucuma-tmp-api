@@ -3,20 +3,16 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.ConstraintSetModel
-
+import lucuma.odb.api.model.{AirmassRange, ConstraintSetModel, ElevationRangeModel, HourAngleRange}
 import lucuma.odb.api.schema.syntax.inputtype._
-
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
-import lucuma.odb.api.model.{AirmassRange, ElevationRangeModel, HourAngleRange}
 
 trait ConstraintSetMutation {
 
   import GeneralSchema.NonEmptyStringType
   import ConstraintSetSchema._
-  import ObservationSchema.ObservationIdType
   import syntax.inputobjecttype._
 
   implicit val InputObjectTypeAirmassRangeCreate: InputObjectType[AirmassRange.Create] =
@@ -63,18 +59,6 @@ trait ConstraintSetMutation {
       ReplaceInputField("elevationRange",
                         InputObjectTypeElevationRangeCreate.notNullableField("elevationRange")
       )
-    )
-
-  implicit val InputObjectTypeConstraintSetBulkEdit: InputObjectType[ConstraintSetModel.BulkEdit] =
-    deriveInputObjectType[ConstraintSetModel.BulkEdit](
-      InputObjectTypeName("BulkEditConstraintSetInput"),
-      InputObjectTypeDescription("Bulk edit constraint set of multiple observations")
-    )
-
-  val ArgumentConstraintSetBulkEdit: Argument[ConstraintSetModel.BulkEdit] =
-    InputObjectTypeConstraintSetBulkEdit.argument(
-      "input",
-      "Bulk edit constraint set"
     )
 
 }
