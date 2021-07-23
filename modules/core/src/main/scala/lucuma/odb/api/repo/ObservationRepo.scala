@@ -4,9 +4,9 @@
 package lucuma.odb.api.repo
 
 import lucuma.core.model.{Asterism, Observation, Program, Target}
-import lucuma.odb.api.model.{AsterismModel, ConstraintSetModel, ScienceRequirementsModel, Event, InputError, InstrumentConfigModel, ObservationModel, PlannedTimeSummaryModel, TargetModel, ValidatedInput}
+import lucuma.odb.api.model.{AsterismModel, ConstraintSetModel, Event, InputError, InstrumentConfigModel, ObservationModel, PlannedTimeSummaryModel, ScienceRequirements, ScienceRequirementsModel, TargetModel, ValidatedInput}
 import lucuma.odb.api.model.AsterismModel.AsterismEvent
-import lucuma.odb.api.model.ObservationModel.{BulkEdit, ObservationEvent}
+import lucuma.odb.api.model.ObservationModel.{BulkEdit, Group, ObservationEvent}
 import lucuma.odb.api.model.TargetModel.TargetEvent
 import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.core.optics.state.all._
@@ -61,6 +61,8 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
   def groupByConstraintSet(pid: Program.Id): F[List[ObservationModel.Group[ConstraintSetModel]]]
 
   def bulkEditConstraintSet(edit: BulkEdit[ConstraintSetModel.Edit]): F[List[ObservationModel]]
+
+  def groupByScienceRequirements(pid: Program.Id): F[List[ObservationModel.Group[ScienceRequirements]]]
 
   def bulkEditScienceRequirements(edit: BulkEdit[ScienceRequirementsModel.Edit]): F[List[ObservationModel]]
 
@@ -278,20 +280,29 @@ object ObservationRepo {
           doEdit(List(edit.observationId), e, a, t)
         }.liftTo[F].flatten.map(_.head)
 
+      private def groupBy[A](
+         pid: Program.Id
+       )(
+         f: ObservationModel => A
+       ): F[List[Group[A]]] =
+         tablesRef.get.map { t =>
+           t.observations
+            .filter { case (_, o) => o.programId === pid }
+            .groupMap(tup => f(tup._2))(_._1)
+            .toList
+            .map { case (a, oids) => Group.from(a, oids) }
+            .sortBy(_.observationIds.head)
+         }
 
       override def groupByConstraintSet(
         pid: Program.Id
       ): F[List[ObservationModel.Group[ConstraintSetModel]]] =
-        tablesRef.get.map { t =>
-          t.observations
-           .filter { case (_, o) => o.programId === pid }
-           .groupBy { case (_, o) => o.constraintSet }
-           .view
-           .mapValues(_.keySet)
-           .toList
-           .sortBy(_._2.head)
-           .map { case (c, oids) => ObservationModel.Group(c, oids) }
-        }
+        groupBy(pid)(_.constraintSet)
+
+      override def groupByScienceRequirements(
+        pid: Program.Id
+      ): F[List[ObservationModel.Group[ScienceRequirements]]] =
+        groupBy(pid)(_.scienceRequirements)
 
       def bulkEdit[A](
         oids:   List[Observation.Id],
