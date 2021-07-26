@@ -19,7 +19,6 @@ import io.circe.generic.extras.Configuration
 import monocle.Optional
 
 import scala.concurrent.duration._
-import scala.annotation.nowarn
 import monocle.Lens
 import monocle.macros.GenLens
 
@@ -437,7 +436,6 @@ object GmosModel {
     def wavelength[D]: Lens[CreateGrating[D], WavelengthModel.Input] =
       GenLens[CreateGrating[D]](_.wavelength)
 
-    @nowarn
     implicit def DecoderCreateGrating[D: Decoder]: Decoder[CreateGrating[D]] =
       deriveDecoder[CreateGrating[D]]
 

@@ -10,7 +10,6 @@ import cats.mtl.Stateful
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
-import scala.annotation.nowarn
 
 final case class StepModel[A](
   id:         Step.Id,
@@ -85,7 +84,6 @@ object StepModel {
         a.config
       )}
 
-    @nowarn
     implicit def DecoderCreate[A: Decoder]: Decoder[Create[A]] =
       deriveDecoder[Create[A]]
 

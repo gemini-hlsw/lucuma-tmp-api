@@ -11,7 +11,6 @@ import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import monocle.{Lens, Optional}
-import scala.annotation.nowarn
 import monocle.macros.GenLens
 
 // For now, just bias, dark, gcal and science.  Pending smart-gcal.
@@ -169,7 +168,6 @@ object StepConfig {
         a.offset
       )}
 
-    @nowarn
     implicit def DecoderCreateScience[A: Decoder]: Decoder[CreateScience[A]] =
       deriveDecoder[CreateScience[A]]
 
@@ -190,7 +188,6 @@ object StepConfig {
     implicit def EqCreateBias[A: Eq]: Eq[CreateBias[A]] =
       Eq.by(_.config)
 
-    @nowarn
     implicit def DecoderCreateBias[A: Decoder]: Decoder[CreateBias[A]] =
       deriveDecoder[CreateBias[A]]
 
@@ -211,7 +208,6 @@ object StepConfig {
     implicit def EqCreateDark[A: Eq]: Eq[CreateDark[A]] =
       Eq.by(_.config)
 
-    @nowarn
     implicit def DecoderCreateDark[A: Decoder]: Decoder[CreateDark[A]] =
       deriveDecoder[CreateDark[A]]
 
@@ -238,7 +234,6 @@ object StepConfig {
         a.gcalConfig
       )}
 
-    @nowarn
     implicit def DecoderCreateGcal[A: Decoder]: Decoder[CreateGcal[A]] =
       deriveDecoder[CreateGcal[A]]
 
@@ -284,7 +279,6 @@ object StepConfig {
         a.science
       )}
 
-    @nowarn
     implicit def DecoderCreateStep[A: Decoder]: Decoder[CreateStepConfig[A]] =
       deriveDecoder[CreateStepConfig[A]]
 
