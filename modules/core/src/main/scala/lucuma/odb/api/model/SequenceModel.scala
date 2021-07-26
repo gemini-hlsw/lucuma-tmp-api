@@ -10,7 +10,6 @@ import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import lucuma.core.util.Enumerated
-import scala.annotation.nowarn
 
 /**
  * Sequence representation.
@@ -62,7 +61,6 @@ object SequenceModel {
     implicit def EdCreate[D: Eq]: Eq[Create[D]] =
       Eq.by { _.atoms }
 
-    @nowarn
     implicit def DecoderCreate[D: Decoder]:Decoder[Create[D]] =
       deriveDecoder[Create[D]]
 

@@ -8,7 +8,6 @@ import lucuma.core.util.Enumerated
 import cats.Eq
 import io.circe.Decoder
 import io.circe.generic.semiauto._
-import scala.annotation.nowarn
 
 trait NumericUnits[A, U] {
 
@@ -46,7 +45,6 @@ object NumericUnits {
 
   object LongInput {
 
-    @nowarn
     implicit def DecoderLongInput[U: Enumerated]: Decoder[LongInput[U]] =
       deriveDecoder[LongInput[U]]
 
@@ -67,7 +65,6 @@ object NumericUnits {
 
   object DecimalInput {
 
-    @nowarn
     implicit def DecoderDecimalInput[U: Enumerated]: Decoder[DecimalInput[U]] =
       deriveDecoder[DecimalInput[U]]
 

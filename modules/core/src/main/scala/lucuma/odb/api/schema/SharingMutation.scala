@@ -14,7 +14,6 @@ import sangria.macros.derive._
 import sangria.marshalling.FromInput
 import sangria.marshalling.circe._
 import sangria.schema._
-import scala.annotation.nowarn
 
 trait SharingMutation {
 
@@ -25,7 +24,6 @@ trait SharingMutation {
   import context._
   import syntax.inputobjecttype._
 
-  @nowarn
   def linksArg[A: ScalarType: Decoder, B: ScalarType: Decoder](
     aName:       String,
     bName:       String

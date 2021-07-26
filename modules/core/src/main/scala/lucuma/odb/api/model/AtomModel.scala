@@ -12,7 +12,6 @@ import cats.mtl.Stateful
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
-import scala.annotation.nowarn
 
 final case class AtomModel[A](
   id:    Atom.Id,
@@ -97,7 +96,6 @@ object AtomModel {
     def continueTo[A](step: CreateStepConfig[A]): Create[A] =
       singleton(StepModel.Create.continueTo(step))
 
-    @nowarn
     implicit def DecoderCreate[A: Decoder]: Decoder[Create[A]] =
       deriveDecoder[Create[A]]
 
