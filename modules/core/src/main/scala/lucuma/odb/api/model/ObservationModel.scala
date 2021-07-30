@@ -4,9 +4,11 @@
 package lucuma.odb.api.model
 
 import lucuma.odb.api.model.Existence._
+import lucuma.odb.api.model.ScienceConfigurationModel.ScienceConfigurationModelEdit
 import lucuma.odb.api.model.syntax.input._
 import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
 import lucuma.core.optics.syntax.lens._
+import lucuma.core.optics.state.all._
 import lucuma.core.model.{Asterism, Observation, Program, Target}
 import cats.{Eq, Monad}
 import cats.Order.catsKernelOrderingForOrder
@@ -34,7 +36,8 @@ final case class ObservationModel(
   constraintSet:        ConstraintSetModel,
   scienceRequirements:  ScienceRequirements,
   plannedTimeSummary:   PlannedTimeSummaryModel,
-  config:               Option[InstrumentConfigModel.Reference]
+  config:               Option[InstrumentConfigModel.Reference],
+  scienceConfiguration: Option[ScienceConfigurationModel],
 ) {
 
   def asterismId: Option[Asterism.Id] =
@@ -62,21 +65,23 @@ object ObservationModel extends ObservationOptics {
       o.constraintSet,
       o.scienceRequirements,
       o.plannedTimeSummary,
-      o.config
+      o.config,
+      o.scienceConfiguration
     )}
 
 
   final case class Create(
-    observationId:       Option[Observation.Id],
-    programId:           Program.Id,
-    name:                Option[NonEmptyString],
-    status:              Option[ObsStatus],
-    activeStatus:        Option[ObsActiveStatus],
-    asterismId:          Option[Asterism.Id],
-    targetId:            Option[Target.Id],
-    constraintSet:       Option[ConstraintSetModel.Create],
-    scienceRequirements: Option[ScienceRequirementsModel.Create],
-    config:              Option[InstrumentConfigModel.Create]
+    observationId:        Option[Observation.Id],
+    programId:            Program.Id,
+    name:                 Option[NonEmptyString],
+    status:               Option[ObsStatus],
+    activeStatus:         Option[ObsActiveStatus],
+    asterismId:           Option[Asterism.Id],
+    targetId:             Option[Target.Id],
+    constraintSet:        Option[ConstraintSetModel.Create],
+    scienceRequirements:  Option[ScienceRequirementsModel.Create],
+    config:               Option[InstrumentConfigModel.Create],
+    scienceConfiguration: Option[ScienceConfigurationModel.Create]
   ) {
 
     def create[F[_]: Monad, T](db: DatabaseState[T], s: PlannedTimeSummaryModel)(implicit S: Stateful[F, T]): F[ValidatedInput[ObservationModel]] =
@@ -97,7 +102,8 @@ object ObservationModel extends ObservationOptics {
 
         g <- config.traverse(_.create(db)).map(_.sequence)
 
-        o  = (i, p, pointing, c, q, g).mapN { (iʹ, _, pointingʹ, cʹ, qʹ, gʹ) =>
+        u = scienceConfiguration.traverse(_.create)
+        o  = (i, p, pointing, c, q, g, u).mapN { (iʹ, _, pointingʹ, cʹ, qʹ, gʹ, uʹ) =>
           ObservationModel(
             iʹ,
             Present,
@@ -109,10 +115,10 @@ object ObservationModel extends ObservationOptics {
             cʹ.getOrElse(ConstraintSetModel.AnyConstraints),
             qʹ.getOrElse(ScienceRequirements.Default),
             s,
-            gʹ.map(_.toReference)
+            gʹ.map(_.toReference),
+            uʹ
           )
         }
-
         _ <- db.observation.saveIfValid(o)(_.id)
       } yield o
 
@@ -140,24 +146,32 @@ object ObservationModel extends ObservationOptics {
   }
 
   final case class Edit(
-    observationId:       Observation.Id,
-    existence:           Input[Existence]                      = Input.ignore,
-    name:                Input[NonEmptyString]                 = Input.ignore,
-    status:              Input[ObsStatus]                      = Input.ignore,
-    activeStatus:        Input[ObsActiveStatus]                = Input.ignore,
-    asterismId:          Input[Asterism.Id]                    = Input.ignore,
-    targetId:            Input[Target.Id]                      = Input.ignore,
-    constraintSet:       Option[ConstraintSetModel.Edit]       = None,
-    scienceRequirements: Option[ScienceRequirementsModel.Edit] = None
+    observationId:        Observation.Id,
+    existence:            Input[Existence]                       = Input.ignore,
+    name:                 Input[NonEmptyString]                  = Input.ignore,
+    status:               Input[ObsStatus]                       = Input.ignore,
+    activeStatus:         Input[ObsActiveStatus]                 = Input.ignore,
+    asterismId:           Input[Asterism.Id]                     = Input.ignore,
+    targetId:             Input[Target.Id]                       = Input.ignore,
+    constraintSet:        Option[ConstraintSetModel.Edit]        = None,
+    scienceRequirements:  Option[ScienceRequirementsModel.Edit]  = None,
+    scienceConfiguration: Input[ScienceConfigurationModelEdit]   = Input.ignore
   ) {
 
-    def id: Observation.Id =
+    val id: Observation.Id =
       observationId
 
-    def pointing: ValidatedInput[(Input[Asterism.Id], Input[Target.Id])] =
+    val pointing: ValidatedInput[(Input[Asterism.Id], Input[Target.Id])] =
       (asterismId, targetId) match {
         case (Assign(_), Assign(_)) => InputError.fromMessage(s"Cannot assign both an asterism and a target to the observation").invalidNec
         case _                      => (asterismId, targetId).validNec
+      }
+
+    def editOrCreateSciConfig(ed: Option[Option[Either[ScienceConfigurationModel, State[ScienceConfigurationModel, Unit]]]])(m: Option[ScienceConfigurationModel]): Option[ScienceConfigurationModel] =
+      ed.flatMap {
+        case Some(Left(s))  => s.some
+        case Some(Right(s)) => m.map(s.runS(_).value)
+        case _              => None
       }
 
     def editor: ValidatedInput[State[ObservationModel, Unit]] =
@@ -165,19 +179,23 @@ object ObservationModel extends ObservationOptics {
        status      .validateIsNotNull("status"),
        activeStatus.validateIsNotNull("active"),
        constraintSet.traverse(_.editor),
-       scienceRequirements.traverse(_.editor)
-      ).mapN { (e, s, a, c, r) =>
+       scienceRequirements.traverse(_.editor),
+       scienceConfiguration.validateNullable(_.editor)
+      ).mapN { (e, s, a, c, sr, sc) =>
         for {
           _ <- ObservationModel.existence    := e
           _ <- ObservationModel.name         := name.toOptionOption
           _ <- ObservationModel.status       := s
           _ <- ObservationModel.activeStatus := a
-          _ <- State.modify[ObservationModel] { o =>
-            c.fold(o) { ed => ObservationModel.constraintSet.modify(ed.runS(_).value)(o) }
-          }
-          _ <- State.modify[ObservationModel] { o =>
-            r.fold(o) { ed => ObservationModel.scienceRequirements.modify(ed.runS(_).value)(o) }
-          }
+          _ <- c.fold(State.get[ObservationModel].void) { ed =>
+              ObservationModel.constraintSet.mod_(ed.runS(_).value)
+            }
+          _ <- sr.fold(State.get[ObservationModel].void) { ed =>
+              ObservationModel.scienceRequirements.mod_(ed.runS(_).value)
+            }
+          _ <- sc.fold(State.get[ObservationModel].void) { ed =>
+              ObservationModel.scienceConfiguration.mod_(editOrCreateSciConfig(ed))
+            }
         } yield ()
       }
 
@@ -310,7 +328,6 @@ object ObservationModel extends ObservationOptics {
 
   }
 
-
 }
 
 trait ObservationOptics { self: ObservationModel.type =>
@@ -351,5 +368,8 @@ trait ObservationOptics { self: ObservationModel.type =>
 
   val config: Lens[ObservationModel, Option[InstrumentConfigModel.Reference]] =
     Lens[ObservationModel, Option[InstrumentConfigModel.Reference]](_.config)(a => _.copy(config = a))
+
+  val scienceConfiguration: Lens[ObservationModel, Option[ScienceConfigurationModel]] =
+    Focus[ObservationModel](_.scienceConfiguration)
 
 }

@@ -163,7 +163,7 @@ object MagnitudeModel {
     editList:    Option[List[EditAction]]
   ) {
 
-    def editor: ValidatedInput[State[MagnitudeMap, Unit]] = {
+    val editor: ValidatedInput[State[MagnitudeMap, Unit]] = {
 
       val ed: ValidatedInput[Either[List[Magnitude], State[MagnitudeMap, Unit]]] =
         ValidatedInput.optionEither(
