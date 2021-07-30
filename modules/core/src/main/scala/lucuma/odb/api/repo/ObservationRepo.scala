@@ -336,7 +336,6 @@ object ObservationRepo {
           ObservationModel.constraintSet.modify
         )
 
-
       override def bulkEditScienceRequirements(
         edit: ObservationModel.BulkEdit[ScienceRequirementsModel.Edit]
       ): F[List[ObservationModel]] =

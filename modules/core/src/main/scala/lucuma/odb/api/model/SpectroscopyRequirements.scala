@@ -71,7 +71,14 @@ object SpectroscopyScienceRequirementsModel {
        wavelengthRange.traverse(_.toWavelength("wavelengthRange")),
        focalPlaneAngle.traverse(_.toAngle)
       ).mapN { (cw, signalToNoiseAt, wavelengthRange, focalPlaneAngle) =>
-        SpectroscopyScienceRequirements(cw, resolution, signalToNoise, signalToNoiseAt, wavelengthRange, focalPlane, focalPlaneAngle, capabilities)
+        SpectroscopyScienceRequirements(cw,
+                                        resolution,
+                                        signalToNoise,
+                                        signalToNoiseAt,
+                                        wavelengthRange,
+                                        focalPlane,
+                                        focalPlaneAngle,
+                                        capabilities)
       }
 
   }
