@@ -19,6 +19,10 @@ import org.typelevel.log4cats.{Logger => Log4CatsLogger}
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import scala.concurrent.ExecutionContext.global
+import lucuma.graphql.routes.SangriaGraphQLService
+import lucuma.odb.api.schema.OdbSchema
+import cats.effect.std.Dispatcher
+import lucuma.graphql.routes.{ GraphQLService, Routes }
 
 // #server
 object Main extends IOApp {
@@ -27,9 +31,8 @@ object Main extends IOApp {
     odb: OdbRepo[F],
     cfg: Config
   ): Stream[F, Nothing] = {
-    val odbService   = OdbService.apply[F](odb)
 
-    def app(userClient: SsoClient[F, User]): HttpApp[F] =
+    def app(userClient: SsoClient[F, User], odbService: GraphQLService[F]): HttpApp[F] =
       Logger.httpApp(logHeaders = true, logBody = false)((
 
         // Routes for static resources, ie. GraphQL Playground
@@ -44,9 +47,11 @@ object Main extends IOApp {
     for {
       sso       <- Stream.resource(cfg.ssoClient[F])
       userClient = sso.map(_.user)
+      schema    <- Stream.resource(Dispatcher[F]).map { implicit d => OdbSchema[F] }
+      service    = new SangriaGraphQLService(schema, odb, OdbSchema.exceptionHandler)
       exitCode  <- BlazeServerBuilder[F](global)
         .bindHttp(cfg.port, "0.0.0.0")
-        .withHttpApp(app(userClient))
+        .withHttpApp(app(userClient, service))
         .withWebSockets(true)
         .serve
     } yield exitCode
