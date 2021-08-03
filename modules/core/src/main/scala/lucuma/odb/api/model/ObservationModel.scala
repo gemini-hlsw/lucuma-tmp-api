@@ -183,32 +183,6 @@ object ObservationModel extends ObservationOptics {
         targets.traverse(_.edit(o.targets))
       ).map(_.runS(o).value)
 
-    /*
-        def editor: ValidatedInput[State[ObservationModel, Unit]] =
-          (existence   .validateIsNotNull("existence"),
-           status      .validateIsNotNull("status"),
-           activeStatus.validateIsNotNull("active"),
-           targets.traverse(_.editor),
-           constraintSet.traverse(_.editor),
-           scienceRequirements.traverse(_.editor)
-          ).mapN { (e, s, a, t, c, r) =>
-            for {
-              _ <- ObservationModel.existence    := e
-              _ <- ObservationModel.name         := name.toOptionOption
-              _ <- ObservationModel.status       := s
-              _ <- ObservationModel.activeStatus := a
-              _ <- t.fold(State.get[ObservationModel].void) { ed =>
-                ObservationModel.targets.mod_(ed.runS(_).value)
-              }
-              _ <- c.fold(State.get[ObservationModel].void) { ed =>
-                ObservationModel.constraintSet.mod_(ed.runS(_).value)
-              }
-              _ <- r.fold(State.get[ObservationModel].void) { ed =>
-                ObservationModel.scienceRequirements.mod_(ed.runS(_).value)
-              }
-            } yield ()
-          }
-    */
 
     private def editor(
       targets: ValidatedInput[Option[TargetEnvironmentModel]]
@@ -351,27 +325,6 @@ object ObservationModel extends ObservationOptics {
       )}
 
   }
-
-  final case class SingleTargetObservationSelector(
-    programId:      Option[Program.Id],
-    observationIds: Option[List[Observation.Id]],
-    scienceTarget:  NonEmptyString
-  )
-
-  object SingleTargetObservationSelector {
-
-    implicit val DecoderSingleTargetObsSelectorInput: Decoder[SingleTargetObservationSelector] =
-      deriveDecoder[SingleTargetObservationSelector]
-
-    implicit val EqObsSelectorInput: Eq[SingleTargetObservationSelector] =
-      Eq.by { a => (
-        a.programId,
-        a.observationIds,
-        a.scienceTarget
-      )}
-
-  }
-
 }
 
 trait ObservationOptics { self: ObservationModel.type =>
