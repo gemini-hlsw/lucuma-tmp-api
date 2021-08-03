@@ -39,10 +39,12 @@ class MutationSuite extends OdbSuite {
     variables = Some(json"""
       {
         "bulkEditConstraints": {
-          "constraintSet": {
-            "skyBackground": "GRAY"
+          "select": {
+            "observationIds": [ "o-3", "o-4" ]
           },
-          "observationIds": [ "o-3", "o-4" ]
+          "edit": {
+            "skyBackground": "GRAY"
+          }
         }
       }
     """)
@@ -50,61 +52,68 @@ class MutationSuite extends OdbSuite {
 
   queryTest(
     query = """
-      mutation UpdateSiderealTarget($editSidereal: EditSiderealInput!) {
-        updateSiderealTarget(input: $editSidereal) {
+      mutation BulkEditTarget($bulkEditTarget: BulkEditSiderealInput!) {
+        updateSiderealScienceTarget(input: $bulkEditTarget) {
           id
-          name
-          tracking {
-            __typename
-            ... on Sidereal {
-              coordinates {
-                ra { hms }
-                dec { dms }
+          targets {
+            science {
+              name
+              tracking {
+                __typename
+                ... on Sidereal {
+                  coordinates {
+                    ra { hms }
+                    dec { dms }
+                  }
+                  parallax { microarcseconds }
+                }
               }
-              properMotion {
-                ra { microarcsecondsPerYear }
-              }
-              parallax { microarcseconds }
             }
-
           }
         }
       }
     """,
     expected = json"""
       {
-        "updateSiderealTarget" : {
-          "id" : "t-2",
-          "name" : "Two",
-          "tracking" : {
-            "__typename" : "Sidereal",
-            "coordinates" : {
-              "ra" : {
-                "hms" : "02:00:00.000000"
-              },
-              "dec" : {
-                "dms" : "+02:00:00.000000"
-              }
-            },
-            "properMotion" : {
-              "ra" : {
-                "microarcsecondsPerYear" : 0
-              }
-            },
-            "parallax" : null
+        "updateSiderealScienceTarget": [
+          {
+            "id": "o-2",
+            "targets": {
+              "science": [
+                {
+                  "name": "NGC 5949",
+                  "tracking": {
+                    "__typename": "Sidereal",
+                    "coordinates": {
+                      "ra": {
+                        "hms": "02:00:00.000000"
+                      },
+                      "dec": {
+                        "dms": "+02:00:00.000000"
+                      }
+                    },
+                    "parallax": null
+                  }
+                }
+              ]
+            }
           }
-        }
+        ]
       }
     """,
     variables = Some(json"""
       {
-        "editSidereal": {
-            "targetId": "t-2",
-            "name":     "Two",
-            "ra":       { "hours": 2.0 },
-            "dec":      { "dms":   "02:00:00.00" },
+        "bulkEditTarget": {
+          "select": {
+            "observationIds": [ "o-2" ]
+          },
+          "edit": {
+            "name": "NGC 5949",
+            "ra": { "hours": 2.0 },
+            "dec": { "dms": "02:00:00.00" },
             "parallax": null
           }
+        }
       }
     """)
   )
