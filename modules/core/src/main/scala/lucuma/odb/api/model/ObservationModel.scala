@@ -237,12 +237,6 @@ object ObservationModel extends ObservationOptics {
 
   }
 
-
-  final case class EditTargetEnvironment(
-    observationIds: List[Observation.Id],
-    targets:        TargetEnvironmentModel.Edit
-  )
-
   final case class ObservationEvent (
     id:       Long,
     editType: Event.EditType,

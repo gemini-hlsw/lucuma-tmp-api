@@ -52,8 +52,8 @@ class MutationSuite extends OdbSuite {
 
   queryTest(
     query = """
-      mutation BulkEditTarget($bulkEditTarget: BulkEditSiderealInput!) {
-        updateSiderealScienceTarget(input: $bulkEditTarget) {
+      mutation UpdateSiderealScienceTarget($editTarget: BulkEditSiderealInput!) {
+        updateSiderealScienceTarget(input: $editTarget) {
           id
           targets {
             science {
@@ -103,7 +103,7 @@ class MutationSuite extends OdbSuite {
     """,
     variables = Some(json"""
       {
-        "bulkEditTarget": {
+        "editTarget": {
           "select": {
             "observationIds": [ "o-2" ]
           },
