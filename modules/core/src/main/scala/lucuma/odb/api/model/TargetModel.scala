@@ -258,12 +258,16 @@ object TargetModel extends TargetOptics {
     def name: Option[NonEmptyString] =
       nonsidereal.map(_.name).orElse(sidereal.map(_.name))
 
-    def editTargetMap(m: TargetMap): ValidatedInput[TargetMap] =
+    def editTargetMap(
+      targetMap:     TargetMap,
+      listName:      String,
+      observationId: Observation.Id
+    ): ValidatedInput[TargetMap] =
       ValidatedInput.requireOne(
         "edit",
-        nonsidereal.map(_.editTargetMap(m)),
-        sidereal.map(_.editTargetMap(m)),
-        rename.map(_.editTargetMap(m))
+        nonsidereal.map(_.editTargetMap(targetMap, listName, observationId)),
+        sidereal.map(_.editTargetMap(targetMap, listName, observationId)),
+        rename.map(_.editTargetMap(targetMap, listName, observationId))
       )
   }
 
@@ -294,10 +298,18 @@ object TargetModel extends TargetOptics {
 
     def editor: ValidatedInput[State[Target, Unit]]
 
-    def editTargetMap(m: TargetMap): ValidatedInput[TargetMap] =
-      (m.get(name).toValidNec(InputError.fromMessage(s"XXX - missing target $name")),
+    def editTargetMap(
+      targetMap:     TargetMap,
+      listName:      String,
+      observationId: Observation.Id
+    ): ValidatedInput[TargetMap] = {
+      def missing: InputError =
+        InputError.fromMessage(s"Missing $listName target $name in ${Gid[Observation.Id].show(observationId)}")
+
+      (targetMap.get(name).toValidNec(missing),
        editor
-      ).mapN { (t, ed) => m.updated(name, ed.runS(t).value) }
+      ).mapN { (t, ed) => targetMap.updated(name, ed.runS(t).value) }
+    }
   }
 
   final case class EditNonsidereal(
@@ -398,11 +410,27 @@ object TargetModel extends TargetOptics {
     val editor: State[Target, Unit] =
       TargetModel.name.assign_(newName)
 
-    def editTargetMap(m: TargetMap): ValidatedInput[TargetMap] =
-      m.get(oldName).fold(InputError.fromMessage(s"XXX - missing $oldName").invalidNec[TargetMap]) { t =>
-        if (m.contains(newName)) InputError.fromMessage(s"XXX - would replace $newName").invalidNec[TargetMap]
-        else m.removed(oldName).updated(newName, editor.runS(t).value).validNec[InputError]
+    def editTargetMap(
+      targetMap:     TargetMap,
+      listName:      String,
+      observationId: Observation.Id
+    ): ValidatedInput[TargetMap] = {
+
+      def missing: InputError =
+        InputError.fromMessage(
+          s"Cannot rename '$oldName' to '$newName' because $listName target '$oldName' was not found in ${Gid[Observation.Id].show(observationId)}"
+        )
+
+      def wouldReplace: InputError =
+        InputError.fromMessage(
+          s"Cannot rename '$oldName' to '$newName' because there is already a $listName target named '$newName' in ${Gid[Observation.Id].show(observationId)}"
+        )
+
+      targetMap.get(oldName).fold(missing.invalidNec[TargetMap]) { t =>
+        if (targetMap.contains(newName)) wouldReplace.invalidNec[TargetMap]
+        else targetMap.removed(oldName).updated(newName, editor.runS(t).value).validNec[InputError]
       }
+    }
 
   }
 
@@ -426,22 +454,25 @@ object TargetModel extends TargetOptics {
     edit:   Option[Edit],
   ) {
 
-    private def deleteEdit(m: TargetMap, name: NonEmptyString): ValidatedInput[TargetMap] =
-      m.get(name).toValidNec(InputError.fromMessage(s"XXX- missing $name")).as(
-        m.removed(name)
-      )
-
     def editTargetMap(
       targetMap:     TargetMap,
       listName:      String,
-      observationId: Observation.Id
-    ): ValidatedInput[TargetMap] =
+      observationId: Observation.Id,
+      fieldName:      String
+    ): ValidatedInput[TargetMap] = {
+
+      def deleteEdit(name: NonEmptyString): ValidatedInput[TargetMap] =
+        targetMap.get(name).toValidNec(
+          InputError.fromMessage(s"Could not delete $listName target '$name' in observation ${Gid[Observation.Id].show(observationId)} because it was not found"
+        )).as(targetMap.removed(name))
+
       ValidatedInput.requireOne(
-        "XXX",
+        fieldName,
         add.map(_.editTargetMap(targetMap, listName, observationId)),
-        delete.map(deleteEdit(targetMap, _)),
-        edit.map(_.editTargetMap(targetMap))
+        delete.map(deleteEdit),
+        edit.map(_.editTargetMap(targetMap, listName, observationId))
       )
+    }
 
   }
 
@@ -487,7 +518,7 @@ object TargetModel extends TargetOptics {
         },
         editList.map { lst =>
           lst.foldLeft(targetMap.validNec[InputError]) { case (vm, e) =>
-            vm.andThen(e.editTargetMap(_, listName, observationId))
+            vm.andThen(e.editTargetMap(_, listName, observationId, "editList"))
           }
         }
       )

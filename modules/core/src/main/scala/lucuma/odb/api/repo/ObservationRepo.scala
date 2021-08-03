@@ -260,7 +260,7 @@ object ObservationRepo {
 
         bulkEdit(
           selectObservations(be.select.programId, be.select.observationIds),
-          o => be.edit.editTargetMap(o.targets.science).map { m =>
+          o => be.edit.editTargetMap(o.targets.science, "science", o.id).map { m =>
             ObservationModel.scienceTargets.replace(m)(o)
           }
         )
@@ -271,7 +271,7 @@ object ObservationRepo {
 
         bulkEdit(
           selectObservations(be.select.programId, be.select.observationIds),
-          o => be.edit.editTargetMap(o.targets.science).map { m =>
+          o => be.edit.editTargetMap(o.targets.science, "science", o.id).map { m =>
             ObservationModel.scienceTargets.replace(m)(o)
           }
         )
