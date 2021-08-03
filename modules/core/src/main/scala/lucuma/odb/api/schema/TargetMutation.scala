@@ -254,64 +254,8 @@ trait TargetMutation extends TargetScalars {
       ReplaceInputField("explicitBase", InputObjectTypeCoordinates.nullableField("explicitBase"))
     )
 
-  /*
-  def createNonsidereal[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
-    Field(
-      name      = "createNonsiderealTarget",
-      fieldType = OptionType(TargetType[F]),
-      arguments = List(ArgumentTargetCreateNonsidereal),
-      resolve   = c => c.target(_.insertNonsidereal(c.arg(ArgumentTargetCreateNonsidereal)))
-    )
-
-  def createSidereal[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
-    Field(
-      name      = "createSiderealTarget",
-      fieldType = OptionType(TargetType[F]),
-      arguments = List(ArgumentTargetCreateSidereal),
-      resolve   = c => c.target(_.insertSidereal(c.arg(ArgumentTargetCreateSidereal)))
-    )
-
-  //noinspection MutatorLikeMethodIsParameterless
-  def updateSidereal[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
-    Field(
-      name      = "updateSiderealTarget",
-      fieldType = TargetType[F],
-      arguments = List(ArgumentTargetEditSidereal),
-      resolve   = c =>
-        c.target {
-          val e = c.arg(ArgumentTargetEditSidereal)
-          _.edit(e.id, e.editor)
-        }
-    )
-
-  def delete[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
-    Field(
-      name      = "deleteTarget",
-      fieldType = TargetType[F],
-      arguments = List(TargetIdArgument),
-      resolve   = c => c.target(_.delete(c.targetId))
-    )
-
-  def undelete[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
-    Field(
-      name      = "undeleteTarget",
-      fieldType = TargetType[F],
-      arguments = List(TargetIdArgument),
-      resolve   = c => c.target(_.undelete(c.targetId))
-    )
-*/
-
   def allFields[F[_]]: List[Field[OdbRepo[F], Unit]] =
     Nil
-
-//  def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
-//    List(
-//      createNonsidereal,
-//      createSidereal,
-//      updateSidereal,
-//      delete,
-//      undelete
-//    )
 
 }
 

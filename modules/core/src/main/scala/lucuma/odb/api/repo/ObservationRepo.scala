@@ -47,11 +47,15 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
 
   def groupByScienceRequirements(pid: Program.Id): F[List[Group[ScienceRequirements]]]
 
+  def bulkEditScienceTargetName(
+    be: BulkEdit[ObservationSelector, TargetModel.EditName]
+  ): F[List[ObservationModel]]
+
   def bulkEditSiderealScienceTarget(
     be: BulkEdit[ObservationSelector, TargetModel.EditSidereal]
   ): F[List[ObservationModel]]
 
-  def bulkEditAllSiderealScienceTargets(
+  def bulkEditAllScienceTargets(
     be: BulkEdit[ObservationSelector, TargetModel.EditTargetList]
   ): F[List[ObservationModel]]
 
@@ -229,30 +233,6 @@ object ObservationRepo {
           obsList.map(_.distinctBy(_.id).sortBy(_.id))
         }
 
-//      private def bulkEdit[A](
-//        initialObsList: State[Tables, ValidatedInput[List[ObservationModel]]],
-//        editor:         ValidatedInput[State[A, Unit]],
-//        modify:         (A => A) => ObservationModel => ObservationModel
-//      ): F[List[ObservationModel]] = {
-//
-//        val update: State[Tables, ValidatedInput[List[ObservationModel]]] =
-//          for {
-//            initial <- initialObsList
-//            edited   = (initial, editor).mapN { (os, ed) =>
-//              os.map(modify(a => ed.runS(a).value))
-//            }
-//            _       <- edited.traverse { os =>
-//              Tables.observations.mod_(_ ++ os.fproductLeft(_.id))
-//            }
-//          } yield edited
-//
-//        for {
-//          os <- tablesRef.modifyState(update).flatMap(_.liftTo[F])
-//          _  <- os.traverse_(o => eventService.publish(ObservationModel.ObservationEvent.updated(o)))
-//        } yield os
-//
-//      }
-
       private def bulkEdit(
         initialObsList: State[Tables, ValidatedInput[List[ObservationModel]]],
         editor:         ObservationModel => ValidatedInput[ObservationModel]
@@ -274,6 +254,17 @@ object ObservationRepo {
 
       }
 
+      override def bulkEditScienceTargetName(
+        be: BulkEdit[ObservationSelector, TargetModel.EditName]
+      ): F[List[ObservationModel]] =
+
+        bulkEdit(
+          selectObservations(be.select.programId, be.select.observationIds),
+          o => be.edit.editTargetMap(o.targets.science).map { m =>
+            ObservationModel.scienceTargets.replace(m)(o)
+          }
+        )
+
       override def bulkEditSiderealScienceTarget(
         be: BulkEdit[ObservationSelector, TargetModel.EditSidereal]
       ): F[List[ObservationModel]] =
@@ -285,7 +276,7 @@ object ObservationRepo {
           }
         )
 
-      override def bulkEditAllSiderealScienceTargets(
+      override def bulkEditAllScienceTargets(
         be: BulkEdit[ObservationSelector, TargetModel.EditTargetList]
       ): F[List[ObservationModel]] =
 
