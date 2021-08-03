@@ -5,7 +5,7 @@ package lucuma.odb.api.repo
 
 import lucuma.core.model.{Observation, Program, Target}
 import lucuma.core.optics.state.all._
-import lucuma.odb.api.model.ObservationModel.{BulkEdit, Create, Edit, Group, ObservationEvent, ObservationSelector, SingleTargetObservationSelector}
+import lucuma.odb.api.model.ObservationModel.{BulkEdit, Create, Edit, Group, ObservationEvent, ObservationSelector}
 import lucuma.odb.api.model.{ConstraintSetModel, Event, InputError, InstrumentConfigModel, ObservationModel, PlannedTimeSummaryModel, ScienceRequirements, ScienceRequirementsModel, TargetEnvironmentModel, TargetModel, ValidatedInput}
 import lucuma.odb.api.model.syntax.validatedinput._
 import cats.data.{EitherT, State}
@@ -48,7 +48,7 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
   def groupByScienceRequirements(pid: Program.Id): F[List[Group[ScienceRequirements]]]
 
   def bulkEditSiderealScienceTarget(
-    be: BulkEdit[SingleTargetObservationSelector, TargetModel.EditSidereal]
+    be: BulkEdit[ObservationSelector, TargetModel.EditSidereal]
   ): F[List[ObservationModel]]
 
   def bulkEditAllSiderealScienceTargets(
@@ -275,7 +275,7 @@ object ObservationRepo {
       }
 
       override def bulkEditSiderealScienceTarget(
-        be: BulkEdit[SingleTargetObservationSelector, TargetModel.EditSidereal]
+        be: BulkEdit[ObservationSelector, TargetModel.EditSidereal]
       ): F[List[ObservationModel]] =
 
         bulkEdit(

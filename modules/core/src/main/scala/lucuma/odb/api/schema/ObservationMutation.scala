@@ -66,17 +66,6 @@ trait ObservationMutation {
       InputObjectTypeDescription("Select all observations with a 'programId', or only specific 'observationIds'")
     )
 
-  val InputObjectSingleTargetObservationSelector: InputObjectType[ObservationModel.SingleTargetObservationSelector] =
-    deriveInputObjectType[ObservationModel.SingleTargetObservationSelector](
-      InputObjectTypeName("SelectTargetAndObservationsInput"),
-      InputObjectTypeDescription(
-        """
-          Select the target and observations to update. Include all observations with a 'programId' or
-          specific observations with 'observationIds'.
-        """
-      )
-    )
-
   private def bulkEditArgument[S: Decoder, E: Decoder](
     name:       String,
     selectType: InputType[S],
@@ -97,10 +86,10 @@ trait ObservationMutation {
 
   }
 
-  val ArgumentSiderealScienceTargetBulkEdit: Argument[BulkEdit[ObservationModel.SingleTargetObservationSelector, TargetModel.EditSidereal]] =
-    bulkEditArgument[ObservationModel.SingleTargetObservationSelector, TargetModel.EditSidereal](
+  val ArgumentSiderealScienceTargetBulkEdit: Argument[BulkEdit[ObservationSelector, TargetModel.EditSidereal]] =
+    bulkEditArgument[ObservationSelector, TargetModel.EditSidereal](
       "sidereal",
-      InputObjectSingleTargetObservationSelector,
+      InputObjectObservationSelector,
       InputObjectTypeTargetEditSidereal
     )
 
