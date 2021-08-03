@@ -10,6 +10,7 @@ val circeVersion                = "0.14.1"
 val cirisVersion                = "2.0.1"
 val clueVersion                 = "0.16.0"
 val http4sVersion               = "0.23.0-RC1"
+val http4sJdkHttpClientVersion  = "0.5.0"
 val fs2Version                  = "3.0.6"
 val jawnVersion                 = "1.2.0"
 val kindProjectorVersion        = "0.13.0"
@@ -18,6 +19,7 @@ val lucumaCoreVersion           = "0.11.0"
 // val lucumaSsoVersion            = "0.0.9" AWAITING CE3
 val log4catsVersion             = "2.1.1"
 val monocleVersion              = "3.0.0"
+val munitCatsEffectVersion      = "1.0.5"
 val refinedVersion              = "0.9.27"
 val sangriaVersion              = "2.1.3"
 val sangriaCirceVersion         = "1.3.2"
@@ -110,7 +112,7 @@ lazy val core = project
 lazy val service = project
   .in(file("modules/service"))
   .enablePlugins(AutomateHeaderPlugin)
-  .dependsOn(core)
+  .dependsOn(core % "compile->compile;test->test")
   .settings(commonSettings)
   .settings(
     name := "lucuma-odb-api-service",
@@ -141,6 +143,10 @@ lazy val service = project
       "org.http4s"                 %% "http4s-blaze-server"       % http4sVersion,
       "org.http4s"                 %% "http4s-blaze-client"       % http4sVersion,
       "org.http4s"                 %% "http4s-circe"              % http4sVersion,
-      "org.http4s"                 %% "http4s-dsl"                % http4sVersion
-    )
+      "org.http4s"                 %% "http4s-dsl"                % http4sVersion,
+      "edu.gemini"                 %% "clue-http4s-jdk-client"    % clueVersion            % Test,
+      "org.typelevel"              %% "munit-cats-effect-3"       % munitCatsEffectVersion % Test,
+    ),
+    testFrameworks += new TestFramework("munit.Framework"),
+    Test / parallelExecution := false, // tests run fine in parallel but output is nicer this way
   ).enablePlugins(JavaAppPackaging)
