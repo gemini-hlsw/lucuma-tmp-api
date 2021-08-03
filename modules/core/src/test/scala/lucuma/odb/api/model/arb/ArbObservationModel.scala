@@ -31,7 +31,7 @@ trait ArbObservationModel {
         ts <- arbitrary[Option[Either[Asterism.Id, Target.Id]]]
         cs <- arbitrary[ConstraintSetModel]
         sr <- arbitrary[ScienceRequirements]
-      } yield ObservationModel(id, ex, pid, nm, os, as, ts, cs, sr, PlannedTimeSummaryModel.Zero, None)
+      } yield ObservationModel(id, ex, pid, nm, os, as, ts, cs, sr, PlannedTimeSummaryModel.Zero, None, None)
     }
 
   implicit val arbObservationModel: Arbitrary[ObservationModel] =
@@ -84,6 +84,7 @@ trait ArbObservationModel {
         ts.flatMap(_.swap.toOption),
         ts.flatMap(_.toOption),
         cs,
+        None,
         None,
         None
       )

@@ -21,6 +21,7 @@ object ObservationSchema {
 
   import AsterismSchema.AsterismType
   import ConstraintSetSchema.ConstraintSetType
+  import ScienceConfigurationSchema._
   import ExecutionSchema.ExecutionType
   import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, NonEmptyStringType, PlannedTimeSummaryType}
   import ProgramSchema.ProgramType
@@ -141,6 +142,14 @@ object ObservationSchema {
           description = Some("The top level science requirements"),
           arguments   = List(ArgumentIncludeDeleted),
           resolve     = c => c.value.scienceRequirements
+        ),
+
+        Field(
+          name        = "scienceConfiguration",
+          fieldType   = OptionType(ScienceConfigurationType[F]),
+          description = Some("The science configuration"),
+          arguments   = List(ArgumentIncludeDeleted),
+          resolve     = c => c.value.scienceConfiguration
         ),
 
         Field(

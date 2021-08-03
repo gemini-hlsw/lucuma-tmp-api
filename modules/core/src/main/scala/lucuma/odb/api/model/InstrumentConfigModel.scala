@@ -130,7 +130,6 @@ object InstrumentConfigModel {
 
   }
 
-
   final case class CreateGmosNorth(
     static:      GmosModel.CreateNorthStatic,
     acquisition: SequenceModel.Create[GmosModel.CreateNorthDynamic],

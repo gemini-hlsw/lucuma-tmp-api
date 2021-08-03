@@ -78,7 +78,7 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
       for {
         // Insert a program and observation to insure that at least one exists
         p  <- odb.program.insert(new ProgramModel.Create(None, None))
-        _  <- odb.observation.insert(new ObservationModel.Create(None, p.id, None, None, None, None, None, None, None, None))
+        _  <- odb.observation.insert(new ObservationModel.Create(None, p.id, None, None, None, None, None, None, None, None, None))
 
         // Pick whatever the first observation may be
         tʹ    <- odb.tables.get
@@ -179,7 +179,7 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
       for {
         // Insert a program and observation to insure that at least one exists
         p  <- odb.program.insert(new ProgramModel.Create(None, None))
-        _  <- odb.observation.insert(new ObservationModel.Create(None, p.id, None, None, None, None, None, None, None, None))
+        _  <- odb.observation.insert(new ObservationModel.Create(None, p.id, None, None, None, None, None, None, None, None, None))
 
         tʹ    <- odb.tables.get
         before = tʹ.observations.values.toList

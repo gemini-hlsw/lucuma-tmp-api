@@ -18,6 +18,7 @@ trait ObservationMutation {
 
   import AsterismSchema.AsterismIdType
   import ConstraintSetMutation.{InputObjectTypeConstraintSetCreate, InputObjectTypeConstraintSetEdit}
+  import ScienceConfigurationMutation.{InputObjectTypeScienceConfigurationCreate, InputObjectTypeScienceConfigurationSetEdit}
   import ScienceRequirementsMutation.{InputObjectTypeScienceRequirementsCreate, InputObjectTypeScienceRequirementsEdit}
   import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
   import ObservationSchema.{ObsActiveStatusType, ObservationIdType, ObservationIdArgument, ObsStatusType, ObservationType}
@@ -43,14 +44,15 @@ trait ObservationMutation {
     deriveInputObjectType[ObservationModel.Edit](
       InputObjectTypeName("EditObservationInput"),
       InputObjectTypeDescription("Edit observation"),
-      ReplaceInputField("existence",           EnumTypeExistence.notNullableField("existence")),
-      ReplaceInputField("name",                NonEmptyStringType.nullableField("name")),
-      ReplaceInputField("status",              ObsStatusType.notNullableField("status")),
-      ReplaceInputField("activeStatus",        ObsActiveStatusType.notNullableField("activeStatus")),
-      ReplaceInputField("asterismId",          AsterismIdType.nullableField("asterismId")),
-      ReplaceInputField("targetId",            TargetIdType.nullableField("targetId")),
-      ReplaceInputField("scienceRequirements", InputObjectTypeScienceRequirementsEdit.nullableField("scienceRequirements")),
-      ReplaceInputField("constraintSet",       InputObjectTypeConstraintSetEdit.nullableField("constraintSet"))
+      ReplaceInputField("existence",            EnumTypeExistence.notNullableField("existence")),
+      ReplaceInputField("name",                 NonEmptyStringType.nullableField("name")),
+      ReplaceInputField("status",               ObsStatusType.notNullableField("status")),
+      ReplaceInputField("activeStatus",         ObsActiveStatusType.notNullableField("activeStatus")),
+      ReplaceInputField("asterismId",           AsterismIdType.nullableField("asterismId")),
+      ReplaceInputField("targetId",             TargetIdType.nullableField("targetId")),
+      ReplaceInputField("scienceRequirements",  InputObjectTypeScienceRequirementsEdit.nullableField("scienceRequirements")),
+      ReplaceInputField("constraintSet",        InputObjectTypeConstraintSetEdit.nullableField("constraintSet")),
+      ReplaceInputField("scienceConfiguration", InputObjectTypeScienceConfigurationSetEdit.nullableField("scienceConfiguration"))
     )
 
   val ArgumentObservationEdit: Argument[ObservationModel.Edit] =
