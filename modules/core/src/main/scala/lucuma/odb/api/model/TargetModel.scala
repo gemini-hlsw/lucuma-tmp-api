@@ -304,7 +304,7 @@ object TargetModel extends TargetOptics {
       observationId: Observation.Id
     ): ValidatedInput[TargetMap] = {
       def missing: InputError =
-        InputError.fromMessage(s"Missing $listName target $name in ${Gid[Observation.Id].show(observationId)}")
+        InputError.fromMessage(s"Missing $listName target $name in observation ${Gid[Observation.Id].show(observationId)}")
 
       (targetMap.get(name).toValidNec(missing),
        editor
@@ -418,12 +418,12 @@ object TargetModel extends TargetOptics {
 
       def missing: InputError =
         InputError.fromMessage(
-          s"Cannot rename '$oldName' to '$newName' because $listName target '$oldName' was not found in ${Gid[Observation.Id].show(observationId)}"
+          s"Cannot rename '$oldName' to '$newName' because $listName target '$oldName' was not found in observation ${Gid[Observation.Id].show(observationId)}"
         )
 
       def wouldReplace: InputError =
         InputError.fromMessage(
-          s"Cannot rename '$oldName' to '$newName' because there is already a $listName target named '$newName' in ${Gid[Observation.Id].show(observationId)}"
+          s"Cannot rename '$oldName' to '$newName' because there is already a $listName target named '$newName' in observation ${Gid[Observation.Id].show(observationId)}"
         )
 
       targetMap.get(oldName).fold(missing.invalidNec[TargetMap]) { t =>

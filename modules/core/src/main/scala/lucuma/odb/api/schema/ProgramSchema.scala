@@ -72,23 +72,6 @@ object ProgramSchema {
           resolve     = _.value.name
         ),
 
-        /*
-        Field(
-          name        = "asterisms",
-          fieldType   = AsterismConnectionType[F],
-          description = Some("All asterisms associated with the program (needs pagination)."),
-          arguments   = List(
-            ArgumentPagingFirst,
-            ArgumentPagingCursor,
-            ArgumentIncludeDeleted
-          ),
-          resolve     = c =>
-            unsafeSelectTopLevelPageFuture(c.pagingAsterismId) { gid =>
-              c.ctx.asterism.selectPageForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
-            }
-        ),
-         */
-
         Field(
           name        = "observations",
           fieldType   = ObservationConnectionType[F],
@@ -103,23 +86,6 @@ object ProgramSchema {
               c.ctx.observation.selectPageForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
             }
         ),
-
-        /*
-        Field(
-          name        = "targets",
-          fieldType   = TargetConnectionType[F],
-          description = Some("All targets associated with the program (needs pagination)."),
-          arguments   = List(
-            ArgumentPagingFirst,
-            ArgumentPagingCursor,
-            ArgumentIncludeDeleted
-          ),
-          resolve     = c =>
-            unsafeSelectTopLevelPageFuture(c.pagingTargetId) { gid =>
-              c.ctx.target.selectPageForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
-            }
-        ),
-         */
 
         Field(
           name        = "plannedTime",

@@ -377,39 +377,6 @@ object TargetSchema extends TargetScalars {
       name     = "Target",
       fieldsFn = () => fields(
 
-        /*
-        Field(
-          name        = "observations",
-          fieldType   = ObservationConnectionType[F],
-          arguments   = List(
-            OptionalProgramIdArgument,
-            ArgumentPagingFirst,
-            ArgumentPagingCursor,
-            ArgumentIncludeDeleted
-          ),
-          description = Some("The observations associated with the target."),
-          resolve     = c =>
-            unsafeSelectTopLevelPageFuture(c.pagingObservationId) { gid =>
-              c.ctx.observation.selectPageForTarget(c.value.id, c.optionalProgramId, c.pagingFirst, gid, c.includeDeleted)
-            }
-        ),
-
-        Field(
-          name        = "programs",
-          fieldType   = ProgramConnectionType[F],
-          arguments   = List(
-            ArgumentPagingFirst,
-            ArgumentPagingCursor,
-            ArgumentIncludeDeleted
-          ),
-          description = Some("The programs associated with the target."),
-          resolve     = c =>
-            unsafeSelectTopLevelPageFuture(c.pagingProgramId) { gid =>
-              c.ctx.program.selectPageForTarget(c.value.id, includeObservations = true, c.pagingFirst, gid, c.includeDeleted)
-            }
-        ),
-         */
-
         Field(
           name        = "name",
           fieldType   = NonEmptyStringType,
@@ -433,7 +400,6 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-//  def TargetEdgeType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Edge[Target]] =
   def TargetEdgeType[F[_]]: ObjectType[OdbRepo[F], Paging.Edge[Target]] =
     Paging.EdgeType(
       "TargetEdge",
@@ -441,7 +407,6 @@ object TargetSchema extends TargetScalars {
       TargetType[F]
     )
 
-//  def TargetConnectionType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Connection[Target]] =
   def TargetConnectionType[F[_]]: ObjectType[OdbRepo[F], Paging.Connection[Target]] =
     Paging.ConnectionType(
       "TargetConnection",
