@@ -6,7 +6,7 @@ package lucuma.odb.api.model
 import lucuma.odb.api.model.json.target._
 import lucuma.core.`enum`.{EphemerisKeyType, MagnitudeBand}
 import lucuma.core.math.{Coordinates, Declination, Epoch, Parallax, ProperMotion, RadialVelocity, RightAscension}
-import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, SiderealTracking, Target}
+import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, Observation, SiderealTracking, Target}
 import lucuma.core.optics.syntax.optional._
 import lucuma.core.optics.state.all._
 import lucuma.odb.api.model.syntax.input._
@@ -19,6 +19,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
+import lucuma.core.util.Gid
 import monocle.{Lens, Optional}
 
 import scala.collection.immutable.SortedMap
@@ -61,11 +62,15 @@ object TargetModel extends TargetOptics {
         sidereal.map(_.toGemTarget)
       )
 
-    def editTargetMap(m: TargetMap): ValidatedInput[TargetMap] =
+    def editTargetMap(
+      targetMap:     TargetMap,
+      listName:      String,
+      observationId: Observation.Id
+    ): ValidatedInput[TargetMap] =
       ValidatedInput.requireOne(
         "create",
-        nonsidereal.map(_.editTargetMap(m)),
-        sidereal.map(_.editTargetMap(m))
+        nonsidereal.map(_.editTargetMap(targetMap, listName, observationId)),
+        sidereal.map(_.editTargetMap(targetMap, listName, observationId))
       )
 
   }
@@ -94,10 +99,21 @@ object TargetModel extends TargetOptics {
 
     def toGemTarget: ValidatedInput[Target]
 
-    def editTargetMap(m: TargetMap): ValidatedInput[TargetMap] =
-      (toGemTarget, m.get(name).as(InputError(s"XXX -- $name already exists")).toInvalidNec(m)).mapN { (t, m) =>
+    def editTargetMap(
+      targetMap:     TargetMap,
+      listName:      String,
+      observationId: Observation.Id
+    ): ValidatedInput[TargetMap] = {
+
+      def alreadyExists: InputError =
+        InputError.fromMessage(
+          s"Cannot create a new ${listName.capitalize} target with name '$name' because one already exists in observation ${Gid[Observation.Id].show(observationId)}"
+        )
+
+      (toGemTarget, targetMap.get(name).as(alreadyExists).toInvalidNec(targetMap)).mapN { (t, m) =>
         m + (name -> t)
       }
+    }
 
   }
 
@@ -415,12 +431,16 @@ object TargetModel extends TargetOptics {
         m.removed(name)
       )
 
-    def editTargetMap(m: TargetMap): ValidatedInput[TargetMap] =
+    def editTargetMap(
+      targetMap:     TargetMap,
+      listName:      String,
+      observationId: Observation.Id
+    ): ValidatedInput[TargetMap] =
       ValidatedInput.requireOne(
         "XXX",
-        add.map(_.editTargetMap(m)),
-        delete.map(deleteEdit(m, _)),
-        edit.map(_.editTargetMap(m))
+        add.map(_.editTargetMap(targetMap, listName, observationId)),
+        delete.map(deleteEdit(targetMap, _)),
+        edit.map(_.editTargetMap(targetMap))
       )
 
   }
@@ -453,17 +473,21 @@ object TargetModel extends TargetOptics {
     editList:    Option[List[EditTargetAction]]
   ) {
 
-    def edit(name: String, m: TargetMap): ValidatedInput[TargetMap] =
+    def edit(
+      targetMap:     TargetMap,
+      listName:      String,
+      observationId: Observation.Id
+    ): ValidatedInput[TargetMap] =
       ValidatedInput.requireOne(
-        name,
+        listName,
         replaceList.map { lst =>
-          lst.foldLeft(m.validNec[InputError]) { case (vm, c) =>
-            vm.andThen(c.editTargetMap)
+          lst.foldLeft(targetMap.validNec[InputError]) { case (vm, c) =>
+            vm.andThen(c.editTargetMap(_, listName, observationId))
           }
         },
         editList.map { lst =>
-          lst.foldLeft(m.validNec[InputError]) { case (vm, e) =>
-            vm.andThen(e.editTargetMap)
+          lst.foldLeft(targetMap.validNec[InputError]) { case (vm, e) =>
+            vm.andThen(e.editTargetMap(_, listName, observationId))
           }
         }
       )

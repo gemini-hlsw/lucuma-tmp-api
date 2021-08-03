@@ -282,7 +282,7 @@ object ObservationRepo {
 
         bulkEdit(
           selectObservations(be.select.programId, be.select.observationIds),
-          o => be.edit.edit("science", o.targets.science).map { m =>
+          o => be.edit.edit(o.targets.science, "science", o.id).map { m =>
             ObservationModel.scienceTargets.replace(m)(o)
           }
         )
@@ -293,7 +293,7 @@ object ObservationRepo {
 
         bulkEdit(
           selectObservations(be.select.programId, be.select.observationIds),
-          o => be.edit.edit(o.targets).map { tem =>
+          o => be.edit.edit(o.targets, o.id).map { tem =>
             ObservationModel.targets.replace(tem)(o)
           }
         )
@@ -301,12 +301,6 @@ object ObservationRepo {
       override def bulkEditConstraintSet(
         be: BulkEdit[ObservationSelector, ConstraintSetModel.Edit]
       ): F[List[ObservationModel]] =
-
-//        bulkEdit(
-//          selectObservations(be.select.programId, be.select.observationIds),
-//          be.edit.editor,
-//          ObservationModel.constraintSet.modify
-//        )
 
         bulkEdit(
           selectObservations(be.select.programId, be.select.observationIds),
@@ -318,12 +312,6 @@ object ObservationRepo {
       override def bulkEditScienceRequirements(
         be: BulkEdit[ObservationSelector, ScienceRequirementsModel.Edit]
       ): F[List[ObservationModel]] =
-
-//        bulkEdit(
-//          selectObservations(be.select.programId, be.select.observationIds),
-//          be.edit.editor,
-//          ObservationModel.scienceRequirements.modify
-//        )
 
         bulkEdit(
           selectObservations(be.select.programId, be.select.observationIds),

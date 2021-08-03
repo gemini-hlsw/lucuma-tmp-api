@@ -4,7 +4,7 @@
 package lucuma.odb.api.model
 
 import lucuma.core.math.Coordinates
-import lucuma.core.model.Target
+import lucuma.core.model.{Observation, Target}
 import lucuma.core.optics.syntax.lens._
 import lucuma.odb.api.model.syntax.input._
 import cats.Eq
@@ -92,10 +92,13 @@ object TargetEnvironmentModel extends TargetEnvironmentModelOptics {
         } yield ()
       }
 
-    def edit(tem: TargetEnvironmentModel): ValidatedInput[TargetEnvironmentModel] =
+    def edit(
+      targetEnv:     TargetEnvironmentModel,
+      observationId: Observation.Id
+    ): ValidatedInput[TargetEnvironmentModel] =
       editor(
-        science.traverse(_.edit("science", tem.science))
-      ).map(_.runS(tem).value)
+        science.traverse(_.edit(targetEnv.science, "science", observationId))
+      ).map(_.runS(targetEnv).value)
 
   }
 
