@@ -324,22 +324,22 @@ object ObservationModel extends ObservationOptics {
 trait ObservationOptics { self: ObservationModel.type =>
 
   val id: Lens[ObservationModel, Observation.Id] =
-    Lens[ObservationModel, Observation.Id](_.id)(a => _.copy(id = a))
+    Focus[ObservationModel](_.id)
 
   val existence: Lens[ObservationModel, Existence] =
-    Lens[ObservationModel, Existence](_.existence)(a => _.copy(existence = a))
+    Focus[ObservationModel](_.existence)
 
   val name: Lens[ObservationModel, Option[NonEmptyString]] =
-    Lens[ObservationModel, Option[NonEmptyString]](_.name)(a => _.copy(name = a))
+    Focus[ObservationModel](_.name)
 
   val status: Lens[ObservationModel, ObsStatus] =
-    Lens[ObservationModel, ObsStatus](_.status)(a => _.copy(status = a))
+    Focus[ObservationModel](_.status)
 
   val activeStatus: Lens[ObservationModel, ObsActiveStatus] =
-    Lens[ObservationModel, ObsActiveStatus](_.activeStatus)(a => _.copy(activeStatus = a))
+    Focus[ObservationModel](_.activeStatus)
 
   val targets: Lens[ObservationModel, TargetEnvironmentModel] =
-    Lens[ObservationModel, TargetEnvironmentModel](_.targets)(a => _.copy(targets = a))
+    Focus[ObservationModel](_.targets)
 
   val explicitBase: Lens[ObservationModel, Option[Coordinates]] =
     targets.andThen(TargetEnvironmentModel.explicitBase)
@@ -357,7 +357,7 @@ trait ObservationOptics { self: ObservationModel.type =>
     scienceTarget(name).andThen(TargetModel.siderealTarget)
 
   val constraintSet: Lens[ObservationModel, ConstraintSetModel] =
-    Lens[ObservationModel, ConstraintSetModel](_.constraintSet)(a => _.copy(constraintSet = a))
+    Focus[ObservationModel](_.constraintSet)
 
   val scienceRequirements: Lens[ObservationModel, ScienceRequirements] =
     Focus[ObservationModel](_.scienceRequirements)
@@ -366,6 +366,6 @@ trait ObservationOptics { self: ObservationModel.type =>
     Focus[ObservationModel](_.scienceConfiguration)
 
   val config: Lens[ObservationModel, Option[InstrumentConfigModel.Reference]] =
-    Lens[ObservationModel, Option[InstrumentConfigModel.Reference]](_.config)(a => _.copy(config = a))
+    Focus[ObservationModel](_.config)
 
 }
