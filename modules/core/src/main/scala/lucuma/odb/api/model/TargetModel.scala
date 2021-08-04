@@ -107,7 +107,7 @@ object TargetModel extends TargetOptics {
 
       def alreadyExists: InputError =
         InputError.fromMessage(
-          s"Cannot create a new ${listName.capitalize} target with name '$name' because one already exists in observation ${Gid[Observation.Id].show(observationId)}"
+          s"Cannot create a new $listName target with name '$name' because one already exists in observation ${Gid[Observation.Id].show(observationId)}"
         )
 
       (toGemTarget, targetMap.get(name).as(alreadyExists).toInvalidNec(targetMap)).mapN { (t, m) =>
