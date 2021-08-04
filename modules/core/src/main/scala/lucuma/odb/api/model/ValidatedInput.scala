@@ -49,6 +49,6 @@ object ValidatedInput {
     v:     Validate[T, Interval.Closed[low.type, high.type]]
   ): ValidatedInput[T Refined Interval.Closed[low.type, high.type]] =
     refineV[Interval.Closed[low.type, high.type]](value)
-      .leftMap(_ => InputError.fromMessage(s"'$name' out of range: must be $low<= $name <= $high "))
+      .leftMap(_ => InputError.fromMessage(s"'$name' out of range: must be $low <= $name <= $high"))
       .toValidatedNec
 }

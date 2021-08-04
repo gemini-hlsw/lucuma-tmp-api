@@ -5,13 +5,14 @@ package test
 
 import cats.implicits._
 import cats.effect._
-import clue.GraphQLOperation
-import clue.TransactionalClient
+import clue.{GraphQLException, GraphQLOperation, TransactionalClient}
 import clue.http4sjdk.Http4sJDKBackend
 import io.circe.Decoder
 import io.circe.Encoder
 import io.circe.Json
+import io.circe.generic.semiauto.deriveDecoder
 import io.circe.literal._
+import io.circe.parser.parse
 import lucuma.core.model.User
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.service.Init
@@ -28,6 +29,7 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import sttp.model.Uri
 
 import java.net.http.HttpClient
+
 import scala.concurrent.ExecutionContext
 import munit.CatsEffectSuite
 
@@ -85,19 +87,96 @@ trait OdbSuite extends CatsEffectSuite {
 
   override def munitFixtures = List(serverFixture)
 
-  /** Run a transactional query and check that the response is as expected. */
-  def testTransactional(query: String, expected: Json, variables: Option[Json] = None) =
-    test(query.linesIterator.dropWhile(_.trim.isEmpty).next().trim + " ...") {
-      Resource.eval(IO(serverFixture()))
-        .flatMap(transactionalClient)
-        .use { xc =>
-          variables match {
-            case Some(j) => xc.request(Operation(query)).apply(j)
-            case None    => xc.request(Operation(query)).apply
-          }
+
+  private def queryServer(
+    query:     String,
+    variables: Option[Json]
+  ): IO[Operation#Data] =
+    Resource.eval(IO(serverFixture()))
+      .flatMap(transactionalClient)
+      .use { xc =>
+        variables match {
+          case Some(j) => xc.request(Operation(query)).apply(j)
+          case None    => xc.request(Operation(query)).apply
         }
+      }
+
+  case class Location(line: Int, column: Int)
+
+  object Location {
+    implicit val DecoderLocation: Decoder[Location] =
+      deriveDecoder[Location]
+  }
+
+  case class Error(
+    message:   String,
+    path:      List[String],
+    locations: List[Location]
+  )
+
+  object Error {
+    implicit val DecoderError: Decoder[Error] =
+      deriveDecoder[Error]
+  }
+
+  /**
+   * Parses the JSON erros out of a GraphQLException message, which contains
+   * text like
+   *
+   * List({
+   *   "message" : "'min' out of range: must be 1.0 <= min <= 3.0",
+   *   "path" : [
+   *     "updateConstraintSet"
+   *   ],
+   *   "locations" : [
+   *     {
+   *       "line" : 3,
+   *       "column" : 9
+   *     }
+   *   ]
+   * }, {
+   *   "message" : "'max' out of range: must be 1.0 <= max <= 3.0",
+   *   "path" : [
+   *     "updateConstraintSet"
+   *   ],
+   *   "locations" : [
+   *     {
+   *       "line" : 3,
+   *       "column" : 9
+   *     }
+   *   ]
+   * })
+   */
+  private def extractErrors(ex: GraphQLException): List[Error] =
+    parse(s"[${ex.getMessage.drop(5).dropRight(1)}]")
+      .flatMap(Decoder[List[Error]].decodeJson)
+      .getOrElse(List.empty[Error])
+
+  /** Run a transactional query and check that the response is as expected. */
+  def testTransactional(
+    query:     String,
+    expected:  Json,
+    variables: Option[Json] = None
+  ): Unit =
+
+    test(query.linesIterator.dropWhile(_.trim.isEmpty).next().trim + " ...") {
+      queryServer(query, variables)
         .map(_.spaces2)
         .assertEquals(expected.spaces2) // by comparing strings we get more useful errors
+    }
+
+  /** Run a transactional query that should fail and check that the error response is as expected. */
+  def testTransactionalFailure(
+    query:     String,
+    messages:  List[String],
+    variables: Option[Json] = None
+  ): Unit =
+
+    test(query.linesIterator.dropWhile(_.trim.isEmpty).next().trim + " ...") {
+      queryServer(query, variables)
+        .intercept[GraphQLException]
+        .map(e => extractErrors(e).map(_.message))
+        .assertEquals(messages)
   }
 
 }

@@ -109,4 +109,34 @@ class MutationSuite extends OdbSuite {
     """)
   )
 
+  testTransactionalFailure(
+    query = """
+      mutation UpdateConstraints($updateConstraints: BulkEditConstraintSetInput!) {
+        updateConstraintSet(input: $updateConstraints) {
+          name
+        }
+      }
+    """,
+    messages = List(
+      "'min' out of range: must be 1.0 <= min <= 3.0",
+      "'max' out of range: must be 1.0 <= max <= 3.0"
+    ),
+    variables = Some(json"""
+      {
+        "updateConstraints": {
+          "observationIds": [ "o-2" ],
+          "constraintSet": {
+            "elevationRange": {
+              "airmassRange": {
+                "min": 0,
+                "max": 5
+              }
+            }
+          }
+        }
+      }
+    """)
+  )
+
+
 }
