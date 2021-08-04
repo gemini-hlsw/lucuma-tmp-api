@@ -159,4 +159,36 @@ class MutationSuite extends OdbSuite {
       """)
   )
 
+  testTransactionalFailure(
+    query =
+    """
+      mutation EditTargetName($editTargetName: BulkEditTargetNameInput!) {
+        updateScienceTargetName(input: $editTargetName) {
+          id
+          targets {
+            science {
+              name
+            }
+          }
+        }
+      }
+    """,
+    messages = List(
+     """Cannot rename 'DoesntExist' to 'Whatever' because science target 'DoesntExist' was not found in observation o-2"""
+    ),
+    variables = Some(json"""
+      {
+        "editTargetName": {
+          "select": {
+            "observationIds": [ "o-2" ]
+          },
+          "edit": {
+            "oldName": "DoesntExist",
+            "newName": "Whatever"
+          }
+        }
+      }
+    """)
+  )
+
 }

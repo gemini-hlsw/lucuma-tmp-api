@@ -8,13 +8,14 @@ import cats.implicits._
 import clue.ApolloWebSocketClient
 import clue.GraphQLException
 import clue.GraphQLOperation
-import clue.http4sjdk.Http4sJDKBackend
-import clue.http4sjdk.Http4sJDKWSBackend
 import clue.PersistentStreamingClient
 import clue.TransactionalClient
 import io.circe.{Decoder, Json}
 import io.circe.generic.semiauto._
+import clue.http4sjdk.Http4sJDKBackend
+import clue.http4sjdk.Http4sJDKWSBackend
 import io.circe.literal._
+import io.circe.generic.semiauto.deriveDecoder
 import lucuma.core.model.User
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.service.Init
@@ -122,6 +123,7 @@ trait OdbSuite extends CatsEffectSuite {
           }
       }
     }
+
     go("[http]", transactionalClient)
     go("[ws]  ", streamingClient)
   }
@@ -159,6 +161,5 @@ trait OdbSuite extends CatsEffectSuite {
       .getOrElse(List.empty[Error])
   }
   // Temporary -- to be replaced by a clue update ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 }
 
