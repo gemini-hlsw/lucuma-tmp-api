@@ -3,13 +3,14 @@
 
 package test
 
-import cats.implicits._
 import cats.effect._
+import cats.implicits._
+import clue.ApolloWebSocketClient
 import clue.GraphQLOperation
-import clue.TransactionalClient
 import clue.http4sjdk.Http4sJDKBackend
-import io.circe.Decoder
-import io.circe.Encoder
+import clue.http4sjdk.Http4sJDKWSBackend
+import clue.PersistentStreamingClient
+import clue.TransactionalClient
 import io.circe.Json
 import io.circe.literal._
 import lucuma.core.model.User
@@ -18,18 +19,16 @@ import lucuma.odb.api.service.Init
 import lucuma.odb.api.service.OdbService
 import lucuma.odb.api.service.Routes
 import lucuma.sso.client.SsoClient
+import munit.CatsEffectSuite
+import org.http4s.{Uri => Http4sUri, _}
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.headers.Authorization
 import org.http4s.implicits._
 import org.http4s.server.Server
-import org.http4s.{Uri => _, _}
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import sttp.model.Uri
-
-import java.net.http.HttpClient
 import scala.concurrent.ExecutionContext
-import munit.CatsEffectSuite
+import sttp.model.Uri
 
 /**
  * Mixin that allows execution of GraphQL operations on a per-suite instance of the Odb, shared
@@ -66,18 +65,26 @@ trait OdbSuite extends CatsEffectSuite {
 
   private def transactionalClient(svr: Server): Resource[IO, TransactionalClient[IO, Nothing]] =
     for {
-      xbe <- Http4sJDKBackend.fromHttpClient[IO](HttpClient.newBuilder().build())
+      xbe <- Http4sJDKBackend.apply[IO]
       uri  = Uri.parse((svr.baseUri / "odb").renderString).toOption.get
-      xc  <- Resource.eval(TransactionalClient.of[IO, Nothing](uri)(implicitly, xbe, implicitly))
+      xc  <- Resource.eval(TransactionalClient.of[IO, Nothing](uri)(Async[IO], xbe, Logger[IO]))
     } yield xc
+
+  private def streamingClient(svr: Server): Resource[IO, PersistentStreamingClient[IO, Nothing, _, _]] =
+    for {
+      sbe <- Http4sJDKWSBackend[IO]
+      uri  = Uri.parse((svr.baseUri / "ws").copy(scheme = Some(Http4sUri.Scheme.unsafeFromString("ws"))).renderString).toOption.get
+      sc  <- Resource.eval(ApolloWebSocketClient.of(uri)(Async[IO], Logger[IO], sbe))
+      _   <- Resource.make(sc.connect() *> sc.initialize())(_ => sc.terminate() *> sc.disconnect())
+    } yield sc
 
   case class Operation(
     document: String
   ) extends GraphQLOperation[Nothing] {
-    type Data      = Json
-    type Variables = Json
-    val varEncoder:  Encoder[Json] = implicitly
-    val dataDecoder: Decoder[Json] = implicitly
+    type Data       = Json
+    type Variables  = Json
+    val varEncoder  = implicitly
+    val dataDecoder = implicitly
   }
 
   private val serverFixture: Fixture[Server] =
@@ -85,20 +92,24 @@ trait OdbSuite extends CatsEffectSuite {
 
   override def munitFixtures = List(serverFixture)
 
-  /** Run a transactional query and check that the response is as expected. */
-  def testTransactional(query: String, expected: Json, variables: Option[Json] = None) =
-    test(query.linesIterator.dropWhile(_.trim.isEmpty).next().trim + " ...") {
-      Resource.eval(IO(serverFixture()))
-        .flatMap(transactionalClient)
-        .use { xc =>
-          variables match {
-            case Some(j) => xc.request(Operation(query)).apply(j)
-            case None    => xc.request(Operation(query)).apply
+  /** Run a query using both http:// and ws:// and ensure that the responses are as expected. */
+  def queryTest(query: String, expected: Json, variables: Option[Json] = None) = {
+    def go(prefix: String, f: Server => Resource[IO, TransactionalClient[IO, Nothing]]) = {
+      val suffix = query.linesIterator.dropWhile(_.trim.isEmpty).next().trim + " ..."
+      test(s"$prefix $suffix") {
+        Resource.eval(IO(serverFixture()))
+          .flatMap(f)
+          .use { conn =>
+            val req = conn.request(Operation(query))
+            variables
+              .fold(req.apply)(req.apply) // awkward API
+              .map(_.spaces2)
+              .assertEquals(expected.spaces2) // by comparing strings we get more useful errors
           }
-        }
-        .map(_.spaces2)
-        .assertEquals(expected.spaces2) // by comparing strings we get more useful errors
+      }
+    }
+    go("[http]", transactionalClient)
+    go("[ws]  ", streamingClient)
   }
-
 }
 
