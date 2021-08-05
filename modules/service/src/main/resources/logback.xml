@@ -5,6 +5,9 @@
     </encoder>
   </appender>
 
+  <!-- Suppress reporting of https://github.com/http4s/http4s/issues/2835 -->
+  <logger name="org.http4s.blaze" level="OFF" />
+
   <root level="WARN">
     <appender-ref ref="STDOUT" />
   </root>

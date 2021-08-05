@@ -7,7 +7,7 @@ import io.circe.literal._
 
 class QuerySuite extends OdbSuite {
 
-  testTransactional(
+  queryTest(
     query = """
       query Programs {
         programs(programIds: ["p-2", "p-3", "p-4"]) {
@@ -36,7 +36,7 @@ class QuerySuite extends OdbSuite {
     """
   )
 
-  testTransactional(
+  queryTest(
     query = """
       query Observations {
         observations(programId: "p-2") {
@@ -89,7 +89,7 @@ class QuerySuite extends OdbSuite {
     """
   )
 
-  testTransactional(
+  queryTest(
     query = """
       query ObservationsByConstraintSet {
         constraintSetGroup(programId:"p-2") {
@@ -150,7 +150,7 @@ class QuerySuite extends OdbSuite {
     """
   )
 
-  testTransactional(
+  queryTest(
     query = """
       query ObservationsByScienceRequirements {
         scienceRequirementsGroup(programId:"p-2") {

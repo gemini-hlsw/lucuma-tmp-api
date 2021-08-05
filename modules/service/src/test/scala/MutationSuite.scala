@@ -7,7 +7,7 @@ import io.circe.literal._
 
 class MutationSuite extends OdbSuite {
 
-  testTransactional(
+  queryTest(
     query = """
       mutation BulkEditConstraints($bulkEditConstraints: BulkEditConstraintSetInput!) {
         updateConstraintSet(input: $bulkEditConstraints) {
@@ -48,7 +48,7 @@ class MutationSuite extends OdbSuite {
     """)
   )
 
-  testTransactional(
+  queryTest(
     query = """
       mutation UpdateSiderealTarget($editSidereal: EditSiderealInput!) {
         updateSiderealTarget(input: $editSidereal) {
