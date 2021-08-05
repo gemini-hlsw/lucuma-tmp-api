@@ -182,8 +182,8 @@ trait TargetMutation extends TargetScalars {
       InputObjectTypeName("EditNonsiderealInput"),
       InputObjectTypeDescription("Nonsidereal target edit parameters"),
 
-      ReplaceInputField("name", StringType      .notNullableField("name")),
-      ReplaceInputField("key",  EphemerisKeyType.notNullableField("key"))
+      ReplaceInputField("name", NonEmptyStringType.notNullableField("name")),
+      ReplaceInputField("key",  EphemerisKeyType  .notNullableField("key"))
     )
 
 
@@ -194,7 +194,7 @@ trait TargetMutation extends TargetScalars {
 
       DocumentInputField("magnitudes",    "Edit magnitudes"                                               ),
 
-      ReplaceInputField("name",           StringType               .notNullableField("name"       )),
+      ReplaceInputField("name",           NonEmptyStringType       .notNullableField("name"       )),
       ReplaceInputField("catalogId",      InputObjectCatalogId     .nullableField("catalogId"     )),
       ReplaceInputField("ra",             InputObjectRightAscension.notNullableField("ra"         )),
       ReplaceInputField("dec",            InputObjectDeclination   .notNullableField("dec"        )),
