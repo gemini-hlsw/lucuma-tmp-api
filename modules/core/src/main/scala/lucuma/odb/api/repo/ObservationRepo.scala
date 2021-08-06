@@ -259,7 +259,7 @@ object ObservationRepo {
       ): F[List[ObservationModel]] =
 
         bulkEdit(
-          selectObservations(be.select.programId, be.select.observationIds),
+          selectObservations(be.selectObservations.programId, be.selectObservations.observationIds),
           o => be.edit.editTargetMap(o.targets.science, "science", o.id).map { m =>
             ObservationModel.scienceTargets.replace(m)(o)
           }
@@ -270,7 +270,7 @@ object ObservationRepo {
       ): F[List[ObservationModel]] =
 
         bulkEdit(
-          selectObservations(be.select.programId, be.select.observationIds),
+          selectObservations(be.selectObservations.programId, be.selectObservations.observationIds),
           o => be.edit.editTargetMap(o.targets.science, "science", o.id).map { m =>
             ObservationModel.scienceTargets.replace(m)(o)
           }
@@ -281,7 +281,7 @@ object ObservationRepo {
       ): F[List[ObservationModel]] =
 
         bulkEdit(
-          selectObservations(be.select.programId, be.select.observationIds),
+          selectObservations(be.selectObservations.programId, be.selectObservations.observationIds),
           o => be.edit.edit(o.targets.science, "science", o.id).map { m =>
             ObservationModel.scienceTargets.replace(m)(o)
           }
@@ -292,7 +292,7 @@ object ObservationRepo {
       ): F[List[ObservationModel]] =
 
         bulkEdit(
-          selectObservations(be.select.programId, be.select.observationIds),
+          selectObservations(be.selectObservations.programId, be.selectObservations.observationIds),
           o => be.edit.edit(o.targets, o.id).map { tem =>
             ObservationModel.targets.replace(tem)(o)
           }
@@ -303,7 +303,7 @@ object ObservationRepo {
       ): F[List[ObservationModel]] =
 
         bulkEdit(
-          selectObservations(be.select.programId, be.select.observationIds),
+          selectObservations(be.selectObservations.programId, be.selectObservations.observationIds),
           o => be.edit.editor.map { s =>
             ObservationModel.constraintSet.replace(s.runS(o.constraintSet).value)(o)
           }
@@ -314,7 +314,7 @@ object ObservationRepo {
       ): F[List[ObservationModel]] =
 
         bulkEdit(
-          selectObservations(be.select.programId, be.select.observationIds),
+          selectObservations(be.selectObservations.programId, be.selectObservations.observationIds),
           o => be.edit.editor.map { s =>
             ObservationModel.scienceRequirements.replace(s.runS(o.scienceRequirements).value)(o)
           }
