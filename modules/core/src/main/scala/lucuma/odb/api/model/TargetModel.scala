@@ -250,13 +250,10 @@ object TargetModel extends TargetOptics {
    * Input required to edit either a non-sidereal or sidereal target.
    */
   final case class Edit(
-    nonsidereal: Option[EditNonsidereal],
-    sidereal:    Option[EditSidereal],
-    rename:      Option[EditName]
+    selectTarget: NonEmptyString,
+    nonsidereal:  Option[EditNonsidereal],
+    sidereal:     Option[EditSidereal],
   ) {
-
-    def name: Option[NonEmptyString] =
-      nonsidereal.map(_.name).orElse(sidereal.map(_.name))
 
     def editTargetMap(
       targetMap:     TargetMap,
@@ -265,10 +262,10 @@ object TargetModel extends TargetOptics {
     ): ValidatedInput[TargetMap] =
       ValidatedInput.requireOne(
         "edit",
-        nonsidereal.map(_.editTargetMap(targetMap, listName, observationId)),
-        sidereal.map(_.editTargetMap(targetMap, listName, observationId)),
-        rename.map(_.editTargetMap(targetMap, listName, observationId))
+        nonsidereal.map(_.editTargetMap(selectTarget, targetMap, listName, observationId)),
+        sidereal.map(_.editTargetMap(selectTarget, targetMap, listName, observationId)),
       )
+
   }
 
   object Edit {
@@ -278,49 +275,78 @@ object TargetModel extends TargetOptics {
 
     implicit val EqEdit: Eq[Edit] =
       Eq.by { a => (
+        a.selectTarget,
         a.nonsidereal,
-        a.sidereal,
-        a.rename
+        a.sidereal
       )}
 
-    def nonsidereal(n: EditNonsidereal): Edit =
-      Edit(n.some, None, None)
+    def nonsidereal(selectTarget: NonEmptyString, n: EditNonsidereal): Edit =
+      Edit(selectTarget, n.some, None)
 
-    def sidereal(s: EditSidereal): Edit =
-      Edit(None, s.some, None)
+    def sidereal(selectTarget: NonEmptyString, s: EditSidereal): Edit =
+      Edit(selectTarget, None, s.some)
 
-    def rename(r: EditName): Edit =
-      Edit(None, None, r.some)
   }
 
   sealed trait TargetEditor {
-    def name: NonEmptyString
+
+    def name: Input[NonEmptyString]
 
     def editor: ValidatedInput[State[Target, Unit]]
 
     def editTargetMap(
+      selectTarget:  NonEmptyString,
       targetMap:     TargetMap,
       listName:      String,
       observationId: Observation.Id
     ): ValidatedInput[TargetMap] = {
       def missing: InputError =
-        InputError.fromMessage(s"Missing $listName target $name in observation ${Gid[Observation.Id].show(observationId)}")
+        InputError.fromMessage(
+          s"Missing $listName target $name in observation ${Gid[Observation.Id].show(observationId)}"
+        )
 
-      (targetMap.get(name).toValidNec(missing),
-       editor
-      ).mapN { (t, ed) => targetMap.updated(name, ed.runS(t).value) }
+      def wouldReplace(newName: NonEmptyString): InputError =
+        InputError.fromMessage(
+          s"Cannot rename '$selectTarget' to '$newName' because there is already a $listName target named '$newName' in observation ${Gid[Observation.Id].show(observationId)}"
+        )
+
+      val validateRename: ValidatedInput[Unit] =
+        name.fold(
+          ().validNec[InputError],
+          ().validNec[InputError],
+          n => if ((n =!= selectTarget) && targetMap.contains(n)) wouldReplace(n).invalidNec[Unit]
+               else ().validNec[InputError]
+        )
+
+      def normalEdit(t: Target, ed: State[Target, Unit]): TargetMap =
+        targetMap.updated(selectTarget, ed.runS(t).value)
+
+      def renameEdit(newName: NonEmptyString, t: Target, ed: State[Target, Unit]): TargetMap =
+        targetMap.removed(selectTarget).updated(newName, ed.runS(t).value)
+
+      (targetMap.get(selectTarget).toValidNec(missing),
+       editor,
+       validateRename
+      ).mapN { (t, ed, _) =>
+        name.fold(normalEdit(t, ed), normalEdit(t, ed), renameEdit(_, t, ed))
+      }
     }
   }
 
   final case class EditNonsidereal(
-    name: NonEmptyString,
-    key:  Input[EphemerisKey] = Input.ignore,
+    name: Input[NonEmptyString] = Input.ignore,
+    key:  Input[EphemerisKey]   = Input.ignore,
   ) extends TargetEditor {
 
     override val editor: ValidatedInput[State[Target, Unit]] =
-      key
-        .validateIsNotNull("key")
-        .map(_.fold(State.pure[Target, Unit](()))(TargetModel.ephemerisKey.assign_))
+      (name.validateIsNotNull("name"),
+       key.validateIsNotNull("key")
+      ).mapN { case (n, k) =>
+        for {
+          _ <- TargetModel.name         := n
+          _ <- TargetModel.ephemerisKey := k
+        } yield ()
+      }
 
   }
 
@@ -342,7 +368,7 @@ object TargetModel extends TargetOptics {
   }
 
   final case class EditSidereal(
-    name:             NonEmptyString,
+    name:             Input[NonEmptyString]            = Input.ignore,
     catalogId:        Input[CatalogIdModel.Input]      = Input.ignore,
     ra:               Input[RightAscensionModel.Input] = Input.ignore,
     dec:              Input[DeclinationModel.Input]    = Input.ignore,
@@ -354,7 +380,8 @@ object TargetModel extends TargetOptics {
   ) extends TargetEditor {
 
     override val editor: ValidatedInput[State[Target, Unit]] =
-      (catalogId     .validateNullable(_.toCatalogId),
+      (name          .validateIsNotNull("name"),
+       catalogId     .validateNullable(_.toCatalogId),
        ra            .validateNotNullable("ra")(_.toRightAscension),
        dec           .validateNotNullable("dec")(_.toDeclination),
        epoch         .validateIsNotNull("epoch"),
@@ -362,8 +389,9 @@ object TargetModel extends TargetOptics {
        radialVelocity.validateNullable(_.toRadialVelocity),
        parallax      .validateNullable(_.toParallax),
        magnitudes    .traverse(_.editor)
-      ).mapN { (catalogId, ra, dec, epoch, pm, rv, px, ms) =>
+      ).mapN { (name, catalogId, ra, dec, epoch, pm, rv, px, ms) =>
         for {
+          _ <- TargetModel.name           := name
           _ <- TargetModel.catalogId      := catalogId
           _ <- TargetModel.ra             := ra
           _ <- TargetModel.dec            := dec
@@ -401,52 +429,6 @@ object TargetModel extends TargetOptics {
       ))
 
   }
-
-  final case class EditName(
-    oldName: NonEmptyString,
-    newName: NonEmptyString
-  ) {
-
-    val editor: State[Target, Unit] =
-      TargetModel.name.assign_(newName)
-
-    def editTargetMap(
-      targetMap:     TargetMap,
-      listName:      String,
-      observationId: Observation.Id
-    ): ValidatedInput[TargetMap] = {
-
-      def missing: InputError =
-        InputError.fromMessage(
-          s"Cannot rename '$oldName' to '$newName' because $listName target '$oldName' was not found in observation ${Gid[Observation.Id].show(observationId)}"
-        )
-
-      def wouldReplace: InputError =
-        InputError.fromMessage(
-          s"Cannot rename '$oldName' to '$newName' because there is already a $listName target named '$newName' in observation ${Gid[Observation.Id].show(observationId)}"
-        )
-
-      targetMap.get(oldName).fold(missing.invalidNec[TargetMap]) { t =>
-        if (targetMap.contains(newName)) wouldReplace.invalidNec[TargetMap]
-        else targetMap.removed(oldName).updated(newName, editor.runS(t).value).validNec[InputError]
-      }
-    }
-
-  }
-
-  object EditName {
-
-    implicit val DecoderEditTargetName: Decoder[EditName] =
-      deriveDecoder[EditName]
-
-    implicit val EqEditTargetName: Eq[EditName] =
-      Eq.by { a => (
-        a.oldName,
-        a.newName
-      )}
-
-  }
-
 
   final case class EditTargetAction(
     add:    Option[Create],
