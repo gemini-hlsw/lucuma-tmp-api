@@ -285,7 +285,7 @@ object ObservationModel extends ObservationOptics {
   }
 
   final case class BulkEdit[S, E](
-    select: S,
+    selectObservations: S,
     edit:   E
   )
 
@@ -296,7 +296,7 @@ object ObservationModel extends ObservationOptics {
 
     implicit def EqBulkEdit[S: Eq, E: Eq]: Eq[BulkEdit[S, E]] =
       Eq.by { a => (
-        a.select,
+        a.selectObservations,
         a.edit
       )}
 
