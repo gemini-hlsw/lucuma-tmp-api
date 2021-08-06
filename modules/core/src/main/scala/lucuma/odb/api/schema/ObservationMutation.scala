@@ -25,7 +25,7 @@ trait ObservationMutation {
   import ProgramSchema.ProgramIdType
   import context._
   import syntax.inputobjecttype._
-  import TargetMutation.{InputObjectTypeTargetEnvironmentCreate, InputObjectTypeTargetEditList, InputObjectTypeTargetEditName, InputObjectTypeTargetEnvironmentEdit, InputObjectTypeTargetEditSidereal}
+  import TargetMutation.{InputObjectTypeTargetEnvironmentCreate, InputObjectTypeTargetEdit, InputObjectTypeTargetEditList, InputObjectTypeTargetEnvironmentEdit}
 
   val InputObjectTypeObservationCreate: InputObjectType[ObservationModel.Create] =
     deriveInputObjectType[ObservationModel.Create](
@@ -77,8 +77,8 @@ trait ObservationMutation {
         s"BulkEdit${name.capitalize}Input",
         "Input for bulk editing multiple observations",
         List(
-          InputField("select", selectType),
-          InputField("edit",   editType)
+          InputField("selectObservations", selectType),
+          InputField("edit",               editType)
         )
       )
 
@@ -86,21 +86,14 @@ trait ObservationMutation {
 
   }
 
-  val ArgumentTargetNameBulkEdit: Argument[BulkEdit[ObservationSelector, TargetModel.EditName]] =
-    bulkEditArgument[ObservationSelector, TargetModel.EditName](
-      "targetName",
+  val ArgumentScienceTargetBulkEdit: Argument[BulkEdit[ObservationSelector, TargetModel.Edit]] =
+    bulkEditArgument[ObservationSelector, TargetModel.Edit](
+      "scienceTarget",
       InputObjectObservationSelector,
-      InputObjectTypeTargetEditName
+      InputObjectTypeTargetEdit
     )
 
-  val ArgumentSiderealScienceTargetBulkEdit: Argument[BulkEdit[ObservationSelector, TargetModel.EditSidereal]] =
-    bulkEditArgument[ObservationSelector, TargetModel.EditSidereal](
-      "sidereal",
-      InputObjectObservationSelector,
-      InputObjectTypeTargetEditSidereal
-    )
-
-  val ArgumentAllScienceTargetsBulkEdit: Argument[BulkEdit[ObservationSelector, TargetModel.EditTargetList]] =
+  val ArgumentScienceTargetsBulkEdit: Argument[BulkEdit[ObservationSelector, TargetModel.EditTargetList]] =
     bulkEditArgument[ObservationSelector, TargetModel.EditTargetList](
       "science",
       InputObjectObservationSelector,
@@ -144,28 +137,20 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.edit(c.arg(ArgumentObservationEdit)))
     )
 
-  def updateScienceTargetName[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def updateScienceTarget[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
-      name      = "updateScienceTargetName",
+      name      = "updateScienceTarget",
       fieldType = ListType(ObservationType[F]),
-      arguments = List(ArgumentTargetNameBulkEdit),
-      resolve   = c => c.observation(_.bulkEditScienceTargetName(c.arg(ArgumentTargetNameBulkEdit)))
-    )
-
-  def updateSiderealScienceTarget[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
-    Field(
-      name      = "updateSiderealScienceTarget",
-      fieldType = ListType(ObservationType[F]),
-      arguments = List(ArgumentSiderealScienceTargetBulkEdit),
-      resolve   = c => c.observation(_.bulkEditSiderealScienceTarget(c.arg(ArgumentSiderealScienceTargetBulkEdit)))
+      arguments = List(ArgumentScienceTargetBulkEdit),
+      resolve   = c => c.observation(_.bulkEditScienceTarget(c.arg(ArgumentScienceTargetBulkEdit)))
     )
 
   def updateScienceTargets[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
-      name      = "updateAllScienceTargets",
+      name      = "updateScienceTargets",
       fieldType = ListType(ObservationType[F]),
-      arguments = List(ArgumentAllScienceTargetsBulkEdit),
-      resolve   = c => c.observation(_.bulkEditAllScienceTargets(c.arg(ArgumentAllScienceTargetsBulkEdit)))
+      arguments = List(ArgumentScienceTargetsBulkEdit),
+      resolve   = c => c.observation(_.bulkEditAllScienceTargets(c.arg(ArgumentScienceTargetsBulkEdit)))
     )
 
   def updateTargetEnvironment[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
@@ -212,8 +197,7 @@ trait ObservationMutation {
     List(
       create,
       update,
-      updateScienceTargetName,
-      updateSiderealScienceTarget,
+      updateScienceTarget,
       updateScienceTargets,
       updateTargetEnvironment,
       updateConstraintSet,

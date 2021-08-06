@@ -126,7 +126,7 @@ trait ArbTargetModel {
   implicit val arbEditSidereal: Arbitrary[EditSidereal] =
     Arbitrary {
       for {
-        name  <- arbitrary[NonEmptyString]
+        name  <- arbitrary[Input[NonEmptyString]]
         cat   <- arbitrary[Input[CatalogIdModel.Input]]
         ra    <- arbNotNullableInput[RightAscensionModel.Input].arbitrary
         dec   <- arbNotNullableInput[DeclinationModel.Input].arbitrary
@@ -150,7 +150,7 @@ trait ArbTargetModel {
 
   implicit val cogEditSidereal: Cogen[EditSidereal] =
     Cogen[(
-      String,
+      Input[String],
       Input[CatalogIdModel.Input],
       Input[RightAscensionModel.Input],
       Input[DeclinationModel.Input],
@@ -159,7 +159,7 @@ trait ArbTargetModel {
       Input[RadialVelocityModel.Input],
       Input[ParallaxModel.Input]
     )].contramap { in => (
-      in.name.value,
+      in.name.map(_.value),
       in.catalogId,
       in.ra,
       in.dec,
@@ -172,7 +172,7 @@ trait ArbTargetModel {
   implicit val arbEditNonSidereal: Arbitrary[EditNonsidereal] =
     Arbitrary {
       for {
-        name <- arbitrary[NonEmptyString]
+        name <- arbitrary[Input[NonEmptyString]]
         key  <- arbitrary[Input[EphemerisKey]]
       } yield EditNonsidereal(
         name,
@@ -182,26 +182,31 @@ trait ArbTargetModel {
 
   implicit val cogEditNonSidereal: Cogen[EditNonsidereal] =
     Cogen[(
-      String,
+      Input[String],
       Input[EphemerisKey]
     )].contramap { in => (
-      in.name.value,
+      in.name.map(_.value),
       in.key
     )}
 
   implicit val arbEditTarget: Arbitrary[Edit] =
     Arbitrary {
-      Gen.oneOf(
-        arbitrary[EditNonsidereal].map(Edit.nonsidereal),
-        arbitrary[EditSidereal].map(Edit.sidereal)
-      )
+      for {
+        sel <- arbitrary[NonEmptyString]
+        ed  <- Gen.oneOf(
+                arbitrary[EditNonsidereal].map(Edit.nonsidereal(sel, _)),
+                arbitrary[EditSidereal].map(Edit.sidereal(sel, _))
+              )
+      } yield ed
     }
 
   implicit val cogEditTarget: Cogen[Edit] =
     Cogen[(
+      String,
       Option[EditNonsidereal],
       Option[EditSidereal]
     )].contramap { in => (
+      in.selectTarget.value,
       in.nonsidereal,
       in.sidereal
     )}

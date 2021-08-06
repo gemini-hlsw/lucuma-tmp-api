@@ -210,12 +210,6 @@ trait TargetMutation extends TargetScalars {
       "Sidereal target edit"
     )
 
-  implicit val InputObjectTypeTargetEditName: InputObjectType[TargetModel.EditName] =
-    deriveInputObjectType[TargetModel.EditName](
-      InputObjectTypeName("EditTargetNameInput"),
-      InputObjectTypeDescription("Target name edit parameters")
-    )
-
   implicit val InputObjectTypeTargetEdit: InputObjectType[TargetModel.Edit] =
     deriveInputObjectType[TargetModel.Edit](
       InputObjectTypeName("EditTargetInput"),

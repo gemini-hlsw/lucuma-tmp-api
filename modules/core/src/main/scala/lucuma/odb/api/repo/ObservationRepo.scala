@@ -47,12 +47,8 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
 
   def groupByScienceRequirements(pid: Program.Id): F[List[Group[ScienceRequirements]]]
 
-  def bulkEditScienceTargetName(
-    be: BulkEdit[ObservationSelector, TargetModel.EditName]
-  ): F[List[ObservationModel]]
-
-  def bulkEditSiderealScienceTarget(
-    be: BulkEdit[ObservationSelector, TargetModel.EditSidereal]
+  def bulkEditScienceTarget(
+    be: BulkEdit[ObservationSelector, TargetModel.Edit]
   ): F[List[ObservationModel]]
 
   def bulkEditAllScienceTargets(
@@ -254,19 +250,8 @@ object ObservationRepo {
 
       }
 
-      override def bulkEditScienceTargetName(
-        be: BulkEdit[ObservationSelector, TargetModel.EditName]
-      ): F[List[ObservationModel]] =
-
-        bulkEdit(
-          selectObservations(be.selectObservations.programId, be.selectObservations.observationIds),
-          o => be.edit.editTargetMap(o.targets.science, "science", o.id).map { m =>
-            ObservationModel.scienceTargets.replace(m)(o)
-          }
-        )
-
-      override def bulkEditSiderealScienceTarget(
-        be: BulkEdit[ObservationSelector, TargetModel.EditSidereal]
+      override def bulkEditScienceTarget(
+        be: BulkEdit[ObservationSelector, TargetModel.Edit]
       ): F[List[ObservationModel]] =
 
         bulkEdit(

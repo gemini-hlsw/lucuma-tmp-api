@@ -39,7 +39,7 @@ class MutationSuite extends OdbSuite {
     variables = Some(json"""
       {
         "bulkEditConstraints": {
-          "select": {
+          "selectObservations": {
             "observationIds": [ "o-3", "o-4" ]
           },
           "edit": {
@@ -52,8 +52,8 @@ class MutationSuite extends OdbSuite {
 
   queryTest(
     query = """
-      mutation UpdateSiderealScienceTarget($editTarget: BulkEditSiderealInput!) {
-        updateSiderealScienceTarget(input: $editTarget) {
+      mutation UpdateScienceTarget($editTarget: BulkEditScienceTargetInput!) {
+        updateScienceTarget(input: $editTarget) {
           id
           targets {
             science {
@@ -75,7 +75,7 @@ class MutationSuite extends OdbSuite {
     """,
     expected = json"""
       {
-        "updateSiderealScienceTarget": [
+        "updateScienceTarget": [
           {
             "id": "o-2",
             "targets": {
@@ -104,14 +104,16 @@ class MutationSuite extends OdbSuite {
     variables = Some(json"""
       {
         "editTarget": {
-          "select": {
+          "selectObservations": {
             "observationIds": [ "o-2" ]
           },
           "edit": {
-            "name": "NGC 5949",
-            "ra": { "hours": 2.0 },
-            "dec": { "dms": "02:00:00.00" },
-            "parallax": null
+            "selectTarget": "NGC 5949",
+            "sidereal": {
+              "ra": { "hours": 2.0 },
+              "dec": { "dms": "02:00:00.00" },
+              "parallax": null
+            }
           }
         }
       }
@@ -159,36 +161,5 @@ class MutationSuite extends OdbSuite {
       """)
   )
 
-  testTransactionalFailure(
-    query =
-    """
-      mutation EditTargetName($editTargetName: BulkEditTargetNameInput!) {
-        updateScienceTargetName(input: $editTargetName) {
-          id
-          targets {
-            science {
-              name
-            }
-          }
-        }
-      }
-    """,
-    messages = List(
-     """Cannot rename 'DoesntExist' to 'Whatever' because science target 'DoesntExist' was not found in observation o-2"""
-    ),
-    variables = Some(json"""
-      {
-        "editTargetName": {
-          "select": {
-            "observationIds": [ "o-2" ]
-          },
-          "edit": {
-            "oldName": "DoesntExist",
-            "newName": "Whatever"
-          }
-        }
-      }
-    """)
-  )
 
 }
