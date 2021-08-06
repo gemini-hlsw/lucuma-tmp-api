@@ -109,4 +109,43 @@ class MutationSuite extends OdbSuite {
     """)
   )
 
+  queryTestFailure(
+    query =
+      """
+        mutation BulkEditConstraints($bulkEditConstraints: BulkEditConstraintSetInput!) {
+          updateConstraintSet(input: $bulkEditConstraints) {
+            id
+            constraintSet {
+              skyBackground
+              elevationRange {
+                ... on AirMassRange {
+                  min
+                  max
+                }
+              }
+            }
+          }
+        }
+      """,
+    errors = List(
+      "'min' out of range: must be 1.0 <= min <= 3.0"
+    ),
+    variables = Some(json"""
+      {
+        "bulkEditConstraints": {
+          "observationIds": [ "o-3" ],
+          "constraintSet": {
+            "skyBackground": "GRAY",
+            "elevationRange": {
+              "airmassRange": {
+                "min": 0.0,
+                "max": 2.0
+              }
+            }
+          }
+        }
+      }
+      """)
+  )
+
 }

@@ -6,12 +6,14 @@ package test
 import cats.effect._
 import cats.implicits._
 import clue.ApolloWebSocketClient
+import clue.GraphQLException
 import clue.GraphQLOperation
 import clue.http4sjdk.Http4sJDKBackend
 import clue.http4sjdk.Http4sJDKWSBackend
 import clue.PersistentStreamingClient
 import clue.TransactionalClient
-import io.circe.Json
+import io.circe.{Decoder, Json}
+import io.circe.generic.semiauto._
 import io.circe.literal._
 import lucuma.core.model.User
 import lucuma.odb.api.repo.OdbRepo
@@ -93,23 +95,70 @@ trait OdbSuite extends CatsEffectSuite {
   override def munitFixtures = List(serverFixture)
 
   /** Run a query using both http:// and ws:// and ensure that the responses are as expected. */
-  def queryTest(query: String, expected: Json, variables: Option[Json] = None) = {
-    def go(prefix: String, f: Server => Resource[IO, TransactionalClient[IO, Nothing]]) = {
+  def queryTest(query: String, expected: Json, variables: Option[Json] = None): Unit =
+    queryTestImpl(query, expected.asRight, variables)
+
+  def queryTestFailure(query: String, errors: List[String], variables: Option[Json] = None): Unit =
+    queryTestImpl(query, errors.asLeft, variables)
+
+  private def queryTestImpl(query: String, expected: Either[List[String], Json], variables: Option[Json]): Unit = {
+    def go(prefix: String, f: Server => Resource[IO, TransactionalClient[IO, Nothing]]): Unit = {
       val suffix = query.linesIterator.dropWhile(_.trim.isEmpty).next().trim + " ..."
       test(s"$prefix $suffix") {
         Resource.eval(IO(serverFixture()))
           .flatMap(f)
           .use { conn =>
             val req = conn.request(Operation(query))
-            variables
-              .fold(req.apply)(req.apply) // awkward API
-              .map(_.spaces2)
-              .assertEquals(expected.spaces2) // by comparing strings we get more useful errors
+            val op  = variables.fold(req.apply)(req.apply)
+
+            expected.fold(errors => {
+              op.intercept[GraphQLException]
+                .map(e => extractErrors(e.getMessage).map(_.message))
+                .assertEquals(errors)
+            }, success => {
+              op.map(_.spaces2)
+                .assertEquals(success.spaces2) // by comparing strings we get more useful errors
+            })
           }
       }
     }
     go("[http]", transactionalClient)
     go("[ws]  ", streamingClient)
   }
+
+  // Temporary -- to be replaced by a clue update vvvvvvvvvvvvvvvvvvvvvvvvvvvv
+  case class Location(
+    line:   Int,
+    column: Int
+  )
+
+  object Location {
+    implicit val DecoderLocation: Decoder[Location] =
+      deriveDecoder[Location]
+  }
+
+  case class Error(
+    message:   String,
+    path:      List[String],
+    locations: List[Location]
+  )
+
+  object Error {
+    implicit val DecoderError: Decoder[Error] =
+      deriveDecoder[Error]
+  }
+
+  private def extractErrors(message: String): List[Error] = {
+    // Hack around an issue that will be fixed in next clue release
+    val errors =
+      if (message.startsWith("List(")) s"[ ${message.drop(5).dropRight(1)} ]"
+      else message
+
+    io.circe.parser.parse(errors)
+      .flatMap(Decoder[List[Error]].decodeJson)
+      .getOrElse(List.empty[Error])
+  }
+  // Temporary -- to be replaced by a clue update ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 }
 
