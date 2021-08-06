@@ -11,7 +11,6 @@ import clue.GraphQLOperation
 import clue.PersistentStreamingClient
 import clue.TransactionalClient
 import io.circe.{Decoder, Json}
-import io.circe.generic.semiauto._
 import clue.http4sjdk.Http4sJDKBackend
 import clue.http4sjdk.Http4sJDKWSBackend
 import io.circe.literal._
