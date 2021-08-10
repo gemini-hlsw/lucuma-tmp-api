@@ -6,14 +6,13 @@ package test
 import cats.effect._
 import cats.implicits._
 import clue.ApolloWebSocketClient
-import clue.GraphQLException
+import clue.ResponseException
 import clue.GraphQLOperation
 import clue.http4sjdk.Http4sJDKBackend
 import clue.http4sjdk.Http4sJDKWSBackend
 import clue.PersistentStreamingClient
 import clue.TransactionalClient
-import io.circe.{Decoder, Json}
-import io.circe.generic.semiauto._
+import io.circe.Json
 import io.circe.literal._
 import lucuma.core.model.User
 import lucuma.odb.api.repo.OdbRepo
@@ -112,8 +111,8 @@ trait OdbSuite extends CatsEffectSuite {
             val op  = variables.fold(req.apply)(req.apply)
 
             expected.fold(errors => {
-              op.intercept[GraphQLException]
-                .map(e => extractErrors(e.getMessage).map(_.message))
+              op.intercept[ResponseException]
+                .map(e => e.asGraphQLErrors.toList.flatten.map(_.message))
                 .assertEquals(errors)
             }, success => {
               op.map(_.spaces2)
@@ -125,40 +124,6 @@ trait OdbSuite extends CatsEffectSuite {
     go("[http]", transactionalClient)
     go("[ws]  ", streamingClient)
   }
-
-  // Temporary -- to be replaced by a clue update vvvvvvvvvvvvvvvvvvvvvvvvvvvv
-  case class Location(
-    line:   Int,
-    column: Int
-  )
-
-  object Location {
-    implicit val DecoderLocation: Decoder[Location] =
-      deriveDecoder[Location]
-  }
-
-  case class Error(
-    message:   String,
-    path:      List[String],
-    locations: List[Location]
-  )
-
-  object Error {
-    implicit val DecoderError: Decoder[Error] =
-      deriveDecoder[Error]
-  }
-
-  private def extractErrors(message: String): List[Error] = {
-    // Hack around an issue that will be fixed in next clue release
-    val errors =
-      if (message.startsWith("List(")) s"[ ${message.drop(5).dropRight(1)} ]"
-      else message
-
-    io.circe.parser.parse(errors)
-      .flatMap(Decoder[List[Error]].decodeJson)
-      .getOrElse(List.empty[Error])
-  }
-  // Temporary -- to be replaced by a clue update ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 }
 
