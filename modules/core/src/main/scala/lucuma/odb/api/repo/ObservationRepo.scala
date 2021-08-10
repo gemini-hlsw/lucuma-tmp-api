@@ -231,13 +231,16 @@ object ObservationRepo {
 
       private def bulkEdit(
         initialObsList: State[Tables, ValidatedInput[List[ObservationModel]]],
-        editor:         ObservationModel => ValidatedInput[ObservationModel]
+        validateUpdate: ObservationModel => ValidatedInput[Unit],
+        editor:         ValidatedInput[ObservationModel => ObservationModel]
       ): F[List[ObservationModel]] = {
 
         val update: State[Tables, ValidatedInput[List[ObservationModel]]] =
           for {
             initial <- initialObsList
-            edited   = initial.andThen(_.traverse(editor))
+            edited   = (initial, initial.andThen(_.traverse(validateUpdate)), editor).mapN { case (os, _, ed) =>
+              os.map(ed)
+            }
             _       <- edited.traverse { os =>
               Tables.observations.mod_(_ ++ os.fproductLeft(_.id))
             }
@@ -256,9 +259,8 @@ object ObservationRepo {
 
         bulkEdit(
           selectObservations(be.selectObservations.programId, be.selectObservations.observationIds),
-          o => be.edit.editTargetMap(o.targets.science, "science", o.id).map { m =>
-            ObservationModel.scienceTargets.replace(m)(o)
-          }
+          o => be.edit.validateObservationEdit(o.targets.science.keySet, "science", o.id.some).void,
+          be.edit.targetMapEditor.map(f => ObservationModel.scienceTargets.modify(f))
         )
 
       override def bulkEditAllScienceTargets(
@@ -267,9 +269,8 @@ object ObservationRepo {
 
         bulkEdit(
           selectObservations(be.selectObservations.programId, be.selectObservations.observationIds),
-          o => be.edit.edit(o.targets.science, "science", o.id).map { m =>
-            ObservationModel.scienceTargets.replace(m)(o)
-          }
+          o => be.edit.validateObservationEdit(o.targets.science.keySet, "science", o.id.some).void,
+          be.edit.targetMapEditor("science").map(f => ObservationModel.scienceTargets.modify(f))
         )
 
       override def bulkEditTargetEnvironment(
@@ -278,8 +279,9 @@ object ObservationRepo {
 
         bulkEdit(
           selectObservations(be.selectObservations.programId, be.selectObservations.observationIds),
-          o => be.edit.edit(o.targets, o.id).map { tem =>
-            ObservationModel.targets.replace(tem)(o)
+          o => be.edit.validateObservationEdit(o.targets, o.id.some),
+          be.edit.editor.map { ed =>
+            ObservationModel.targets.modify(env => ed.runS(env).value)
           }
         )
 
@@ -289,8 +291,9 @@ object ObservationRepo {
 
         bulkEdit(
           selectObservations(be.selectObservations.programId, be.selectObservations.observationIds),
-          o => be.edit.editor.map { s =>
-            ObservationModel.constraintSet.replace(s.runS(o.constraintSet).value)(o)
+          _ => ().validNec[InputError],
+          be.edit.editor.map { ed =>
+            ObservationModel.constraintSet.modify(cs => ed.runS(cs).value)
           }
         )
 
@@ -300,8 +303,9 @@ object ObservationRepo {
 
         bulkEdit(
           selectObservations(be.selectObservations.programId, be.selectObservations.observationIds),
-          o => be.edit.editor.map { s =>
-            ObservationModel.scienceRequirements.replace(s.runS(o.scienceRequirements).value)(o)
+          _ => ().validNec[InputError],
+          be.edit.editor.map { ed =>
+            ObservationModel.scienceRequirements.modify(sr => ed.runS(sr).value)
           }
         )
 

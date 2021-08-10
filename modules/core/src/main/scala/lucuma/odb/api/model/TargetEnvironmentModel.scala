@@ -5,6 +5,7 @@ package lucuma.odb.api.model
 
 import lucuma.core.math.Coordinates
 import lucuma.core.model.{Observation, Target}
+import lucuma.core.optics.state.all._
 import lucuma.core.optics.syntax.lens._
 import lucuma.odb.api.model.syntax.input._
 import cats.Eq
@@ -16,7 +17,7 @@ import eu.timepit.refined.types.string._
 import eu.timepit.refined.cats.refTypeOrder
 import io.circe.Decoder
 import io.circe.generic.semiauto._
-import lucuma.odb.api.model.TargetModel.TargetMap
+import lucuma.odb.api.model.TargetModel.EditTargetList
 import monocle.Lens
 
 import scala.collection.immutable.SortedMap
@@ -44,12 +45,17 @@ object TargetEnvironmentModel extends TargetEnvironmentModelOptics {
     science:      List[TargetModel.Create]
   ) {
 
-    val create: ValidatedInput[TargetEnvironmentModel] =
+    val create: ValidatedInput[TargetEnvironmentModel] = {
+
+      val listEditor = EditTargetList.replace(science)
+
       (explicitBase.traverse(_.toCoordinates),
-       science.traverse(_.toGemTarget)
-      ).mapN { (b, s) =>
-        TargetEnvironmentModel(b, SortedMap.from(s.fproductLeft(_.name)))
+       listEditor.targetMapEditor("science"),
+       listEditor.validateObservationEdit(Set.empty, "science", Option.empty)
+      ).mapN { (b, sf, _) =>
+        TargetEnvironmentModel(b, sf(SortedMap.empty[NonEmptyString, Target]))
       }
+    }
 
   }
 
@@ -80,25 +86,21 @@ object TargetEnvironmentModel extends TargetEnvironmentModelOptics {
     science:      Option[TargetModel.EditTargetList]
   ) {
 
-    private def editor(
-      scienceTargets: ValidatedInput[Option[TargetMap]]
-    ): ValidatedInput[State[TargetEnvironmentModel, Unit]] =
+    def validateObservationEdit(
+      targetEnv:     TargetEnvironmentModel,
+      observationId: Option[Observation.Id]
+    ): ValidatedInput[Unit] =
+      science.traverse(_.validateObservationEdit(targetEnv.science.keySet, "science", observationId)).void
+
+    val editor: ValidatedInput[State[TargetEnvironmentModel, Unit]] =
       (explicitBase.validateNullable(_.toCoordinates),
-       scienceTargets
-      ).mapN { case (b, s) =>
+       science.traverse(_.targetMapEditor("science"))
+      ).mapN { (b, e) =>
         for {
           _ <- TargetEnvironmentModel.explicitBase := b
-          _ <- TargetEnvironmentModel.science      := s
+          _ <- TargetEnvironmentModel.science.mod(e.getOrElse(identity))
         } yield ()
       }
-
-    def edit(
-      targetEnv:     TargetEnvironmentModel,
-      observationId: Observation.Id
-    ): ValidatedInput[TargetEnvironmentModel] =
-      editor(
-        science.traverse(_.edit(targetEnv.science, "science", observationId))
-      ).map(_.runS(targetEnv).value)
 
   }
 

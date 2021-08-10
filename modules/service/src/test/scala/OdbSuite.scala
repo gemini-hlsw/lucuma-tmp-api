@@ -14,7 +14,6 @@ import io.circe.Json
 import clue.http4sjdk.Http4sJDKBackend
 import clue.http4sjdk.Http4sJDKWSBackend
 import io.circe.literal._
-import io.circe.generic.semiauto.deriveDecoder
 import lucuma.core.model.User
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.service.{OdbService, Routes, Init}

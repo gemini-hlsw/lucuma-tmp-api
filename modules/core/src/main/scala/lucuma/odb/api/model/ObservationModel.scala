@@ -180,9 +180,12 @@ object ObservationModel extends ObservationOptics {
 
     def edit(o: ObservationModel): ValidatedInput[ObservationModel] =
       editor(
-        targets.traverse(_.edit(o.targets, o.id))
+        targets.traverse { ed =>
+          (ed.validateObservationEdit(o.targets, o.id.some), ed.editor).mapN((_, e) =>
+            e.runS(o.targets).value
+          )
+        }
       ).map(_.runS(o).value)
-
 
     private def editor(
       targets: ValidatedInput[Option[TargetEnvironmentModel]]

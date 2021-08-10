@@ -145,7 +145,7 @@ class MutationSuite extends OdbSuite {
       {
         "bulkEditConstraints": {
           "selectObservations": {
-            "observationIds": [ "o-3" ]
+            "observationIds": [ "o-3", "o-4" ]
           },
           "edit": {
             "skyBackground": "GRAY",
