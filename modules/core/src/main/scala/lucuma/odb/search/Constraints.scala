@@ -4,6 +4,7 @@
 package lucuma.odb.search
 
 import lucuma.core.math.Wavelength
+import eu.timepit.refined.types.numeric.PosInt
 
 /** Observing constraints, used to narrow the space of compatible observing modes. */
 sealed trait Constraints
@@ -14,7 +15,7 @@ object Constraints {
   final case class Spectroscopy(
     λ:                    Wavelength,
     simultaneousCoverage: Wavelength,
-    resolution:           Int, // todo: Resolution
+    resolution:           PosInt, // todo: Resolution
   ) extends Constraints
 
 }

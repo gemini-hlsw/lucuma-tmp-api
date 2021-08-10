@@ -5,14 +5,14 @@ package lucuma.odb.search
 
 import lucuma.core.enum._
 import lucuma.core.math.Redshift
+import lucuma.core.model.Magnitude
+import lucuma.odb.api.model.SpatialProfile
 
 /** Target properties we need to know at phase zero. */
 final case class TargetProfile(
-  spatialProfile:       SpatialProfileType,
+  spatialProfile:       SpatialProfile,
   spectralDistribution: SpectralDistributionType,
-  magnitude:            Double,
-  magnitudeSystem:      MagnitudeSystem,
-  magnitudeBand:        MagnitudeBand,
+  magnitude:            Magnitude,
   redshift:             Redshift
 )
 

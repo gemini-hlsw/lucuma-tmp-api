@@ -7,6 +7,7 @@ import lucuma.odb.api.model.InputError
 import lucuma.odb.api.repo.OdbRepo
 
 import cats.effect.Async
+import cats.Parallel
 import cats.effect.std.Dispatcher
 import sangria.execution.{ExceptionHandler, HandledException}
 import sangria.schema.Schema
@@ -31,7 +32,7 @@ object OdbSchema {
       }
     )
 
-  def apply[F[_]: Dispatcher: Async]: Schema[OdbRepo[F], Unit] =
+  def apply[F[_]: Parallel: Dispatcher: Async]: Schema[OdbRepo[F], Unit] =
     Schema(
       QueryType[F],
       Some(MutationType[F]),

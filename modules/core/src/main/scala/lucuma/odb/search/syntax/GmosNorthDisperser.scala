@@ -42,8 +42,8 @@ final class GmosNorthDisperserOps(val self: GmosNorthDisperser) extends AnyVal {
   }
 
   /** Resolution at λ with the specified slit width (arcsec). */
-  def resolution(λ: Wavelength, slitWidth: Angle): Int =
-    ((λ.nanometer.value / Δλ) * (0.5 / Angle.signedDecimalArcseconds.get(slitWidth))).toInt
+  def resolution(λ: Wavelength, slitWidth: Angle): Rational =
+    ((λ.nanometer.value / Δλ) * (Rational(1, 2) / Angle.signedDecimalArcseconds.get(slitWidth)))
 
   /**
    * Simultaneous coverage with Hamamatsu detectors.

@@ -3,18 +3,36 @@
 
 package lucuma.odb.api.model
 
+import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import lucuma.core.enum.SpatialProfileType
 import lucuma.core.util.Enumerated
 import lucuma.core.util.Display
+import lucuma.core.math.Angle
 
 object SpatialProfileModel {
-  final case class Input(sourceType: SpatialProfileType, fwhm: Option[GaussianSourceAngleInput]) extends Product with Serializable
+  final case class Input(sourceType: SpatialProfileType, fwhm: Option[GaussianSourceAngleInput]) extends Product with Serializable {
+    def toSpatialProfile: ValidatedInput[SpatialProfile] = sourceType match {
+      case SpatialProfileType.PointSource => SpatialProfile.PointSource.validNec
+      case SpatialProfileType.UniformSource => SpatialProfile.UniformSource.validNec
+      case SpatialProfileType.GaussianSource =>
+        fwhm.map {
+          _.toAngle.map(SpatialProfile.GaussianSource)
+        }.getOrElse(InputError.fromMessage("GaussianSource requires a valid fwhm angle").invalidNec[SpatialProfile])
+    }
+  }
 
   sealed abstract class Units(
     val angleUnit: AngleModel.Units
-  ) extends Product with Serializable
+  ) extends Product with Serializable {
+
+    def readLong(value: Long): ValidatedInput[Angle] =
+      angleUnit.readSignedLong(value)
+
+    def readDecimal(value: BigDecimal): ValidatedInput[Angle] =
+      angleUnit.readSignedDecimal(value)
+  }
 
   object Units {
 
@@ -42,9 +60,15 @@ object SpatialProfileModel {
     microarcseconds: Option[Long],
     milliarcseconds: Option[BigDecimal],
     arcseconds:      Option[BigDecimal],
-    fromLong:        Option[NumericUnits.LongInput[Units]],
-    fromDecimal:     Option[NumericUnits.DecimalInput[Units]]
-  )
+  ) {
+    import Units._
+    val toAngle: ValidatedInput[Angle] =
+      ValidatedInput.requireOne("fwhm",
+        microarcseconds.map(Microarcseconds.readLong),
+        milliarcseconds.map(Milliarcseconds.readDecimal),
+        arcseconds     .map(Arcseconds.readDecimal)
+      )
+  }
 
   object GaussianSourceAngleInput {
     implicit def DecoderGaussianSourceAngleInput: Decoder[GaussianSourceAngleInput] =

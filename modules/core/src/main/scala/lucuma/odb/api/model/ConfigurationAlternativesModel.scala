@@ -10,20 +10,20 @@ import io.circe.refined._
 import lucuma.core.enum.SpectralDistributionType
 
 object ConfigurationAlternativesModel {
-  final case class Search(
-    wavelength: Option[WavelengthModel.Input],
-    simultaneousCoverage: Option[WavelengthModel.Input],
-    resolution: Option[PosInt],
-    signalToNoise: Option[PosInt],
-    spatialProfile: Option[SpatialProfileModel.Input],
-    spectralDistribution: Option[SpectralDistributionType],
-    magnitude: Option[MagnitudeModel.Create],
-    redshift: Option[BigDecimal]
+  final case class SearchParameters(
+    wavelength: WavelengthModel.Input,
+    simultaneousCoverage: WavelengthModel.Input,
+    resolution: PosInt,
+    signalToNoise: PosInt,
+    spatialProfile: SpatialProfileModel.Input,
+    spectralDistribution: SpectralDistributionType,
+    magnitude: MagnitudeModel.Create,
+    redshift: BigDecimal
 )
-  object Search {
+  object SearchParameters {
 
-    implicit val DecoderSerch: Decoder[Search] =
-      deriveDecoder[Search]
+    implicit val DecoderSerch: Decoder[SearchParameters] =
+      deriveDecoder[SearchParameters]
 
   }
 }

@@ -3,8 +3,13 @@
 
 package lucuma.odb.api.schema
 
+import cats.Parallel
+import cats.Monad
 import cats.syntax.all._
+import lucuma.core.math.Redshift
 import lucuma.odb.api.repo.OdbRepo
+import lucuma.odb.search._
+import lucuma.odb.itc._
 import sangria.schema._
 
 trait ConfigurationQuery {
@@ -12,20 +17,37 @@ trait ConfigurationQuery {
   import ConfigurationAlternativesSchema._
 
   // TBD Add return type and hook it to the basic case algorithm
-  def spectroscopy[F[_]]: Field[OdbRepo[F], Unit] =
+  def spectroscopy[F[_]: Parallel: Monad: Itc]: Field[OdbRepo[F], Unit] =
     Field(
       name        = "spectroscopy",
       fieldType   = IntType,
       description = None,
       arguments   = List(ArgumentConfigurationAlternativesModelSearch),
-      // TODO Return a real result
-      resolve     = c => c.arg(ArgumentConfigurationAlternativesModelSearch).wavelength.foldMap(_.nanometers.foldMap(_.toInt))
+      resolve     = c => {
+        val arg = c.arg(ArgumentConfigurationAlternativesModelSearch)
+        (arg.wavelength.toWavelength("wavelength"),
+         arg.simultaneousCoverage.toWavelength("simultaneousCoverage"),
+         arg.resolution.validNec,
+         arg.spatialProfile.toSpatialProfile,
+         arg.spectralDistribution.validNec,
+         arg.magnitude.toMagnitude,
+         arg.redshift.validNec,
+        ).mapN {(wavelength, simultaneousCoverage, resolution, spatialProfile, spectralDistribution, magnitude, redshift) =>
+          val constraints = Constraints.Spectroscopy(wavelength, simultaneousCoverage, resolution)
+          val targetProfile = TargetProfile(spatialProfile, spectralDistribution, magnitude, Redshift(redshift))
+          Search.spectroscopy[F](
+            constraints, targetProfile, arg.signalToNoise)
+          }
+        0
+      }
     )
 
-  def allFields[F[_]]: List[Field[OdbRepo[F], Unit]] =
+  def allFields[F[_]: Parallel: Monad]: List[Field[OdbRepo[F], Unit]] = {
+    implicit val itc: Itc[F] = ???
     List(
       spectroscopy
     )
+  }
 
 }
 

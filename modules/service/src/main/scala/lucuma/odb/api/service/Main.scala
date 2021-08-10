@@ -8,6 +8,7 @@ import lucuma.odb.api.repo.OdbRepo
 import lucuma.sso.client.SsoClient
 
 import cats.effect.{Async, ExitCode, IO, IOApp}
+import cats.Parallel
 import cats.implicits._
 import fs2.Stream
 import org.http4s.implicits._
@@ -23,7 +24,7 @@ import scala.concurrent.ExecutionContext.global
 // #server
 object Main extends IOApp {
 
-  def stream[F[_]: Log4CatsLogger: Async](
+  def stream[F[_]: Log4CatsLogger: Parallel: Async](
     odb: OdbRepo[F],
     cfg: Config
   ): Stream[F, Nothing] = {
@@ -58,7 +59,7 @@ object Main extends IOApp {
       log  <- Slf4jLogger.create[IO]
       odb  <- OdbRepo.create[IO]
       _    <- Init.initialize(odb)
-      _    <- stream(odb, cfg)(log, Async[IO]).compile.drain
+      _    <- stream(odb, cfg)(log, Parallel[IO], Async[IO]).compile.drain
     } yield ExitCode.Success
 }
 

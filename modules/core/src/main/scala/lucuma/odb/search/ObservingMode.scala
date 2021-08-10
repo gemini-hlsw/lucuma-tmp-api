@@ -8,6 +8,7 @@ import lucuma.core.math.Wavelength
 import lucuma.odb.search.syntax.gmosnorthdisperser._
 import lucuma.odb.search.syntax.gmosnorthfpu._
 import lucuma.odb.search.syntax.gmosnorthfilter._
+import spire.math.Rational
 
 sealed trait ObservingMode {
   def instrument: Instrument
@@ -17,7 +18,7 @@ object ObservingMode {
 
   sealed trait Spectroscopy extends ObservingMode {
     def λ:          Wavelength
-    def resolution: Int
+    def resolution: Rational
     def coverage:   Coverage
   }
 
@@ -33,7 +34,7 @@ object ObservingMode {
       val instrument: Instrument =
         Instrument.GmosNorth
 
-      def resolution: Int =
+      def resolution: Rational =
         disperser.resolution(λ, fpu.effectiveSlitWidth)
 
       def coverage: Coverage =

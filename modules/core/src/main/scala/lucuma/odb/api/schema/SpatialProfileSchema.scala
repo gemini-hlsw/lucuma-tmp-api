@@ -10,7 +10,6 @@ import sangria.schema._
 import sangria.macros.derive._
 
 object SpatialProfileSchema {
-  import NumericUnitsSchema._
 
   implicit val EnumSpatialProfileModelUnits: EnumType[SpatialProfileModel.Units] =
     EnumType.fromEnumerated(

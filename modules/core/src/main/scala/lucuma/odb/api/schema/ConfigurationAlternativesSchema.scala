@@ -16,8 +16,8 @@ object ConfigurationAlternativesSchema {
   import SpectralDistributionSchema._
   import syntax.inputobjecttype._
 
-  val InputConfigurationAlternativesModelSearch: InputObjectType[ConfigurationAlternativesModel.Search] =
-    deriveInputObjectType[ConfigurationAlternativesModel.Search](
+  val InputConfigurationAlternativesModelSearch: InputObjectType[ConfigurationAlternativesModel.SearchParameters] =
+    deriveInputObjectType[ConfigurationAlternativesModel.SearchParameters](
       InputObjectTypeName("QueryConfigurationAlternativeSearchInput"),
       InputObjectTypeDescription("Configuration alternatives query"),
       DocumentInputField("wavelength", description  = "Observing wavelength."),
@@ -30,7 +30,7 @@ object ConfigurationAlternativesSchema {
       DocumentInputField("redshift", description  = "Target redshift.")
     )
 
-  val ArgumentConfigurationAlternativesModelSearch: Argument[ConfigurationAlternativesModel.Search] =
+  val ArgumentConfigurationAlternativesModelSearch: Argument[ConfigurationAlternativesModel.SearchParameters] =
     InputConfigurationAlternativesModelSearch.argument(
       "input",
       "Configuraton alternatives search parameters."

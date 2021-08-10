@@ -6,6 +6,7 @@ package lucuma.odb.api.schema
 import lucuma.odb.api.repo.OdbRepo
 
 import cats.MonadError
+import cats.Parallel
 import cats.effect.std.Dispatcher
 import sangria.schema._
 
@@ -14,7 +15,7 @@ import sangria.schema._
  */
 object QueryType {
 
-  def apply[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Unit] =
+  def apply[F[_]: Parallel: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Unit] =
     ObjectType(
       name   = "Query",
       fields =

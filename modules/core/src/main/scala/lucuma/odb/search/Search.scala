@@ -8,6 +8,7 @@ import cats.syntax.all._
 import lucuma.core.enum._
 import lucuma.odb.itc.Itc
 import lucuma.odb.search.gmosnorth.GmosNorthFilterSelector
+import eu.timepit.refined.types.numeric.PosInt
 
 object Search {
 
@@ -26,7 +27,7 @@ object Search {
   def spectroscopy[F[_]: Parallel: Monad: Itc](
     constraints:   Constraints.Spectroscopy,
     targetProfile: TargetProfile,
-    signalToNoise: Int
+    signalToNoise: PosInt
   ): F[List[Result.Spectroscopy]] = {
 
     // As a first pass we'll generate every possible configuration and then filter them at the end.
@@ -55,11 +56,11 @@ object Search {
     val compatibleModes: List[ObservingMode.Spectroscopy] =
       allModes
         .filter(_.coverage.width >= constraints.simultaneousCoverage)
-        .filter(_.resolution     >= constraints.resolution)
+        .filter(_.resolution     >= constraints.resolution.value)
 
     // Done!
     compatibleModes.parTraverse { mode =>
-      Itc[F].calculate(targetProfile, mode, signalToNoise).map(Result.Spectroscopy(mode, _))
+      Itc[F].calculate(targetProfile, mode, signalToNoise.value).map(Result.Spectroscopy(mode, _))
     } .map(_.sortBy {
       case Result.Spectroscopy(_, Itc.Result.Success(t, n, _)) => t.toSeconds.toDouble * n
       case Result.Spectroscopy(_, Itc.Result.SourceTooBright)  => Double.MaxValue
