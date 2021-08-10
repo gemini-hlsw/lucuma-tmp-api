@@ -6,12 +6,13 @@ package lucuma.odb.api.model
 import cats.Eq
 import cats.syntax.all._
 import cats.data.State
+import clue.data.Input
 import io.circe.Decoder
 import io.circe.generic.semiauto._
+import lucuma.core.enum.ScienceMode
 import lucuma.core.optics.syntax.lens._
 import lucuma.core.optics.state.all._
 import lucuma.odb.api.model.syntax.input._
-import clue.data.Input
 import monocle.Lens
 import monocle.Focus
 

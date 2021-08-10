@@ -3,6 +3,7 @@
 
 package lucuma.odb.api.schema
 
+import lucuma.core.enum.SpatialProfileType
 import lucuma.odb.api.model.SpatialProfileModel
 import lucuma.odb.api.schema.syntax.`enum`._
 import sangria.schema._
@@ -13,8 +14,8 @@ object SpatialProfileSchema {
 
   implicit val EnumSpatialProfileModelUnits: EnumType[SpatialProfileModel.Units] =
     EnumType.fromEnumerated(
-      "WavelengthUnits",
-      "Wavelength units"
+      "SpatialProfileUnits",
+      "Spatial profial gaussian units"
     )
 
   implicit val InputGaussianSourceAngleInput: InputType[SpatialProfileModel.GaussianSourceAngleInput] =
@@ -23,7 +24,7 @@ object SpatialProfileSchema {
       InputObjectTypeDescription("Gaussian source angle in appropriate units"),
     )
 
-  implicit val EnumSpatialProfileType: EnumType[SpatialProfileModel.SpatialProfileType] =
+  implicit val EnumSpatialProfileType: EnumType[SpatialProfileType] =
     EnumType.fromEnumerated(
       "SpatialProfileType",
       "Spatial profile type: Point/Uniform/Gaussian"

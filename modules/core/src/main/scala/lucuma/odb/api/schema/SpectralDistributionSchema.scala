@@ -3,13 +3,13 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.SpectralDistributionModel
+import lucuma.core.enum.SpectralDistributionType
 import lucuma.odb.api.schema.syntax.`enum`._
 import sangria.schema._
 
 object SpectralDistributionSchema {
 
-  implicit val EnumSpectralDistributionModelInput: EnumType[SpectralDistributionModel.Input] =
+  implicit val EnumSpectralDistributionModelInput: EnumType[SpectralDistributionType] =
     EnumType.fromEnumerated(
       "SpctralDistribution",
       "Spectral distribution variant"
