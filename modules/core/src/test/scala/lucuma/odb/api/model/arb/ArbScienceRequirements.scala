@@ -14,6 +14,9 @@ import eu.timepit.refined.types.numeric.PosDouble
 import org.scalacheck.Arbitrary
 import org.scalacheck.Cogen
 import org.scalacheck.Arbitrary.arbitrary
+import lucuma.core.enum.FocalPlane
+import lucuma.core.enum.ScienceMode
+import lucuma.core.enum.SpectroscopyCapabilities
 import lucuma.core.math.Wavelength
 import lucuma.core.math.arb._
 import lucuma.core.math.Angle

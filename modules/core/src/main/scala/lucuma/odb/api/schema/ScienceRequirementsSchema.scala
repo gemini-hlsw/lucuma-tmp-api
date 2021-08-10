@@ -3,18 +3,18 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.schema.syntax.all._
-import lucuma.odb.api.model.FocalPlane
-import lucuma.odb.api.model.ScienceMode
+import lucuma.core.math.Angle
+import lucuma.core.enum.FocalPlane
+import lucuma.core.enum.SpectroscopyCapabilities
+import lucuma.core.enum.ScienceMode
 import lucuma.odb.api.model.SpectroscopyScienceRequirements
 import lucuma.odb.api.model.SpectroscopyScienceRequirementsModel
-import lucuma.odb.api.model.SpectroscopyCapabilities
 import lucuma.odb.api.model.ScienceRequirements
+import lucuma.odb.api.repo.OdbRepo
+import lucuma.odb.api.schema.syntax.all._
 
 import sangria.schema._
 import sangria.macros.derive._
-import lucuma.odb.api.repo.OdbRepo
-import lucuma.core.math.Angle
 
 object ScienceRequirementsSchema {
   import WavelengthSchema._

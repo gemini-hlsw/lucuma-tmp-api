@@ -3,10 +3,11 @@
 
 package lucuma.odb.api.model
 
+import eu.timepit.refined.types.numeric.PosInt
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import io.circe.refined._
-import eu.timepit.refined.types.numeric.PosInt
+import lucuma.core.enum.SpectralDistributionType
 
 object ConfigurationAlternativesModel {
   final case class Search(
@@ -15,7 +16,7 @@ object ConfigurationAlternativesModel {
     resolution: Option[PosInt],
     signalToNoise: Option[PosInt],
     spatialProfile: Option[SpatialProfileModel.Input],
-    spectralDistribution: Option[SpectralDistributionModel.Input],
+    spectralDistribution: Option[SpectralDistributionType],
     magnitude: Option[MagnitudeModel.Create],
     redshift: Option[BigDecimal]
 )

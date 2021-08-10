@@ -5,6 +5,7 @@ package lucuma.odb.api.model
 
 import io.circe.Decoder
 import io.circe.generic.semiauto._
+import lucuma.core.enum.SpatialProfileType
 import lucuma.core.util.Enumerated
 import lucuma.core.util.Display
 
@@ -48,26 +49,6 @@ object SpatialProfileModel {
   object GaussianSourceAngleInput {
     implicit def DecoderGaussianSourceAngleInput: Decoder[GaussianSourceAngleInput] =
       deriveDecoder[GaussianSourceAngleInput]
-
-  }
-
-  sealed trait SpatialProfileType extends Product with Serializable
-
-  final case object PointSource    extends SpatialProfileType
-  final case object UniformSource  extends SpatialProfileType
-  final case object GaussianSource extends SpatialProfileType
-
-  object SpatialProfileType {
-
-    implicit val EnumeratedProfileType: Enumerated[SpatialProfileType] =
-      Enumerated.of(
-        PointSource,
-        UniformSource,
-        GaussianSource
-      )
-
-    implicit val DecoderSpatialProfileType: Decoder[SpatialProfileType] =
-      deriveDecoder[SpatialProfileType]
 
   }
 

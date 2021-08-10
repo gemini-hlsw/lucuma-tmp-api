@@ -15,14 +15,14 @@ import eu.timepit.refined.types.numeric.PosInt
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
-import lucuma.odb.api.model.FocalPlane
-import lucuma.odb.api.model.SpectroscopyCapabilities
 import lucuma.odb.api.model.syntax.input._
+import lucuma.core.enum.FocalPlane
+import lucuma.core.enum.SpectroscopyCapabilities
 import lucuma.core.math.Angle
-import lucuma.core.util.Display
 import lucuma.core.math.Wavelength
-import lucuma.core.util.Enumerated
 import lucuma.core.optics.syntax.lens._
+import lucuma.core.util.Display
+import lucuma.core.util.Enumerated
 import monocle.Focus
 import monocle.Lens
 
