@@ -16,7 +16,7 @@ import clue.http4sjdk.Http4sJDKWSBackend
 import io.circe.literal._
 import lucuma.core.model.User
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.odb.api.service.{OdbService, Routes, Init}
+import lucuma.odb.api.service.{OdbService, Routes, TestInit}
 import lucuma.sso.client.SsoClient
 import munit.CatsEffectSuite
 import org.http4s.{Uri => Http4sUri, _}
@@ -50,7 +50,7 @@ trait OdbSuite extends CatsEffectSuite {
   private val app: IO[HttpApp[IO]] =
     OdbRepo
       .create[IO]
-      .flatTap(Init.initialize(_))
+      .flatTap(TestInit.initialize(_))
       .map(OdbService(_))
       .map(Routes.forService(_, ssoClient).orNotFound)
 

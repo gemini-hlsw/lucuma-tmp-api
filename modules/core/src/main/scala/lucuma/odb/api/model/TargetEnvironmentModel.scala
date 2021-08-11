@@ -79,10 +79,16 @@ object TargetEnvironmentModel extends TargetEnvironmentModelOptics {
     def singleSidereal(sidereal: TargetModel.CreateSidereal): Create =
       Create(None, List(TargetModel.Create.sidereal(sidereal)))
 
+    def fromSidereal(cs: IterableOnce[TargetModel.CreateSidereal]): Create =
+      Create(None, cs.iterator.map(TargetModel.Create.sidereal).toList)
+
+    def fromNonsidereal(cs: IterableOnce[TargetModel.CreateNonsidereal]): Create =
+      Create(None, cs.iterator.map(TargetModel.Create.nonsidereal).toList)
+
   }
 
   final case class Edit(
-    explicitBase: Input[CoordinatesModel.Input] = Input.ignore,
+    explicitBase: Input[CoordinatesModel.Input]      = Input.ignore,
     science:      Option[TargetModel.EditTargetList]
   ) {
 
@@ -106,6 +112,9 @@ object TargetEnvironmentModel extends TargetEnvironmentModelOptics {
 
   object Edit {
 
+    val Empty: Edit =
+      Edit(explicitBase = Input.ignore, science = None)
+
     import io.circe.generic.extras.semiauto._
     import io.circe.generic.extras.Configuration
     implicit val customConfig: Configuration = Configuration.default.withDefaults
@@ -118,6 +127,12 @@ object TargetEnvironmentModel extends TargetEnvironmentModelOptics {
         a.explicitBase,
         a.science
       )}
+
+    def explicitBase(
+      ra:  RightAscensionModel.Input,
+      dec: DeclinationModel.Input
+    ): Edit =
+      Empty.copy(explicitBase = Input.assign(CoordinatesModel.Input(ra, dec)))
 
   }
 }
