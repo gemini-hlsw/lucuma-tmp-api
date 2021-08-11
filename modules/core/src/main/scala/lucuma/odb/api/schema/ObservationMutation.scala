@@ -88,7 +88,7 @@ trait ObservationMutation {
 
   val ArgumentScienceTargetsBulkEdit: Argument[BulkEdit[TargetModel.EditTargetList]] =
     bulkEditArgument[TargetModel.EditTargetList](
-      "science",
+      "scienceTargets",
       InputObjectTypeTargetEditList
     )
 

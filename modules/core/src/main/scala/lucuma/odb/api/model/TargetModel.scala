@@ -471,7 +471,7 @@ object TargetModel extends TargetOptics {
           (targetNames - n).validNec[InputError]
         else
           InputError.fromMessage(
-            s"Could not delete $listName target '$name'${formatObservationId(observationId)} because it was not found"
+            s"Could not delete $listName target '$n'${formatObservationId(observationId)} because it was not found"
           ).invalidNec[Set[NonEmptyString]]
 
       add.map(_.validateObservationEdit(targetNames, listName, observationId))
