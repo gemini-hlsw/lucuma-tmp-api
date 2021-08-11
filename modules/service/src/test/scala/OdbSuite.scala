@@ -8,17 +8,15 @@ import cats.implicits._
 import clue.ApolloWebSocketClient
 import clue.ResponseException
 import clue.GraphQLOperation
-import clue.http4sjdk.Http4sJDKBackend
-import clue.http4sjdk.Http4sJDKWSBackend
 import clue.PersistentStreamingClient
 import clue.TransactionalClient
 import io.circe.Json
+import clue.http4sjdk.Http4sJDKBackend
+import clue.http4sjdk.Http4sJDKWSBackend
 import io.circe.literal._
 import lucuma.core.model.User
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.odb.api.service.Init
-import lucuma.odb.api.service.OdbService
-import lucuma.odb.api.service.Routes
+import lucuma.odb.api.service.{OdbService, Routes, Init}
 import lucuma.sso.client.SsoClient
 import munit.CatsEffectSuite
 import org.http4s.{Uri => Http4sUri, _}
@@ -28,6 +26,7 @@ import org.http4s.implicits._
 import org.http4s.server.Server
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
+
 import scala.concurrent.ExecutionContext
 import sttp.model.Uri
 
@@ -93,19 +92,58 @@ trait OdbSuite extends CatsEffectSuite {
 
   override def munitFixtures = List(serverFixture)
 
-  /** Run a query using both http:// and ws:// and ensure that the responses are as expected. */
-  def queryTest(query: String, expected: Json, variables: Option[Json] = None): Unit =
-    queryTestImpl(query, expected.asRight, variables)
+  sealed trait ClientOption extends Product with Serializable {
 
-  def queryTestFailure(query: String, errors: List[String], variables: Option[Json] = None): Unit =
-    queryTestImpl(query, errors.asLeft, variables)
+    def prefix: String =
+      this match {
+        case ClientOption.Http => "[http]"
+        case ClientOption.Ws   => "[ws]  "
+      }
 
-  private def queryTestImpl(query: String, expected: Either[List[String], Json], variables: Option[Json]): Unit = {
-    def go(prefix: String, f: Server => Resource[IO, TransactionalClient[IO, Nothing]]): Unit = {
+    def connection: Server => Resource[IO, TransactionalClient[IO, Nothing]] =
+      this match {
+        case ClientOption.Http => transactionalClient
+        case ClientOption.Ws   => streamingClient
+      }
+
+  }
+
+  object ClientOption {
+    case object Http extends ClientOption
+    case object Ws   extends ClientOption
+
+    val All: List[ClientOption] = List(Http, Ws)
+  }
+
+  /** Run a query and ensure that the responses are as expected. */
+  def queryTest(
+    query:     String,
+    expected:  Json,
+    variables: Option[Json] = None,
+    clients:   List[ClientOption] = ClientOption.All
+  ): Unit =
+    queryTestImpl(query, expected.asRight, variables, clients)
+
+  def queryTestFailure(
+    query:     String,
+    errors:    List[String],
+    variables: Option[Json] = None,
+    clients:   List[ClientOption] = ClientOption.All
+  ): Unit =
+    queryTestImpl(query, errors.asLeft, variables, clients)
+
+  private def queryTestImpl(
+    query:     String,
+    expected:  Either[List[String], Json],
+    variables: Option[Json],
+    clients:   List[ClientOption]
+  ): Unit = {
+
+    def go(client: ClientOption): Unit = {
       val suffix = query.linesIterator.dropWhile(_.trim.isEmpty).next().trim + " ..."
-      test(s"$prefix $suffix") {
+      test(s"${client.prefix} $suffix") {
         Resource.eval(IO(serverFixture()))
-          .flatMap(f)
+          .flatMap(client.connection)
           .use { conn =>
             val req = conn.request(Operation(query))
             val op  = variables.fold(req.apply)(req.apply)
@@ -121,9 +159,8 @@ trait OdbSuite extends CatsEffectSuite {
           }
       }
     }
-    go("[http]", transactionalClient)
-    go("[ws]  ", streamingClient)
+
+    clients.foreach(go)
   }
 
 }
-
