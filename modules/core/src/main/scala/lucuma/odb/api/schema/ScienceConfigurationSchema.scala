@@ -98,7 +98,7 @@ object ScienceConfigurationSchema {
       fields[OdbRepo[F], Modes.GmosNorthLongSlit](
         Field(
           name        = "filter",
-          fieldType   = EnumTypeGmosNorthFilter,
+          fieldType   = OptionType(EnumTypeGmosNorthFilter),
           description = Some("GMOS North Filter"),
           resolve     = _.value.filter
         ),
@@ -128,7 +128,7 @@ object ScienceConfigurationSchema {
       fields[OdbRepo[F], Modes.GmosSouthLongSlit](
         Field(
           name        = "filter",
-          fieldType   = EnumTypeGmosSouthFilter,
+          fieldType   = OptionType(EnumTypeGmosSouthFilter),
           description = Some("GMOS South Filter"),
           resolve     = _.value.filter
         ),

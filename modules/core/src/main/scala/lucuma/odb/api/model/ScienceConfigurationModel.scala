@@ -41,7 +41,7 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
 
   object Modes {
     final case class GmosNorthLongSlit(
-      filter:    GmosNorthFilter,
+      filter:    Option[GmosNorthFilter],
       disperser: GmosNorthDisperser,
       slitWidth: Angle
     ) extends ScienceConfigurationModel {
@@ -62,7 +62,7 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
     }
 
     final case class CreateGmosNorthLongSlit(
-      filter:    GmosNorthFilter,
+      filter:    Option[GmosNorthFilter],
       disperser: GmosNorthDisperser,
       slitWidth: SlitWidthInput
     ) {
@@ -82,12 +82,11 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
     ) {
 
       def edit: ValidatedInput[State[GmosNorthLongSlit, Unit]] =
-        (filter.validateIsNotNull("filter"),
-         disperser.validateIsNotNull("disperser"),
+        (disperser.validateIsNotNull("disperser"),
          slitWidth.validateNotNullable("slitWidth")(_.toAngle)).mapN {
-          (filter, disperser, slitWidth) =>
+          (disperser, slitWidth) =>
             for {
-              _ <- GmosNorthLongSlit.filter := filter
+              _ <- GmosNorthLongSlit.filter := filter.toOptionOption
               _ <- GmosNorthLongSlit.disperser := disperser
               _ <- GmosNorthLongSlit.slitWidth := slitWidth
             } yield ()
@@ -104,7 +103,7 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
     }
 
     final case class GmosSouthLongSlit(
-      filter:    GmosSouthFilter,
+      filter:    Option[GmosSouthFilter],
       disperser: GmosSouthDisperser,
       slitWidth: Angle
     ) extends ScienceConfigurationModel {
@@ -125,7 +124,7 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
     }
 
     final case class CreateGmosSouthLongSlit(
-      filter:    GmosSouthFilter,
+      filter:    Option[GmosSouthFilter],
       disperser: GmosSouthDisperser,
       slitWidth: SlitWidthInput
     ) {

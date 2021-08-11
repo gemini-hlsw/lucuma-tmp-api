@@ -67,7 +67,7 @@ trait ScienceConfigurationMutation {
 
   implicit val InputObjectTypeScienceConfigurationSetEdit: InputObjectType[ScienceConfigurationModelEdit] =
     deriveInputObjectType[ScienceConfigurationModelEdit](
-      InputObjectTypeName("EditSetScienceConfigurationModel"),
+      InputObjectTypeName("EditScienceConfigurationInput"),
       InputObjectTypeDescription("Edit or set observation configuration"),
       ReplaceInputField("set", InputObjectTypeScienceConfigurationCreate.notNullableField("set")),
       ReplaceInputField("edit", InputObjectTypeScienceConfigEdit.notNullableField("edit")),
