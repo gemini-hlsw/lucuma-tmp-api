@@ -4,6 +4,7 @@
 package test
 
 import io.circe.literal._
+import cats.syntax.option._
 
 class TargetSuite extends OdbSuite {
 
@@ -327,5 +328,230 @@ class TargetSuite extends OdbSuite {
     """
   )
 
+  // Bulk edit NGC 3312 to remove parallax altogether.
+  queryTest(
+    query ="""
+      mutation UpdateScienceTarget($targetEdit: BulkEditScienceTargetInput!) {
+        updateScienceTarget(input: $targetEdit) {
+          id
+          targets {
+            science {
+              name
+              tracking {
+                ... on Sidereal {
+                  parallax { microarcseconds }
+                }
+              }
+            }
+          }
+        }
+      }
+    """,
+    expected =json"""
+      {
+        "updateScienceTarget": [
+          {
+            "id": "o-3",
+            "targets": {
+              "science": [
+                {
+                  "name": "NGC 3312",
+                  "tracking": {
+                    "parallax": null
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "o-4",
+            "targets": {
+              "science": [
+                {
+                  "name": "NGC 3312",
+                  "tracking": {
+                    "parallax": null
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "o-5",
+            "targets": {
+              "science": [
+                {
+                  "name": "NGC 3312",
+                  "tracking": {
+                    "parallax": null
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "o-6",
+            "targets": {
+              "science": [
+                {
+                  "name": "NGC 3269",
+                  "tracking": {
+                    "parallax": {
+                      "microarcseconds": 0
+                    }
+                  }
+                },
+                {
+                  "name": "NGC 3312",
+                  "tracking": {
+                    "parallax": null
+                  }
+                },
+                {
+                  "name": "NGC 5949",
+                  "tracking": {
+                    "parallax": {
+                      "microarcseconds": 0
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    """,
+    variables =json"""
+      {
+        "targetEdit": {
+          "selectObservations": {
+            "observationIds": [ "o-3", "o-4", "o-5", "o-6" ]
+          },
+          "edit": {
+            "selectTarget": "NGC 3312",
+            "sidereal": {
+              "parallax": null
+            }
+          }
+        }
+      }
+    """.some
+  )
+
+  // Missing named target.
+  queryTestFailure(
+    query ="""
+      mutation UpdateScienceTarget($targetEdit: BulkEditScienceTargetInput!) {
+        updateScienceTarget(input: $targetEdit) {
+          id
+          targets {
+            science {
+              name
+            }
+          }
+        }
+      }
+    """,
+    errors = List(
+      "Missing science target 'NGC 9999' in observation o-3"
+    ),
+    variables =json"""
+      {
+        "targetEdit": {
+          "selectObservations": {
+            "observationIds": [ "o-3" ]
+          },
+          "edit": {
+            "selectTarget": "NGC 9999",
+            "sidereal": {
+              "parallax": null
+            }
+          }
+        }
+      }
+    """.some
+  )
+
+  // Rename target NGC 3312 in o-3
+  queryTest(
+    query ="""
+      mutation UpdateScienceTarget($renameEdit: BulkEditScienceTargetInput!) {
+        updateScienceTarget(input: $renameEdit) {
+          id
+          targets {
+            science {
+              name
+            }
+          }
+        }
+      }
+    """,
+    expected =json"""
+      {
+        "updateScienceTarget": [
+          {
+            "id": "o-3",
+            "targets": {
+              "science": [
+                {
+                  "name": "NGC 3312*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    """,
+    variables =json"""
+      {
+        "renameEdit": {
+          "selectObservations": {
+            "observationIds": [ "o-3" ]
+          },
+          "edit": {
+            "selectTarget": "NGC 3312",
+            "sidereal": {
+              "name": "NGC 3312*"
+            }
+          }
+        }
+      }
+    """.some,
+    clients = List(ClientOption.Http)  // cannot run this test twice since it changes required state
+  )
+
+  // Renaming disallowed since it would replace an existing target.
+  queryTestFailure(
+    query ="""
+      mutation UpdateScienceTarget($renameEdit: BulkEditScienceTargetInput!) {
+        updateScienceTarget(input: $renameEdit) {
+          id
+          targets {
+            science {
+              name
+            }
+          }
+        }
+      }
+    """,
+    errors = List(
+      "Cannot rename 'NGC 3312' to 'NGC 5949' because there is already a science target named 'NGC 5949' in observation o-6"
+    ),
+    variables =json"""
+      {
+        "renameEdit": {
+          "selectObservations": {
+            "observationIds": [ "o-6" ]
+          },
+          "edit": {
+            "selectTarget": "NGC 3312",
+            "sidereal": {
+              "name": "NGC 5949"
+            }
+          }
+        }
+      }
+    """.some
+  )
 
 }

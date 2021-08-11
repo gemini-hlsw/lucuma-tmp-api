@@ -310,7 +310,7 @@ object TargetModel extends TargetOptics {
 
       def missing: InputError =
         InputError.fromMessage(
-          s"Missing $listName target $name${formatObservationId(observationId)}"
+          s"Missing $listName target '$selectTarget'${formatObservationId(observationId)}"
         )
 
       def wouldReplace(newName: NonEmptyString): InputError =
