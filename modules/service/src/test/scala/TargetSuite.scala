@@ -18,6 +18,85 @@ class TargetSuite extends OdbSuite {
   // o-7: <none>
   //
 
+  // Pick the first alphabetically by name (or only) science target for an observation.
+  queryTest(
+    query ="""
+      query ScienceTargetForObservation {
+        scienceTarget(observationId: "o-2") {
+          name
+        }
+      }
+    """,
+    expected =json"""
+      {
+        "scienceTarget": {
+          "name": "NGC 5949"
+        }
+      }
+    """
+  )
+
+  // All science targets
+  queryTest(
+    query ="""
+      query ScienceTargetsForObservation {
+        scienceTargets(observationId: "o-6") {
+          name
+        }
+      }
+    """,
+    expected =json"""
+      {
+        "scienceTargets": [
+          {
+            "name": "NGC 3269"
+          },
+          {
+            "name": "NGC 3312"
+          },
+          {
+            "name": "NGC 5949"
+          }
+        ]
+      }
+    """
+  )
+
+  // Target environment
+  queryTest(
+    query ="""
+      query TargetEnvironmentForObservation {
+        targetEnvironment(observationId: "o-5") {
+          explicitBase {
+            ra { hms }
+            dec { dms }
+          }
+          science {
+            name
+          }
+        }
+      }
+    """,
+    expected =json"""
+      {
+        "targetEnvironment": {
+          "explicitBase": {
+            "ra": {
+              "hms": "10:37:01.992000"
+            },
+            "dec": {
+              "dms": "-27:33:54.000000"
+            }
+          },
+          "science": [
+            {
+              "name": "NGC 3312"
+            }
+          ]
+        }
+      }
+    """
+  )
 
   // Group by individual science target.
   //
