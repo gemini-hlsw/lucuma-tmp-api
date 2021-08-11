@@ -9,13 +9,14 @@ import cats.MonadError
 import cats.Parallel
 import cats.effect.std.Dispatcher
 import sangria.schema._
+import lucuma.odb.itc.Itc
 
 /**
  * Queries offered by the API.
  */
 object QueryType {
 
-  def apply[F[_]: Parallel: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Unit] =
+  def apply[F[_]: Parallel: Dispatcher: Itc](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Unit] =
     ObjectType(
       name   = "Query",
       fields =

@@ -63,6 +63,7 @@ object ScienceConfigurationSchema {
 
       )
     )
+
   def ScienceConfigurationType[F[_]]: InterfaceType[OdbRepo[F], ScienceConfigurationModel] =
     InterfaceType[OdbRepo[F], ScienceConfigurationModel](
       name         = "ScienceConfiguration",

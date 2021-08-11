@@ -5,6 +5,7 @@ package lucuma.odb.api.service
 
 import lucuma.odb.api.schema.OdbSchema
 import lucuma.odb.api.repo.OdbRepo
+import lucuma.odb.itc.Itc
 
 import cats.Parallel
 import cats.implicits._
@@ -34,7 +35,7 @@ trait OdbService[F[_]] {
 
 object OdbService {
 
-  def apply[F[_]: Parallel: Async: Logger](
+  def apply[F[_]: Parallel: Async: Itc: Logger](
     odb: OdbRepo[F]
   ): OdbService[F] =
 

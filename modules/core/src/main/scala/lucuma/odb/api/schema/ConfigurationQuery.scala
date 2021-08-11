@@ -4,26 +4,29 @@
 package lucuma.odb.api.schema
 
 import cats.Parallel
-import cats.Monad
 import cats.syntax.all._
 import lucuma.core.math.Redshift
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.search._
+import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.odb.itc._
 import sangria.schema._
+import cats.effect.std.Dispatcher
+import cats.MonadError
 
 trait ConfigurationQuery {
 
+  import context._
   import ConfigurationAlternativesSchema._
 
   // TBD Add return type and hook it to the basic case algorithm
-  def spectroscopy[F[_]: Parallel: Monad: Itc]: Field[OdbRepo[F], Unit] =
+  def spectroscopy[F[_]: Dispatcher: MonadError[*[_], Throwable]: Parallel: Itc]: Field[OdbRepo[F], Unit] =
     Field(
       name        = "spectroscopy",
-      fieldType   = IntType,
+      fieldType   = SpectroscopyResultsType[F],
       description = None,
       arguments   = List(ArgumentConfigurationAlternativesModelSearch),
-      resolve     = c => {
+      resolve     = c => c.unsafeToFuture {
         val arg = c.arg(ArgumentConfigurationAlternativesModelSearch)
         (arg.wavelength.toWavelength("wavelength"),
          arg.simultaneousCoverage.toWavelength("simultaneousCoverage"),
@@ -37,13 +40,11 @@ trait ConfigurationQuery {
           val targetProfile = TargetProfile(spatialProfile, spectralDistribution, magnitude, Redshift(redshift))
           Search.spectroscopy[F](
             constraints, targetProfile, arg.signalToNoise)
-          }
-        0
+          }.liftTo[F].flatten
       }
     )
 
-  def allFields[F[_]: Parallel: Monad]: List[Field[OdbRepo[F], Unit]] = {
-    implicit val itc: Itc[F] = ???
+  def allFields[F[_]: Dispatcher: Parallel: MonadError[*[_], Throwable]: Itc]: List[Field[OdbRepo[F], Unit]] = {
     List(
       spectroscopy
     )

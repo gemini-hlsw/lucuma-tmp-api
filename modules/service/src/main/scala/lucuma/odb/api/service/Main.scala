@@ -6,6 +6,7 @@ package lucuma.odb.api.service
 import lucuma.core.model.User
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.sso.client.SsoClient
+import lucuma.itc.ItcImpl
 
 import cats.effect.{Async, ExitCode, IO, IOApp}
 import cats.Parallel
@@ -20,11 +21,12 @@ import org.typelevel.log4cats.{Logger => Log4CatsLogger}
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import scala.concurrent.ExecutionContext.global
+import lucuma.odb.itc.Itc
 
 // #server
 object Main extends IOApp {
 
-  def stream[F[_]: Log4CatsLogger: Parallel: Async](
+  def stream[F[_]: Log4CatsLogger: Parallel: Async: Itc](
     odb: OdbRepo[F],
     cfg: Config
   ): Stream[F, Nothing] = {
@@ -58,8 +60,10 @@ object Main extends IOApp {
       cfg  <- Config.fromCiris.load(Async[IO])
       log  <- Slf4jLogger.create[IO]
       odb  <- OdbRepo.create[IO]
-      _    <- Init.initialize(odb)
-      _    <- stream(odb, cfg)(log, Parallel[IO], Async[IO]).compile.drain
+      _    <- ItcImpl.forHeroku[IO].use { itc =>
+        Init.initialize(odb)
+        stream(odb, cfg)(log, Parallel[IO], Async[IO], itc).compile.drain
+      }
     } yield ExitCode.Success
 }
 

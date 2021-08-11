@@ -10,25 +10,24 @@ import lucuma.odb.itc.Itc
 import lucuma.odb.search.gmosnorth.GmosNorthFilterSelector
 import eu.timepit.refined.types.numeric.PosInt
 
+sealed trait Result {
+  def mode: ObservingMode
+  def itc:  Itc.Result
+}
+
+object Result {
+  case class Spectroscopy(mode: ObservingMode.Spectroscopy, itc: Itc.Result)
+}
+
+final case class SpectroscopyResults(results: List[Result.Spectroscopy])
+
 object Search {
-
-  sealed trait Result {
-    def mode: ObservingMode
-    def itc:  Itc.Result
-  }
-
-  object Result {
-
-    case class Spectroscopy(mode: ObservingMode.Spectroscopy, itc: Itc.Result)
-
-  }
-
 
   def spectroscopy[F[_]: Parallel: Monad: Itc](
     constraints:   Constraints.Spectroscopy,
     targetProfile: TargetProfile,
     signalToNoise: PosInt
-  ): F[List[Result.Spectroscopy]] = {
+  ): F[SpectroscopyResults] = {
 
     // As a first pass we'll generate every possible configuration and then filter them at the end.
     // This lets us apply the constraints in one place rather than duplicating the filtering logic
@@ -64,7 +63,7 @@ object Search {
     } .map(_.sortBy {
       case Result.Spectroscopy(_, Itc.Result.Success(t, n, _)) => t.toSeconds.toDouble * n
       case Result.Spectroscopy(_, Itc.Result.SourceTooBright)  => Double.MaxValue
-    })
+    }).map(SpectroscopyResults(_))
 
   }
 

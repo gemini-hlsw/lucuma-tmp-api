@@ -11,6 +11,7 @@ import cats.Parallel
 import cats.effect.std.Dispatcher
 import sangria.execution.{ExceptionHandler, HandledException}
 import sangria.schema.Schema
+import lucuma.odb.itc.Itc
 
 /**
  * The entry point schema definition, which just references the available
@@ -32,7 +33,7 @@ object OdbSchema {
       }
     )
 
-  def apply[F[_]: Parallel: Dispatcher: Async]: Schema[OdbRepo[F], Unit] =
+  def apply[F[_]: Parallel: Dispatcher: Async: Itc]: Schema[OdbRepo[F], Unit] =
     Schema(
       QueryType[F],
       Some(MutationType[F]),

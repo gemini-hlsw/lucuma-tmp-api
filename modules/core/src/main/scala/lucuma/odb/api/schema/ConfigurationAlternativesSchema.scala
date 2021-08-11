@@ -7,6 +7,10 @@ import sangria.schema._
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import lucuma.odb.api.model.ConfigurationAlternativesModel
+import lucuma.odb.search.SpectroscopyResults
+import lucuma.odb.search.Result
+import lucuma.odb.api.repo.OdbRepo
+import lucuma.odb.search.ObservingMode
 
 object ConfigurationAlternativesSchema {
   import WavelengthSchema._
@@ -36,4 +40,48 @@ object ConfigurationAlternativesSchema {
       "Configuraton alternatives search parameters."
     )
 
+  def ObservingModeSpectroscopyType[F[_]]: ObjectType[OdbRepo[F], ObservingMode.Spectroscopy] =
+    ObjectType(
+      name     = "ObservingModeSpectroscopy",
+      fieldsFn = () => fields(
+
+        Field(
+          name        = "wavelength",
+          fieldType   = WavelengthType[F],
+          description = Some("Wavelength in appropriate units"),
+          resolve     = _.value.λ
+        ),
+
+      )
+    )
+
+  def ResultSpectroscopyType[F[_]]: ObjectType[OdbRepo[F], Result.Spectroscopy] =
+    ObjectType(
+      name     = "Result",
+      fieldsFn = () => fields(
+
+        Field(
+          name        = "mode",
+          fieldType   = ObservingModeSpectroscopyType[F],
+          description = Some("Spectroscopy mode"),
+          resolve     = _.value.mode
+        ),
+
+      )
+    )
+
+  def SpectroscopyResultsType[F[_]]: ObjectType[OdbRepo[F], SpectroscopyResults]=
+    ObjectType(
+      name     = "spectroscopyResult",
+      fieldsFn = () => fields(
+
+        Field(
+          name        = "results",
+          fieldType   = ListType(ResultSpectroscopyType[F]),
+          description = Some("Search results"),
+          resolve     = _.value.results
+        ),
+
+      )
+    )
 }

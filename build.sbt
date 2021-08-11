@@ -43,7 +43,13 @@ lazy val commonSettings = Seq(
     "org.typelevel"     %% "cats-testkit"           % catsVersion                 % "test",
     "org.typelevel"     %% "cats-testkit-scalatest" % catsTestkitScalaTestVersion % "test"
   ),
-  scalacOptions --= Seq("-Xfatal-warnings").filterNot(_ => insideCI.value)
+  testFrameworks += new TestFramework("munit.Framework"),
+  Test / parallelExecution := false, // tests run fine in parallel but output is nicer this way
+  scalacOptions --= Seq("-Xfatal-warnings").filterNot(_ => insideCI.value),
+  scalacOptions ++= Seq(
+    "-Ymacro-annotations",
+    "-Ywarn-macros:after"
+  ),
 )
 
 lazy val noPublishSettings = Seq(
@@ -52,6 +58,7 @@ lazy val noPublishSettings = Seq(
 
 lazy val modules: List[ProjectReference] = List(
   core,
+  itc,
   service
 )
 
@@ -67,10 +74,6 @@ lazy val core = project
   .settings(commonSettings)
   .settings(
     name := "lucuma-odb-api-core",
-    scalacOptions ++= Seq(
-      "-Ymacro-annotations",
-      "-Ywarn-macros:after"
-    ),
     libraryDependencies ++= Seq(
       "co.fs2"                     %% "fs2-core"                  % fs2Version,
       "dev.optics"                 %% "monocle-core"              % monocleVersion,
@@ -100,19 +103,38 @@ lazy val core = project
       "eu.timepit"                 %% "refined"                   % refinedVersion,
       "eu.timepit"                 %% "refined-cats"              % refinedVersion,
 
-
       "edu.gemini"                 %% "lucuma-core-testkit"       % lucumaCoreVersion      % Test,
       "io.chrisdavenport"          %% "cats-scalacheck"           % catsScalacheckVersion  % Test,
       "org.scalameta"              %% "munit"                     % munitVersion           % Test,
       "org.typelevel"              %% "discipline-munit"          % disciplineMunitVersion % Test
     ),
-    testFrameworks += new TestFramework("munit.Framework")
+  )
+
+lazy val itc = project
+  .in(file("modules/itc"))
+  .enablePlugins(AutomateHeaderPlugin)
+  .dependsOn(core % "compile->compile;test->test")
+  .settings(commonSettings)
+  .settings(
+    name := "lucuma-odb-itc",
+    scalacOptions ++= Seq(
+      "-Ymacro-annotations"
+    ),
+    libraryDependencies ++= Seq(
+      "edu.gemini"                 %% "lucuma-core"               % lucumaCoreVersion,
+      "org.typelevel"              %% "cats-core"                 % catsVersion,
+      "org.typelevel"              %% "cats-effect"               % catsEffectVersion,
+      "org.http4s"                 %% "http4s-async-http-client"  % http4sVersion,
+      "org.http4s"                 %% "http4s-circe"              % http4sVersion,
+      "org.http4s"                 %% "http4s-dsl"                % http4sVersion,
+      "org.typelevel"              %% "munit-cats-effect-3"       % munitCatsEffectVersion % Test,
+    ),
   )
 
 lazy val service = project
   .in(file("modules/service"))
   .enablePlugins(AutomateHeaderPlugin)
-  .dependsOn(core % "compile->compile;test->test")
+  .dependsOn(core % "compile->compile;test->test", itc)
   .settings(commonSettings)
   .settings(
     name := "lucuma-odb-api-service",
@@ -147,6 +169,4 @@ lazy val service = project
       "edu.gemini"                 %% "clue-http4s-jdk-client"    % clueVersion            % Test,
       "org.typelevel"              %% "munit-cats-effect-3"       % munitCatsEffectVersion % Test,
     ),
-    testFrameworks += new TestFramework("munit.Framework"),
-    Test / parallelExecution := false, // tests run fine in parallel but output is nicer this way
   ).enablePlugins(JavaAppPackaging)

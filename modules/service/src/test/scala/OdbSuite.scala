@@ -29,12 +29,16 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import scala.concurrent.ExecutionContext
 import sttp.model.Uri
+import lucuma.odb.itc.Itc
 
 /**
  * Mixin that allows execution of GraphQL operations on a per-suite instance of the Odb, shared
  * among all tests.
  */
 trait OdbSuite extends CatsEffectSuite {
+
+  private implicit val itc: Itc[IO] =
+    ???
 
   private implicit val log: Logger[IO] =
     Slf4jLogger.getLogger[IO]
