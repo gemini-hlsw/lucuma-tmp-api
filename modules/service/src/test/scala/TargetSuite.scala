@@ -424,9 +424,7 @@ class TargetSuite extends OdbSuite {
     variables =json"""
       {
         "targetEdit": {
-          "selectObservations": {
-            "observationIds": [ "o-3", "o-4", "o-5", "o-6" ]
-          },
+          "selectObservations": [ "o-3", "o-4", "o-5", "o-6" ],
           "edit": {
             "selectTarget": "NGC 3312",
             "sidereal": {
@@ -458,9 +456,7 @@ class TargetSuite extends OdbSuite {
     variables =json"""
       {
         "targetEdit": {
-          "selectObservations": {
-            "observationIds": [ "o-3" ]
-          },
+          "selectObservations": [ "o-3" ],
           "edit": {
             "selectTarget": "NGC 9999",
             "sidereal": {
@@ -505,9 +501,7 @@ class TargetSuite extends OdbSuite {
     variables =json"""
       {
         "renameEdit": {
-          "selectObservations": {
-            "observationIds": [ "o-3" ]
-          },
+          "selectObservations": [ "o-3" ],
           "edit": {
             "selectTarget": "NGC 3312",
             "sidereal": {
@@ -540,9 +534,7 @@ class TargetSuite extends OdbSuite {
     variables =json"""
       {
         "renameEdit": {
-          "selectObservations": {
-            "observationIds": [ "o-6" ]
-          },
+          "selectObservations": [ "o-6" ],
           "edit": {
             "selectTarget": "NGC 3312",
             "sidereal": {

@@ -5,7 +5,7 @@ package lucuma.odb.api.repo
 
 import lucuma.core.model.{Observation, Program, Target}
 import lucuma.core.optics.state.all._
-import lucuma.odb.api.model.ObservationModel.{BulkEdit, Create, Edit, Group, ObservationEvent, ObservationSelector}
+import lucuma.odb.api.model.ObservationModel.{BulkEdit, Create, Edit, Group, ObservationEvent}
 import lucuma.odb.api.model.{ConstraintSetModel, Event, InputError, InstrumentConfigModel, ObservationModel, PlannedTimeSummaryModel, ScienceRequirements, ScienceRequirementsModel, TargetEnvironmentModel, TargetModel, ValidatedInput}
 import lucuma.odb.api.model.syntax.validatedinput._
 import cats.data.{EitherT, State}
@@ -48,23 +48,23 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
   def groupByScienceRequirements(pid: Program.Id): F[List[Group[ScienceRequirements]]]
 
   def bulkEditScienceTarget(
-    be: BulkEdit[ObservationSelector, TargetModel.Edit]
+    be: BulkEdit[TargetModel.Edit]
   ): F[List[ObservationModel]]
 
   def bulkEditAllScienceTargets(
-    be: BulkEdit[ObservationSelector, TargetModel.EditTargetList]
+    be: BulkEdit[TargetModel.EditTargetList]
   ): F[List[ObservationModel]]
 
   def bulkEditTargetEnvironment(
-    be: BulkEdit[ObservationSelector, TargetEnvironmentModel.Edit]
+    be: BulkEdit[TargetEnvironmentModel.Edit]
   ): F[List[ObservationModel]]
 
   def bulkEditConstraintSet(
-    be: BulkEdit[ObservationSelector, ConstraintSetModel.Edit]
+    be: BulkEdit[ConstraintSetModel.Edit]
   ): F[List[ObservationModel]]
 
   def bulkEditScienceRequirements(
-    be: BulkEdit[ObservationSelector, ScienceRequirementsModel.Edit]
+    be: BulkEdit[ScienceRequirementsModel.Edit]
   ): F[List[ObservationModel]]
 
 }
@@ -254,31 +254,31 @@ object ObservationRepo {
       }
 
       override def bulkEditScienceTarget(
-        be: BulkEdit[ObservationSelector, TargetModel.Edit]
+        be: BulkEdit[TargetModel.Edit]
       ): F[List[ObservationModel]] =
 
         bulkEdit(
-          selectObservations(be.selectObservations.programId, be.selectObservations.observationIds),
+          selectObservations(be.selectProgram, be.selectObservations),
           o => be.edit.validateObservationEdit(o.targets.science.keySet, "science", o.id.some).void,
           be.edit.targetMapEditor.map(f => ObservationModel.scienceTargets.modify(f))
         )
 
       override def bulkEditAllScienceTargets(
-        be: BulkEdit[ObservationSelector, TargetModel.EditTargetList]
+        be: BulkEdit[TargetModel.EditTargetList]
       ): F[List[ObservationModel]] =
 
         bulkEdit(
-          selectObservations(be.selectObservations.programId, be.selectObservations.observationIds),
+          selectObservations(be.selectProgram, be.selectObservations),
           o => be.edit.validateObservationEdit(o.targets.science.keySet, "science", o.id.some).void,
           be.edit.targetMapEditor("science").map(f => ObservationModel.scienceTargets.modify(f))
         )
 
       override def bulkEditTargetEnvironment(
-        be: BulkEdit[ObservationSelector, TargetEnvironmentModel.Edit]
+        be: BulkEdit[TargetEnvironmentModel.Edit]
       ): F[List[ObservationModel]] =
 
         bulkEdit(
-          selectObservations(be.selectObservations.programId, be.selectObservations.observationIds),
+          selectObservations(be.selectProgram, be.selectObservations),
           o => be.edit.validateObservationEdit(o.targets, o.id.some),
           be.edit.editor.map { ed =>
             ObservationModel.targets.modify(env => ed.runS(env).value)
@@ -286,11 +286,11 @@ object ObservationRepo {
         )
 
       override def bulkEditConstraintSet(
-        be: BulkEdit[ObservationSelector, ConstraintSetModel.Edit]
+        be: BulkEdit[ConstraintSetModel.Edit]
       ): F[List[ObservationModel]] =
 
         bulkEdit(
-          selectObservations(be.selectObservations.programId, be.selectObservations.observationIds),
+          selectObservations(be.selectProgram, be.selectObservations),
           _ => ().validNec[InputError],
           be.edit.editor.map { ed =>
             ObservationModel.constraintSet.modify(cs => ed.runS(cs).value)
@@ -298,11 +298,11 @@ object ObservationRepo {
         )
 
       override def bulkEditScienceRequirements(
-        be: BulkEdit[ObservationSelector, ScienceRequirementsModel.Edit]
+        be: BulkEdit[ScienceRequirementsModel.Edit]
       ): F[List[ObservationModel]] =
 
         bulkEdit(
-          selectObservations(be.selectObservations.programId, be.selectObservations.observationIds),
+          selectObservations(be.selectProgram, be.selectObservations),
           _ => ().validNec[InputError],
           be.edit.editor.map { ed =>
             ObservationModel.scienceRequirements.modify(sr => ed.runS(sr).value)

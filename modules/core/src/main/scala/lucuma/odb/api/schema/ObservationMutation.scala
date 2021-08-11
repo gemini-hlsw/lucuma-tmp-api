@@ -4,7 +4,7 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.{ConstraintSetModel, ObservationModel, ScienceRequirementsModel, TargetEnvironmentModel, TargetModel}
-import lucuma.odb.api.model.ObservationModel.{BulkEdit, ObservationSelector}
+import lucuma.odb.api.model.ObservationModel.BulkEdit
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.inputtype._
 
@@ -60,24 +60,18 @@ trait ObservationMutation {
       "Edit observation"
     )
 
-  val InputObjectObservationSelector: InputObjectType[ObservationSelector] =
-    deriveInputObjectType[ObservationSelector](
-      InputObjectTypeName("SelectObservationsInput"),
-      InputObjectTypeDescription("Select all observations with a 'programId', or only specific 'observationIds'")
-    )
-
-  private def bulkEditArgument[S: Decoder, E: Decoder](
+  private def bulkEditArgument[A: Decoder](
     name:       String,
-    selectType: InputType[S],
-    editType:   InputType[E]
-  ): Argument[BulkEdit[S, E]] = {
+    editType:   InputType[A]
+  ): Argument[BulkEdit[A]] = {
 
-    val io: InputObjectType[BulkEdit[S, E]] =
-      InputObjectType[BulkEdit[S, E]](
+    val io: InputObjectType[BulkEdit[A]] =
+      InputObjectType[BulkEdit[A]](
         s"BulkEdit${name.capitalize}Input",
         "Input for bulk editing multiple observations",
         List(
-          InputField("selectObservations", selectType),
+          InputField("selectProgram",      OptionInputType(ProgramIdType)),
+          InputField("selectObservations", OptionInputType(ListInputType(ObservationIdType))),
           InputField("edit",               editType)
         )
       )
@@ -86,38 +80,33 @@ trait ObservationMutation {
 
   }
 
-  val ArgumentScienceTargetBulkEdit: Argument[BulkEdit[ObservationSelector, TargetModel.Edit]] =
-    bulkEditArgument[ObservationSelector, TargetModel.Edit](
+  val ArgumentScienceTargetBulkEdit: Argument[BulkEdit[TargetModel.Edit]] =
+    bulkEditArgument[TargetModel.Edit](
       "scienceTarget",
-      InputObjectObservationSelector,
       InputObjectTypeTargetEdit
     )
 
-  val ArgumentScienceTargetsBulkEdit: Argument[BulkEdit[ObservationSelector, TargetModel.EditTargetList]] =
-    bulkEditArgument[ObservationSelector, TargetModel.EditTargetList](
+  val ArgumentScienceTargetsBulkEdit: Argument[BulkEdit[TargetModel.EditTargetList]] =
+    bulkEditArgument[TargetModel.EditTargetList](
       "science",
-      InputObjectObservationSelector,
       InputObjectTypeTargetEditList
     )
 
-  val ArgumentTargetEnvironmentBulkEdit: Argument[BulkEdit[ObservationSelector, TargetEnvironmentModel.Edit]] =
-    bulkEditArgument[ObservationSelector, TargetEnvironmentModel.Edit](
+  val ArgumentTargetEnvironmentBulkEdit: Argument[BulkEdit[TargetEnvironmentModel.Edit]] =
+    bulkEditArgument[TargetEnvironmentModel.Edit](
       "targetEnvironment",
-      InputObjectObservationSelector,
       InputObjectTypeTargetEnvironmentEdit
     )
 
-  val ArgumentConstraintSetBulkEdit: Argument[BulkEdit[ObservationSelector, ConstraintSetModel.Edit]] =
-    bulkEditArgument[ObservationSelector, ConstraintSetModel.Edit](
+  val ArgumentConstraintSetBulkEdit: Argument[BulkEdit[ConstraintSetModel.Edit]] =
+    bulkEditArgument[ConstraintSetModel.Edit](
       "constraintSet",
-      InputObjectObservationSelector,
       InputObjectTypeConstraintSetEdit
     )
 
-  val ArgumentScienceRequirementsBulkEdit: Argument[BulkEdit[ObservationSelector, ScienceRequirementsModel.Edit]] =
-    bulkEditArgument[ObservationSelector, ScienceRequirementsModel.Edit](
+  val ArgumentScienceRequirementsBulkEdit: Argument[BulkEdit[ScienceRequirementsModel.Edit]] =
+    bulkEditArgument[ScienceRequirementsModel.Edit](
       "scienceRequirements",
-      InputObjectObservationSelector,
       InputObjectTypeScienceRequirementsEdit
     )
 

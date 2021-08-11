@@ -287,38 +287,22 @@ object ObservationModel extends ObservationOptics {
 
   }
 
-  final case class BulkEdit[S, E](
-    selectObservations: S,
-    edit:   E
+  final case class BulkEdit[A](
+    selectObservations: Option[List[Observation.Id]],
+    selectProgram:      Option[Program.Id],
+    edit:               A
   )
 
   object BulkEdit {
 
-    implicit def DecoderBulkEdit[S: Decoder, E: Decoder]: Decoder[BulkEdit[S, E]] =
-      deriveDecoder[BulkEdit[S, E]]
+    implicit def DecoderBulkEdit[A: Decoder]: Decoder[BulkEdit[A]] =
+      deriveDecoder[BulkEdit[A]]
 
-    implicit def EqBulkEdit[S: Eq, E: Eq]: Eq[BulkEdit[S, E]] =
+    implicit def EqBulkEdit[A: Eq]: Eq[BulkEdit[A]] =
       Eq.by { a => (
         a.selectObservations,
+        a.selectProgram,
         a.edit
-      )}
-
-  }
-
-  final case class ObservationSelector(
-    programId:      Option[Program.Id],
-    observationIds: Option[List[Observation.Id]]
-  )
-
-  object ObservationSelector {
-
-    implicit val DecoderObsSelectorInput: Decoder[ObservationSelector] =
-      deriveDecoder[ObservationSelector]
-
-    implicit val EqObsSelectorInput: Eq[ObservationSelector] =
-      Eq.by { a => (
-        a.programId,
-        a.observationIds
       )}
 
   }

@@ -39,81 +39,9 @@ class MutationSuite extends OdbSuite {
     variables = Some(json"""
       {
         "bulkEditConstraints": {
-          "selectObservations": {
-            "observationIds": [ "o-3", "o-4" ]
-          },
+          "selectObservations": [ "o-3", "o-4" ],
           "edit": {
             "skyBackground": "GRAY"
-          }
-        }
-      }
-    """)
-  )
-
-  queryTest(
-    query = """
-      mutation UpdateScienceTarget($editTarget: BulkEditScienceTargetInput!) {
-        updateScienceTarget(input: $editTarget) {
-          id
-          targets {
-            science {
-              name
-              tracking {
-                __typename
-                ... on Sidereal {
-                  coordinates {
-                    ra { hms }
-                    dec { dms }
-                  }
-                  parallax { microarcseconds }
-                }
-              }
-            }
-          }
-        }
-      }
-    """,
-    expected = json"""
-      {
-        "updateScienceTarget": [
-          {
-            "id": "o-2",
-            "targets": {
-              "science": [
-                {
-                  "name": "NGC 5949",
-                  "tracking": {
-                    "__typename": "Sidereal",
-                    "coordinates": {
-                      "ra": {
-                        "hms": "02:00:00.000000"
-                      },
-                      "dec": {
-                        "dms": "+02:00:00.000000"
-                      }
-                    },
-                    "parallax": null
-                  }
-                }
-              ]
-            }
-          }
-        ]
-      }
-    """,
-    variables = Some(json"""
-      {
-        "editTarget": {
-          "selectObservations": {
-            "observationIds": [ "o-2" ]
-          },
-          "edit": {
-            "selectTarget": "NGC 5949",
-            "sidereal": {
-              "ra": { "hours": 2.0 },
-              "dec": { "dms": "02:00:00.00" },
-              "parallax": null
-            }
           }
         }
       }
@@ -144,9 +72,7 @@ class MutationSuite extends OdbSuite {
     variables = Some(json"""
       {
         "bulkEditConstraints": {
-          "selectObservations": {
-            "observationIds": [ "o-3", "o-4" ]
-          },
+          "selectObservations": [ "o-3", "o-4" ],
           "edit": {
             "skyBackground": "GRAY",
             "elevationRange": {
