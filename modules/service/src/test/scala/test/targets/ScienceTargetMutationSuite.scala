@@ -128,7 +128,7 @@ class ScienceTargetMutationSuite extends OdbSuite {
     """.some
   )
 
-  // Missing named target.
+  // Attempt to edit a target that is not found in o-3.
   queryTestFailure(
     query ="""
       mutation UpdateScienceTarget($targetEdit: BulkEditScienceTargetInput!) {

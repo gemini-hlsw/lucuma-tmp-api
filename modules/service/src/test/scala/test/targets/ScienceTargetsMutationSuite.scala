@@ -92,7 +92,8 @@ class ScienceTargetsMutationSuite extends OdbSuite {
 
   )
 
-  // Same name twice in replace list
+  // Here we attempt to replace the target list for o-4 but we specify the
+  // same name, NGC 1704, twice so it fails.
   queryTestFailure(
     query ="""
       mutation UpdateScienceTargets($listEdit: BulkEditScienceTargetsInput!) {
@@ -144,7 +145,7 @@ class ScienceTargetsMutationSuite extends OdbSuite {
     """.some
   )
 
-  // Delete NGC 3312 then add NGC 1704 (could also have been a `replaceList`)
+  // Delete NGC 3312 then add NGC 1704 (could also have been a `replaceList`).
   queryTest(
     query ="""
       mutation UpdateScienceTargets($listEdit: BulkEditScienceTargetsInput!) {

@@ -16,7 +16,7 @@ import clue.http4sjdk.Http4sJDKWSBackend
 import io.circe.literal._
 import lucuma.core.model.User
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.odb.api.service.{OdbService, Routes, TestInit}
+import lucuma.odb.api.service.{OdbService, Routes}
 import lucuma.sso.client.SsoClient
 import munit.CatsEffectSuite
 import org.http4s.{Uri => Http4sUri, _}

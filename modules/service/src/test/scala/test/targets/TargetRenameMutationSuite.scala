@@ -20,7 +20,7 @@ class TargetRenameMutationSuite extends OdbSuite {
   // o-7: <none>
   //
 
-  // Rename target NGC 3312 in o-3
+  // Rename target "NGC 3312" to "NGC 3312*" in o-3.
   queryTest(
     query ="""
       mutation UpdateScienceTarget($renameEdit: BulkEditScienceTargetInput!) {
@@ -66,7 +66,8 @@ class TargetRenameMutationSuite extends OdbSuite {
     clients = List(ClientOption.Http)  // cannot run this test twice since it changes required state
   )
 
-  // Renaming disallowed since it would replace an existing target.
+  // Here we attempt to rename "NGC 3312" to "NGC 5949" but it fails because
+  // there is already a target "NGC 5949" in the observation.
   queryTestFailure(
     query ="""
       mutation UpdateScienceTarget($renameEdit: BulkEditScienceTargetInput!) {
@@ -97,7 +98,5 @@ class TargetRenameMutationSuite extends OdbSuite {
       }
     """.some
   )
-
-  // Rename
 
 }

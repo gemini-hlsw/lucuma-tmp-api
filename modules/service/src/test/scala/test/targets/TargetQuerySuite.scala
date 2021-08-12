@@ -19,7 +19,8 @@ class TargetQuerySuite extends OdbSuite {
   // o-7: <none>
   //
 
-  // Pick the first alphabetically by name (or only) science target for an observation.
+  // Pick the first alphabetically by name (or only in this case) science target
+  // for o-2.
   queryTest(
     query ="""
       query ScienceTargetForObservation {
@@ -37,7 +38,7 @@ class TargetQuerySuite extends OdbSuite {
     """
   )
 
-  // All science targets
+  // Fetch all science targets for o-6.
   queryTest(
     query ="""
       query ScienceTargetsForObservation {
@@ -63,7 +64,7 @@ class TargetQuerySuite extends OdbSuite {
     """
   )
 
-  // Target environment
+  // Looks up the whole target environment for o-5, including explicit base position.
   queryTest(
     query ="""
       query TargetEnvironmentForObservation {
@@ -155,7 +156,12 @@ class TargetQuerySuite extends OdbSuite {
     """
   )
 
-  // Group by all science targets
+  // Group by all science targets.
+  //
+  // NGC 5949                     => o-2
+  // NGC 3312                     => o-3, o-4, o-5
+  // NGC 3269, NGC 3312, NGC 5949 => o-6
+  // <nothing>                    => o-7
   queryTest(
     query ="""
       query GroupByAllScienceTargets {
@@ -223,7 +229,10 @@ class TargetQuerySuite extends OdbSuite {
     """
   )
 
-  // Group by target environment, including all properties (e.g., explicit base)
+  // Group by target environment, including all properties (e.g., explicit base).
+  // Here o-5 is not in the same group and o-3 and o-4 even though it has the
+  // same single science target because its target environment includes an
+  // explicit base position.
   queryTest(
     query ="""
       query GroupByTargetEnvironment {
