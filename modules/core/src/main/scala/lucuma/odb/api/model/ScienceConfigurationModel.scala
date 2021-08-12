@@ -86,7 +86,7 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
          slitWidth.validateNotNullable("slitWidth")(_.toAngle)).mapN {
           (disperser, slitWidth) =>
             for {
-              _ <- GmosNorthLongSlit.filter := filter.toOptionOption
+              _ <- GmosNorthLongSlit.filter    := filter.toOptionOption
               _ <- GmosNorthLongSlit.disperser := disperser
               _ <- GmosNorthLongSlit.slitWidth := slitWidth
             } yield ()
@@ -144,12 +144,11 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
     ) {
 
       def edit: ValidatedInput[State[GmosSouthLongSlit, Unit]] =
-        (filter.validateIsNotNull("filter"),
-         disperser.validateIsNotNull("disperser"),
+        (disperser.validateIsNotNull("disperser"),
          slitWidth.validateNotNullable("slitWidth")(_.toAngle)).mapN {
-          (filter, disperser, slitWidth) =>
+          (disperser, slitWidth) =>
             for {
-              _ <- GmosSouthLongSlit.filter := filter
+              _ <- GmosSouthLongSlit.filter    := filter.toOptionOption
               _ <- GmosSouthLongSlit.disperser := disperser
               _ <- GmosSouthLongSlit.slitWidth := slitWidth
             } yield ()
