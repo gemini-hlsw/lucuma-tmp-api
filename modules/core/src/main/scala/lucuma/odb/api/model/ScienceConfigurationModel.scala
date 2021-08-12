@@ -52,7 +52,7 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
     }
 
     object GmosNorthLongSlit {
-      val filter: Lens[GmosNorthLongSlit, GmosNorthFilter] =
+      val filter: Lens[GmosNorthLongSlit, Option[GmosNorthFilter]] =
         Focus[GmosNorthLongSlit](_.filter)
 
       val disperser: Lens[GmosNorthLongSlit, GmosNorthDisperser] =
@@ -126,7 +126,7 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
     }
 
     object GmosSouthLongSlit {
-      val filter: Lens[GmosSouthLongSlit, GmosSouthFilter] =
+      val filter: Lens[GmosSouthLongSlit, Option[GmosSouthFilter]] =
         Focus[GmosSouthLongSlit](_.filter)
 
       val disperser: Lens[GmosSouthLongSlit, GmosSouthDisperser] =
@@ -161,9 +161,9 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
     }
 
     final case class EditGmosSouthLongSlit(
-      filter: Input[GmosSouthFilter] = Input.ignore,
+      filter:    Input[GmosSouthFilter]    = Input.ignore,
       disperser: Input[GmosSouthDisperser] = Input.ignore,
-      slitWidth: Input[SlitWidthInput] = Input.ignore
+      slitWidth: Input[SlitWidthInput]     = Input.ignore
     ) {
 
       def edit: ValidatedInput[State[GmosSouthLongSlit, Unit]] =
