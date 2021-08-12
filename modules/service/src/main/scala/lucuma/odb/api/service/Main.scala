@@ -57,7 +57,7 @@ object Main extends IOApp {
       cfg  <- Config.fromCiris.load(Async[IO])
       log  <- Slf4jLogger.create[IO]
       odb  <- OdbRepo.create[IO]
-      _    <- TestInit.initialize(odb)
+      _    <- Init.initialize(odb)
       _    <- stream(odb, cfg)(log, Async[IO]).compile.drain
     } yield ExitCode.Success
 }
