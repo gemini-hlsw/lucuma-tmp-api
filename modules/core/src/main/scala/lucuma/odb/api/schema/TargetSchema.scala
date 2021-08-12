@@ -420,6 +420,11 @@ object TargetSchema extends TargetScalars {
       name = "Targets",
       fieldsFn = () => fields (
 
+        // TODO: a `base` field that takes a date and time and tells you where
+        // TODO: the center of all the targets will be at that time (if defined
+        // TODO: it would be the `explicitBase` otherwise the center of pm
+        // TODO: corrected science targets)
+
         Field(
           name        = "explicitBase",
           fieldType   = OptionType(CoordinateType[F]),
