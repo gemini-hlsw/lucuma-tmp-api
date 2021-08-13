@@ -28,6 +28,7 @@ import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration._
 import sttp.model.Uri
 
 /**
@@ -37,7 +38,7 @@ import sttp.model.Uri
 trait OdbSuite extends CatsEffectSuite {
 
   private implicit val log: Logger[IO] =
-    Slf4jLogger.getLogger[IO]
+    Slf4jLogger.getLoggerFromClass(getClass)
 
   private val ssoClient: SsoClient[IO, User] =
     new SsoClient[IO, User] {
@@ -161,6 +162,38 @@ trait OdbSuite extends CatsEffectSuite {
     }
 
     clients.foreach(go)
+  }
+
+  def subscriptionTest(query: String, mutations: Either[List[(String, Option[Json])], IO[Unit]], expected: List[Json], variables: Option[Json] = None) = {
+    val suffix = query.linesIterator.dropWhile(_.trim.isEmpty).next().trim + " ..."
+    test(s"[sub]  $suffix") {
+      Resource.eval(IO(serverFixture()))
+        .flatMap(streamingClient)
+        .use { conn =>
+          val req = conn.subscribe(Operation(query))
+          variables
+            .fold(req.apply)(req.apply) // awkward API
+            .flatMap { sub =>
+              for {
+                _   <- log.debug("*** ----- about to start stream fiber")
+                fib <- sub.stream.compile.toList.start
+                _   <- log.debug("*** ----- pausing a bit")
+                _   <- IO.sleep(200.millis)
+                _   <- log.debug("*** ----- running mutations")
+                _   <- mutations.fold(_.traverse_ { case (query, vars) =>
+                         val req = conn.request(Operation(query))
+                         vars.fold(req.apply)(req.apply)
+                       }, identity)
+                _   <- log.debug("*** ----- pausing a bit")
+                _   <- IO.sleep(200.millis)
+                _   <- log.debug("*** ----- stopping subscription")
+                _   <- sub.stop()
+                _   <- log.debug("*** ----- joining fiber")
+                obt <- fib.joinWithNever
+              } yield assertEquals(obt.map(_.spaces2), expected.map(_.spaces2))  // by comparing strings we get more useful errors
+            }
+        }
+    }
   }
 
 }
