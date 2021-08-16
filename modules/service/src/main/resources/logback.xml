@@ -10,8 +10,11 @@
   <logger name="org.http4s.blazecore.IdleTimeoutStage" level="OFF" />
   <logger name="org.http4s.blazecore.websocket.Http4sWSStage" level="OFF" />
 
-  <!-- This test provokes errors that end up being logged, so turn that off. -->
+  <!-- These tests provoke errors that end up being logged, so turn that off. -->
   <logger name="test.MutationSuite" level="OFF" />
+  <logger name="test.targets.ScienceTargetMutationSuite" level="OFF" />
+  <logger name="test.targets.ScienceTargetsMutationSuite" level="OFF" />
+  <logger name="test.targets.TargetRenameMutationSuite" level="OFF" />
 
   <root level="WARN">
     <appender-ref ref="STDOUT" />
