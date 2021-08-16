@@ -6,21 +6,21 @@ package test
 import io.circe.Json
 import io.circe.literal._
 
-class ProgramTargetEditSubscriptionSuite extends OdbSuite {
+class ObservationEditSubscriptionSuite extends OdbSuite {
 
-  // Subscribe to target updates
+  // Subscribe to observation updates
   val query: String = """
-    subscription ProgramTargetEdit {
-      targetEdit(programId: "p-2") {
+    subscription ObservationEdit {
+      observationEdit(programId: "p-2") {
         value { id name }
       }
     }
   """
 
-  // A parameterized mutation for targets
+  // A parameterized mutation for observations
   val mutation: String = """
-    mutation UpdateSiderealTarget($editSidereal: EditSiderealInput!) {
-      updateSiderealTarget(input: $editSidereal) { id }
+    mutation UpdateObservation($editObservation: EditObservationInput!) {
+      updateObservation(input: $editObservation) { id }
     }
   """
 
@@ -28,12 +28,12 @@ class ProgramTargetEditSubscriptionSuite extends OdbSuite {
   val newNames: List[String] =
     List("foo", "bar", "baz")
 
-  // Given a name, construct an EditSiderealInput that updates target `t-2`'s name
+  // Given a name, construct an EditObservationInput that updates observation `o-2`'s name
   def arg(newName: String): Json =
     json"""
       {
-        "editSidereal": {
-          "targetId": "t-2",
+        "editObservation": {
+          "observationId": "o-2",
           "name": $newName
         }
       }
@@ -47,9 +47,9 @@ class ProgramTargetEditSubscriptionSuite extends OdbSuite {
   def expect(newName: String) =
     json"""
       {
-        "targetEdit" : {
+        "observationEdit" : {
           "value" : {
-            "id" : "t-2",
+            "id" : "o-2",
             "name" : $newName
           }
         }
