@@ -142,7 +142,7 @@ lazy val service = project
       "org.http4s"                 %% "http4s-dsl"                % http4sVersion,
       "edu.gemini"                 %% "clue-http4s-jdk-client"    % clueVersion            % Test,
       "org.typelevel"              %% "munit-cats-effect-3"       % munitCatsEffectVersion % Test,
-      "edu.gemini"                 %% "lucuma-graphql-routes-sangria" % "0.0.0+275-04949c67+20210730-1243-SNAPSHOT",
+      "edu.gemini"                 %% "lucuma-graphql-routes-sangria" % "0.0.0+276-95e64a04+20210818-1047-SNAPSHOT",
     ),
     testFrameworks += new TestFramework("munit.Framework"),
     Test / parallelExecution := false, // tests run fine in parallel but output is nicer this way

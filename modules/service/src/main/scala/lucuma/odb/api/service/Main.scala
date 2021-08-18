@@ -46,7 +46,7 @@ object Main extends IOApp {
 
           // Our GraphQL routes
           val graphQLRoutes: HttpRoutes[F] =
-            Routes.forService[F](graphQLService, userClient)
+            Routes.forService[F](graphQLService, userClient, "odb", "ws")
 
           // Done!
           (staticRoutes <+> graphQLRoutes).orNotFound
