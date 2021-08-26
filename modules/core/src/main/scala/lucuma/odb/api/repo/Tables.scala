@@ -28,7 +28,6 @@ object Tables extends TableOptics {
   val empty: Tables =
     Tables(
       ids             = Ids.zero,
-
       atoms           = TreeMap.empty[Atom.Id, AtomModel[Step.Id]],
       executionEvents = TreeMap.empty[ExecutionEvent.Id, ExecutionEventModel],
       observations    = TreeMap.empty[Observation.Id, ObservationModel],
