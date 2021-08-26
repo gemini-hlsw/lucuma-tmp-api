@@ -68,7 +68,7 @@ trait ObservationQuery {
       "scienceTarget",
       "Observations grouped by commonly held individual science targets",
       TargetType[F],
-      (repo, pid) => repo.groupBySingleScienceTarget(pid)
+      (repo, pid, includeDeleted) => repo.groupBySingleScienceTarget(pid, includeDeleted)
     )
 
   def groupByAllScienceTargets[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
@@ -77,7 +77,7 @@ trait ObservationQuery {
       "allScienceTargets",
       "Observations grouped by commonly held collections of science targets",
       ListType(TargetType[F]),
-      (repo, pid) => repo.groupByAllScienceTargets(pid).map(_.map(_.map(_.toSeq)))
+      (repo, pid, includeDeleted) => repo.groupByAllScienceTargets(pid, includeDeleted).map(_.map(_.map(_.toSeq)))
     )
 
   def groupByTargetEnvironment[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
@@ -86,7 +86,7 @@ trait ObservationQuery {
       "targetEnvironment",
       "Observations grouped by commonly held target environment",
       TargetEnvironmentType[F],
-      (repo, pid) => repo.groupByTargetEnvironment(pid)
+      (repo, pid, includeDeleted) => repo.groupByTargetEnvironment(pid, includeDeleted)
     )
 
   def groupByConstraintSet[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
@@ -95,7 +95,7 @@ trait ObservationQuery {
       "constraintSet",
       "Observations grouped by commonly held constraints",
       ConstraintSetType[F],
-      (repo, pid) => repo.groupByConstraintSet(pid)
+      (repo, pid, includeDeleted) => repo.groupByConstraintSet(pid, includeDeleted)
     )
 
   def groupByScienceRequirements[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
@@ -104,7 +104,7 @@ trait ObservationQuery {
       "scienceRequirements",
       "Observations grouped by commonly held science requirements",
       ScienceRequirementsType[F],
-      (repo, pid) => repo.groupByScienceRequirements(pid)
+      (repo, pid, includeDeleted) => repo.groupByScienceRequirements(pid, includeDeleted)
     )
 
   def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
