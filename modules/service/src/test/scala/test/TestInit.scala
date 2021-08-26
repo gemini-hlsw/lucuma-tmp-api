@@ -1,26 +1,24 @@
 // Copyright (c) 2016-2021 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
-package lucuma.odb.api.service
+package test
 
-import lucuma.odb.api.model._
-import lucuma.odb.api.repo.OdbRepo
-import lucuma.core.`enum`._
-import lucuma.core.optics.syntax.all._
-import lucuma.core.math.syntax.int._
 import cats.data.State
 import cats.effect.Sync
 import cats.syntax.all._
-import eu.timepit.refined.auto._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.parser.decode
+import lucuma.core.`enum`._
+import lucuma.core.math.syntax.int._
 import lucuma.core.model.Program
-import lucuma.odb.api.model
+import lucuma.core.optics.syntax.all._
 import lucuma.odb.api.model.OffsetModel.ComponentInput
+import lucuma.odb.api.model._
+import lucuma.odb.api.repo.OdbRepo
 
 import scala.concurrent.duration._
 
-object Init {
+object TestInit {
 
   val targetsJson = List(
 """
@@ -157,10 +155,9 @@ object Init {
     targetsJson.traverse(decode[TargetModel.CreateSidereal])
 
   import GmosModel.{CreateCcdReadout, CreateSouthDynamic}
-  import StepConfig.CreateStepConfig
-
-  import CreateSouthDynamic.{exposure, filter, fpu, grating, readout, roi, step}
   import CreateCcdReadout.{ampRead, xBin, yBin}
+  import CreateSouthDynamic.{exposure, filter, fpu, grating, readout, roi, step}
+  import StepConfig.CreateStepConfig
 
   private def edit[A](start: A)(state: State[A, _]): A =
     state.runS(start).value
@@ -279,18 +276,16 @@ object Init {
     )
 
   def obs(
-    pid:   Program.Id,
-    target: Option[TargetModel.CreateSidereal]
+    pid:     Program.Id,
+    targets: List[TargetModel.CreateSidereal]
   ): ObservationModel.Create =
     ObservationModel.Create(
       observationId        = None,
       programId            = pid,
-      name                 = target.map(_.name) orElse NonEmptyString.from("Observation").toOption,
+      name                 = targets.headOption.map(_.name) orElse NonEmptyString.from("Observation").toOption,
       status               = ObsStatus.New.some,
       activeStatus         = ObsActiveStatus.Active.some,
-      targets              = target.fold(none[model.TargetEnvironmentModel.Create]) { sidereal =>
-        TargetEnvironmentModel.Create.singleSidereal(sidereal).some
-      },
+      targets              = TargetEnvironmentModel.Create.fromSidereal(targets).some,
       constraintSet        = None,
       scienceRequirements  = ScienceRequirementsModel.Create.Default.some,
       scienceConfiguration = None,
@@ -320,9 +315,24 @@ object Init {
               )
             )
       cs <- targets.liftTo[F]
-      _  <- repo.observation.insert(obs(p.id, cs.headOption))
-      _  <- repo.observation.insert(obs(p.id, cs.lastOption))
-      _  <- repo.observation.insert(obs(p.id, None))
+      _  <- repo.observation.insert(obs(p.id, cs.headOption.toList)) // 2
+      _  <- repo.observation.insert(obs(p.id, cs.lastOption.toList)) // 3
+      _  <- repo.observation.insert(obs(p.id, cs.lastOption.toList)) // 4
+      o  <- repo.observation.insert(obs(p.id, cs.lastOption.toList)) // 5
+
+      // Add an explicit base to the last observation's target environment
+      _  <- repo.observation.edit(
+        ObservationModel.Edit(
+          o.id,
+          targets = TargetEnvironmentModel.Edit.explicitBase(
+            RightAscensionModel.Input.fromDegrees(159.2583),
+            DeclinationModel.Input.fromDegrees(-27.5650)
+          ).some
+        )
+      )
+
+      _  <- repo.observation.insert(obs(p.id, cs))                   // 6
+      _  <- repo.observation.insert(obs(p.id, Nil))                  // 7
     } yield ()
 
 }

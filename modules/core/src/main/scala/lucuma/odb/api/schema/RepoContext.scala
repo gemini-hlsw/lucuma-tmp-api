@@ -4,7 +4,7 @@
 package lucuma.odb.api.schema
 
 import lucuma.core.model.{Asterism, ExecutionEvent, Observation, Program, Step, Target}
-import lucuma.odb.api.repo.{AsterismRepo, AtomRepo, ExecutionEventRepo, ObservationRepo, OdbRepo, ProgramRepo, StepRepo, TargetRepo}
+import lucuma.odb.api.repo.{AtomRepo, ExecutionEventRepo, ObservationRepo, OdbRepo, ProgramRepo, StepRepo}
 
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
@@ -15,12 +15,6 @@ import sangria.schema.Context
 import scala.concurrent.Future
 
 final class RepoContextOps[F[_]](val self: Context[OdbRepo[F], _]) {
-
-  def asterismId: Asterism.Id =
-    self.arg(AsterismSchema.AsterismIdArgument)
-
-  def optionalAsterismId: Option[Asterism.Id] =
-    self.arg(AsterismSchema.OptionalAsterismIdArgument)
 
   def executionEventId: ExecutionEvent.Id =
     self.arg(ExecutionEventSchema.ExecutionEventArgument)
@@ -39,12 +33,6 @@ final class RepoContextOps[F[_]](val self: Context[OdbRepo[F], _]) {
 
   def optionalProgramId: Option[Program.Id] =
     self.arg(ProgramSchema.OptionalProgramIdArgument)
-
-  def targetId: Target.Id =
-    self.arg(TargetSchema.TargetIdArgument)
-
-  def optionalTargetId: Option[Target.Id] =
-    self.arg(TargetSchema.OptionalTargetIdArgument)
 
   def includeDeleted: Boolean =
     self.arg(GeneralSchema.ArgumentIncludeDeleted)
@@ -89,9 +77,6 @@ final class RepoContextOps[F[_]](val self: Context[OdbRepo[F], _]) {
   def unsafeToFuture[B](fb: F[B])(implicit ev: Dispatcher[F]): Future[B] =
     implicitly[Dispatcher[F]].unsafeToFuture(fb)
 
-  def asterism[B](f: AsterismRepo[F] => F[B])(implicit ev: Dispatcher[F]): Future[B] =
-    unsafeToFuture(f(self.ctx.asterism))
-
   def atom[B](f: AtomRepo[F] => F[B])(implicit ev: Dispatcher[F]): Future[B] =
     unsafeToFuture(f(self.ctx.atom))
 
@@ -106,9 +91,6 @@ final class RepoContextOps[F[_]](val self: Context[OdbRepo[F], _]) {
 
   def step[B](f: StepRepo[F] => F[B])(implicit ev: Dispatcher[F]): Future[B] =
     unsafeToFuture(f(self.ctx.step))
-
-  def target[B](f: TargetRepo[F] => F[B])(implicit ev: Dispatcher[F]): Future[B] =
-    unsafeToFuture(f(self.ctx.target))
 
 }
 

@@ -4,7 +4,6 @@
 package lucuma.odb.api.model
 
 import lucuma.core.`enum`.Instrument
-
 import cats.Eq
 import cats.syntax.all._
 import cats.data.State
@@ -20,8 +19,7 @@ import lucuma.core.optics.syntax.lens._
 import lucuma.core.util.Enumerated
 import lucuma.core.util.Display
 import lucuma.odb.api.model.syntax.input._
-import monocle.Focus
-import monocle.Prism
+import monocle.{Focus, Lens, Prism}
 import monocle.macros.GenPrism
 
 sealed trait ScienceConfigurationModel extends Product with Serializable {
@@ -40,22 +38,28 @@ sealed trait ScienceConfigurationModel extends Product with Serializable {
 object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
 
   object Modes {
+
     final case class GmosNorthLongSlit(
       filter:    Option[GmosNorthFilter],
       disperser: GmosNorthDisperser,
       slitWidth: Angle
     ) extends ScienceConfigurationModel {
-      val mode: ConfigurationMode = ConfigurationMode.GmosNorthLongSlit
+      val mode: ConfigurationMode =
+        ConfigurationMode.GmosNorthLongSlit
 
-      val instrument = Instrument.GmosNorth
+      val instrument: Instrument =
+        Instrument.GmosNorth
     }
 
     object GmosNorthLongSlit {
-      val filter = Focus[GmosNorthLongSlit](_.filter)
+      val filter: Lens[GmosNorthLongSlit, Option[GmosNorthFilter]] =
+        Focus[GmosNorthLongSlit](_.filter)
 
-      val disperser = Focus[GmosNorthLongSlit](_.disperser)
+      val disperser: Lens[GmosNorthLongSlit, GmosNorthDisperser] =
+        Focus[GmosNorthLongSlit](_.disperser)
 
-      val slitWidth = Focus[GmosNorthLongSlit](_.slitWidth)
+      val slitWidth: Lens[GmosNorthLongSlit, Angle] =
+        Focus[GmosNorthLongSlit](_.slitWidth)
 
       implicit val EqGmosNorth: Eq[GmosNorthLongSlit] =
         Eq.by(a => (a.filter, a.disperser, a.slitWidth))
@@ -73,12 +77,19 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
     object CreateGmosNorthLongSlit {
       implicit val DecoderCreateGmosNorthLongSlit: Decoder[CreateGmosNorthLongSlit] =
         deriveDecoder[CreateGmosNorthLongSlit]
+
+      implicit val EqCreateGmosNorthLongSlit: Eq[CreateGmosNorthLongSlit] =
+        Eq.by { a => (
+          a.filter,
+          a.disperser,
+          a.slitWidth
+        )}
     }
 
     final case class EditGmosNorthLongSlit(
-      filter: Input[GmosNorthFilter] = Input.ignore,
+      filter:    Input[GmosNorthFilter]    = Input.ignore,
       disperser: Input[GmosNorthDisperser] = Input.ignore,
-      slitWidth: Input[SlitWidthInput] = Input.ignore
+      slitWidth: Input[SlitWidthInput]     = Input.ignore
     ) {
 
       def edit: ValidatedInput[State[GmosNorthLongSlit, Unit]] =
@@ -107,17 +118,22 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
       disperser: GmosSouthDisperser,
       slitWidth: Angle
     ) extends ScienceConfigurationModel {
-      val mode: ConfigurationMode = ConfigurationMode.GmosSouthLongSlit
+      val mode: ConfigurationMode =
+        ConfigurationMode.GmosSouthLongSlit
 
-      val instrument = Instrument.GmosSouth
+      val instrument: Instrument =
+        Instrument.GmosSouth
     }
 
     object GmosSouthLongSlit {
-      val filter = Focus[GmosSouthLongSlit](_.filter)
+      val filter: Lens[GmosSouthLongSlit, Option[GmosSouthFilter]] =
+        Focus[GmosSouthLongSlit](_.filter)
 
-      val disperser = Focus[GmosSouthLongSlit](_.disperser)
+      val disperser: Lens[GmosSouthLongSlit, GmosSouthDisperser] =
+        Focus[GmosSouthLongSlit](_.disperser)
 
-      val slitWidth = Focus[GmosSouthLongSlit](_.slitWidth)
+      val slitWidth: Lens[GmosSouthLongSlit, Angle] =
+        Focus[GmosSouthLongSlit](_.slitWidth)
 
       implicit val EqGmosSouth: Eq[GmosSouthLongSlit] =
         Eq.by(a => (a.filter, a.disperser, a.slitWidth))
@@ -135,12 +151,19 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
     object CreateGmosSouthLongSlit {
       implicit val DecoderCreateGmosSouthLongSlit: Decoder[CreateGmosSouthLongSlit] =
         deriveDecoder[CreateGmosSouthLongSlit]
+
+      implicit val EqCreateGmosSouthLongSlit: Eq[CreateGmosSouthLongSlit] =
+        Eq.by { a => (
+          a.filter,
+          a.disperser,
+          a.slitWidth
+        )}
     }
 
     final case class EditGmosSouthLongSlit(
-      filter: Input[GmosSouthFilter] = Input.ignore,
+      filter:    Input[GmosSouthFilter]    = Input.ignore,
       disperser: Input[GmosSouthDisperser] = Input.ignore,
-      slitWidth: Input[SlitWidthInput] = Input.ignore
+      slitWidth: Input[SlitWidthInput]     = Input.ignore
     ) {
 
       def edit: ValidatedInput[State[GmosSouthLongSlit, Unit]] =
@@ -252,6 +275,12 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
 
     implicit val DecoderCreate: Decoder[Create] =
       deriveDecoder[Create]
+
+    implicit val EqCreate: Eq[Create] =
+      Eq.by { a => (
+        a.gmosNorthLongSlit,
+        a.gmosSouthLongSlit
+      )}
   }
 
   final case class ScienceConfigurationModelEdit(

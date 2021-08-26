@@ -4,51 +4,64 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.repo.OdbRepo
-
 import cats.MonadError
 import cats.effect.std.Dispatcher
+import cats.syntax.all._
 import sangria.schema._
 
-trait TargetQuery {
 
-  import GeneralSchema.ArgumentIncludeDeleted
-  import Paging._
-  import ProgramSchema.ProgramIdArgument
-  import TargetSchema.{TargetIdArgument, TargetType, TargetConnectionType}
+trait TargetQuery {
   import context._
 
-  def forId[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  import ObservationSchema.ObservationIdArgument
+
+  import TargetSchema.{TargetEnvironmentType, TargetType}
+
+  def scienceTarget[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
-      name        = "target",
+      name        = "scienceTarget",
       fieldType   = OptionType(TargetType[F]),
-      description = Some("Returns the target with the given id, if any."),
-      arguments   = List(TargetIdArgument, ArgumentIncludeDeleted),
-      resolve     = c => c.target(_.select(c.targetId, c.includeDeleted))
+      description = "The first (or only) science target (if any) for the given observation".some,
+      arguments   = List(ObservationIdArgument),
+      resolve     = c => c.observation { repo =>
+        repo
+          .select(c.observationId, includeDeleted = true)
+          .map(_.flatMap(_.targets.science.values.headOption))
+      }
     )
 
-  def allForProgram[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def scienceTargets[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
-      name        = "targets",
-      fieldType   = TargetConnectionType[F],
-      description = Some("Return all targets associated with the given program."),
-      arguments   = List(
-        ProgramIdArgument,
-        ArgumentPagingFirst,
-        ArgumentPagingCursor,
-        ArgumentIncludeDeleted
-      ),
-      resolve     = c =>
-        unsafeSelectTopLevelPageFuture(c.pagingTargetId) { gid =>
-          c.ctx.target.selectPageForProgram(c.programId, c.pagingFirst, gid, c.includeDeleted)
-        }
+      name        = "scienceTargets",
+      fieldType   = ListType(TargetType[F]),
+      description = "All science targets (if any) for the given observation".some,
+      arguments   = List(ObservationIdArgument),
+      resolve     = c => c.observation { repo =>
+        repo
+          .select(c.observationId, includeDeleted = true)
+          .map(_.toList.flatMap(_.targets.science.values))
+      }
+    )
+
+  def targetEnvironment[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+    Field(
+      name        = "targetEnvironment",
+      fieldType   = OptionType(TargetEnvironmentType[F]),
+      description = "Target environment for the given observation".some,
+      arguments   = List(ObservationIdArgument),
+      resolve     = c => c.observation { repo =>
+        repo
+          .select(c.observationId, includeDeleted = true)
+          .map(_.map(_.targets))
+      }
     )
 
   def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
     List(
-      allForProgram,
-      forId
+      scienceTarget[F],
+      scienceTargets[F],
+      targetEnvironment[F]
     )
-
 }
 
 object TargetQuery extends TargetQuery

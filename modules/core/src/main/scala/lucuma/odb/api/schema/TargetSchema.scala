@@ -4,24 +4,17 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.schema.syntax.all._
-import lucuma.odb.api.model.{DeclinationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel, TargetModel}
+import lucuma.odb.api.model.{DeclinationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel, TargetEnvironmentModel}
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.core.`enum`.{CatalogName, EphemerisKeyType, MagnitudeBand, MagnitudeSystem}
+import lucuma.core.`enum`.{CatalogName, EphemerisKeyType => EphemerisKeyTypeEnum, MagnitudeBand, MagnitudeSystem}
 import lucuma.core.math.{Coordinates, Declination, MagnitudeValue, Parallax, ProperMotion, RadialVelocity, RightAscension, VelocityAxis}
 import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, SiderealTracking, Target}
-
-import cats.MonadError
-import cats.effect.std.Dispatcher
-import sangria.schema._
+import cats.syntax.all._
+import sangria.schema.{Field, _}
 
 object TargetSchema extends TargetScalars {
 
-  import AsterismSchema.AsterismConnectionType
-  import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, NonEmptyStringType}
-  import ObservationSchema.ObservationConnectionType
-  import Paging._
-  import ProgramSchema.{OptionalProgramIdArgument, ProgramConnectionType}
-  import context._
+  import GeneralSchema.NonEmptyStringType
 
   implicit val TargetIdType: ScalarType[Target.Id] =
     ObjectIdSchema.idType[Target.Id]("TargetId")
@@ -58,7 +51,7 @@ object TargetSchema extends TargetScalars {
       "Magnitude system"
     )
 
-  implicit val EphemerisKeyType: EnumType[EphemerisKeyType] =
+  implicit val EphemerisKeyTypeEnumType: EnumType[EphemerisKeyTypeEnum] =
     EnumType.fromEnumerated(
       "EphemerisKeyType",
       "Ephemeris key type options"
@@ -78,7 +71,7 @@ object TargetSchema extends TargetScalars {
 
         Field(
           name        = "keyType",
-          fieldType   = EphemerisKeyType,
+          fieldType   = EphemerisKeyTypeEnumType,
           description = Some("Nonsidereal target lookup type."),
           resolve     = _.value.keyType
         )
@@ -379,102 +372,42 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-  def TargetType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], TargetModel] =
+  def TargetType[F[_]]: ObjectType[OdbRepo[F], Target] =
     ObjectType(
       name     = "Target",
       fieldsFn = () => fields(
-        Field(
-          name        = "id",
-          fieldType   = TargetIdType,
-          description = Some("Target id."),
-          resolve     = _.value.id
-        ),
-
-        Field(
-          name        = "existence",
-          fieldType   = EnumTypeExistence,
-          description = Some("Deleted or Present"),
-          resolve     = _.value.existence
-        ),
-
-        Field(
-          name        = "asterisms",
-          fieldType   = AsterismConnectionType[F],
-          arguments   = List(
-            OptionalProgramIdArgument,
-            ArgumentPagingFirst,
-            ArgumentPagingCursor,
-            ArgumentIncludeDeleted
-          ),
-          description = Some("The asterisms associated with the target."),
-          resolve     = c =>
-            unsafeSelectTopLevelPageFuture(c.pagingAsterismId) { gid =>
-              c.ctx.asterism.selectPageForTarget(c.value.id, c.optionalProgramId, c.pagingFirst, gid, c.includeDeleted)
-            }
-        ),
-
-        Field(
-          name        = "observations",
-          fieldType   = ObservationConnectionType[F],
-          arguments   = List(
-            OptionalProgramIdArgument,
-            ArgumentPagingFirst,
-            ArgumentPagingCursor,
-            ArgumentIncludeDeleted
-          ),
-          description = Some("The observations associated with the target."),
-          resolve     = c =>
-            unsafeSelectTopLevelPageFuture(c.pagingObservationId) { gid =>
-              c.ctx.observation.selectPageForTarget(c.value.id, c.optionalProgramId, c.pagingFirst, gid, c.includeDeleted)
-            }
-        ),
-
-        Field(
-          name        = "programs",
-          fieldType   = ProgramConnectionType[F],
-          arguments   = List(
-            ArgumentPagingFirst,
-            ArgumentPagingCursor,
-            ArgumentIncludeDeleted
-          ),
-          description = Some("The programs associated with the target."),
-          resolve     = c =>
-            unsafeSelectTopLevelPageFuture(c.pagingProgramId) { gid =>
-              c.ctx.program.selectPageForTarget(c.value.id, includeObservations = true, c.pagingFirst, gid, c.includeDeleted)
-            }
-        ),
 
         Field(
           name        = "name",
           fieldType   = NonEmptyStringType,
           description = Some("Target name."),
-          resolve     = _.value.target.name
+          resolve     = _.value.name
         ),
 
         Field(
           name        = "tracking",
           fieldType   = TrackingType[F],
           description = Some("Information required to find a target in the sky."),
-          resolve     = _.value.target.track
+          resolve     = _.value.track
         ),
 
         Field(
           name        = "magnitudes",
           fieldType   = ListType(MagnitudeType[F]),
           description = Some("Target magnitudes"),
-          resolve     = _.value.target.magnitudes.values.toList
+          resolve     = _.value.magnitudes.values.toList
         )
       )
     )
 
-  def TargetEdgeType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Edge[TargetModel]] =
+  def TargetEdgeType[F[_]]: ObjectType[OdbRepo[F], Paging.Edge[Target]] =
     Paging.EdgeType(
       "TargetEdge",
       "A Target and its cursor",
       TargetType[F]
     )
 
-  def TargetConnectionType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Connection[TargetModel]] =
+  def TargetConnectionType[F[_]]: ObjectType[OdbRepo[F], Paging.Connection[Target]] =
     Paging.ConnectionType(
       "TargetConnection",
       "Targets in the current page",
@@ -482,4 +415,30 @@ object TargetSchema extends TargetScalars {
       TargetEdgeType[F]
     )
 
+  def TargetEnvironmentType[F[_]]: ObjectType[OdbRepo[F], TargetEnvironmentModel] =
+    ObjectType(
+      name = "Targets",
+      fieldsFn = () => fields (
+
+        // TODO: a `base` field that takes a date and time and tells you where
+        // TODO: the center of all the targets will be at that time (if defined
+        // TODO: it would be the `explicitBase` otherwise the center of pm
+        // TODO: corrected science targets)
+
+        Field(
+          name        = "explicitBase",
+          fieldType   = OptionType(CoordinateType[F]),
+          description = "When set, overrides the default base position of the target group".some,
+          resolve     = _.value.explicitBase
+        ),
+
+        Field(
+          name        = "science",
+          fieldType   = ListType(TargetType[F]),
+          description = "Science target(s)".some,
+          resolve     = _.value.science.values.toList
+        )
+
+      )
+    )
 }

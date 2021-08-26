@@ -4,13 +4,8 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.schema.syntax.scalar._
-
-import lucuma.core.math.{
-  Declination,
-  Epoch,
-  RightAscension
-}
-
+import lucuma.core.math.{Declination, Epoch, RightAscension}
+import lucuma.core.model.EphemerisKey
 import sangria.schema.ScalarType
 
 /**
@@ -39,6 +34,13 @@ trait TargetScalars {
       "EpochString",
       "Reference observation epoch",
       lucuma.odb.api.model.format.target.FormatEpoch
+    )
+
+  implicit val EphemerisKeyType: ScalarType[EphemerisKey] =
+    ScalarType.fromScalarFormat(
+      "EphemerisKey",
+      "Horizons ID",
+      lucuma.odb.api.model.format.target.FormatEphemerisKey
     )
 
 }

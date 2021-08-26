@@ -4,10 +4,10 @@
 package lucuma.odb.api.model
 package arb
 
-import TargetModel.{CreateNonsidereal, CreateSidereal, EditNonsidereal, EditSidereal}
+import TargetModel.{Create, CreateNonsidereal, CreateSidereal, Edit, EditNonsidereal, EditSidereal, EditTargetAction, EditTargetList}
 import lucuma.core.`enum`.EphemerisKeyType
-import lucuma.core.model.{EphemerisKey, Program, Target}
-import lucuma.core.model.arb.{ArbEphemerisKey, ArbTarget}
+import lucuma.core.model.EphemerisKey
+import lucuma.core.model.arb.ArbEphemerisKey
 import lucuma.core.math.Epoch
 import lucuma.core.math.arb.ArbEpoch
 import lucuma.core.util.arb.ArbEnumerated
@@ -26,20 +26,16 @@ trait ArbTargetModel {
   import ArbEnumerated._
   import ArbEphemerisKey._
   import ArbEpoch._
-  import lucuma.core.util.arb.ArbGid._
   import ArbInput._
   import ArbMagnitudeModel._
   import ArbParallaxModel._
   import ArbProperMotionModel._
   import ArbRadialVelocityModel._
   import ArbRightAscensionModel._
-  import ArbTarget._
 
   implicit val arbCreateSidereal: Arbitrary[CreateSidereal] =
     Arbitrary {
       for {
-        id    <- arbitrary[Option[Target.Id]]
-        pids  <- arbitrary[Option[List[Program.Id]]]
         name  <- arbitrary[NonEmptyString]
         cat   <- arbitrary[Option[CatalogIdModel.Input]]
         ra    <- arbitrary[RightAscensionModel.Input]
@@ -50,8 +46,6 @@ trait ArbTargetModel {
         px    <- arbitrary[Option[ParallaxModel.Input]]
         mags  <- arbitrary[Option[List[MagnitudeModel.Create]]]
       } yield CreateSidereal(
-        id,
-        pids,
         name,
         cat,
         ra,
@@ -66,8 +60,6 @@ trait ArbTargetModel {
 
   implicit val cogCreateSidereal: Cogen[CreateSidereal] =
     Cogen[(
-      Option[Target.Id],
-      Option[List[Program.Id]],
       String,
       Option[CatalogIdModel.Input],
       RightAscensionModel.Input,
@@ -78,8 +70,6 @@ trait ArbTargetModel {
       Option[ParallaxModel.Input],
       Option[List[MagnitudeModel.Create]]
     )].contramap { in => (
-      in.targetId,
-      in.programIds,
       in.name.value,
       in.catalogId,
       in.ra,
@@ -94,15 +84,11 @@ trait ArbTargetModel {
   implicit val arbCreateNonSidereal: Arbitrary[CreateNonsidereal] =
     Arbitrary {
       for {
-        id   <- arbitrary[Option[Target.Id]]
-        pids <- arbitrary[Option[List[Program.Id]]]
         name <- arbitrary[NonEmptyString]
         key  <- arbitrary[EphemerisKeyType]
         des  <- arbitrary[NonEmptyString]
         mags <- arbitrary[Option[List[MagnitudeModel.Create]]]
       } yield CreateNonsidereal(
-        id,
-        pids,
         name,
         key,
         des.value,
@@ -112,22 +98,35 @@ trait ArbTargetModel {
 
   implicit val cogCreateNonSidereal: Cogen[CreateNonsidereal] =
     Cogen[(
-      Option[Target.Id],
-      Option[List[Program.Id]],
       String,
       EphemerisKeyType,
       String,
       Option[List[MagnitudeModel.Create]]
     )].contramap { in => (
-      in.targetId, in.programIds, in.name.value, in.key, in.des, in.magnitudes
+      in.name.value, in.key, in.des, in.magnitudes
+    )}
+
+  implicit val arbCreateTarget: Arbitrary[Create] =
+    Arbitrary {
+      Gen.oneOf(
+        arbitrary[CreateNonsidereal].map(Create.nonsidereal),
+        arbitrary[CreateSidereal].map(Create.sidereal)
+      )
+    }
+
+  implicit val cogCreateTarget: Cogen[Create] =
+    Cogen[(
+      Option[CreateNonsidereal],
+      Option[CreateSidereal]
+    )].contramap { in => (
+      in.nonsidereal,
+      in.sidereal
     )}
 
   implicit val arbEditSidereal: Arbitrary[EditSidereal] =
     Arbitrary {
       for {
-        id    <- arbitrary[Target.Id]
-        ex    <- arbNotNullableInput[Existence].arbitrary
-        name  <- arbNotNullableInput[NonEmptyString].arbitrary
+        name  <- arbitrary[Input[NonEmptyString]]
         cat   <- arbitrary[Input[CatalogIdModel.Input]]
         ra    <- arbNotNullableInput[RightAscensionModel.Input].arbitrary
         dec   <- arbNotNullableInput[DeclinationModel.Input].arbitrary
@@ -137,8 +136,6 @@ trait ArbTargetModel {
         px    <- arbitrary[Input[ParallaxModel.Input]]
         mags  <- arbitrary[Option[MagnitudeModel.EditList]]
       } yield EditSidereal(
-        id,
-        ex,
         name,
         cat,
         ra,
@@ -153,8 +150,6 @@ trait ArbTargetModel {
 
   implicit val cogEditSidereal: Cogen[EditSidereal] =
     Cogen[(
-      Target.Id,
-      Input[Existence],
       Input[String],
       Input[CatalogIdModel.Input],
       Input[RightAscensionModel.Input],
@@ -164,8 +159,6 @@ trait ArbTargetModel {
       Input[RadialVelocityModel.Input],
       Input[ParallaxModel.Input]
     )].contramap { in => (
-      in.targetId,
-      in.existence,
       in.name.map(_.value),
       in.catalogId,
       in.ra,
@@ -179,13 +172,9 @@ trait ArbTargetModel {
   implicit val arbEditNonSidereal: Arbitrary[EditNonsidereal] =
     Arbitrary {
       for {
-        id   <- arbitrary[Target.Id]
-        ex   <- arbitrary[Option[Existence]]
-        name <- arbitrary[Option[NonEmptyString]]
-        key  <- arbitrary[Option[EphemerisKey]]
+        name <- arbitrary[Input[NonEmptyString]]
+        key  <- arbitrary[Input[EphemerisKey]]
       } yield EditNonsidereal(
-        id,
-        ex,
         name,
         key
       )
@@ -193,27 +182,72 @@ trait ArbTargetModel {
 
   implicit val cogEditNonSidereal: Cogen[EditNonsidereal] =
     Cogen[(
-      Target.Id,
-      Option[Existence],
-      Option[String],
-      Option[EphemerisKey]
+      Input[String],
+      Input[EphemerisKey]
     )].contramap { in => (
-      in.targetId, in.existence, in.name.map(_.value), in.key
+      in.name.map(_.value),
+      in.key
     )}
 
-  implicit val arbTargetModel: Arbitrary[TargetModel] =
+  implicit val arbEditTarget: Arbitrary[Edit] =
     Arbitrary {
       for {
-        id <- arbitrary[Target.Id]
-        ex <- arbitrary[Existence]
-        tg <- arbitrary[Target]
-      } yield TargetModel(id, ex, tg)
+        sel <- arbitrary[NonEmptyString]
+        ed  <- Gen.oneOf(
+                arbitrary[EditNonsidereal].map(Edit.nonsidereal(sel, _)),
+                arbitrary[EditSidereal].map(Edit.sidereal(sel, _))
+              )
+      } yield ed
     }
 
-  implicit val cogTargetModel: Cogen[TargetModel] =
-    Cogen[(Target.Id, Existence, Target)].contramap { in =>
-      (in.id, in.existence, in.target)
+  implicit val cogEditTarget: Cogen[Edit] =
+    Cogen[(
+      String,
+      Option[EditNonsidereal],
+      Option[EditSidereal]
+    )].contramap { in => (
+      in.selectTarget.value,
+      in.nonsidereal,
+      in.sidereal
+    )}
+
+  implicit val arbEditTargetAction: Arbitrary[EditTargetAction] =
+    Arbitrary {
+      Gen.oneOf(
+        arbitrary[Create].map(EditTargetAction.add),
+        arbitrary[NonEmptyString].map(EditTargetAction.delete),
+        arbitrary[Edit].map(EditTargetAction.edit)
+      )
+
     }
+
+  implicit val cogEditTargetAction: Cogen[EditTargetAction] =
+    Cogen[(
+      Option[Create],
+      Option[String],
+      Option[Edit]
+    )].contramap { in => (
+      in.add,
+      in.delete.map(_.value),
+      in.edit
+    )}
+
+  implicit val arbEditTargetList: Arbitrary[EditTargetList] =
+    Arbitrary {
+      Gen.oneOf(
+        arbitrary[List[TargetModel.Create]].map(EditTargetList.replace),
+        arbitrary[List[EditTargetAction]].map(EditTargetList.edit)
+      )
+    }
+
+  implicit val cogEditTargetList: Cogen[EditTargetList] =
+    Cogen[(
+      Option[List[TargetModel.Create]],
+      Option[List[EditTargetAction]]
+    )].contramap { in => (
+      in.replaceList,
+      in.editList
+    )}
 
 }
 
