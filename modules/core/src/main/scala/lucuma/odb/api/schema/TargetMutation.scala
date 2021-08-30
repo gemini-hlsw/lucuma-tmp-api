@@ -3,23 +3,101 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{CatalogIdModel, CoordinatesModel, DeclinationModel, MagnitudeModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel, TargetEnvironmentModel, TargetModel}
+import cats.MonadError
+import cats.effect.std.Dispatcher
+import lucuma.odb.api.model.{CatalogIdModel, CoordinatesModel, DeclinationModel, MagnitudeModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
+import lucuma.odb.api.model.targetModel.{BulkEditTargetEnvironmentInput, BulkEditTargetInput, BulkEditTargetListInput, BulkReplaceTargetListInput, CreateNonsiderealInput, CreateSiderealInput, CreateTargetEnvironmentInput, CreateTargetInput, EditNonsiderealInput, EditSiderealInput, EditTargetInput, SelectTargetEnvironmentInput, SelectTargetInput, TargetEditResult, TargetEnvironmentContext, TargetListEditResult}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
 import lucuma.core.`enum`.MagnitudeSystem
-import sangria.macros.derive._
+import cats.syntax.option._
+import sangria.macros.derive.{ReplaceInputField, _}
 import sangria.marshalling.circe._
 import sangria.schema._
 
 
 trait TargetMutation extends TargetScalars {
 
+  import context._
   import GeneralSchema.NonEmptyStringType
   import NumericUnitsSchema._
-  import TargetSchema.{EnumTypeCatalogName, EphemerisKeyTypeEnumType, EnumTypeMagnitudeBand, EnumTypeMagnitudeSystem}
+  import ObservationSchema.{ObservationIdType, ObservationType}
+  import ProgramSchema.{ProgramIdType, ProgramType}
+  import TargetSchema.{EnumTypeCatalogName, EphemerisKeyTypeEnumType, EnumTypeMagnitudeBand, EnumTypeMagnitudeSystem, TargetEnvironmentIdType, TargetEnvironmentModelType, TargetIdType, TargetModelType}
 
   import syntax.inputtype._
   import syntax.inputobjecttype._
+
+  implicit val EnumTypeTargetEditDescOp: EnumType[TargetEditResult.Op] =
+    EnumType.fromEnumerated(
+      "TargetEditDescOp",
+      "The target edit that was performed"
+    )
+
+  def TargetEditDescType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], TargetEditResult] =
+    ObjectType(
+      name     = "TargetEditDesc",
+      fieldsFn = () => fields(
+
+        Field(
+          name        = "op",
+          fieldType   = EnumTypeTargetEditDescOp,
+          description = "Which operation was performed".some,
+          resolve     = _.value.op
+        ),
+
+        Field(
+          name        = "target",
+          fieldType   = TargetModelType[F],
+          description = "Target that was edited".some,
+          resolve     = _.value.target
+        )
+
+      )
+    )
+
+  private def targetEnvironmentContextFields[F[_]: Dispatcher, C <: TargetEnvironmentContext](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], C]] =
+    List(
+      Field(
+        name        = "targetEnvironment",
+        fieldType   = TargetEnvironmentModelType[F],
+        description = "Target environment that was edited".some,
+        resolve     = _.value.targetEnvironment
+      ),
+
+      Field(
+        name        = "observation",
+        fieldType   = OptionType(ObservationType[F]),
+        description = "Observation that houses the target environment, if any".some,
+        resolve     = _.value.observation
+      ),
+
+      Field(
+        name        = "program",
+        fieldType   = ProgramType[F],
+        description = "Program that houses the target environment".some,
+        resolve     = _.value.program
+      )
+    )
+
+  def TargetListEditDescType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], TargetListEditResult] =
+    ObjectType(
+      name     = "TargetListEditDesc",
+      fieldsFn = () =>
+        targetEnvironmentContextFields[F, TargetListEditResult] :+
+          Field(
+            name        = "edits",
+            fieldType   = ListType(TargetEditDescType[F]),
+            description = "Details any edits that were performed".some,
+            resolve     = _.value.edits
+          )
+    )
+
+  def TargetEnvironmentContextType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], TargetEnvironmentContext] =
+    ObjectType(
+      name   = "TargetEnvironmentContext",
+      fieldsFn = () => targetEnvironmentContextFields[F, TargetEnvironmentContext]
+    )
 
   implicit val EnumTypeDeclinationUnits: EnumType[DeclinationModel.Units] =
     EnumType.fromEnumerated(
@@ -49,18 +127,6 @@ trait TargetMutation extends TargetScalars {
     EnumType.fromEnumerated(
       "ParallaxUnits",
       "Unit options for parallax values"
-    )
-
-  val InputObjectTypeTargetCreateNonsidereal: InputObjectType[TargetModel.CreateNonsidereal] =
-    deriveInputObjectType[TargetModel.CreateNonsidereal](
-      InputObjectTypeName("CreateNonsiderealInput"),
-      InputObjectTypeDescription("Nonsidereal target parameters")
-    )
-
-  val ArgumentTargetCreateNonsidereal: Argument[TargetModel.CreateNonsidereal] =
-    InputObjectTypeTargetCreateNonsidereal.argument(
-      "input",
-      "Nonsidereal target description"
     )
 
   implicit val InputObjectCatalogId: InputObjectType[CatalogIdModel.Input] =
@@ -146,39 +212,32 @@ trait TargetMutation extends TargetScalars {
       InputObjectTypeDescription("Magnitude list editing (choose one option only)")
     )
 
-  implicit val InputObjectTypeCreateNonsidereal: InputObjectType[TargetModel.CreateNonsidereal] =
-    deriveInputObjectType[TargetModel.CreateNonsidereal](
+  implicit val InputObjectTypeCreateNonsidereal: InputObjectType[CreateNonsiderealInput] =
+    deriveInputObjectType[CreateNonsiderealInput](
       InputObjectTypeName("CreateNonsiderealInput"),
       InputObjectTypeDescription("Nonsidereal target parameters")
     )
 
-  implicit val InputObjectTypeCreateSidereal: InputObjectType[TargetModel.CreateSidereal] =
-    deriveInputObjectType[TargetModel.CreateSidereal](
+  implicit val InputObjectTypeCreateSidereal: InputObjectType[CreateSiderealInput] =
+    deriveInputObjectType[CreateSiderealInput](
       InputObjectTypeName("CreateSiderealInput"),
       InputObjectTypeDescription("Sidereal target parameters")
     )
 
-  val ArgumentTargetCreateSidereal: Argument[TargetModel.CreateSidereal] =
-    InputObjectTypeCreateSidereal.argument(
-      "input",
-      "Sidereal target description"
-    )
-
-  implicit val InputObjectTypeTargetCreate: InputObjectType[TargetModel.Create] =
-    deriveInputObjectType[TargetModel.Create](
+  implicit val InputObjectTypeCreateTarget: InputObjectType[CreateTargetInput] =
+    deriveInputObjectType[CreateTargetInput](
       InputObjectTypeName("CreateTargetInput"),
       InputObjectTypeDescription("Target creation parameters")
     )
 
-  val ArgumentTargetCreate: Argument[TargetModel.Create] =
-    InputObjectTypeTargetCreate.argument(
-      "input",
-      "Target creation parameters.  Choose 'nonSidereal' or 'sidereal'."
+  implicit val InputObjectTypeSelectTarget: InputObjectType[SelectTargetInput] =
+    deriveInputObjectType[SelectTargetInput](
+      InputObjectTypeName("SelectTargetInput"),
+      InputObjectTypeDescription("Target selection parameters.  Choose at least one of `names` or `targetIds`.")
     )
 
-
-  implicit val InputObjectTypeEditNonsidereal: InputObjectType[TargetModel.EditNonsidereal] =
-    deriveInputObjectType[TargetModel.EditNonsidereal](
+  implicit val InputObjectTypeEditNonsidereal: InputObjectType[EditNonsiderealInput] =
+    deriveInputObjectType[EditNonsiderealInput](
       InputObjectTypeName("EditNonsiderealInput"),
       InputObjectTypeDescription("Nonsidereal target edit parameters"),
 
@@ -187,8 +246,8 @@ trait TargetMutation extends TargetScalars {
     )
 
 
-  implicit val InputObjectTypeTargetEditSidereal: InputObjectType[TargetModel.EditSidereal] =
-    deriveInputObjectType[TargetModel.EditSidereal](
+  implicit val InputObjectTypeTargetEditSidereal: InputObjectType[EditSiderealInput] =
+    deriveInputObjectType[EditSiderealInput](
       InputObjectTypeName("EditSiderealInput"),
       InputObjectTypeDescription("Sidereal target edit parameters"),
 
@@ -204,52 +263,112 @@ trait TargetMutation extends TargetScalars {
       ReplaceInputField("parallax",       InputObjectParallax      .nullableField("parallax"      ))
     )
 
-  val ArgumentTargetEditSidereal: Argument[TargetModel.EditSidereal] =
-    InputObjectTypeTargetEditSidereal.argument(
-      "input",
-      "Sidereal target edit"
+  implicit val InputObjectTypeSelectTargetEnvironmentInput: InputObjectType[SelectTargetEnvironmentInput] =
+    deriveInputObjectType[SelectTargetEnvironmentInput](
+      InputObjectTypeName("SelectTargetEnvironmentInput"),
+      InputObjectTypeDescription("Target environment selection parameters. Choose at least one option.")
     )
 
-  implicit val InputObjectTypeTargetEdit: InputObjectType[TargetModel.Edit] =
-    deriveInputObjectType[TargetModel.Edit](
-      InputObjectTypeName("EditTargetInput"),
+  implicit val InputObjectTypeBulkEditTargetInput: InputObjectType[BulkEditTargetInput] =
+    deriveInputObjectType[BulkEditTargetInput](
+      InputObjectTypeName("BulkEditTargetInput"),
       InputObjectTypeDescription("Target editing parameters")
     )
 
-  val ArgumentTargetEdit: Argument[TargetModel.Edit] =
-    InputObjectTypeTargetEdit.argument(
+  val ArgumentBulkEditTargetInput: Argument[BulkEditTargetInput] =
+    InputObjectTypeBulkEditTargetInput.argument(
       "input",
-      "Target edit"
+      "Editing input for a single science target"
     )
 
-  implicit val InputObjectTypeTargetEditAction: InputObjectType[TargetModel.EditTargetAction] =
-    deriveInputObjectType[TargetModel.EditTargetAction](
-      InputObjectTypeName("EditTargetActionInput"),
-      InputObjectTypeDescription("Target edit action (choose one of 'add', 'delete', or 'edit'.")
+  implicit val InputObjectEditTargetInput: InputObjectType[EditTargetInput] =
+    deriveInputObjectType[EditTargetInput](
+      InputObjectTypeName("EditTargetInput"),
+      InputObjectTypeDescription("Single target edit options")
     )
 
-  implicit val InputObjectTypeTargetEditList: InputObjectType[TargetModel.EditTargetList] =
-    deriveInputObjectType[TargetModel.EditTargetList](
-      InputObjectTypeName("EditTargetListInput"),
-      InputObjectTypeDescription("Target list edit input (choose one of 'replaceList' or 'editList'.")
+  implicit val InputObjectTypeBulkEditTargetListInput: InputObjectType[BulkEditTargetListInput] =
+    deriveInputObjectType[BulkEditTargetListInput](
+      InputObjectTypeName("BulkEditTargetListInput"),
+      InputObjectTypeDescription("Target editing parameters")
     )
 
-  implicit val InputObjectTypeTargetEnvironmentCreate: InputObjectType[TargetEnvironmentModel.Create] =
-    deriveInputObjectType[TargetEnvironmentModel.Create](
+  val ArgumentBulkEditTargetListInput: Argument[BulkEditTargetListInput] =
+    InputObjectTypeBulkEditTargetListInput.argument(
+      "input",
+      "Editing input for multiple science targets"
+    )
+
+  implicit val InputObjectTypeBulkReplaceTargetListInput: InputObjectType[BulkReplaceTargetListInput] =
+    deriveInputObjectType[BulkReplaceTargetListInput](
+      InputObjectTypeName("BulkReplaceTargetListInput"),
+      InputObjectTypeDescription("Target list set/replace parameters")
+    )
+
+  val ArgumentBulkReplaceTargetListInput: Argument[BulkReplaceTargetListInput] =
+    InputObjectTypeBulkReplaceTargetListInput.argument(
+      "input",
+      "Editing input for replacing or setting science target lists"
+    )
+
+  implicit val InputObjectTypeTargetEnvironmentCreate: InputObjectType[CreateTargetEnvironmentInput] =
+    deriveInputObjectType[CreateTargetEnvironmentInput](
       InputObjectTypeName("CreateTargetEnvironmentInput"),
       InputObjectTypeDescription("Target environment creation input parameters")
     )
 
-  implicit val InputObjectTypeTargetEnvironmentEdit: InputObjectType[TargetEnvironmentModel.Edit] =
-    deriveInputObjectType[TargetEnvironmentModel.Edit](
-      InputObjectTypeName("EditTargetEnvironmentInput"),
-      InputObjectTypeDescription("Target environment edit input parameters"),
-
-      ReplaceInputField("explicitBase", InputObjectTypeCoordinates.nullableField("explicitBase"))
+  implicit val InputObjectTypeBulkEditTargetEnvironmentInput: InputObjectType[BulkEditTargetEnvironmentInput] =
+    deriveInputObjectType[BulkEditTargetEnvironmentInput](
+      InputObjectTypeName("BulkEditTargetEnvironmentInput"),
+      InputObjectTypeDescription("Target environment edit parameters"),
+      ReplaceInputField("explicitBase",  InputObjectTypeCoordinates.nullableField("explicitBase"))
     )
 
-  def allFields[F[_]]: List[Field[OdbRepo[F], Unit]] =
-    Nil
+  val ArgumentBulkEditTargetEnvironmentInput: Argument[BulkEditTargetEnvironmentInput] =
+    InputObjectTypeBulkEditTargetEnvironmentInput.argument(
+      "input",
+      "Editing input for editing target environment properties"
+    )
+
+  def updateScienceTarget[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+    Field(
+      name      = "updateScienceTarget",
+      fieldType = ListType(TargetListEditDescType[F]),
+      arguments = List(ArgumentBulkEditTargetInput),
+      resolve   = c => c.target(_.bulkEditScienceTarget(c.arg(ArgumentBulkEditTargetInput)))
+    )
+
+  def updateScienceTargetList[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+    Field(
+      name      = "updateScienceTargetList",
+      fieldType = ListType(TargetListEditDescType[F]),
+      arguments = List(ArgumentBulkEditTargetListInput),
+      resolve   = c => c.target(_.bulkEditScienceTargetList(c.arg(ArgumentBulkEditTargetListInput)))
+    )
+
+  def replaceScienceTargetList[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+    Field(
+      name      = "replaceScienceTargetList",
+      fieldType = ListType(TargetListEditDescType[F]),
+      arguments = List(ArgumentBulkReplaceTargetListInput),
+      resolve   = c => c.target(_.bulkReplaceScienceTargetList(c.arg(ArgumentBulkReplaceTargetListInput)))
+    )
+
+  def updateTargetEnvironment[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+    Field(
+      name      = "updateTargetEnvironment",
+      fieldType = ListType(TargetEnvironmentContextType[F]),
+      arguments = List(ArgumentBulkEditTargetEnvironmentInput),
+      resolve   = c => c.target(_.bulkEditTargetEnvironment(c.arg(ArgumentBulkEditTargetEnvironmentInput)))
+    )
+
+  def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
+    List(
+      updateScienceTarget[F],
+      updateScienceTargetList[F],
+      replaceScienceTargetList[F],
+      updateTargetEnvironment[F]
+    )
 
 }
 

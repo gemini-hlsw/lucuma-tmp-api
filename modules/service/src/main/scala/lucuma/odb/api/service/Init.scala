@@ -4,6 +4,7 @@
 package lucuma.odb.api.service
 
 import lucuma.odb.api.model._
+import lucuma.odb.api.model.targetModel._
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.`enum`._
 import lucuma.core.optics.syntax.all._
@@ -15,7 +16,6 @@ import eu.timepit.refined.auto._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.parser.decode
 import lucuma.core.model.Program
-import lucuma.odb.api.model
 import lucuma.odb.api.model.OffsetModel.ComponentInput
 
 import scala.concurrent.duration._
@@ -153,8 +153,8 @@ object Init {
 """
   )
 
-  val targets: Either[Exception, List[TargetModel.CreateSidereal]] =
-    targetsJson.traverse(decode[TargetModel.CreateSidereal])
+  val targets: Either[Exception, List[CreateSiderealInput]] =
+    targetsJson.traverse(decode[CreateSiderealInput])
 
   import GmosModel.{CreateCcdReadout, CreateSouthDynamic}
   import StepConfig.CreateStepConfig
@@ -280,7 +280,7 @@ object Init {
 
   def obs(
     pid:   Program.Id,
-    target: Option[TargetModel.CreateSidereal]
+    target: Option[CreateSiderealInput]
   ): ObservationModel.Create =
     ObservationModel.Create(
       observationId        = None,
@@ -288,8 +288,8 @@ object Init {
       name                 = target.map(_.name) orElse NonEmptyString.from("Observation").toOption,
       status               = ObsStatus.New.some,
       activeStatus         = ObsActiveStatus.Active.some,
-      targets              = target.fold(none[model.TargetEnvironmentModel.Create]) { sidereal =>
-        TargetEnvironmentModel.Create.singleSidereal(sidereal).some
+      targets              = target.fold(none[CreateTargetEnvironmentInput]) { sidereal =>
+        CreateTargetEnvironmentInput.singleSidereal(sidereal).some
       },
       constraintSet        = None,
       scienceRequirements  = ScienceRequirementsModel.Create.Default.some,

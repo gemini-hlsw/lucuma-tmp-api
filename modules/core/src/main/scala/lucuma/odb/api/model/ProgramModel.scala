@@ -3,15 +3,18 @@
 
 package lucuma.odb.api.model
 
-import lucuma.core.model.Program
 import cats.{Eq, Monad}
 import cats.mtl.Stateful
 import cats.syntax.all._
+import clue.data.Input
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
+import lucuma.odb.api.model.syntax.input._
+import lucuma.core.model.Program
+import lucuma.core.optics.syntax.lens._
 import monocle.Lens
 
 
@@ -19,9 +22,9 @@ import monocle.Lens
  * A placeholder Program for now.
  */
 final case class ProgramModel(
-  id:        Program.Id,
-  existence: Existence,
-  name:      Option[NonEmptyString]
+  id:            Program.Id,
+  existence:     Existence,
+  name:          Option[NonEmptyString]
 )
 
 object ProgramModel extends ProgramOptics {
@@ -36,16 +39,18 @@ object ProgramModel extends ProgramOptics {
    * Program creation input class.
    */
   final case class Create(
-    programId: Option[Program.Id],
-    name:      Option[NonEmptyString]
+    programId:     Option[Program.Id],
+    name:          Option[NonEmptyString]
   ) {
 
-    def create[F[_]: Monad, T](db: DatabaseState[T])(implicit S: Stateful[F, T]): F[ValidatedInput[ProgramModel]] =
+    def create[F[_]: Monad, T](db: DatabaseState[T])(implicit S: Stateful[F, T]): F[ValidatedInput[ProgramModel]] = {
+
       for {
         i <- db.program.getUnusedId[F](programId)
-        p  = i.map(ProgramModel(_, Existence.Present, name))
-        _ <- db.program.saveIfValid[F](p)(_.id)
+        p  = i.map { pid => ProgramModel(pid, Existence.Present, name) }
+        _ <- db.program.saveNewIfValid[F](p)(_.id)
       } yield p
+    }
 
   }
 
@@ -53,6 +58,38 @@ object ProgramModel extends ProgramOptics {
 
     implicit val DecoderCreate: Decoder[Create] =
       deriveDecoder[Create]
+
+  }
+
+  final case class Edit(
+    programId:     Program.Id,
+    existence:     Input[Existence]                   = Input.ignore,
+    name:          Input[NonEmptyString]              = Input.ignore
+  ) {
+
+    def edit(p: ProgramModel): ValidatedInput[ProgramModel] = {
+      existence.validateIsNotNull("existence").map { e =>
+        (ProgramModel.existence := e).void
+      }.map(_.runS(p).value)
+    }
+
+  }
+
+  object Edit {
+
+    import io.circe.generic.extras.semiauto._
+    import io.circe.generic.extras.Configuration
+    implicit val customConfig: Configuration = Configuration.default.withDefaults
+
+    implicit val DecoderEdit: Decoder[Edit] =
+      deriveConfiguredDecoder[Edit]
+
+    implicit val EqEdit: Eq[Edit] =
+      Eq.by { a => (
+        a.programId,
+        a.existence,
+        a.name
+      )}
 
   }
 
@@ -76,12 +113,12 @@ object ProgramModel extends ProgramOptics {
 trait ProgramOptics { self: ProgramModel.type =>
 
   val id: Lens[ProgramModel, Program.Id] =
-    Lens[ProgramModel, Program.Id](_.id)(a => b => b.copy(id = a))
+    Lens[ProgramModel, Program.Id](_.id)(a => _.copy(id = a))
 
   val existence: Lens[ProgramModel, Existence] =
-    Lens[ProgramModel, Existence](_.existence)(a => b => b.copy(existence = a))
+    Lens[ProgramModel, Existence](_.existence)(a => _.copy(existence = a))
 
   val name: Lens[ProgramModel, Option[NonEmptyString]] =
-    Lens[ProgramModel, Option[NonEmptyString]](_.name)(a => b => b.copy(name = a))
+    Lens[ProgramModel, Option[NonEmptyString]](_.name)(a => _.copy(name = a))
 
 }

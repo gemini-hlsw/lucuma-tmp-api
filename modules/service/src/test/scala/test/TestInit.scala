@@ -14,6 +14,7 @@ import lucuma.core.model.Program
 import lucuma.core.optics.syntax.all._
 import lucuma.odb.api.model.OffsetModel.ComponentInput
 import lucuma.odb.api.model._
+import lucuma.odb.api.model.targetModel.{BulkEditTargetEnvironmentInput, CreateSiderealInput, CreateTargetEnvironmentInput, SelectTargetEnvironmentInput}
 import lucuma.odb.api.repo.OdbRepo
 
 import scala.concurrent.duration._
@@ -151,8 +152,8 @@ object TestInit {
 """
   )
 
-  val targets: Either[Exception, List[TargetModel.CreateSidereal]] =
-    targetsJson.traverse(decode[TargetModel.CreateSidereal])
+  val targets: Either[Exception, List[CreateSiderealInput]] =
+    targetsJson.traverse(decode[CreateSiderealInput])
 
   import GmosModel.{CreateCcdReadout, CreateSouthDynamic}
   import CreateCcdReadout.{ampRead, xBin, yBin}
@@ -277,7 +278,7 @@ object TestInit {
 
   def obs(
     pid:     Program.Id,
-    targets: List[TargetModel.CreateSidereal]
+    targets: List[CreateSiderealInput]
   ): ObservationModel.Create =
     ObservationModel.Create(
       observationId        = None,
@@ -285,7 +286,7 @@ object TestInit {
       name                 = targets.headOption.map(_.name) orElse NonEmptyString.from("Observation").toOption,
       status               = ObsStatus.New.some,
       activeStatus         = ObsActiveStatus.Active.some,
-      targets              = TargetEnvironmentModel.Create.fromSidereal(targets).some,
+      targets              = CreateTargetEnvironmentInput.fromSidereal(targets).some,
       constraintSet        = None,
       scienceRequirements  = ScienceRequirementsModel.Create.Default.some,
       scienceConfiguration = None,
@@ -318,18 +319,17 @@ object TestInit {
       _  <- repo.observation.insert(obs(p.id, cs.headOption.toList)) // 2
       _  <- repo.observation.insert(obs(p.id, cs.lastOption.toList)) // 3
       _  <- repo.observation.insert(obs(p.id, cs.lastOption.toList)) // 4
+//      _  <- repo.observation.insert(obs(p.id, cs.lastOption.toList)) // 5
       o  <- repo.observation.insert(obs(p.id, cs.lastOption.toList)) // 5
 
       // Add an explicit base to the last observation's target environment
-      _  <- repo.observation.edit(
-        ObservationModel.Edit(
-          o.id,
-          targets = TargetEnvironmentModel.Edit.explicitBase(
-            RightAscensionModel.Input.fromDegrees(159.2583),
-            DeclinationModel.Input.fromDegrees(-27.5650)
-          ).some
-        )
-      )
+      _  <- repo.target.bulkEditTargetEnvironment(
+              BulkEditTargetEnvironmentInput.explicitBase(
+                SelectTargetEnvironmentInput.observations(List(o.id)),
+                RightAscensionModel.Input.fromDegrees(159.2583),
+                DeclinationModel.Input.fromDegrees(-27.5650)
+              )
+            )
 
       _  <- repo.observation.insert(obs(p.id, cs))                   // 6
       _  <- repo.observation.insert(obs(p.id, Nil))                  // 7

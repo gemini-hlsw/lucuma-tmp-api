@@ -23,11 +23,11 @@ class ScienceTargetsMutationSuite extends OdbSuite {
   // Replace all targets in o-3
   queryTest(
     query ="""
-      mutation UpdateScienceTargets($listEdit: BulkEditScienceTargetsInput!) {
-        updateScienceTargets(input: $listEdit) {
-          id
-          targets {
-            science {
+      mutation ReplaceScienceTargets($listEdit: BulkReplaceTargetListInput!) {
+        replaceScienceTargetList(input: $listEdit) {
+          edits {
+            op
+            target {
               name
             }
           }
@@ -36,19 +36,28 @@ class ScienceTargetsMutationSuite extends OdbSuite {
     """,
     expected =json"""
       {
-        "updateScienceTargets": [
+        "replaceScienceTargetList": [
           {
-            "id": "o-3",
-            "targets": {
-              "science": [
-                {
+            "edits": [
+              {
+                "op": "DELETE",
+                "target": {
+                  "name": "NGC 3312"
+                }
+              },
+              {
+                "op": "CREATE",
+                "target": {
                   "name": "NGC 1704"
-                },
-                {
+                }
+              },
+              {
+                "op": "CREATE",
+                "target": {
                   "name": "NGC 1705"
                 }
-              ]
-            }
+              }
+            ]
           }
         ]
       }
@@ -56,103 +65,51 @@ class ScienceTargetsMutationSuite extends OdbSuite {
     variables =json"""
       {
         "listEdit": {
-          "selectObservations": [ "o-3" ],
-          "edit": {
-            "replaceList": [
-              {
-                "sidereal": {
-                  "name": "NGC 1704",
-                  "ra": {
-                    "hms": "04:49:54.960"
-                  },
-                  "dec": {
-                    "dms": "-69:45:18.00"
-                  }
-                }
-              },
-              {
-                "sidereal": {
-                  "name": "NGC 1705",
-                  "ra": {
-                    "hms": "04:54:13.500"
-                  },
-                  "dec": {
-                    "dms": "-53:21:39.82"
-                  },
-                  "radialVelocity": {
-                    "kilometersPerSecond": 632.493
-                  }
+          "select": {
+            "observations": [ "o-3" ]
+          },
+          "replace": [
+            {
+              "sidereal": {
+                "name": "NGC 1704",
+                "ra": {
+                  "hms": "04:49:54.960"
+                },
+                "dec": {
+                  "dms": "-69:45:18.00"
                 }
               }
-            ]
-          }
-        }
-      }
-    """.some
-
-  )
-
-  // Here we attempt to replace the target list for o-4 but we specify the
-  // same name, NGC 1704, twice so it fails.
-  queryTestFailure(
-    query ="""
-      mutation UpdateScienceTargets($listEdit: BulkEditScienceTargetsInput!) {
-        updateScienceTargets(input: $listEdit) {
-          id
-          targets {
-            science {
-              name
+            },
+            {
+              "sidereal": {
+                "name": "NGC 1705",
+                "ra": {
+                  "hms": "04:54:13.500"
+                },
+                "dec": {
+                  "dms": "-53:21:39.82"
+                },
+                "radialVelocity": {
+                  "kilometersPerSecond": 632.493
+                }
+              }
             }
-          }
+          ]
         }
       }
-    """,
-    errors = List(
-      "Cannot create a new science target with name 'NGC 1704' because one already exists in observation o-4"
-    ),
-    variables =json"""
-      {
-        "listEdit": {
-          "selectObservations": [ "o-4" ],
-          "edit": {
-            "replaceList": [
-              {
-                "sidereal": {
-                  "name": "NGC 1704",
-                  "ra": {
-                    "hms": "04:49:54.960"
-                  },
-                  "dec": {
-                    "dms": "-69:45:18.00"
-                  }
-                }
-              },
-              {
-                "sidereal": {
-                  "name": "NGC 1704",
-                  "ra": {
-                    "hms": "04:49:54.960"
-                  },
-                  "dec": {
-                    "dms": "-69:45:18.00"
-                  }
-                }
-              }
-            ]
-          }
-        }
-      }
-    """.some
+    """.some,
+    clients = List(ClientOption.Http)  // cannot run this test twice since it changes required state
+
   )
 
   // Delete NGC 3312 then add NGC 1704 (could also have been a `replaceList`).
   queryTest(
     query ="""
-      mutation UpdateScienceTargets($listEdit: BulkEditScienceTargetsInput!) {
-        updateScienceTargets(input: $listEdit) {
-          id
-          targets {
-            science {
+      mutation UpdateScienceTargets($listEdit: BulkEditTargetListInput!) {
+        updateScienceTargetList(input: $listEdit) {
+          edits {
+            op
+            target {
               name
             }
           }
@@ -161,16 +118,22 @@ class ScienceTargetsMutationSuite extends OdbSuite {
     """,
     expected =json"""
       {
-        "updateScienceTargets": [
+        "updateScienceTargetList": [
           {
-            "id": "o-5",
-            "targets": {
-              "science": [
-                {
+            "edits": [
+              {
+                "op": "DELETE",
+                "target": {
+                  "name": "NGC 3312"
+                }
+              },
+              {
+                "op": "CREATE",
+                "target": {
                   "name": "NGC 1704"
                 }
-              ]
-            }
+              }
+            ]
           }
         ]
       }
@@ -178,27 +141,27 @@ class ScienceTargetsMutationSuite extends OdbSuite {
     variables =json"""
       {
         "listEdit": {
-          "selectObservations": [ "o-5" ],
-          "edit": {
-            "editList": [
-              {
-                "delete": "NGC 3312"
-              },
-              {
-                "add": {
-                  "sidereal": {
-                    "name": "NGC 1704",
-                    "ra": {
-                      "hms": "04:49:54.960"
-                    },
-                    "dec": {
-                      "dms": "-69:45:18.00"
-                    }
-                  }
+          "select": {
+            "observations": [ "o-5" ]
+          },
+          "edits": [
+            {
+              "delete": {
+                "names": [ "NGC 3312" ]
+              }
+            },
+            {
+              "addSidereal": {
+                "name": "NGC 1704",
+                "ra": {
+                  "hms": "04:49:54.960"
+                },
+                "dec": {
+                  "dms": "-69:45:18.00"
                 }
               }
-            ]
-          }
+            }
+          ]
         }
       }
     """.some,
@@ -209,11 +172,11 @@ class ScienceTargetsMutationSuite extends OdbSuite {
   // Edit all targets in o-6
   queryTest(
     query ="""
-      mutation UpdateScienceTargets($listEdit: BulkEditScienceTargetsInput!) {
-        updateScienceTargets(input: $listEdit) {
-          id
-          targets {
-            science {
+      mutation UpdateScienceTargets($listEdit: BulkEditTargetListInput!) {
+        updateScienceTargetList(input: $listEdit) {
+          edits {
+            op
+            target {
               name
               tracking {
                 ... on Sidereal {
@@ -231,13 +194,13 @@ class ScienceTargetsMutationSuite extends OdbSuite {
     """,
     expected =json"""
       {
-        "updateScienceTargets": [
+        "updateScienceTargetList": [
           {
-            "id": "o-6",
-            "targets": {
-              "science": [
-                {
-                  "name": "NGC 3269",
+            "edits": [
+              {
+                "op": "EDIT",
+                "target": {
+                  "name": "NGC 5949",
                   "tracking": {
                     "coordinates": {
                       "ra": {
@@ -245,9 +208,12 @@ class ScienceTargetsMutationSuite extends OdbSuite {
                       }
                     }
                   }
-                },
-                {
-                  "name": "NGC 3312",
+                }
+              },
+              {
+                "op": "EDIT",
+                "target": {
+                  "name": "NGC 3269",
                   "tracking": {
                     "coordinates": {
                       "ra": {
@@ -255,9 +221,12 @@ class ScienceTargetsMutationSuite extends OdbSuite {
                       }
                     }
                   }
-                },
-                {
-                  "name": "NGC 5949",
+                }
+              },
+              {
+                "op": "EDIT",
+                "target": {
+                  "name": "NGC 3312",
                   "tracking": {
                     "coordinates": {
                       "ra": {
@@ -266,8 +235,8 @@ class ScienceTargetsMutationSuite extends OdbSuite {
                     }
                   }
                 }
-              ]
-            }
+              }
+            ]
           }
         ]
       }
@@ -275,46 +244,45 @@ class ScienceTargetsMutationSuite extends OdbSuite {
     variables =json"""
       {
         "listEdit": {
-          "selectObservations": [ "o-6" ],
-          "edit": {
-            "editList": [
-              {
-                "edit": {
-                  "selectTarget": "NGC 5949",
-                  "sidereal": {
-                    "ra": {
-                      "hms": "03:00:00.00"
-                    }
-                  }
-                }
-              },
-              {
-                "edit": {
-                  "selectTarget": "NGC 3312",
-                  "sidereal": {
-                    "ra": {
-                      "hms": "02:00:00.00"
-                    }
-                  }
-                }
-              },
-              {
-                "edit": {
-                  "selectTarget": "NGC 3269",
-                  "sidereal": {
-                    "ra": {
-                      "hms": "01:00:00.00"
-                    }
-                  }
+          "select": {
+            "observations": [ "o-6" ]
+          },
+          "edits": [
+            {
+              "editSidereal": {
+                "select": {
+                  "names": [ "NGC 5949"]
+                },
+                "ra": {
+                  "hms": "01:00:00.00"
                 }
               }
-            ]
-          }
+            },
+            {
+              "editSidereal": {
+                "select": {
+                  "names": [ "NGC 3269" ]
+                },
+                "ra": {
+                  "hms": "02:00:00.00"
+                }
+              }
+            },
+            {
+              "editSidereal": {
+                "select": {
+                  "names": [ "NGC 3312" ]
+                },
+                "ra": {
+                  "hms": "03:00:00.00"
+                }
+              }
+            }
+          ]
         }
       }
     """.some
 
   )
-
 
 }

@@ -22,12 +22,15 @@ class ScienceTargetMutationSuite extends OdbSuite {
 
   // Bulk edit NGC 3312 to remove parallax altogether.
   queryTest(
-    query ="""
-      mutation UpdateScienceTarget($targetEdit: BulkEditScienceTargetInput!) {
+    query = """
+      mutation UpdateScienceTarget($targetEdit: BulkEditTargetInput!) {
         updateScienceTarget(input: $targetEdit) {
-          id
-          targets {
-            science {
+          observation {
+            id
+          }
+          edits {
+            op
+            target {
               name
               tracking {
                 ... on Sidereal {
@@ -39,125 +42,176 @@ class ScienceTargetMutationSuite extends OdbSuite {
         }
       }
     """,
-    expected =json"""
+    expected = json"""
       {
         "updateScienceTarget": [
           {
-            "id": "o-3",
-            "targets": {
-              "science": [
-                {
+            "observation": {
+              "id": "o-3"
+            },
+            "edits": [
+              {
+                "op": "EDIT",
+                "target": {
                   "name": "NGC 3312",
                   "tracking": {
                     "parallax": null
                   }
                 }
-              ]
-            }
+              }
+            ]
           },
           {
-            "id": "o-4",
-            "targets": {
-              "science": [
-                {
+            "observation": {
+              "id": "o-4"
+            },
+            "edits": [
+              {
+                "op": "EDIT",
+                "target": {
                   "name": "NGC 3312",
                   "tracking": {
                     "parallax": null
                   }
                 }
-              ]
-            }
+              }
+            ]
           },
           {
-            "id": "o-5",
-            "targets": {
-              "science": [
-                {
+            "observation": {
+              "id": "o-5"
+            },
+            "edits": [
+              {
+                "op": "EDIT",
+                "target": {
                   "name": "NGC 3312",
                   "tracking": {
                     "parallax": null
                   }
                 }
-              ]
-            }
+              }
+            ]
           },
           {
-            "id": "o-6",
-            "targets": {
-              "science": [
-                {
-                  "name": "NGC 3269",
-                  "tracking": {
-                    "parallax": {
-                      "microarcseconds": 0
-                    }
-                  }
-                },
-                {
+            "observation": {
+              "id": "o-6"
+            },
+            "edits": [
+              {
+                "op": "EDIT",
+                "target": {
                   "name": "NGC 3312",
                   "tracking": {
                     "parallax": null
                   }
-                },
-                {
-                  "name": "NGC 5949",
-                  "tracking": {
-                    "parallax": {
-                      "microarcseconds": 0
-                    }
-                  }
                 }
-              ]
-            }
+              }
+            ]
           }
         ]
       }
     """,
-    variables =json"""
+    variables = json"""
       {
         "targetEdit": {
-          "selectObservations": [ "o-3", "o-4", "o-5", "o-6" ],
-          "edit": {
-            "selectTarget": "NGC 3312",
-            "sidereal": {
-              "parallax": null
-            }
+          "select": {
+            "observations": [ "o-3", "o-4", "o-5", "o-6" ]
+          },
+          "editSidereal": {
+            "select": {
+              "names": [ "NGC 3312" ]
+            },
+            "parallax": null
           }
         }
       }
     """.some
   )
 
-  // Attempt to edit a target that is not found in o-3.
+  // Attempt to edit a target by name without specifying the environment
   queryTestFailure(
-    query ="""
-      mutation UpdateScienceTarget($targetEdit: BulkEditScienceTargetInput!) {
+    query = """
+      mutation UpdateScienceTarget($targetEdit: BulkEditTargetInput!) {
         updateScienceTarget(input: $targetEdit) {
-          id
-          targets {
-            science {
+          edits {
+            op
+            target {
               name
+              tracking {
+                ... on Sidereal {
+                  parallax { microarcseconds }
+                }
+              }
             }
           }
         }
       }
     """,
     errors = List(
-      "Missing science target 'NGC 9999' in observation o-3"
+      "No target environment was selected: specify a target environment when identifying targets by name."
     ),
-    variables =json"""
+    variables = json"""
       {
         "targetEdit": {
-          "selectObservations": [ "o-3" ],
-          "edit": {
-            "selectTarget": "NGC 9999",
-            "sidereal": {
-              "parallax": null
-            }
+          "editSidereal": {
+            "select": {
+               "names": [ "NGC 3312" ]
+            },
+            "parallax": null
           }
         }
       }
     """.some
+  )
+
+  // Delete a target by id.  No need to specify a target environment.
+  queryTest(
+    query = """
+      mutation UpdateScienceTarget($targetEdit: BulkEditTargetInput!) {
+        updateScienceTarget(input: $targetEdit) {
+          observation {
+            id
+          }
+          edits {
+            op
+            target {
+              name
+            }
+          }
+        }
+      }
+    """,
+    expected = json"""
+      {
+        "updateScienceTarget": [
+          {
+            "observation": {
+              "id": "o-3"
+            },
+            "edits": [
+              {
+                "op": "DELETE",
+                "target": {
+                  "name": "NGC 3312"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    """,
+    variables = json"""
+      {
+        "targetEdit": {
+          "delete": {
+            "targetIds": [ "t-3" ]
+          }
+        }
+      }
+    """.some,
+    clients = List(ClientOption.Http)  // cannot run this test twice since it changes required state
+
   )
 
 }
