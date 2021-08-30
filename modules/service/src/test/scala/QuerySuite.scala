@@ -59,8 +59,8 @@ class QuerySuite extends OdbSuite {
             {
               "id" : "o-2",
               "constraintSet" : {
-                "cloudExtinction" : "THREE_POINT_ZERO",
-                "imageQuality" : "TWO_POINT_ZERO",
+                "cloudExtinction" : "POINT_THREE",
+                "imageQuality" : "POINT_EIGHT",
                 "skyBackground" : "BRIGHT",
                 "waterVapor" : "WET"
               }
@@ -68,8 +68,8 @@ class QuerySuite extends OdbSuite {
             {
               "id" : "o-3",
               "constraintSet" : {
-                "cloudExtinction" : "THREE_POINT_ZERO",
-                "imageQuality" : "TWO_POINT_ZERO",
+                "cloudExtinction" : "POINT_THREE",
+                "imageQuality" : "POINT_EIGHT",
                 "skyBackground" : "BRIGHT",
                 "waterVapor" : "WET"
               }
@@ -77,8 +77,8 @@ class QuerySuite extends OdbSuite {
             {
               "id" : "o-4",
               "constraintSet" : {
-                "cloudExtinction" : "THREE_POINT_ZERO",
-                "imageQuality" : "TWO_POINT_ZERO",
+                "cloudExtinction" : "POINT_THREE",
+                "imageQuality" : "POINT_EIGHT",
                 "skyBackground" : "BRIGHT",
                 "waterVapor" : "WET"
               }
@@ -86,8 +86,8 @@ class QuerySuite extends OdbSuite {
             {
               "id" : "o-5",
               "constraintSet" : {
-                "cloudExtinction" : "THREE_POINT_ZERO",
-                "imageQuality" : "TWO_POINT_ZERO",
+                "cloudExtinction" : "POINT_THREE",
+                "imageQuality" : "POINT_EIGHT",
                 "skyBackground" : "BRIGHT",
                 "waterVapor" : "WET"
               }
@@ -95,8 +95,8 @@ class QuerySuite extends OdbSuite {
             {
               "id" : "o-6",
               "constraintSet" : {
-                "cloudExtinction" : "THREE_POINT_ZERO",
-                "imageQuality" : "TWO_POINT_ZERO",
+                "cloudExtinction" : "POINT_THREE",
+                "imageQuality" : "POINT_EIGHT",
                 "skyBackground" : "BRIGHT",
                 "waterVapor" : "WET"
               }
@@ -104,8 +104,8 @@ class QuerySuite extends OdbSuite {
             {
               "id" : "o-7",
               "constraintSet" : {
-                "cloudExtinction" : "THREE_POINT_ZERO",
-                "imageQuality" : "TWO_POINT_ZERO",
+                "cloudExtinction" : "POINT_THREE",
+                "imageQuality" : "POINT_EIGHT",
                 "skyBackground" : "BRIGHT",
                 "waterVapor" : "WET"
               }
@@ -144,8 +144,8 @@ class QuerySuite extends OdbSuite {
           "nodes" : [
             {
               "constraintSet" : {
-                "cloudExtinction" : "THREE_POINT_ZERO",
-                "imageQuality" : "TWO_POINT_ZERO",
+                "cloudExtinction" : "POINT_THREE",
+                "imageQuality" : "POINT_EIGHT",
                 "skyBackground" : "BRIGHT",
                 "waterVapor" : "WET"
               },

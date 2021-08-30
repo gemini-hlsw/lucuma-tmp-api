@@ -105,7 +105,7 @@ object ObservationModel extends ObservationOptics {
             status.getOrElse(ObsStatus.New),
             activeStatus.getOrElse(ObsActiveStatus.Active),
             tʹ.getOrElse(TargetEnvironmentModel.Empty),
-            cʹ.getOrElse(ConstraintSetModel.AnyConstraints),
+            cʹ.getOrElse(ConstraintSetModel.Default),
             qʹ.getOrElse(ScienceRequirements.Default),
             uʹ,
             gʹ.map(_.toReference),
