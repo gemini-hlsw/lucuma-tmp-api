@@ -7,10 +7,8 @@ import cats._
 import cats.data.State
 import cats.syntax.all._
 import clue.data.Input
-import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.generic.semiauto._
-import io.circe.refined._
 import lucuma.core.enum._
 import lucuma.core.optics.syntax.lens._
 import lucuma.odb.api.model.syntax.input._
@@ -19,7 +17,6 @@ import monocle.macros.GenLens
 
 
 final case class ConstraintSetModel(
-  name:            NonEmptyString,  // maybe we eliminate this?
   imageQuality:    ImageQuality,
   cloudExtinction: CloudExtinction,
   skyBackground:   SkyBackground,
@@ -31,9 +28,11 @@ object ConstraintSetModel extends ConstraintSetModelOptics {
 
   implicit val EqConstraintSet: Eq[ConstraintSetModel] = Eq.fromUniversalEquals
 
-  val AnyConstraints: ConstraintSetModel =
+  /**
+   * The loosest possible observing constraints.
+   */
+  val Any: ConstraintSetModel =
     ConstraintSetModel(
-      NonEmptyString.unsafeFrom("Anything Goes"),
       ImageQuality.TwoPointZero,
       CloudExtinction.ThreePointZero,
       SkyBackground.Bright,
@@ -41,8 +40,19 @@ object ConstraintSetModel extends ConstraintSetModelOptics {
       ElevationRangeModel.airmassRange.reverseGet(AirmassRange.AnyAirmass)
     )
 
+  /**
+   * Constraints that are set by default when a new observation is created.
+   */
+  val Default: ConstraintSetModel =
+    ConstraintSetModel(
+      ImageQuality.PointEight,
+      CloudExtinction.PointThree,
+      SkyBackground.Bright,
+      WaterVapor.Wet,
+      ElevationRangeModel.airmassRange.reverseGet(AirmassRange.AnyAirmass)
+    )
+
   final case class Create(
-    name:            NonEmptyString,
     imageQuality:    ImageQuality,
     cloudExtinction: CloudExtinction,
     skyBackground:   SkyBackground,
@@ -53,7 +63,6 @@ object ConstraintSetModel extends ConstraintSetModelOptics {
     def create: ValidatedInput[ConstraintSetModel] =
       elevationRange.create.map { e =>
         ConstraintSetModel(
-          name,
           imageQuality,
           cloudExtinction,
           skyBackground,
@@ -71,7 +80,6 @@ object ConstraintSetModel extends ConstraintSetModelOptics {
   }
 
   final case class Edit(
-    name:            Input[NonEmptyString]             = Input.ignore,
     imageQuality:    Input[ImageQuality]               = Input.ignore,
     cloudExtinction: Input[CloudExtinction]            = Input.ignore,
     skyBackground:   Input[SkyBackground]              = Input.ignore,
@@ -80,15 +88,13 @@ object ConstraintSetModel extends ConstraintSetModelOptics {
   ) {
 
     def editor: ValidatedInput[State[ConstraintSetModel, Unit]] =
-      (name.validateIsNotNull("name"),
-       imageQuality.validateIsNotNull("imageQuality"),
+      (imageQuality.validateIsNotNull("imageQuality"),
        cloudExtinction.validateIsNotNull("cloudExtinction"),
        skyBackground.validateIsNotNull("skyBackground"),
        waterVapor.validateIsNotNull("waterVapor"),
        elevationRange.validateNotNullable("elevationRange")(_.create)
-      ).mapN { (n, i, c, s, w, el) =>
+      ).mapN { (i, c, s, w, el) =>
         for {
-          _ <- ConstraintSetModel.name            := n
           _ <- ConstraintSetModel.imageQuality    := i
           _ <- ConstraintSetModel.cloudExtinction := c
           _ <- ConstraintSetModel.skyBackground   := s
@@ -111,10 +117,6 @@ object ConstraintSetModel extends ConstraintSetModelOptics {
 }
 
 trait ConstraintSetModelOptics {
-
-  /** @group Optics */
-  lazy val name: Lens[ConstraintSetModel, NonEmptyString] =
-    GenLens[ConstraintSetModel](_.name)
 
   /** @group Optics */
   lazy val imageQuality: Lens[ConstraintSetModel, ImageQuality] =

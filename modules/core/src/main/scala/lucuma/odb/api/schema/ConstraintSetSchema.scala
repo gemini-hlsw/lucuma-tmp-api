@@ -12,7 +12,6 @@ import lucuma.odb.api.model.ConstraintSetModel
 import sangria.schema._
 
 object ConstraintSetSchema {
-  import GeneralSchema.NonEmptyStringType
 
   implicit val EnumTypeCloudExtinction: EnumType[CloudExtinction] =
     EnumType.fromEnumerated("CloudExtinction", "Cloud extinction")
@@ -78,12 +77,6 @@ object ConstraintSetSchema {
       name     = "ConstraintSet",
       fieldsFn = () =>
         fields(
-          Field(
-            name        = "name",
-            fieldType   = NonEmptyStringType,
-            description = Some("Constraint set name"),
-            resolve     = _.value.name
-          ),
           Field(
             name        = "imageQuality",
             fieldType   = EnumTypeImageQuality,

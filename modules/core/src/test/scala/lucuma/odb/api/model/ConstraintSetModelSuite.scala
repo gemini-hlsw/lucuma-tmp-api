@@ -5,9 +5,6 @@ package lucuma.odb.api.model
 
 import cats.kernel.laws.discipline._
 import cats.syntax.all._
-import eu.timepit.refined.cats._
-import eu.timepit.refined.scalacheck.string._
-import lucuma.core.arb._
 import lucuma.core.util.arb._
 import lucuma.odb.api.model.arb._
 import monocle.law.discipline._
@@ -20,7 +17,6 @@ final class ConstraintSetModelSuite extends DisciplineSuite {
   import ArbEnumerated._
 
   checkAll("Eq[ConstraintSet]", EqTests[ConstraintSetModel].eqv)
-  checkAll("ConstraintSet.name", LensTests(ConstraintSetModel.name))
   checkAll("ConstraintSet.imageQuality", LensTests(ConstraintSetModel.imageQuality))
   checkAll("ConstraintSet.cloudExtinction", LensTests(ConstraintSetModel.cloudExtinction))
   checkAll("ConstraintSet.skyBackground", LensTests(ConstraintSetModel.skyBackground))
