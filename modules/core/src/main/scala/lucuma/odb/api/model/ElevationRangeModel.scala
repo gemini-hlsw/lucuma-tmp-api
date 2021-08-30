@@ -76,8 +76,11 @@ object AirmassRange extends AirmassRangeOptics {
   type Value        = Interval.Closed[MinValue.type, MaxValue.type]
   type DecimalValue = BigDecimal Refined Value
 
-  val AnyAirmass: AirmassRange =
+  val Any: AirmassRange =
     unsafeFromBigDecimal(MinValue, MaxValue)
+
+  val Default: AirmassRange =
+    unsafeFromBigDecimal(MinValue, BigDecimal(2.0))
 
   /**
    * Construct a new AirmassRange.
