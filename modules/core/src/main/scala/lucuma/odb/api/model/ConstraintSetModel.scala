@@ -37,7 +37,7 @@ object ConstraintSetModel extends ConstraintSetModelOptics {
       CloudExtinction.ThreePointZero,
       SkyBackground.Bright,
       WaterVapor.Wet,
-      ElevationRangeModel.airmassRange.reverseGet(AirmassRange.AnyAirmass)
+      ElevationRangeModel.airmassRange.reverseGet(AirmassRange.Any)
     )
 
   /**
@@ -49,7 +49,7 @@ object ConstraintSetModel extends ConstraintSetModelOptics {
       CloudExtinction.PointThree,
       SkyBackground.Bright,
       WaterVapor.Wet,
-      ElevationRangeModel.airmassRange.reverseGet(AirmassRange.AnyAirmass)
+      ElevationRangeModel.airmassRange.reverseGet(AirmassRange.Default)
     )
 
   final case class Create(
