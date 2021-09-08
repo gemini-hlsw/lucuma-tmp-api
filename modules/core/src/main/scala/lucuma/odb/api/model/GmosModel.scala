@@ -186,21 +186,21 @@ object GmosModel {
   }
    */
 
-  sealed trait Static[S] {
-    def detector:      GmosDetector
+  sealed trait Static[S, D] {
     def mosPreImaging: MosPreImaging
     def nodAndShuffle: Option[NodAndShuffle]
     // insert customRois here
     def stageMode:     S
+    def detector:      D
   }
 
   final case class NorthStatic(
-    detector:      GmosDetector,
+    detector:      GmosNorthDetector,
     mosPreImaging: MosPreImaging,
     nodAndShuffle: Option[NodAndShuffle],
     // insert customRois here
     stageMode:     GmosNorthStageMode
-  ) extends Static[GmosNorthStageMode]
+  ) extends Static[GmosNorthStageMode, GmosNorthDetector]
 
   object NorthStatic { //extends NorthStaticOptics {
 
@@ -215,12 +215,12 @@ object GmosModel {
   }
 
   final case class SouthStatic(
-    detector:      GmosDetector,
+    detector:      GmosSouthDetector,
     mosPreImaging: MosPreImaging,
     nodAndShuffle: Option[NodAndShuffle],
     // insert customRois here
     stageMode:     GmosSouthStageMode
-  ) extends Static[GmosSouthStageMode]
+  ) extends Static[GmosSouthStageMode, GmosSouthDetector]
 
   object SouthStatic { //extends SouthStaticOptics {
 
@@ -235,7 +235,7 @@ object GmosModel {
   }
 
   final case class CreateNorthStatic(
-    detector:      GmosDetector                = GmosDetector.HAMAMATSU,
+    detector:      GmosNorthDetector           = GmosNorthDetector.Hamamatsu,
     mosPreImaging: MosPreImaging               = MosPreImaging.IsNotMosPreImaging,
     nodAndShuffle: Option[CreateNodAndShuffle] = None,
     stageMode:     GmosNorthStageMode          = GmosNorthStageMode.FollowXy
@@ -267,7 +267,7 @@ object GmosModel {
   }
 
   final case class CreateSouthStatic(
-    detector:      GmosDetector                = GmosDetector.HAMAMATSU,
+    detector:      GmosSouthDetector           = GmosSouthDetector.Hamamatsu,
     mosPreImaging: MosPreImaging               = MosPreImaging.IsNotMosPreImaging,
     nodAndShuffle: Option[CreateNodAndShuffle] = None,
     stageMode:     GmosSouthStageMode          = GmosSouthStageMode.FollowXy
