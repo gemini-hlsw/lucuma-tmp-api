@@ -17,8 +17,6 @@ import org.scalacheck.Arbitrary.arbitrary
 
 import scala.concurrent.duration.FiniteDuration
 
-
-
 trait ArbGmosModel {
 
   import ArbEnumerated._
