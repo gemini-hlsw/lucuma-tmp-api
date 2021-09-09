@@ -18,7 +18,6 @@ object QueryType {
     ObjectType(
       name   = "Query",
       fields =
-        ConfigurationQuery.allFields[F] ++
         ObservationQuery.allFields[F]   ++
         ProgramQuery.allFields[F]       ++
         TargetQuery.allFields[F]

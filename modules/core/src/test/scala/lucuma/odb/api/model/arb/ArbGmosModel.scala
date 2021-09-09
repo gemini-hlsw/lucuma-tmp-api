@@ -17,8 +17,6 @@ import org.scalacheck.Arbitrary.arbitrary
 
 import scala.concurrent.duration.FiniteDuration
 
-
-
 trait ArbGmosModel {
 
   import ArbEnumerated._
@@ -111,7 +109,7 @@ trait ArbGmosModel {
   implicit val arbNorthStatic: Arbitrary[GmosModel.NorthStatic] =
     Arbitrary {
       for {
-        d <- arbitrary[GmosDetector]
+        d <- arbitrary[GmosNorthDetector]
         m <- arbitrary[MosPreImaging]
         n <- arbitrary[Option[GmosModel.NodAndShuffle]]
         s <- arbitrary[GmosNorthStageMode]
@@ -120,7 +118,7 @@ trait ArbGmosModel {
 
   implicit val cogNorthStatic: Cogen[GmosModel.NorthStatic] =
     Cogen[(
-      GmosDetector,
+      GmosNorthDetector,
       MosPreImaging,
       Option[GmosModel.NodAndShuffle],
       GmosNorthStageMode
@@ -134,7 +132,7 @@ trait ArbGmosModel {
   implicit val arbCreateNorthStatic: Arbitrary[GmosModel.CreateNorthStatic] =
     Arbitrary {
       for {
-        d <- arbitrary[GmosDetector]
+        d <- arbitrary[GmosNorthDetector]
         m <- arbitrary[MosPreImaging]
         n <- arbitrary[Option[GmosModel.CreateNodAndShuffle]]
         s <- arbitrary[GmosNorthStageMode]
@@ -143,7 +141,7 @@ trait ArbGmosModel {
 
   implicit val cogCreateNorthStatic: Cogen[GmosModel.CreateNorthStatic] =
     Cogen[(
-      GmosDetector,
+      GmosNorthDetector,
       MosPreImaging,
       Option[GmosModel.CreateNodAndShuffle],
       GmosNorthStageMode
@@ -157,7 +155,7 @@ trait ArbGmosModel {
   implicit val arbSouthStatic: Arbitrary[GmosModel.SouthStatic] =
     Arbitrary {
       for {
-        d <- arbitrary[GmosDetector]
+        d <- arbitrary[GmosSouthDetector]
         m <- arbitrary[MosPreImaging]
         n <- arbitrary[Option[GmosModel.NodAndShuffle]]
         s <- arbitrary[GmosSouthStageMode]
@@ -166,7 +164,7 @@ trait ArbGmosModel {
 
   implicit val cogSouthStatic: Cogen[GmosModel.SouthStatic] =
     Cogen[(
-      GmosDetector,
+      GmosSouthDetector,
       MosPreImaging,
       Option[GmosModel.NodAndShuffle],
       GmosSouthStageMode
@@ -180,7 +178,7 @@ trait ArbGmosModel {
   implicit val arbCreateSouthStatic: Arbitrary[GmosModel.CreateSouthStatic] =
     Arbitrary {
       for {
-        d <- arbitrary[GmosDetector]
+        d <- arbitrary[GmosSouthDetector]
         m <- arbitrary[MosPreImaging]
         n <- arbitrary[Option[GmosModel.CreateNodAndShuffle]]
         s <- arbitrary[GmosSouthStageMode]
@@ -189,7 +187,7 @@ trait ArbGmosModel {
 
   implicit val cogCreateSouthStatic: Cogen[GmosModel.CreateSouthStatic] =
     Cogen[(
-      GmosDetector,
+      GmosSouthDetector,
       MosPreImaging,
       Option[GmosModel.CreateNodAndShuffle],
       GmosSouthStageMode
