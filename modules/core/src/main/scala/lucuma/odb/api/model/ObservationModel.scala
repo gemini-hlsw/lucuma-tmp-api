@@ -109,7 +109,7 @@ object ObservationModel extends ObservationOptics {
           )
         }
         _ <- db.observation.saveNewIfValid(o)(_.id)
-        t <- targets.getOrElse(CreateTargetEnvironmentInput(None, None)).create(db, programId, i.toOption)
+        t <- targets.getOrElse(CreateTargetEnvironmentInput.Empty).create(db, programId, i.toOption)
       } yield t *> o
 
   }

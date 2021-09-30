@@ -11,21 +11,30 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
 import cats.syntax.traverse._
+import cats.syntax.validated._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import lucuma.core.model.{Observation, Program}
-import lucuma.odb.api.model.{CoordinatesModel, DatabaseState, ValidatedInput}
-
+import lucuma.odb.api.model.{CoordinatesModel, DatabaseState, InputError, ValidatedInput}
 
 import scala.collection.immutable.SortedSet
 
 final case class CreateTargetEnvironmentInput(
-  explicitBase: Option[CoordinatesModel.Input],
-  science:      Option[List[CreateTargetInput]]
+  targetEnvironmentId: Option[TargetEnvironment.Id],
+  explicitBase:        Option[CoordinatesModel.Input],
+  science:             Option[List[CreateTargetInput]]
 ) {
 
   // TODO: nothing stops you from creating one for an observation where one
   // TODO: already exists
+
+  // TODO: Add a way to create an unaffiliated one
+
+  def createUnaffiliated[F[_]: Monad, T](
+    db:  DatabaseState[T],
+    pid: Program.Id
+  )(implicit S: Stateful[F, T]): F[ValidatedInput[TargetEnvironmentModel]] =
+    create[F, T](db, pid, None)
 
   def create[F[_]: Monad, T](
     db:  DatabaseState[T],
@@ -33,20 +42,26 @@ final case class CreateTargetEnvironmentInput(
     oid: Option[Observation.Id],
   )(implicit S: Stateful[F, T]): F[ValidatedInput[TargetEnvironmentModel]] =
     for {
-      i <- db.targetEnvironment.cycleNextUnused
+      i <- db.targetEnvironment.getUnusedId(targetEnvironmentId)
       p <- db.program.lookupValidated(pid)
       b  = explicitBase.traverse(_.toCoordinates)
       o <- oid.traverse(o => db.observation.lookupValidated(o)).map(_.sequence)
-      t  = (p, o, b).mapN { (_, _, bʹ) =>
-        TargetEnvironmentModel(i, pid, oid, bʹ)
+      t  = (i, p, o, b).mapN { (iʹ, _, _, bʹ) =>
+        TargetEnvironmentModel(iʹ, pid, oid, bʹ)
       }
       _ <- db.targetEnvironment.saveNewIfValid(t)(_.id)
-      s <- science.toList.flatten.traverse(_.createAll(db, SortedSet(i))).map(_.flatSequence)
+      s <- i.fold(
+              _ => Monad[F].pure[ValidatedInput[List[TargetEditResult]]](List.empty[TargetEditResult].validNec[InputError]),
+             id => science.toList.flatten.traverse(_.createAll(db, SortedSet(id))).map(_.flatSequence)
+           )
     } yield s *> t
 
 }
 
 object CreateTargetEnvironmentInput {
+
+  val Empty: CreateTargetEnvironmentInput =
+    CreateTargetEnvironmentInput(None, None, None)
 
   implicit val DecoderCreate: Decoder[CreateTargetEnvironmentInput] =
     deriveDecoder[CreateTargetEnvironmentInput]
@@ -58,18 +73,18 @@ object CreateTargetEnvironmentInput {
     )}
 
   def single(science: CreateTargetInput): CreateTargetEnvironmentInput =
-    CreateTargetEnvironmentInput(None, List(science).some)
+    Empty.copy(science = List(science).some)
 
   def singleNonsidereal(nonsidereal: CreateNonsiderealInput): CreateTargetEnvironmentInput =
-    CreateTargetEnvironmentInput(None, List(CreateTargetInput.nonsidereal(nonsidereal)).some)
+    Empty.copy(science = List(CreateTargetInput.nonsidereal(nonsidereal)).some)
 
   def singleSidereal(sidereal: CreateSiderealInput): CreateTargetEnvironmentInput =
-    CreateTargetEnvironmentInput(None, List(CreateTargetInput.sidereal(sidereal)).some)
+    Empty.copy(science = List(CreateTargetInput.sidereal(sidereal)).some)
 
   def fromSidereal(cs: IterableOnce[CreateSiderealInput]): CreateTargetEnvironmentInput =
-    CreateTargetEnvironmentInput(None, cs.iterator.map(CreateTargetInput.sidereal).toList.some)
+    Empty.copy(science = cs.iterator.map(CreateTargetInput.sidereal).toList.some)
 
   def fromNonsidereal(cs: IterableOnce[CreateNonsiderealInput]): CreateTargetEnvironmentInput =
-    CreateTargetEnvironmentInput(None, cs.iterator.map(CreateTargetInput.nonsidereal).toList.some)
+    Empty.copy(science = cs.iterator.map(CreateTargetInput.nonsidereal).toList.some)
 
 }

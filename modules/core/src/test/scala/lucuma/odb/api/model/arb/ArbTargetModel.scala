@@ -290,9 +290,10 @@ trait ArbTargetModel {
   implicit val arbCreateTargetEnvironmentInput: Arbitrary[CreateTargetEnvironmentInput] =
     Arbitrary {
       for {
+        i <- arbitrary[Option[TargetEnvironment.Id]]
         b <- arbitrary[Option[CoordinatesModel.Input]]
         s <- arbitrary[Option[List[CreateTargetInput]]]
-      } yield CreateTargetEnvironmentInput(b, s)
+      } yield CreateTargetEnvironmentInput(i, b, s)
     }
 
   implicit val cogCreateTargetEnvironmentInput: Cogen[CreateTargetEnvironmentInput] =
