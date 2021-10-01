@@ -122,6 +122,7 @@ class TargetQuerySuite extends OdbSuite {
   // NGC 5949 => o-2, o-6
   // NGC 3312 => o-3, o-4, o-5, o-6
   // NGC 3269 => o-6
+  // NGC 4749 => <none>
   queryTest(
     query ="""
       query GroupByScienceTarget {
@@ -163,6 +164,13 @@ class TargetQuerySuite extends OdbSuite {
             "commonTarget": {
               "name": "NGC 3269"
             }
+          },
+          {
+            "observationIds": [
+            ],
+            "commonTarget": {
+              "name": "NGC 4749"
+            }
           }
         ]
       }
@@ -175,6 +183,7 @@ class TargetQuerySuite extends OdbSuite {
   // NGC 3312                     => o-3, o-4, o-5
   // NGC 3269, NGC 3312, NGC 5949 => o-6
   // <nothing>                    => o-7
+  // NGC 4749                     => <none>
   queryTest(
     query ="""
       query GroupByAllScienceTargets {
@@ -232,6 +241,15 @@ class TargetQuerySuite extends OdbSuite {
                 "o-7"
               ],
               "commonTargetList": [
+              ]
+            },
+            {
+              "observationIds": [
+              ],
+              "commonTargetList": [
+                {
+                  "name": "NGC 4749"
+                }
               ]
             }
         ]
@@ -336,6 +354,18 @@ class TargetQuerySuite extends OdbSuite {
             "commonTargetEnvironment" : {
               "explicitBase" : null,
               "scienceTargets" : [
+              ]
+            }
+          },
+          {
+            "observationIds" : [
+            ],
+            "commonTargetEnvironment" : {
+              "explicitBase" : null,
+              "scienceTargets" : [
+                {
+                  "name": "NGC 4749"
+                }
               ]
             }
           }

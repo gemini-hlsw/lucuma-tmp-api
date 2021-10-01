@@ -28,7 +28,9 @@ final case class CreateTargetEnvironmentInput(
   // TODO: nothing stops you from creating one for an observation where one
   // TODO: already exists
 
-  // TODO: Add a way to create an unaffiliated one
+  // TODO: Add a mutation to create an unaffiliated one
+
+  // TODO: Add target environment edit events
 
   def createUnaffiliated[F[_]: Monad, T](
     db:  DatabaseState[T],
@@ -51,7 +53,7 @@ final case class CreateTargetEnvironmentInput(
       }
       _ <- db.targetEnvironment.saveNewIfValid(t)(_.id)
       s <- i.fold(
-              _ => Monad[F].pure[ValidatedInput[List[TargetEditResult]]](List.empty[TargetEditResult].validNec[InputError]),
+              _ => Monad[F].pure(List.empty[TargetEditResult].validNec[InputError]),
              id => science.toList.flatten.traverse(_.createAll(db, SortedSet(id))).map(_.flatSequence)
            )
     } yield s *> t

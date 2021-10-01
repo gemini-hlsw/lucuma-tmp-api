@@ -22,7 +22,7 @@ trait TargetMutation extends TargetScalars {
   import GeneralSchema.NonEmptyStringType
   import NumericUnitsSchema._
   import ObservationSchema.{ObservationIdType, ObservationType}
-  import ProgramSchema.{ProgramIdType, ProgramType}
+  import ProgramSchema.{ProgramIdArgument, ProgramIdType, ProgramType}
   import TargetSchema.{EnumTypeCatalogName, EphemerisKeyTypeEnumType, EnumTypeMagnitudeBand, EnumTypeMagnitudeSystem, TargetEnvironmentIdType, TargetEnvironmentModelType, TargetIdType, TargetModelType}
 
   import syntax.inputtype._
@@ -311,10 +311,16 @@ trait TargetMutation extends TargetScalars {
       "Editing input for replacing or setting science target lists"
     )
 
-  implicit val InputObjectTypeTargetEnvironmentCreate: InputObjectType[CreateTargetEnvironmentInput] =
+  implicit val InputObjectTypeCreateTargetEnvironmentInput: InputObjectType[CreateTargetEnvironmentInput] =
     deriveInputObjectType[CreateTargetEnvironmentInput](
       InputObjectTypeName("CreateTargetEnvironmentInput"),
       InputObjectTypeDescription("Target environment creation input parameters")
+    )
+
+  val ArgumentCreateTargetEnvironmentInput: Argument[CreateTargetEnvironmentInput] =
+    InputObjectTypeCreateTargetEnvironmentInput.argument(
+      "input",
+      "Parameters for creating a new target environment"
     )
 
   implicit val InputObjectTypeBulkEditTargetEnvironmentInput: InputObjectType[BulkEditTargetEnvironmentInput] =
@@ -362,8 +368,18 @@ trait TargetMutation extends TargetScalars {
       resolve   = c => c.target(_.bulkEditTargetEnvironment(c.arg(ArgumentBulkEditTargetEnvironmentInput)))
     )
 
+  def createUnaffiliatedTargetEnvironment[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+    Field(
+      name        = "createTargetEnvironment",
+      description = "Creates a new target environment unaffiliated with any observation".some,
+      fieldType   = TargetEnvironmentModelType[F],
+      arguments   = List(ProgramIdArgument, ArgumentCreateTargetEnvironmentInput),
+      resolve     = c => c.target(_.createUnaffiliatedTargetEnvironment(c.programId, c.arg(ArgumentCreateTargetEnvironmentInput)))
+    )
+
   def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
     List(
+      createUnaffiliatedTargetEnvironment[F],
       updateScienceTarget[F],
       updateScienceTargetList[F],
       replaceScienceTargetList[F],

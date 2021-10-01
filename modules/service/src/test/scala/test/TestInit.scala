@@ -14,7 +14,7 @@ import lucuma.core.model.Program
 import lucuma.core.optics.syntax.all._
 import lucuma.odb.api.model.OffsetModel.ComponentInput
 import lucuma.odb.api.model._
-import lucuma.odb.api.model.targetModel.{BulkEditTargetEnvironmentInput, CreateSiderealInput, CreateTargetEnvironmentInput, SelectTargetEnvironmentInput}
+import lucuma.odb.api.model.targetModel.{BulkEditTargetEnvironmentInput, CreateSiderealInput, CreateTargetEnvironmentInput, CreateTargetInput, SelectTargetEnvironmentInput}
 import lucuma.odb.api.repo.OdbRepo
 
 import scala.concurrent.duration._
@@ -149,6 +149,42 @@ object TestInit {
     }
   ]
 }
+""",
+"""
+{
+  "name":  "NGC 4749",
+  "ra":    { "hms":  "12:51:12.001" },
+  "dec":   { "dms": "71:38:12.43"  },
+  "epoch": "J2000.000",
+  "properMotion": {
+    "ra":  { "milliarcsecondsPerYear": 0.0 },
+    "dec": { "milliarcsecondsPerYear": 0.0 }
+  },
+  "radialVelocity": { "metersPerSecond": 1728985 },
+  "parallax":       { "milliarcseconds":  0.00 },
+  "magnitudes": [
+    {
+      "band": "B",
+      "value": 14.2,
+      "system": "VEGA"
+    },
+    {
+      "band": "J",
+      "value": 10.752,
+      "system": "VEGA"
+    },
+    {
+      "band": "H",
+      "value": 9.891,
+      "system": "VEGA"
+    },
+    {
+      "band": "K",
+      "value": 9.467,
+      "system": "VEGA"
+    }
+  ]
+}
 """
   )
 
@@ -190,7 +226,7 @@ object TestInit {
         _ <- step.exposure                                        := FiniteDurationModel.Input(20.seconds)
         _ <- step.instrumentConfig.andThen(readout).andThen(xBin) := GmosXBinning.One
         _ <- step.instrumentConfig.andThen(readout).andThen(yBin) := GmosYBinning.One
-        _ <- step.instrumentConfig.andThen(roi)               := GmosRoi.CentralStamp
+        _ <- step.instrumentConfig.andThen(roi)                   := GmosRoi.CentralStamp
         _ <- step.instrumentConfig.andThen(fpu)                   := GmosSouthFpu.LongSlit_1_00.asRight.some
       } yield ()
     }
@@ -315,7 +351,8 @@ object TestInit {
                 NonEmptyString.from("An Empty Placeholder Program").toOption
               )
             )
-      cs <- targets.liftTo[F]
+      ts <- targets.liftTo[F]
+      cs  = ts.init
       _  <- repo.observation.insert(obs(p.id, cs.headOption.toList)) // 2
       _  <- repo.observation.insert(obs(p.id, cs.lastOption.toList)) // 3
       _  <- repo.observation.insert(obs(p.id, cs.lastOption.toList)) // 4
@@ -333,6 +370,16 @@ object TestInit {
 
       _  <- repo.observation.insert(obs(p.id, cs))                   // 6
       _  <- repo.observation.insert(obs(p.id, Nil))                  // 7
+
+      // Add an unaffiliated target environment
+      _  <- repo.target.createUnaffiliatedTargetEnvironment(
+              p.id,
+              CreateTargetEnvironmentInput(
+                None,
+                None,
+                Some(List(CreateTargetInput.sidereal(ts.last)))
+              )
+            )
     } yield ()
 
 }

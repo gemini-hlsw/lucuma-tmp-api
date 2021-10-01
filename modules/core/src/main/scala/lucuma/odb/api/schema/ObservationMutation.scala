@@ -24,7 +24,7 @@ trait ObservationMutation {
   import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
   import ObservationSchema.{ObsActiveStatusType, ObservationIdType, ObservationIdArgument, ObsStatusType, ObservationType}
   import ProgramSchema.ProgramIdType
-  import TargetMutation.InputObjectTypeTargetEnvironmentCreate
+  import TargetMutation.InputObjectTypeCreateTargetEnvironmentInput
   import syntax.inputobjecttype._
 
   val InputObjectTypeObservationCreate: InputObjectType[ObservationModel.Create] =

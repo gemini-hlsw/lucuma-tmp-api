@@ -25,6 +25,11 @@ import scala.collection.immutable.SortedSet
 
 sealed trait TargetRepo[F[_]] {
 
+  def createUnaffiliatedTargetEnvironment(
+    id: Program.Id,
+    in: CreateTargetEnvironmentInput
+  ): F[TargetEnvironmentModel]
+
   def selectScienceTarget(
     id: Target.Id
   ): F[Option[TargetModel]]
@@ -93,6 +98,22 @@ object TargetRepo {
   ): TargetRepo[F] =
 
     new TargetRepo[F] {
+
+      override def createUnaffiliatedTargetEnvironment(
+        pid: Program.Id,
+        in:  CreateTargetEnvironmentInput
+      ): F[TargetEnvironmentModel] = {
+        val update = tablesRef.modify { t =>
+          val (tʹ, v) = in.createUnaffiliated[State[Tables, *], Tables](TableState, pid).run(t).value
+          (v.fold(_  => t, _  => tʹ), v.tupleRight(t.programs.get(pid)))
+        }
+
+        for {
+          tup <- update.flatMap(_.liftTo[F])
+          (env, prg) = tup
+          _ <- prg.traverse_ { p => eventService.publish(ProgramEvent.updated(p)) }
+        } yield env
+      }
 
       override def selectScienceTarget(
         id: Target.Id
