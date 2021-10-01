@@ -310,24 +310,6 @@ trait ObservationOptics { self: ObservationModel.type =>
   val activeStatus: Lens[ObservationModel, ObsActiveStatus] =
     Focus[ObservationModel](_.activeStatus)
 
-//  val targets: Lens[ObservationModel, TargetEnvironmentModel] =
-//    Focus[ObservationModel](_.targets)
-
-//  val explicitBase: Lens[ObservationModel, Option[Coordinates]] =
-//    targets.andThen(TargetEnvironmentModel.explicitBase)
-
-//  val scienceTargets: Lens[ObservationModel, SortedMap[NonEmptyString, Target]] =
-//    targets.andThen(TargetEnvironmentModel.science)
-
-//  def scienceTarget(name: NonEmptyString): Optional[ObservationModel, Target] =
-//    scienceTargets.index(name)
-
-//  def nonsiderealScienceTarget(name: NonEmptyString): Optional[ObservationModel, Target] =
-//    scienceTarget(name).andThen(TargetModel.nonsiderealTarget)
-
-//  def siderealScienceTarget(name: NonEmptyString): Optional[ObservationModel, Target] =
-//    scienceTarget(name).andThen(TargetModel.siderealTarget)
-
   val constraintSet: Lens[ObservationModel, ConstraintSetModel] =
     Focus[ObservationModel](_.constraintSet)
 

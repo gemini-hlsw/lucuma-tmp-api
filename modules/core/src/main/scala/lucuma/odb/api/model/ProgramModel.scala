@@ -22,9 +22,9 @@ import monocle.Lens
  * A placeholder Program for now.
  */
 final case class ProgramModel(
-  id:            Program.Id,
-  existence:     Existence,
-  name:          Option[NonEmptyString]
+  id:        Program.Id,
+  existence: Existence,
+  name:      Option[NonEmptyString]
 )
 
 object ProgramModel extends ProgramOptics {
@@ -39,8 +39,8 @@ object ProgramModel extends ProgramOptics {
    * Program creation input class.
    */
   final case class Create(
-    programId:     Option[Program.Id],
-    name:          Option[NonEmptyString]
+    programId: Option[Program.Id],
+    name:      Option[NonEmptyString]
   ) {
 
     def create[F[_]: Monad, T](db: DatabaseState[T])(implicit S: Stateful[F, T]): F[ValidatedInput[ProgramModel]] = {
@@ -62,9 +62,9 @@ object ProgramModel extends ProgramOptics {
   }
 
   final case class Edit(
-    programId:     Program.Id,
-    existence:     Input[Existence]                   = Input.ignore,
-    name:          Input[NonEmptyString]              = Input.ignore
+    programId: Program.Id,
+    existence: Input[Existence]       = Input.ignore,
+    name:      Input[NonEmptyString]  = Input.ignore
   ) {
 
     def edit(p: ProgramModel): ValidatedInput[ProgramModel] = {
