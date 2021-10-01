@@ -12,6 +12,7 @@ import lucuma.odb.api.model.syntax.validatedinput._
 import cats.data.{EitherT, State}
 import cats.effect.{Async, Ref}
 import cats.implicits._
+import lucuma.odb.api.model.targetModel.{TargetEnvironmentEvent, TargetEnvironmentModel}
 
 sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, ObservationModel] {
 
@@ -105,23 +106,25 @@ object ObservationRepo {
       override def insert(newObs: Create): F[ObservationModel] = {
 
         // Create the observation
-        def create(s: PlannedTimeSummaryModel): F[ObservationModel] =
+        def create(s: PlannedTimeSummaryModel): F[(Option[TargetEnvironmentModel], ObservationModel)] =
           EitherT(
             tablesRef.modify { tables =>
               val (tablesʹ, o) = newObs.create[State[Tables, *], Tables](TableState, s).run(tables).value
 
               o.fold(
                 err => (tables,  InputError.Exception(err).asLeft),
-                tup => (tablesʹ, tup.asRight)
+                o   => (tablesʹ, (tablesʹ.targetEnvironments.values.find(_.observationId === o.id.some), o).asRight)
               )
 
             }
           ).rethrowT
 
         for {
-          s <- PlannedTimeSummaryModel.random[F]
-          o <- create(s)
-          _ <- eventService.publish(ObservationEvent(_, Event.EditType.Created, o))
+          s   <- PlannedTimeSummaryModel.random[F]
+          tup <- create(s)
+          (env, o) = tup
+          _   <- eventService.publish(ObservationEvent(_, Event.EditType.Created, o))
+          _   <- env.traverse_(e => eventService.publish(TargetEnvironmentEvent(_, Event.EditType.Created, e)))
         } yield o
 
       }

@@ -28,10 +28,6 @@ final case class CreateTargetEnvironmentInput(
   // TODO: nothing stops you from creating one for an observation where one
   // TODO: already exists
 
-  // TODO: Add a mutation to create an unaffiliated one
-
-  // TODO: Add target environment edit events
-
   def createUnaffiliated[F[_]: Monad, T](
     db:  DatabaseState[T],
     pid: Program.Id

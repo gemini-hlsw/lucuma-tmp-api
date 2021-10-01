@@ -112,6 +112,7 @@ object TargetRepo {
           tup <- update.flatMap(_.liftTo[F])
           (env, prg) = tup
           _ <- prg.traverse_ { p => eventService.publish(ProgramEvent.updated(p)) }
+          _ <- eventService.publish(TargetEnvironmentEvent.created(env))
         } yield env
       }
 
@@ -180,18 +181,6 @@ object TargetRepo {
           .filter { case (_, tem) => includeEnv(tem) }
 
       }
-
-//      private def filteredTargets(
-//        tables:             Tables,
-//        targetEnvironments: Set[TargetEnvironment.Id]
-//      ): List[TargetModel] =
-//
-//        tables
-//          .targets
-//          .values
-//          .filter { tm => targetEnvironments(tm.targetEnvironmentId) }
-//          .toList
-//
 
       override def groupBySingleScienceTarget(
         pid:            Program.Id,
@@ -266,10 +255,11 @@ object TargetRepo {
         }
 
         for {
-          e <- update.flatMap(_.liftTo[F])
-          _ <- e.traverse_(p => eventService.publish(ProgramEvent.updated(p.program)))
-          _ <- e.flatMap(_.observation.toList).traverse_(o => eventService.publish(ObservationEvent.updated(o)))
-        } yield e
+          c <- update.flatMap(_.liftTo[F])
+          _ <- c.traverse_(tec => eventService.publish(ProgramEvent.updated(tec.program)))
+          _ <- c.flatMap(_.observation.toList).traverse_(o => eventService.publish(ObservationEvent.updated(o)))
+          _ <- c.traverse_(tec => eventService.publish(TargetEnvironmentEvent.updated(tec.targetEnvironment)))
+        } yield c
 
       }
 

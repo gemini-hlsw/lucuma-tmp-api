@@ -14,7 +14,7 @@ import lucuma.core.model.Program
 import lucuma.core.optics.syntax.all._
 import lucuma.odb.api.model.OffsetModel.ComponentInput
 import lucuma.odb.api.model._
-import lucuma.odb.api.model.targetModel.{BulkEditTargetEnvironmentInput, CreateSiderealInput, CreateTargetEnvironmentInput, CreateTargetInput, SelectTargetEnvironmentInput}
+import lucuma.odb.api.model.targetModel.{BulkEditTargetEnvironmentInput, CreateSiderealInput, CreateTargetEnvironmentInput, CreateTargetInput, SelectTargetEnvironmentInput, TargetEnvironment}
 import lucuma.odb.api.repo.OdbRepo
 
 import scala.concurrent.duration._
@@ -380,6 +380,7 @@ object TestInit {
                 Some(List(CreateTargetInput.sidereal(ts.last)))
               )
             )
+
     } yield ()
 
 }

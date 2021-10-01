@@ -56,7 +56,7 @@ class ObservationEditSubscriptionSuite extends OdbSuite {
       }
     """
 
-  // Our expectated events, in order.
+  // Our expected events, in order.
   def expectedEvents: List[Json] =
     newNames.map(expect)
 
