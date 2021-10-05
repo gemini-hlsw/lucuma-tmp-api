@@ -104,10 +104,10 @@ object ScienceRequirementsSchema {
           ),
 
           Field(
-            name        = "wavelengthRange",
+            name        = "wavelengthCoverage",
             fieldType   = OptionType(WavelengthType[F]),
             description = Some("Wavelength range"),
-            resolve     = _.value.wavelengthRange
+            resolve     = _.value.wavelengthCoverage
           ),
 
           Field(

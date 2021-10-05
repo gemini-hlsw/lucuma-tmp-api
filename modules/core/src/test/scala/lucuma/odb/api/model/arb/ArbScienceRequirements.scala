@@ -56,7 +56,7 @@ trait ArbScienceRequirements {
       sc.resolution,
       sc.signalToNoise.map(_.value),
       sc.signalToNoiseAt,
-      sc.wavelengthRange,
+      sc.wavelengthCoverage,
       sc.focalPlane,
       sc.focalPlaneAngle,
       sc.capabilities,

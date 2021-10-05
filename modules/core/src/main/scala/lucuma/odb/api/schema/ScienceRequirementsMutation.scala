@@ -44,7 +44,7 @@ trait ScienceRequirementsMutation {
       ReplaceInputField("resolution", InputObjectPosInt.notNullableField("resolution")),
       ReplaceInputField("signalToNoise", InputObjectPosBigDecimal.notNullableField("signalToNoise")),
       ReplaceInputField("signalToNoiseAt", InputWavelengthModelInput.notNullableField("signalToNoiseAt")),
-      ReplaceInputField("wavelengthRange", InputWavelengthModelInput.notNullableField("wavelengthRange")),
+      ReplaceInputField("wavelengthCoverage", InputWavelengthModelInput.notNullableField("wavelengthCoverage")),
       ReplaceInputField("focalPlane", EnumTypeFocalPlane.notNullableField("focalPlane")),
       ReplaceInputField("focalPlaneAngle", InputFocalPlaneAngleInput.notNullableField("focalPlaneAngle")),
       ReplaceInputField("capabilities", EnumTypeSpectroscopyCapabilities.notNullableField("capabilities")),
