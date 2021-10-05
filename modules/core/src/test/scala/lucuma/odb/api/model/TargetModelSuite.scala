@@ -4,8 +4,8 @@
 package lucuma.odb.api.model
 
 import lucuma.odb.api.model.arb._
-
 import cats.kernel.laws.discipline.EqTests
+import lucuma.odb.api.model.targetModel._
 import munit.DisciplineSuite
 
 final class TargetModelSuite extends DisciplineSuite {
@@ -31,13 +31,24 @@ final class TargetModelSuite extends DisciplineSuite {
   checkAll("ProperMotionModel.Input", EqTests[ProperMotionModel.Input].eqv)
   checkAll("RadialVelocityModel.Input", EqTests[RadialVelocityModel.Input].eqv)
   checkAll("RightAscensionModel.Input", EqTests[RightAscensionModel.Input].eqv)
-  checkAll("TargetModel.Create", EqTests[TargetModel.Create].eqv)
-  checkAll("TargetModel.CreateNonsidereal", EqTests[TargetModel.CreateNonsidereal].eqv)
-  checkAll("TargetModel.CreateSidereal", EqTests[TargetModel.CreateSidereal].eqv)
-  checkAll("TargetModel.Edit", EqTests[TargetModel.Edit].eqv)
-  checkAll("TargetModel.EditNonsidereal", EqTests[TargetModel.EditNonsidereal].eqv)
-  checkAll("TargetModel.EditSidereal", EqTests[TargetModel.EditSidereal].eqv)
-  checkAll("TargetModel.EditTargetAction", EqTests[TargetModel.EditTargetAction].eqv)
-  checkAll("TargetModel.EditTargetList", EqTests[TargetModel.EditTargetList].eqv)
+
+  checkAll("TargetModel", EqTests[TargetModel].eqv)
+  checkAll("TargetEnvironmentModel", EqTests[TargetEnvironmentModel].eqv)
+
+  checkAll("CreateTargetInput", EqTests[CreateTargetInput].eqv)
+  checkAll("CreateNonsiderealInput", EqTests[CreateNonsiderealInput].eqv)
+  checkAll("CreateSiderealInput", EqTests[CreateSiderealInput].eqv)
+  checkAll("SelectTargetInput", EqTests[SelectTargetInput].eqv)
+
+  checkAll("EditSiderealInput", EqTests[EditSiderealInput].eqv)
+  checkAll("EditNonsiderealInput", EqTests[EditNonsiderealInput].eqv)
+  checkAll("EditTargetInput", EqTests[EditTargetInput].eqv)
+
+  checkAll("CreateTargetEnvironmentInput", EqTests[CreateTargetEnvironmentInput].eqv)
+  checkAll("SelectTargetEnvironmentInput", EqTests[SelectTargetEnvironmentInput].eqv)
+
+  checkAll("BulkEditTargetInput", EqTests[BulkEditTargetInput].eqv)
+  checkAll("BulkEditTargetListInput", EqTests[BulkEditTargetListInput].eqv)
+  checkAll("BulkEditTargetEnvironmentInput", EqTests[BulkEditTargetEnvironmentInput].eqv)
 
 }

@@ -17,6 +17,7 @@ import cats.syntax.apply._
 import cats.syntax.eq._
 import cats.syntax.functor._
 import fs2.Stream
+import lucuma.odb.api.model.targetModel.{TargetEnvironment, TargetEnvironmentEvent, TargetEnvironmentModel}
 import sangria.schema._
 import sangria.streaming.SubscriptionStream
 import sangria.streaming.SubscriptionStreamLike._
@@ -28,6 +29,7 @@ object SubscriptionType {
 
   import ObservationSchema.OptionalObservationIdArgument
   import ProgramSchema.OptionalProgramIdArgument
+  import TargetSchema.OptionalTargetEnvironmentIdArgument
   import syntax.`enum`._
   import context._
 
@@ -36,6 +38,9 @@ object SubscriptionType {
 
   implicit def programType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], ProgramModel] =
     ProgramSchema.ProgramType[F]
+
+  implicit def targetEnvironmentType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], TargetEnvironmentModel] =
+    TargetSchema.TargetEnvironmentModelType[F]
 
   implicit val EditTypeEnum: EnumType[Event.EditType] =
     EnumType.fromEnumerated(
@@ -153,6 +158,12 @@ object SubscriptionType {
         editedField[F, Observation.Id, ObservationModel, ObservationEvent](
           "observation",
           OptionalObservationIdArgument,
+          _.value.id
+        ) { (_, e) => Set(e.value.programId).pure[F] },
+
+        editedField[F, TargetEnvironment.Id, TargetEnvironmentModel, TargetEnvironmentEvent](
+          "targetEnvironment",
+          OptionalTargetEnvironmentIdArgument,
           _.value.id
         ) { (_, e) => Set(e.value.programId).pure[F] },
 

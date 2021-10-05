@@ -48,7 +48,7 @@ trait ArbProgramModel {
   implicit val cogProgramModelCreate: Cogen[ProgramModel.Create] =
     Cogen[(
       Option[Program.Id],
-      Option[String]
+      Option[String],
     )].contramap { in => (
       in.programId,
       in.name.map(_.value)

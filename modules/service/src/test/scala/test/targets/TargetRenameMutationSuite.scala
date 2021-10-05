@@ -23,80 +23,55 @@ class TargetRenameMutationSuite extends OdbSuite {
   // Rename target "NGC 3312" to "NGC 3312*" in o-3.
   queryTest(
     query ="""
-      mutation UpdateScienceTarget($renameEdit: BulkEditScienceTargetInput!) {
+      mutation UpdateScienceTarget($renameEdit: BulkEditTargetInput!) {
         updateScienceTarget(input: $renameEdit) {
-          id
-          targets {
-            science {
+          observation {
+            id
+          }
+          edits {
+            op
+            target {
               name
             }
           }
         }
       }
     """,
-    expected =json"""
+    expected = json"""
       {
         "updateScienceTarget": [
           {
-            "id": "o-3",
-            "targets": {
-              "science": [
-                {
+            "observation": {
+              "id": "o-3"
+            },
+            "edits": [
+              {
+                "op": "EDIT",
+                "target": {
                   "name": "NGC 3312*"
                 }
-              ]
-            }
+              }
+            ]
           }
         ]
       }
     """,
-    variables =json"""
+    variables = json"""
       {
         "renameEdit": {
-          "selectObservations": [ "o-3" ],
-          "edit": {
-            "selectTarget": "NGC 3312",
-            "sidereal": {
-              "name": "NGC 3312*"
-            }
+          "select": {
+            "observations": [ "o-3" ]
+          },
+          "editSidereal": {
+            "select": {
+              "names": [ "NGC 3312" ]
+            },
+            "name": "NGC 3312*"
           }
         }
       }
     """.some,
     clients = List(ClientOption.Http)  // cannot run this test twice since it changes required state
-  )
-
-  // Here we attempt to rename "NGC 3312" to "NGC 5949" but it fails because
-  // there is already a target "NGC 5949" in the observation.
-  queryTestFailure(
-    query ="""
-      mutation UpdateScienceTarget($renameEdit: BulkEditScienceTargetInput!) {
-        updateScienceTarget(input: $renameEdit) {
-          id
-          targets {
-            science {
-              name
-            }
-          }
-        }
-      }
-    """,
-    errors = List(
-      "Cannot rename 'NGC 3312' to 'NGC 5949' because there is already a science target named 'NGC 5949' in observation o-6"
-    ),
-    variables =json"""
-      {
-        "renameEdit": {
-          "selectObservations": [ "o-6" ],
-          "edit": {
-            "selectTarget": "NGC 3312",
-            "sidereal": {
-              "name": "NGC 5949"
-            }
-          }
-        }
-      }
-    """.some
   )
 
 }
