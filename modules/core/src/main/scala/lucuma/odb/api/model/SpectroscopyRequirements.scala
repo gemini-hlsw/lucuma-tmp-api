@@ -27,14 +27,14 @@ import monocle.Focus
 import monocle.Lens
 
 final case class SpectroscopyScienceRequirements(
-  wavelength:       Option[Wavelength],
-  resolution:       Option[PosInt],
-  signalToNoise:    Option[PosBigDecimal],
-  signalToNoiseAt:  Option[Wavelength],
-  wavelengthCoverage:  Option[Wavelength],
-  focalPlane:       Option[FocalPlane],
-  focalPlaneAngle:  Option[Angle],
-  capabilities:     Option[SpectroscopyCapabilities]
+  wavelength:         Option[Wavelength],
+  resolution:         Option[PosInt],
+  signalToNoise:      Option[PosBigDecimal],
+  signalToNoiseAt:    Option[Wavelength],
+  wavelengthCoverage: Option[Wavelength],
+  focalPlane:         Option[FocalPlane],
+  focalPlaneAngle:    Option[Angle],
+  capabilities:       Option[SpectroscopyCapabilities]
 )
 
 object SpectroscopyScienceRequirements extends SpectroscopyScienceRequirementsOptics {
@@ -56,14 +56,14 @@ object SpectroscopyScienceRequirements extends SpectroscopyScienceRequirementsOp
 
 object SpectroscopyScienceRequirementsModel {
   final case class Create(
-    wavelength:       Option[WavelengthModel.Input],
-    resolution:       Option[PosInt],
-    signalToNoise:    Option[PosBigDecimal],
-    signalToNoiseAt:  Option[WavelengthModel.Input],
-    wavelengthCoverage:  Option[WavelengthModel.Input],
-    focalPlane:       Option[FocalPlane],
-    focalPlaneAngle:  Option[FocalPlaneAngleInput],
-    capabilities:     Option[SpectroscopyCapabilities]
+    wavelength:         Option[WavelengthModel.Input],
+    resolution:         Option[PosInt],
+    signalToNoise:      Option[PosBigDecimal],
+    signalToNoiseAt:    Option[WavelengthModel.Input],
+    wavelengthCoverage: Option[WavelengthModel.Input],
+    focalPlane:         Option[FocalPlane],
+    focalPlaneAngle:    Option[FocalPlaneAngleInput],
+    capabilities:       Option[SpectroscopyCapabilities]
   ) {
     val create: ValidatedInput[SpectroscopyScienceRequirements] =
       (wavelength.traverse(_.toWavelength("wavelength")),
@@ -102,14 +102,14 @@ object SpectroscopyScienceRequirementsModel {
   }
 
   final case class Edit(
-    wavelength:       Input[WavelengthModel.Input]    = Input.ignore,
-    resolution:       Input[PosInt]                   = Input.ignore,
-    signalToNoise:    Input[PosBigDecimal]            = Input.ignore,
-    signalToNoiseAt:  Input[WavelengthModel.Input]    = Input.ignore,
-    wavelengthCoverage:  Input[WavelengthModel.Input]    = Input.ignore,
-    focalPlane:       Input[FocalPlane]               = Input.ignore,
-    focalPlaneAngle:  Input[FocalPlaneAngleInput]     = Input.ignore,
-    capabilities:     Input[SpectroscopyCapabilities] = Input.ignore
+    wavelength:         Input[WavelengthModel.Input]    = Input.ignore,
+    resolution:         Input[PosInt]                   = Input.ignore,
+    signalToNoise:      Input[PosBigDecimal]            = Input.ignore,
+    signalToNoiseAt:    Input[WavelengthModel.Input]    = Input.ignore,
+    wavelengthCoverage: Input[WavelengthModel.Input]    = Input.ignore,
+    focalPlane:         Input[FocalPlane]               = Input.ignore,
+    focalPlaneAngle:    Input[FocalPlaneAngleInput]     = Input.ignore,
+    capabilities:       Input[SpectroscopyCapabilities] = Input.ignore
   ) {
     val edit: ValidatedInput[State[SpectroscopyScienceRequirements, Unit]] =
       (wavelength.validateNullable(_.toWavelength("wavelength")),
