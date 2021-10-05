@@ -31,7 +31,7 @@ final case class SpectroscopyScienceRequirements(
   resolution:       Option[PosInt],
   signalToNoise:    Option[PosBigDecimal],
   signalToNoiseAt:  Option[Wavelength],
-  wavelengthRange:  Option[Wavelength],
+  wavelengthCoverage:  Option[Wavelength],
   focalPlane:       Option[FocalPlane],
   focalPlaneAngle:  Option[Angle],
   capabilities:     Option[SpectroscopyCapabilities]
@@ -46,7 +46,7 @@ object SpectroscopyScienceRequirements extends SpectroscopyScienceRequirementsOp
      x.resolution,
      x.signalToNoise,
      x.signalToNoiseAt,
-     x.wavelengthRange,
+     x.wavelengthCoverage,
      x.focalPlane,
      x.focalPlaneAngle,
      x.capabilities
@@ -60,7 +60,7 @@ object SpectroscopyScienceRequirementsModel {
     resolution:       Option[PosInt],
     signalToNoise:    Option[PosBigDecimal],
     signalToNoiseAt:  Option[WavelengthModel.Input],
-    wavelengthRange:  Option[WavelengthModel.Input],
+    wavelengthCoverage:  Option[WavelengthModel.Input],
     focalPlane:       Option[FocalPlane],
     focalPlaneAngle:  Option[FocalPlaneAngleInput],
     capabilities:     Option[SpectroscopyCapabilities]
@@ -68,14 +68,14 @@ object SpectroscopyScienceRequirementsModel {
     val create: ValidatedInput[SpectroscopyScienceRequirements] =
       (wavelength.traverse(_.toWavelength("wavelength")),
        signalToNoiseAt.traverse(_.toWavelength("signalToNoiseAt")),
-       wavelengthRange.traverse(_.toWavelength("wavelengthRange")),
+       wavelengthCoverage.traverse(_.toWavelength("wavelengthCoverage")),
        focalPlaneAngle.traverse(_.toAngle)
-      ).mapN { (cw, signalToNoiseAt, wavelengthRange, focalPlaneAngle) =>
+      ).mapN { (cw, signalToNoiseAt, wavelengthCoverage, focalPlaneAngle) =>
         SpectroscopyScienceRequirements(cw,
                                         resolution,
                                         signalToNoise,
                                         signalToNoiseAt,
-                                        wavelengthRange,
+                                        wavelengthCoverage,
                                         focalPlane,
                                         focalPlaneAngle,
                                         capabilities)
@@ -94,7 +94,7 @@ object SpectroscopyScienceRequirementsModel {
         a.resolution,
         a.signalToNoise,
         a.signalToNoiseAt,
-        a.wavelengthRange,
+        a.wavelengthCoverage,
         a.focalPlane,
         a.focalPlaneAngle,
         a.capabilities
@@ -106,7 +106,7 @@ object SpectroscopyScienceRequirementsModel {
     resolution:       Input[PosInt]                   = Input.ignore,
     signalToNoise:    Input[PosBigDecimal]            = Input.ignore,
     signalToNoiseAt:  Input[WavelengthModel.Input]    = Input.ignore,
-    wavelengthRange:  Input[WavelengthModel.Input]    = Input.ignore,
+    wavelengthCoverage:  Input[WavelengthModel.Input]    = Input.ignore,
     focalPlane:       Input[FocalPlane]               = Input.ignore,
     focalPlaneAngle:  Input[FocalPlaneAngleInput]     = Input.ignore,
     capabilities:     Input[SpectroscopyCapabilities] = Input.ignore
@@ -114,15 +114,15 @@ object SpectroscopyScienceRequirementsModel {
     val edit: ValidatedInput[State[SpectroscopyScienceRequirements, Unit]] =
       (wavelength.validateNullable(_.toWavelength("wavelength")),
        signalToNoiseAt.validateNullable(_.toWavelength("signalToNoiseAt")),
-       wavelengthRange.validateNullable(_.toWavelength("wavelengthRange")),
+       wavelengthCoverage.validateNullable(_.toWavelength("wavelengthCoverage")),
        focalPlaneAngle.validateNullable(_.toAngle)
-      ).mapN { (cw, signalToNoiseAt, wavelengthRange, focalPlaneAngle) =>
+      ).mapN { (cw, signalToNoiseAt, wavelengthCoverage, focalPlaneAngle) =>
         for {
           _ <- SpectroscopyScienceRequirements.wavelength      := cw
           _ <- SpectroscopyScienceRequirements.resolution      := resolution.toOptionOption
           _ <- SpectroscopyScienceRequirements.signalToNoise   := signalToNoise.toOptionOption
           _ <- SpectroscopyScienceRequirements.signalToNoiseAt := signalToNoiseAt
-          _ <- SpectroscopyScienceRequirements.wavelengthRange := wavelengthRange
+          _ <- SpectroscopyScienceRequirements.wavelengthCoverage := wavelengthCoverage
           _ <- SpectroscopyScienceRequirements.focalPlane      := focalPlane.toOptionOption
           _ <- SpectroscopyScienceRequirements.focalPlaneAngle := focalPlaneAngle
           _ <- SpectroscopyScienceRequirements.capabilities    := capabilities.toOptionOption
@@ -220,8 +220,8 @@ trait SpectroscopyScienceRequirementsOptics {
     Focus[SpectroscopyScienceRequirements](_.signalToNoiseAt)
 
   /** @group Optics */
-  lazy val wavelengthRange: Lens[SpectroscopyScienceRequirements, Option[Wavelength]] =
-    Focus[SpectroscopyScienceRequirements](_.wavelengthRange)
+  lazy val wavelengthCoverage: Lens[SpectroscopyScienceRequirements, Option[Wavelength]] =
+    Focus[SpectroscopyScienceRequirements](_.wavelengthCoverage)
 
   /** @group Optics */
   lazy val focalPlane: Lens[SpectroscopyScienceRequirements, Option[FocalPlane]] =
