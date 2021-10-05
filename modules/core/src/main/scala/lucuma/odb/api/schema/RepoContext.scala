@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.core.model.{Asterism, ExecutionEvent, Observation, Program, Step, Target}
+import lucuma.core.model.{ExecutionEvent, Observation, Program, Step, Target}
 import lucuma.odb.api.repo.{AtomRepo, ExecutionEventRepo, ObservationRepo, OdbRepo, ProgramRepo, StepRepo, TargetRepo}
 
 import cats.effect.std.Dispatcher
@@ -55,9 +55,6 @@ final class RepoContextOps[F[_]](val self: Context[OdbRepo[F], _]) {
   /** Treats the cursor as a Gid, decoding through Cursor to its Gid representation. */
   def pagingGid[A: Gid](name: String): Either[InputError, Option[A]] =
     pagingCursor(s"Cannot read as $name")(Paging.Cursor.gid[A].getOption)
-
-  def pagingAsterismId: Either[InputError, Option[Asterism.Id]] =
-    pagingGid[Asterism.Id]("AsterismId")
 
   def pagingExecutionEventId: Either[InputError, Option[ExecutionEvent.Id]] =
     pagingGid[ExecutionEvent.Id]("ExecutionEventId")
