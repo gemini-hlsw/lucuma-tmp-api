@@ -58,6 +58,10 @@ sealed trait TargetRepo[F[_]] {
     id: Observation.Id
   ): F[Option[TargetEnvironmentModel]]
 
+  def unsafeSelectTargetEnvironmentForObservation(
+    id: Observation.Id
+  ): F[TargetEnvironmentModel]
+
   def groupBySingleScienceTarget(
     pid:            Program.Id,
     includeDeleted: Boolean
@@ -163,6 +167,14 @@ object TargetRepo {
         id: Observation.Id
       ): F[Option[TargetEnvironmentModel]] =
         tablesRef.get.map(_.targetEnvironments.values.find(_.observationId.contains(id)))
+
+      override def unsafeSelectTargetEnvironmentForObservation(
+        id: Observation.Id
+      ): F[TargetEnvironmentModel] =
+        selectTargetEnvironmentForObservation(id).flatMap {
+          case None    => ExecutionException(s"Couldn't find target environment for observation ${Gid[Observation.Id].show(id)}").raiseError[F, TargetEnvironmentModel]
+          case Some(e) => e.pure[F]
+        }
 
       private def filteredTargetEnvironments(
         tables:         Tables,

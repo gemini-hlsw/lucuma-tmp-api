@@ -122,9 +122,9 @@ object ObservationSchema {
 
         Field(
           name        = "targets",
-          fieldType   = OptionType(TargetEnvironmentModelType[F]),
+          fieldType   = TargetEnvironmentModelType[F],
           description = "The observation's target(s)".some,
-          resolve     = c => c.target(_.selectTargetEnvironmentForObservation(c.value.id))
+          resolve     = c => c.target(_.unsafeSelectTargetEnvironmentForObservation(c.value.id))
         ),
 
         Field(
