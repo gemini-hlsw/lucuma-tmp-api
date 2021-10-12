@@ -51,7 +51,7 @@ trait OdbSuite extends CatsEffectSuite {
 
   private val httpApp: Resource[IO, HttpApp[IO]] =
     Resource.eval(OdbRepo.create[IO].flatTap(Init.initialize(_)))
-      .flatMap(Main.httpApp(ssoClient, _))
+      .flatMap(Main.httpApp(_, ssoClient))
 
   private val server: Resource[IO, Server] =
     Resource.make(IO.println("  • Server starting..."))(_ => IO.println("  • Server stopped.")) *>

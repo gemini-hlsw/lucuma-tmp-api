@@ -16,7 +16,7 @@ val jawnVersion                 = "1.2.0"
 val kindProjectorVersion        = "0.13.0"
 val logbackVersion              = "1.2.5"
 val lucumaCoreVersion           = "0.12.4"
-// val lucumaSsoVersion            = "0.0.9" AWAITING CE3
+val lucumaSsoVersion            = "0.0.10"
 val log4catsVersion             = "2.1.1"
 val monocleVersion              = "3.0.0"
 val munitCatsEffectVersion      = "1.0.5"
@@ -142,7 +142,8 @@ lazy val service = project
       "org.http4s"                 %% "http4s-dsl"                % http4sVersion,
       "edu.gemini"                 %% "clue-http4s-jdk-client"    % clueVersion            % Test,
       "org.typelevel"              %% "munit-cats-effect-3"       % munitCatsEffectVersion % Test,
-      "edu.gemini"                 %% "lucuma-graphql-routes-sangria" % "0.0.0+276-95e64a04+20210818-1047-SNAPSHOT",
+      "edu.gemini"                 %% "lucuma-sso-backend-client" % lucumaSsoVersion,
+      "edu.gemini"                 %% "lucuma-graphql-routes-sangria" % "0.0.0+280-ef57136d-SNAPSHOT",
     ),
     testFrameworks += new TestFramework("munit.Framework"),
     Test / parallelExecution := false, // tests run fine in parallel but output is nicer this way

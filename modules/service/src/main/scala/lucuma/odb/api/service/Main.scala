@@ -3,9 +3,7 @@
 
 package lucuma.odb.api.service
 
-import lucuma.core.model.User
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.sso.client.SsoClient
 
 import cats.effect.{Async, ExitCode, IO, IOApp, Resource}
 import cats.implicits._
@@ -24,14 +22,16 @@ import lucuma.graphql.routes.GraphQLService
 import lucuma.odb.api.schema.OdbSchema
 import cats.effect.std.Dispatcher
 import lucuma.graphql.routes.Routes
-import org.http4s.HttpRoutes
+import org.http4s.{ HttpRoutes, Request }
+import lucuma.sso.client.SsoClient
+import lucuma.core.model.User
 
 // #server
 object Main extends IOApp {
 
   def httpApp[F[_]: Log4CatsLogger: Async](
-    userClient: SsoClient[F, User],
     odb:        OdbRepo[F],
+    userClient: SsoClient[F, User],
   ): Resource[F, HttpApp[F]] =
     Dispatcher[F].map { implicit d =>
       Logger.httpApp(logHeaders = true, logBody = false) {
@@ -40,13 +40,20 @@ object Main extends IOApp {
           val staticRoutes: HttpRoutes[F] =
             resourceServiceBuilder[F]("/assets").toRoutes
 
-          // Our GraphQL service
-          val graphQLService: GraphQLService[F] =
-            new SangriaGraphQLService(OdbSchema[F], odb, OdbSchema.exceptionHandler)
+          // Our schema is constant for now
+          val schema = OdbSchema[F]
+
+          // Our GraphQL service, computed per-request
+          def graphQLService(req: Request[F]): F[Option[GraphQLService[F]]] =
+            userClient.find(req).flatMap { ou =>
+              Log4CatsLogger[F].info(s"GraphQL request (user=$ou).").as {
+                new SangriaGraphQLService(schema, odb, OdbSchema.exceptionHandler).some
+              }
+            }
 
           // Our GraphQL routes
           val graphQLRoutes: HttpRoutes[F] =
-            Routes.forService[F](graphQLService, userClient, "odb", "ws")
+            Routes.forService[F](graphQLService, "odb", "ws")
 
           // Done!
           (staticRoutes <+> graphQLRoutes).orNotFound
@@ -60,12 +67,11 @@ object Main extends IOApp {
     odb: OdbRepo[F],
     cfg: Config
   ): Stream[F, Nothing] = {
-
     // Spin up the server ...
     for {
       sso       <- Stream.resource(cfg.ssoClient[F])
       userClient = sso.map(_.user)
-      httpApp   <- Stream.resource(httpApp(userClient, odb))
+      httpApp   <- Stream.resource(httpApp(odb, userClient))
       exitCode  <- BlazeServerBuilder[F](global)
         .bindHttp(cfg.port, "0.0.0.0")
         .withHttpApp(httpApp)
