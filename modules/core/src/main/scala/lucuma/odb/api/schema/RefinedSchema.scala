@@ -6,6 +6,7 @@ package lucuma.odb.api.schema
 import cats.syntax.all._
 import eu.timepit.refined.types.all.PosBigDecimal
 import eu.timepit.refined.types.all.PosInt
+import lucuma.core.syntax.string._
 import sangria.schema.{InputType, IntType, BigDecimalType, ScalarAlias, ScalarType}
 import sangria.validation.ValueCoercionViolation
 
@@ -31,18 +32,24 @@ trait RefinedSchema {
       coerceUserInput = {
         case s: BigInt  =>
           PosInt.from(s.intValue).leftMap(_ => PosIntCoercionViolation)
-        case s: Int  =>
+        case s: Int     =>
           PosInt.from(s).leftMap(_ => PosIntCoercionViolation)
-        case x       =>
+        case s: String  =>
+          Either.fromOption(s.parseIntOption, PosIntCoercionViolation)
+              .flatMap(PosInt.from(_).leftMap(_ => PosIntCoercionViolation))
+        case x          =>
           Left(UnsupportedTypeCoercionViolation(x))
       },
       coerceOutput    = (a, _) => a.value,
       coerceInput     = {
-        case sangria.ast.BigIntValue(s, _, _) =>
+        case sangria.ast.BigIntValue(s, _, _)       =>
           PosInt.from(s.intValue).leftMap(_ => PosIntCoercionViolation)
-        case sangria.ast.IntValue(s, _, _)    =>
+        case sangria.ast.IntValue(s, _, _)          =>
           PosInt.from(s).leftMap(_ => PosIntCoercionViolation)
-        case x                                =>
+        case sangria.ast.StringValue(s, _, _, _, _) =>
+          Either.fromOption(s.parseIntOption, PosIntCoercionViolation)
+              .flatMap(PosInt.from(_).leftMap(_ => PosIntCoercionViolation))
+        case x                                      =>
           Left(UnsupportedTypeCoercionViolation(x))
       }
     )
@@ -52,14 +59,26 @@ trait RefinedSchema {
       name            =  "PosBigDecimal",
       description     = Some("A `BigDecimal` greater than 0"),
       coerceUserInput = {
-        case s: BigDecimal => PosBigDecimal.from(s).leftMap(_ => PosBigDecimalCoercionViolation)
+        case s: BigDecimal =>
+          PosBigDecimal.from(s).leftMap(_ => PosBigDecimalCoercionViolation)
+        case s: BigInt     =>
+          PosBigDecimal.from(BigDecimal(s)).leftMap(_ => PosBigDecimalCoercionViolation)
+        case s: String     =>
+          Either.fromOption(s.parseBigDecimalOption, PosIntCoercionViolation)
+              .flatMap(PosBigDecimal.from(_).leftMap(_ => PosIntCoercionViolation))
         case x             =>
           Left(UnsupportedTypeCoercionViolation(x))
       },
       coerceOutput    = (a, _) => a.value,
       coerceInput     = {
-        case sangria.ast.BigDecimalValue(s, _, _) => PosBigDecimal.from(s).leftMap(_ => PosBigDecimalCoercionViolation)
-        case x                                =>
+        case sangria.ast.BigDecimalValue(s, _, _)   =>
+          PosBigDecimal.from(s).leftMap(_ => PosBigDecimalCoercionViolation)
+        case sangria.ast.BigIntValue(s, _, _)       =>
+          PosBigDecimal.from(BigDecimal(s)).leftMap(_ => PosIntCoercionViolation)
+        case sangria.ast.StringValue(s, _, _, _, _) =>
+          Either.fromOption(s.parseBigDecimalOption, PosIntCoercionViolation)
+              .flatMap(PosBigDecimal.from(_).leftMap(_ => PosIntCoercionViolation))
+        case x                                      =>
           Left(UnsupportedTypeCoercionViolation(x))
       }
     )
