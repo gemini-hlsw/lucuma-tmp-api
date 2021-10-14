@@ -226,13 +226,13 @@ class TargetQuerySuite extends OdbSuite {
               ],
               "commonTargetList": [
                 {
-                  "name": "NGC 5949"
-                },
-                {
                   "name": "NGC 3269"
                 },
                 {
                   "name": "NGC 3312"
+                },
+                {
+                  "name": "NGC 5949"
                 }
               ]
             },

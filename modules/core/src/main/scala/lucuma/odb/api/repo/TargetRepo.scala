@@ -11,15 +11,15 @@ import lucuma.odb.api.model.ObservationModel.ObservationEvent
 import lucuma.odb.api.model.ProgramModel.ProgramEvent
 import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.odb.api.model.syntax.toplevel._
-import lucuma.odb.api.model.targetModel._
+import lucuma.odb.api.model.targetModel.{TargetEnvironment, _}
 import cats.effect.{Async, Ref}
+import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.applicative._
 import cats.syntax.eq._
 import cats.syntax.flatMap._
 import cats.syntax.foldable._
 import cats.syntax.functor._
 import cats.syntax.traverse._
-import cats.implicits.catsKernelOrderingForOrder
 
 import scala.collection.immutable.SortedSet
 
@@ -70,7 +70,7 @@ sealed trait TargetRepo[F[_]] {
   def groupByScienceTargetList(
     pid:            Program.Id,
     includeDeleted: Boolean
-  ): F[List[TargetEnvironmentGroup[Set[CommonTarget]]]]
+  ): F[List[TargetEnvironmentGroup[SortedSet[CommonTarget]]]]
 
   def groupByTargetEnvironment(
     pid:            Program.Id,
@@ -200,45 +200,61 @@ object TargetRepo {
       ): F[List[TargetEnvironmentGroup[CommonTarget]]] =
 
         tablesRef.get.map { t =>
-          val envs    = filteredTargetEnvironments(t, pid, includeDeleted)
-          val targets = t.targets.values.filter(tm => envs.isDefinedAt(tm.targetEnvironmentId))
-          targets
-           .groupMap(_.target)(_.targetEnvironmentId)
-           .map { case (t, vids) => TargetEnvironmentGroup(CommonTarget(t), SortedSet.from(vids)) }
-           .toList
-           .sortBy(_.targetEnvironmentIds.head)
+          val envs = filteredTargetEnvironments(t, pid, includeDeleted)
+          val tms  = t.targets.values.filter(tm => envs.isDefinedAt(tm.targetEnvironmentId))
+
+          tms
+            .groupBy(_.target)
+            .map { case (t, tms) =>
+              TargetEnvironmentGroup.from(
+                CommonTarget.from(t, tms.map(_.id)),
+                tms.map(_.targetEnvironmentId)
+              )
+            }
+            .toList
+            .sortBy(_.targetEnvironmentIds.head)
         }
 
+      // Generates a List of tuples: target environment id and the corresponding
+      // science targets (if any) for the environment.
       private def scienceTargets(
         tables:         Tables,
         pid:            Program.Id,
         includeDeleted: Boolean
-      ): List[(TargetEnvironment.Id, Set[Target])] = {
+      ): List[(TargetEnvironment.Id, List[TargetModel])] = {
 
-        val relevantEnvs = filteredTargetEnvironments(tables, pid, includeDeleted)
-        val targets      = tables.targets.values.filter(tm => relevantEnvs.isDefinedAt(tm.targetEnvironmentId))
+        val envs     = filteredTargetEnvironments(tables, pid, includeDeleted)
+        val targets  = tables.targets.values.filter(tm => envs.isDefinedAt(tm.targetEnvironmentId))
 
-        val nonEmpty     =
+        val nonEmpty =
           targets
-            .groupMap(_.targetEnvironmentId)(_.target)
+            .groupBy(_.targetEnvironmentId)
             .view
-            .mapValues(Set.from)
+            .mapValues(_.toList)
 
-        val empty        = relevantEnvs.keySet -- nonEmpty.keySet
+        val empty    =
+          (envs.keySet -- nonEmpty.keySet).map(_ -> List.empty[TargetModel])
 
-        (nonEmpty ++ empty.map(_ -> Set.empty[Target])).toList
+        (nonEmpty ++ empty).toList
+
       }
 
       override def groupByScienceTargetList(
         pid:            Program.Id,
         includeDeleted: Boolean
-      ): F[List[TargetEnvironmentGroup[Set[CommonTarget]]]] =
+      ): F[List[TargetEnvironmentGroup[SortedSet[CommonTarget]]]] =
 
         tablesRef.get.map { t =>
           scienceTargets(t, pid, includeDeleted)
-            .groupMap(_._2)(_._1)
-            .map { case (ts, vids) => TargetEnvironmentGroup(ts.map(CommonTarget), SortedSet.from(vids)) }
+            .groupBy(_._2.map(_.target).toSet) // group by Set[Target]
             .toList
+            .map { case (_, vs) =>
+              val (vids, tms) = vs.unzip
+              TargetEnvironmentGroup.from(
+                CommonTarget.extractFromTargetModels(tms.flatten),
+                vids
+              )
+            }
             .sortBy(_.targetEnvironmentIds.head)
         }
 
@@ -246,13 +262,27 @@ object TargetRepo {
         pid:            Program.Id,
         includeDeleted: Boolean
       ): F[List[TargetEnvironmentGroup[CommonTargetEnvironment]]] =
+
         tablesRef.get.map { t =>
           scienceTargets(t, pid, includeDeleted)
-            .map { case (vid, targets) =>
-              (t.targetEnvironments(vid).toCommon(targets), vid)
+            .groupBy { case (vid, targets) =>
+              // Grouping by (base, Set[Target])
+              (t.targetEnvironments(vid).explicitBase, targets.map(_.target).toSet)
             }
-            .groupMap(_._1)(_._2)
-            .map { case (env, vids) => TargetEnvironmentGroup(env, SortedSet.from(vids)) }
+            .map { case (_, scienceTargets) =>
+              val (vids, tms) = scienceTargets.unzip
+
+              val commonEnvironment =
+                CommonTargetEnvironment(
+                  // all have the same coordinates because they were grouped on
+                  // coordinates, so pick any
+                  vids.headOption.flatMap(t.targetEnvironments.get).flatMap(_.explicitBase),
+                  CommonTarget.extractFromTargetModels(tms.flatten),
+                  SortedSet.from(vids)
+                )
+
+              TargetEnvironmentGroup.from(commonEnvironment, vids)
+            }
             .toList
             .sortBy(_.targetEnvironmentIds.head)
         }

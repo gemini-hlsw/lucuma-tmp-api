@@ -13,14 +13,10 @@ import monocle.{Lens, Optional}
 
 import scala.collection.immutable.SortedMap
 
-sealed trait TargetHolder {
-  def target:     Target
-}
-
-final case class CommonTarget(
-  target: Target
-) extends TargetHolder
-
+/**
+ * TargetModel pairs an id with a `lucuma.core.model.Target` and tracks the
+ * target environment in which the target is found.
+ */
 final case class TargetModel(
   id:                  Target.Id,
   targetEnvironmentId: TargetEnvironment.Id,

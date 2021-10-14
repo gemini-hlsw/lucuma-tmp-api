@@ -4,26 +4,12 @@
 package lucuma.odb.api.model.targetModel
 
 import lucuma.core.math.Coordinates
-import lucuma.core.model.{Observation, Program, Target, WithId}
+import lucuma.core.model.{Observation, Program, WithId}
 import cats.Eq
 import eu.timepit.refined.auto._
 import monocle.Lens
 
-
-final case class CommonTargetEnvironment(
-  explicitBase: Option[Coordinates],
-  science:      Set[Target]
-)
-
-object CommonTargetEnvironment {
-  implicit val EqGroupingTargetEnvironment: Eq[CommonTargetEnvironment] =
-    Eq.by { a => (
-      a.explicitBase,
-      a.science
-    )}
-
-}
-
+// Will eventually come from lucuma.core.model
 object TargetEnvironment extends WithId('v')
 
 /**
@@ -37,14 +23,7 @@ final case class TargetEnvironmentModel(
   observationId: Option[Observation.Id],
 
   explicitBase:  Option[Coordinates]
-)  {
-
-  def toCommon(
-    science: Iterable[Target]
-  ): CommonTargetEnvironment =
-    CommonTargetEnvironment(explicitBase, Set.from(science))
-
-}
+)
 
 object TargetEnvironmentModel extends TargetEnvironmentModelOptics {
 
