@@ -357,7 +357,7 @@ object TargetSchema extends TargetScalars {
           name        = "epoch",
           fieldType   = EpochStringType,
           description = Some("Epoch, time of base observation"),
-          resolve     = _.value.epoch //v => math.Epoch.fromString.reverseGet(v.value.epoch)
+          resolve     = _.value.epoch
         ),
 
         Field(
@@ -435,7 +435,14 @@ object TargetSchema extends TargetScalars {
     ObjectType(
       name       = "CommonTarget",
       interfaces = List(PossibleInterface.apply[OdbRepo[F], CommonTarget](TargetInterfaceType[F])),
-      fields     = Nil
+      fields     = fields(
+        Field(
+          name        = "ids",
+          fieldType   = ListType(TargetIdType),
+          description = "Target IDs that share the common target information".some,
+          resolve     = _.value.ids.toList
+        )
+      )
     )
 
   def TargetModelType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], TargetModel] =
@@ -510,14 +517,14 @@ object TargetSchema extends TargetScalars {
           name        = "scienceTargets",
           fieldType   = ListType(CommonTargetType[F]),
           description = "All science targets, if any".some,
-          resolve     = _.value.science.toList.sorted(Target.TargetNameOrder.toOrdering).map(CommonTarget)
+          resolve     = _.value.science.toList
         ),
 
         Field(
           name        = "firstScienceTarget",
           fieldType   = OptionType(CommonTargetType[F]),
           description = "First science target, if any".some,
-          resolve     = _.value.science.toList.sorted(Target.TargetNameOrder.toOrdering).headOption.map(CommonTarget)
+          resolve     = _.value.science.headOption
         )
       )
     )

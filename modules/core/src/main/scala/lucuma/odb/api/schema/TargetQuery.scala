@@ -130,7 +130,7 @@ trait TargetQuery {
       ),
       resolve     = c => c.target { repo =>
         Nested(repo.groupByScienceTargetList(c.programId, c.includeDeleted))
-          .map(_.map(_.toSeq))
+          .map(_.map(Seq.from))
           .value
       }
     )

@@ -4,6 +4,7 @@
 package lucuma.odb.api.model.targetModel
 
 import cats.{Eq, Functor}
+import cats.implicits.catsKernelOrderingForOrder
 
 import scala.collection.immutable.SortedSet
 
@@ -17,7 +18,7 @@ final case class TargetEnvironmentGroup[A](
 
 object TargetEnvironmentGroup {
 
-  implicit def EqGroup[A: Eq]: Eq[TargetEnvironmentGroup[A]] =
+  implicit def EqTargetEnvironmentGroup[A: Eq]: Eq[TargetEnvironmentGroup[A]] =
     Eq.by { tem => (
       tem.value,
       tem.targetEnvironmentIds
@@ -28,5 +29,8 @@ object TargetEnvironmentGroup {
       override def map[A, B](fa: TargetEnvironmentGroup[A])(f: A => B): TargetEnvironmentGroup[B] =
         TargetEnvironmentGroup[B](f(fa.value), fa.targetEnvironmentIds)
     }
+
+  def from[A](value: A, vids: IterableOnce[TargetEnvironment.Id]): TargetEnvironmentGroup[A] =
+    TargetEnvironmentGroup(value, SortedSet.from(vids))
 
 }
