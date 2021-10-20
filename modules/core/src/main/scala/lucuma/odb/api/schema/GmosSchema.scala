@@ -26,8 +26,8 @@ object GmosSchema {
 
   implicit val EnumTypeGmosAmpGain: EnumType[GmosAmpGain] =
     EnumType.fromEnumerated(
-      "GmosAmpCount",
-      "GMOS amp count"
+      "GmosAmpGain",
+      "GMOS amp gain"
     )
 
   implicit val EnumTypeGmosAmpReadMode: EnumType[GmosAmpReadMode] =
