@@ -8,14 +8,15 @@ val catsTimeVersion             = "0.3.4"
 val circeOpticsVersion          = "0.14.1"
 val circeVersion                = "0.14.1"
 val cirisVersion                = "2.1.0"
-val clueVersion                 = "0.17.0"
-val http4sVersion               = "0.23.1"
+val clueVersion                 = "0.18.6"
+val http4sVersion               = "0.23.5"
 val http4sJdkHttpClientVersion  = "0.5.0"
 val fs2Version                  = "3.1.0"
 val jawnVersion                 = "1.2.0"
 val kindProjectorVersion        = "0.13.0"
 val logbackVersion              = "1.2.5"
 val lucumaCoreVersion           = "0.12.4"
+val lucumaGraphQLRoutesVersion  = "0.1.1"
 val lucumaSsoVersion            = "0.0.10"
 val log4catsVersion             = "2.1.1"
 val monocleVersion              = "3.0.0"
@@ -117,33 +118,33 @@ lazy val service = project
       "-Ymacro-annotations"
     ),
     libraryDependencies ++= Seq(
-      "dev.optics"                 %% "monocle-core"              % monocleVersion,
-      "org.sangria-graphql"        %% "sangria"                   % sangriaVersion,
-      "org.sangria-graphql"        %% "sangria-circe"             % sangriaCirceVersion,
-      "edu.gemini"                 %% "clue-model"                % clueVersion,
-      "edu.gemini"                 %% "lucuma-core"               % lucumaCoreVersion,
-      "org.tpolecat"               %% "atto-core"                 % attoVersion,
-      "org.typelevel"              %% "cats-core"                 % catsVersion,
-      "org.typelevel"              %% "cats-effect"               % catsEffectVersion,
-      "io.circe"                   %% "circe-core"                % circeVersion,
-      "io.circe"                   %% "circe-literal"             % circeVersion,
-      "io.circe"                   %% "circe-optics"              % circeOpticsVersion,
-      "io.circe"                   %% "circe-parser"              % circeVersion,
-      "io.circe"                   %% "circe-generic"             % circeVersion,
-      "io.circe"                   %% "circe-generic-extras"      % circeVersion,
-      "is.cir"                     %% "ciris"                     % cirisVersion,
-      "org.typelevel"              %% "jawn-parser"               % jawnVersion,
-      "org.typelevel"              %% "log4cats-slf4j"            % log4catsVersion,
-      "ch.qos.logback"             %  "logback-classic"           % logbackVersion,
-      "org.http4s"                 %% "http4s-core"               % http4sVersion,
-      "org.http4s"                 %% "http4s-blaze-server"       % http4sVersion,
-      "org.http4s"                 %% "http4s-blaze-client"       % http4sVersion,
-      "org.http4s"                 %% "http4s-circe"              % http4sVersion,
-      "org.http4s"                 %% "http4s-dsl"                % http4sVersion,
-      "edu.gemini"                 %% "clue-http4s-jdk-client"    % clueVersion            % Test,
-      "org.typelevel"              %% "munit-cats-effect-3"       % munitCatsEffectVersion % Test,
-      "edu.gemini"                 %% "lucuma-sso-backend-client" % lucumaSsoVersion,
-      "edu.gemini"                 %% "lucuma-graphql-routes-sangria" % "0.0.0+280-ef57136d-SNAPSHOT",
+      "dev.optics"                 %% "monocle-core"                  % monocleVersion,
+      "org.sangria-graphql"        %% "sangria"                       % sangriaVersion,
+      "org.sangria-graphql"        %% "sangria-circe"                 % sangriaCirceVersion,
+      "edu.gemini"                 %% "clue-model"                    % clueVersion,
+      "edu.gemini"                 %% "lucuma-core"                   % lucumaCoreVersion,
+      "org.tpolecat"               %% "atto-core"                     % attoVersion,
+      "org.typelevel"              %% "cats-core"                     % catsVersion,
+      "org.typelevel"              %% "cats-effect"                   % catsEffectVersion,
+      "io.circe"                   %% "circe-core"                    % circeVersion,
+      "io.circe"                   %% "circe-literal"                 % circeVersion,
+      "io.circe"                   %% "circe-optics"                  % circeOpticsVersion,
+      "io.circe"                   %% "circe-parser"                  % circeVersion,
+      "io.circe"                   %% "circe-generic"                 % circeVersion,
+      "io.circe"                   %% "circe-generic-extras"          % circeVersion,
+      "is.cir"                     %% "ciris"                         % cirisVersion,
+      "org.typelevel"              %% "jawn-parser"                   % jawnVersion,
+      "org.typelevel"              %% "log4cats-slf4j"                % log4catsVersion,
+      "ch.qos.logback"             %  "logback-classic"               % logbackVersion,
+      "org.http4s"                 %% "http4s-core"                   % http4sVersion,
+      "org.http4s"                 %% "http4s-blaze-server"           % http4sVersion,
+      "org.http4s"                 %% "http4s-blaze-client"           % http4sVersion,
+      "org.http4s"                 %% "http4s-circe"                  % http4sVersion,
+      "org.http4s"                 %% "http4s-dsl"                    % http4sVersion,
+      "edu.gemini"                 %% "clue-http4s-jdk-client"        % clueVersion            % Test,
+      "org.typelevel"              %% "munit-cats-effect-3"           % munitCatsEffectVersion % Test,
+      "edu.gemini"                 %% "lucuma-sso-backend-client"     % lucumaSsoVersion,
+      "edu.gemini"                 %% "lucuma-graphql-routes-sangria" % lucumaGraphQLRoutesVersion,
     ),
     testFrameworks += new TestFramework("munit.Framework"),
     Test / parallelExecution := false, // tests run fine in parallel but output is nicer this way

@@ -30,7 +30,7 @@ final case class Config(
     SsoJwtReader(JwtDecoder.withPublicKey(ssoPublicKey))
 
   def httpClientResource[F[_]: Async]: Resource[F, Client[F]] =
-    BlazeClientBuilder(scala.concurrent.ExecutionContext.Implicits.global).resource
+    BlazeClientBuilder[F].resource
 
   // SSO Client resource (has to be a resource because it owns an HTTP client).
   def ssoClient[F[_]: Async]: Resource[F, SsoClient[F, UserInfo]] =
