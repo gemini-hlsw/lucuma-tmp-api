@@ -5,16 +5,15 @@ package lucuma.odb.api.repo
 package arb
 
 import lucuma.core.arb.ArbTime
-import lucuma.core.model.{Asterism, Atom, ExecutionEvent, Observation, Program, Step, Target}
-import lucuma.odb.api.model.{AsterismModel, AtomModel, ExecutionEventModel, InstrumentConfigModel, ObservationModel, ProgramModel, StepModel, TargetModel}
+import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target}
+import lucuma.odb.api.model.{AtomModel, ExecutionEventModel, InstrumentConfigModel, ObservationModel, ProgramModel, StepModel}
 import lucuma.core.util.Gid
 import lucuma.odb.api.model.SequenceModel.SequenceType.{Acquisition, Science}
 import lucuma.odb.api.model.arb._
-
-import cats.Order
 import cats.data.{Nested, State}
 import cats.kernel.instances.order._
 import cats.syntax.all._
+import lucuma.odb.api.model.targetModel.TargetEnvironment
 import org.scalacheck._
 import org.scalacheck.cats.implicits._
 import org.scalacheck.Arbitrary.arbitrary
@@ -25,12 +24,10 @@ import scala.collection.immutable.SortedMap
 
 trait ArbTables extends SplitSetHelper {
 
-  import ArbAsterismModel._
   import ArbExecutionEventModel._
   import ArbInstrumentConfigModel._
   import ArbObservationModel._
   import ArbProgramModel._
-  import ArbTargetModel._
   import ArbTime._
 
   private def map[I: Gid, M: Arbitrary](updateId: (M, I) => M): Gen[SortedMap[I, M]] =
@@ -46,15 +43,9 @@ trait ArbTables extends SplitSetHelper {
         )
       }
 
-  private def mapAsterisms: Gen[SortedMap[Asterism.Id, AsterismModel]] =
-    map[Asterism.Id, AsterismModel]((a, i) => a.copy(id = i))
-
   private def mapObservations(
-    pids: List[Program.Id],
-    aids: List[Asterism.Id],
-    tids: List[Target.Id]
+    pids: List[Program.Id]
   ): Gen[SortedMap[Observation.Id, ObservationModel]] = {
-    val emptyTargets = Option.empty[Either[Asterism.Id, Target.Id]]
 
     if (pids.isEmpty)
       Gen.const(SortedMap.empty[Observation.Id, ObservationModel])
@@ -62,18 +53,10 @@ trait ArbTables extends SplitSetHelper {
       for {
         om <- map[Observation.Id, ObservationModel]((o, i) => o.copy(id = i))
         ps <- Gen.listOfN(om.size, Gen.oneOf(pids))
-        ts <- Gen.listOfN(
-          om.size,
-          Gen.oneOf(
-            Gen.const(emptyTargets),
-            if (aids.isEmpty) Gen.const(emptyTargets) else Gen.pick(1, aids).map(_.headOption.map(_.asLeft)),
-            if (tids.isEmpty) Gen.const(emptyTargets) else Gen.pick(1, tids).map(_.headOption.map(_.asRight))
-          )
-        )
       } yield
         SortedMap.from(
-          om.toList.zip(ps).zip(ts).map { case (((i, o), pid), t) =>
-            (i, o.copy(programId = pid, pointing = t))
+          om.toList.zip(ps).map { case ((i, o), pid) =>
+            (i, o.copy(programId = pid))
           }
         )
   }
@@ -81,42 +64,25 @@ trait ArbTables extends SplitSetHelper {
   private def mapPrograms: Gen[SortedMap[Program.Id, ProgramModel]] =
     map[Program.Id, ProgramModel]((p, i) => p.copy(id = i))
 
-  private def mapTargets: Gen[SortedMap[Target.Id, TargetModel]] =
-    map[Target.Id, TargetModel]((t, i) => t.copy(id = i))
-
   private def lastGid[I: Gid](ms: SortedMap[I, _]): I =
     if (ms.isEmpty) Gid[I].minBound else ms.lastKey
-
-  private def manyToMany[A: Order, B: Order](
-    as: Iterable[A],
-    bs: Iterable[B]
-  ): Gen[ManyToMany[A, B]] =
-    for {
-      someAs <- Gen.someOf(as)
-      someBs <- Gen.someOf(bs)
-    } yield ManyToMany((for(a <- someAs; b <- someBs) yield (a, b)).toSeq: _*)
 
   implicit val arbTables: Arbitrary[Tables] =
     Arbitrary {
       for {
         ps <- mapPrograms
-        as <- mapAsterisms
-        ts <- mapTargets
-        os <- mapObservations(ps.keys.toList, as.keys.toList, ts.keys.toList)
+        os <- mapObservations(ps.keys.toList)
         ids = Ids(
           0L,
-          lastGid[Asterism.Id](as),
           lastGid[Atom.Id](SortedMap.empty[Atom.Id, AtomModel[_]]),
           lastGid[ExecutionEvent.Id](SortedMap.empty[ExecutionEvent.Id, ExecutionEventModel]),
           lastGid[Observation.Id](os),
           lastGid[Program.Id](ps),
           lastGid[Step.Id](SortedMap.empty[Step.Id, StepModel[_]]),
-          lastGid[Target.Id](ts)
+          Gid[Target.Id].minBound,
+          Gid[TargetEnvironment.Id].minBound
         )
-        pa <- manyToMany(ps.keys, as.keys)
-        pt <- manyToMany(ps.keys, ts.keys)
-        ta <- manyToMany(ts.keys, as.keys)
-      } yield Tables(ids, SortedMap.empty, as, SortedMap.empty, os, ps, SortedMap.empty, ts, pa, pt, ta)
+      } yield Tables(ids, SortedMap.empty, SortedMap.empty, os, ps, SortedMap.empty, SortedMap.empty, SortedMap.empty)
     }
 
   /**

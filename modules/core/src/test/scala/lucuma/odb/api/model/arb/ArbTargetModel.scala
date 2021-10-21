@@ -4,29 +4,31 @@
 package lucuma.odb.api.model
 package arb
 
-import TargetModel.{CreateNonsidereal, CreateSidereal, EditNonsidereal, EditSidereal}
-import lucuma.core.`enum`.EphemerisKeyType
-import lucuma.core.model.{EphemerisKey, Program, Target}
-import lucuma.core.model.arb.{ArbEphemerisKey, ArbTarget}
-import lucuma.core.math.Epoch
-import lucuma.core.math.arb.ArbEpoch
-import lucuma.core.util.arb.ArbEnumerated
-
 import clue.data.Input
-import eu.timepit.refined.types.string.NonEmptyString
 import eu.timepit.refined.scalacheck.string._
-import org.scalacheck._
+import eu.timepit.refined.types.string.NonEmptyString
+import lucuma.core.`enum`.EphemerisKeyType
+import lucuma.core.math.{Coordinates, Epoch}
+import lucuma.core.math.arb.{ArbCoordinates, ArbEpoch}
+import lucuma.core.model.arb.ArbEphemerisKey
+import lucuma.core.model.{EphemerisKey, Observation, Program, Target}
+import lucuma.core.model.arb.ArbTarget
+import lucuma.core.util.arb.{ArbEnumerated, ArbGid}
+import lucuma.odb.api.model.targetModel._
 import org.scalacheck.Arbitrary.arbitrary
+import org.scalacheck._
 
 
 trait ArbTargetModel {
 
   import ArbCatalogIdModel._
+  import ArbCoordinates._
+  import ArbCoordinatesModel._
   import ArbDeclinationModel._
   import ArbEnumerated._
   import ArbEphemerisKey._
   import ArbEpoch._
-  import lucuma.core.util.arb.ArbGid._
+  import ArbGid._
   import ArbInput._
   import ArbMagnitudeModel._
   import ArbParallaxModel._
@@ -35,11 +37,52 @@ trait ArbTargetModel {
   import ArbRightAscensionModel._
   import ArbTarget._
 
-  implicit val arbCreateSidereal: Arbitrary[CreateSidereal] =
+  implicit val arbTargetModel: Arbitrary[TargetModel] =
     Arbitrary {
       for {
-        id    <- arbitrary[Option[Target.Id]]
-        pids  <- arbitrary[Option[List[Program.Id]]]
+        id  <- arbitrary[Target.Id]
+        vid <- arbitrary[TargetEnvironment.Id]
+        t   <- arbitrary[Target]
+      } yield TargetModel(id, vid, t)
+    }
+
+  implicit val cogTargetModel: Cogen[TargetModel] =
+    Cogen[(
+      Target.Id,
+      TargetEnvironment.Id,
+      Target
+    )].contramap { in => (
+      in.id,
+      in.targetEnvironmentId,
+      in.target
+    )}
+
+  implicit val arbTargetEnvironmentModel: Arbitrary[TargetEnvironmentModel] =
+    Arbitrary {
+      for {
+        id  <- arbitrary[TargetEnvironment.Id]
+        pid <- arbitrary[Program.Id]
+        oid <- arbitrary[Option[Observation.Id]]
+        b   <- arbitrary[Option[Coordinates]]
+      } yield TargetEnvironmentModel(id, pid, oid, b)
+    }
+
+  implicit val cogTargetEnvironmentModel: Cogen[TargetEnvironmentModel] =
+    Cogen[(
+      TargetEnvironment.Id,
+      Program.Id,
+      Option[Observation.Id],
+      Option[Coordinates]
+    )].contramap { in => (
+      in.id,
+      in.programId,
+      in.observationId,
+      in.explicitBase
+    )}
+
+  implicit val arbCreateSidereal: Arbitrary[CreateSiderealInput] =
+    Arbitrary {
+      for {
         name  <- arbitrary[NonEmptyString]
         cat   <- arbitrary[Option[CatalogIdModel.Input]]
         ra    <- arbitrary[RightAscensionModel.Input]
@@ -49,9 +92,7 @@ trait ArbTargetModel {
         rv    <- arbitrary[Option[RadialVelocityModel.Input]]
         px    <- arbitrary[Option[ParallaxModel.Input]]
         mags  <- arbitrary[Option[List[MagnitudeModel.Create]]]
-      } yield CreateSidereal(
-        id,
-        pids,
+      } yield CreateSiderealInput(
         name,
         cat,
         ra,
@@ -64,10 +105,8 @@ trait ArbTargetModel {
       )
     }
 
-  implicit val cogCreateSidereal: Cogen[CreateSidereal] =
+  implicit val cogCreateSidereal: Cogen[CreateSiderealInput] =
     Cogen[(
-      Option[Target.Id],
-      Option[List[Program.Id]],
       String,
       Option[CatalogIdModel.Input],
       RightAscensionModel.Input,
@@ -78,8 +117,6 @@ trait ArbTargetModel {
       Option[ParallaxModel.Input],
       Option[List[MagnitudeModel.Create]]
     )].contramap { in => (
-      in.targetId,
-      in.programIds,
       in.name.value,
       in.catalogId,
       in.ra,
@@ -91,18 +128,14 @@ trait ArbTargetModel {
       in.magnitudes
     )}
 
-  implicit val arbCreateNonSidereal: Arbitrary[CreateNonsidereal] =
+  implicit val arbCreateNonSidereal: Arbitrary[CreateNonsiderealInput] =
     Arbitrary {
       for {
-        id   <- arbitrary[Option[Target.Id]]
-        pids <- arbitrary[Option[List[Program.Id]]]
         name <- arbitrary[NonEmptyString]
         key  <- arbitrary[EphemerisKeyType]
         des  <- arbitrary[NonEmptyString]
         mags <- arbitrary[Option[List[MagnitudeModel.Create]]]
-      } yield CreateNonsidereal(
-        id,
-        pids,
+      } yield CreateNonsiderealInput(
         name,
         key,
         des.value,
@@ -110,24 +143,55 @@ trait ArbTargetModel {
       )
     }
 
-  implicit val cogCreateNonSidereal: Cogen[CreateNonsidereal] =
+  implicit val cogCreateNonSidereal: Cogen[CreateNonsiderealInput] =
     Cogen[(
-      Option[Target.Id],
-      Option[List[Program.Id]],
       String,
       EphemerisKeyType,
       String,
       Option[List[MagnitudeModel.Create]]
     )].contramap { in => (
-      in.targetId, in.programIds, in.name.value, in.key, in.des, in.magnitudes
+      in.name.value, in.keyType, in.des, in.magnitudes
     )}
 
-  implicit val arbEditSidereal: Arbitrary[EditSidereal] =
+  implicit val arbCreateTarget: Arbitrary[CreateTargetInput] =
+    Arbitrary {
+      Gen.oneOf(
+        arbitrary[CreateNonsiderealInput].map(CreateTargetInput.nonsidereal),
+        arbitrary[CreateSiderealInput].map(CreateTargetInput.sidereal)
+      )
+    }
+
+  implicit val cogCreateTarget: Cogen[CreateTargetInput] =
+    Cogen[(
+      Option[CreateNonsiderealInput],
+      Option[CreateSiderealInput]
+    )].contramap { in => (
+      in.nonsidereal,
+      in.sidereal
+    )}
+
+  implicit val arbSelectTargetInput: Arbitrary[SelectTargetInput] =
     Arbitrary {
       for {
-        id    <- arbitrary[Target.Id]
-        ex    <- arbNotNullableInput[Existence].arbitrary
-        name  <- arbNotNullableInput[NonEmptyString].arbitrary
+        ns <- arbitrary[Option[List[NonEmptyString]]]
+        ts <- arbitrary[Option[List[Target.Id]]]
+      } yield SelectTargetInput(ns, ts)
+    }
+
+  implicit val cogSelectTargetInput: Cogen[SelectTargetInput] =
+    Cogen[(
+      Option[List[String]],
+      Option[List[Target.Id]]
+    )].contramap { in => (
+      in.names.map(_.map(_.value)),
+      in.targetIds
+    )}
+
+  implicit val arbEditSidereal: Arbitrary[EditSiderealInput] =
+    Arbitrary {
+      for {
+        sel   <- arbitrary[SelectTargetInput]
+        name  <- arbitrary[Input[NonEmptyString]]
         cat   <- arbitrary[Input[CatalogIdModel.Input]]
         ra    <- arbNotNullableInput[RightAscensionModel.Input].arbitrary
         dec   <- arbNotNullableInput[DeclinationModel.Input].arbitrary
@@ -136,9 +200,8 @@ trait ArbTargetModel {
         rv    <- arbitrary[Input[RadialVelocityModel.Input]]
         px    <- arbitrary[Input[ParallaxModel.Input]]
         mags  <- arbitrary[Option[MagnitudeModel.EditList]]
-      } yield EditSidereal(
-        id,
-        ex,
+      } yield EditSiderealInput(
+        sel,
         name,
         cat,
         ra,
@@ -151,10 +214,9 @@ trait ArbTargetModel {
       )
     }
 
-  implicit val cogEditSidereal: Cogen[EditSidereal] =
+  implicit val cogEditSidereal: Cogen[EditSiderealInput] =
     Cogen[(
-      Target.Id,
-      Input[Existence],
+      SelectTargetInput,
       Input[String],
       Input[CatalogIdModel.Input],
       Input[RightAscensionModel.Input],
@@ -164,8 +226,7 @@ trait ArbTargetModel {
       Input[RadialVelocityModel.Input],
       Input[ParallaxModel.Input]
     )].contramap { in => (
-      in.targetId,
-      in.existence,
+      in.select,
       in.name.map(_.value),
       in.catalogId,
       in.ra,
@@ -176,45 +237,159 @@ trait ArbTargetModel {
       in.parallax
     )}
 
-  implicit val arbEditNonSidereal: Arbitrary[EditNonsidereal] =
+  implicit val arbEditNonSidereal: Arbitrary[EditNonsiderealInput] =
     Arbitrary {
       for {
-        id   <- arbitrary[Target.Id]
-        ex   <- arbitrary[Option[Existence]]
-        name <- arbitrary[Option[NonEmptyString]]
-        key  <- arbitrary[Option[EphemerisKey]]
-      } yield EditNonsidereal(
-        id,
-        ex,
+        sel  <- arbitrary[SelectTargetInput]
+        name <- arbitrary[Input[NonEmptyString]]
+        key  <- arbitrary[Input[EphemerisKey]]
+      } yield EditNonsiderealInput(
+        sel,
         name,
         key
       )
     }
 
-  implicit val cogEditNonSidereal: Cogen[EditNonsidereal] =
+  implicit val cogEditNonSidereal: Cogen[EditNonsiderealInput] =
     Cogen[(
-      Target.Id,
-      Option[Existence],
-      Option[String],
-      Option[EphemerisKey]
+      SelectTargetInput,
+      Input[String],
+      Input[EphemerisKey]
     )].contramap { in => (
-      in.targetId, in.existence, in.name.map(_.value), in.key
+      in.select,
+      in.name.map(_.value),
+      in.key
     )}
 
-  implicit val arbTargetModel: Arbitrary[TargetModel] =
+  implicit val arbEditTargetInput: Arbitrary[EditTargetInput] =
+    Arbitrary {
+      Gen.oneOf(
+        arbitrary[CreateSiderealInput].map(EditTargetInput.addSidereal),
+        arbitrary[CreateNonsiderealInput].map(EditTargetInput.addNonsidereal),
+        arbitrary[EditSiderealInput].map(EditTargetInput.editSidereal),
+        arbitrary[EditNonsiderealInput].map(EditTargetInput.editNonsidereal),
+        arbitrary[SelectTargetInput].map(EditTargetInput.delete)
+      )
+    }
+
+  implicit val cogEditTargetInput: Cogen[EditTargetInput] =
+    Cogen[(
+      Option[CreateSiderealInput],
+      Option[CreateNonsiderealInput],
+      Option[EditSiderealInput],
+      Option[EditNonsiderealInput],
+      Option[SelectTargetInput]
+    )].contramap { in => (
+      in.addSidereal,
+      in.addNonsidereal,
+      in.editSidereal,
+      in.editNonsidereal,
+      in.delete
+    )}
+
+  implicit val arbCreateTargetEnvironmentInput: Arbitrary[CreateTargetEnvironmentInput] =
     Arbitrary {
       for {
-        id <- arbitrary[Target.Id]
-        ex <- arbitrary[Existence]
-        tg <- arbitrary[Target]
-      } yield TargetModel(id, ex, tg)
+        i <- arbitrary[Option[TargetEnvironment.Id]]
+        b <- arbitrary[Option[CoordinatesModel.Input]]
+        s <- arbitrary[Option[List[CreateTargetInput]]]
+      } yield CreateTargetEnvironmentInput(i, b, s)
     }
 
-  implicit val cogTargetModel: Cogen[TargetModel] =
-    Cogen[(Target.Id, Existence, Target)].contramap { in =>
-      (in.id, in.existence, in.target)
+  implicit val cogCreateTargetEnvironmentInput: Cogen[CreateTargetEnvironmentInput] =
+    Cogen[(
+      Option[CoordinatesModel.Input],
+      Option[List[CreateTargetInput]]
+    )].contramap { in => (
+      in.explicitBase,
+      in.science
+    )}
+
+  implicit val arbSelectTargetEnvironmentInput: Arbitrary[SelectTargetEnvironmentInput] =
+    Arbitrary {
+      for {
+        a <- arbitrary[Option[Program.Id]]
+        p <- arbitrary[Option[Program.Id]]
+        o <- arbitrary[Option[List[Observation.Id]]]
+        t <- arbitrary[Option[List[TargetEnvironment.Id]]]
+      } yield SelectTargetEnvironmentInput(a, p, o, t)
     }
 
+  implicit val cogSelectTargetEnvironmentInput: Cogen[SelectTargetEnvironmentInput] =
+    Cogen[(
+      Option[Program.Id],
+      Option[Program.Id],
+      Option[List[Observation.Id]],
+      Option[List[TargetEnvironment.Id]]
+    )].contramap { in => (
+      in.all,
+      in.program,
+      in.observations,
+      in.targetEnvironments
+    )}
+
+  implicit val arbBulkEditTargetInput: Arbitrary[BulkEditTargetInput] =
+    Arbitrary {
+      for {
+        sel <- arbitrary[Option[SelectTargetEnvironmentInput]]
+        as  <- arbitrary[Option[CreateSiderealInput]]
+        an  <- arbitrary[Option[CreateNonsiderealInput]]
+        es  <- arbitrary[Option[EditSiderealInput]]
+        en  <- arbitrary[Option[EditNonsiderealInput]]
+        dl  <- arbitrary[Option[SelectTargetInput]]
+      } yield BulkEditTargetInput(sel, as, an, es, en, dl)
+    }
+
+  implicit val cogBulkEditTargetInput: Cogen[BulkEditTargetInput] =
+    Cogen[(
+      Option[SelectTargetEnvironmentInput],
+      Option[CreateSiderealInput],
+      Option[CreateNonsiderealInput],
+      Option[EditSiderealInput],
+      Option[EditNonsiderealInput],
+      Option[SelectTargetInput]
+    )].contramap { in => (
+      in.select,
+      in.addSidereal,
+      in.addNonsidereal,
+      in.editSidereal,
+      in.editNonsidereal,
+      in.delete
+    )}
+
+  implicit val arbBulkEditTargetListInput: Arbitrary[BulkEditTargetListInput] =
+    Arbitrary {
+      for {
+        s <- arbitrary[Option[SelectTargetEnvironmentInput]]
+        e <- arbitrary[List[EditTargetInput]]
+      } yield BulkEditTargetListInput(s, e)
+    }
+
+  implicit val cogBulkEditTargetListInput: Cogen[BulkEditTargetListInput] =
+    Cogen[(
+      Option[SelectTargetEnvironmentInput],
+      List[EditTargetInput]
+    )].contramap { in => (
+      in.select,
+      in.edits
+    )}
+
+  implicit val arbBulkEditTargetEnvironmentInput: Arbitrary[BulkEditTargetEnvironmentInput] =
+    Arbitrary {
+      for {
+        s <- arbitrary[SelectTargetEnvironmentInput]
+        e <- arbitrary[Input[CoordinatesModel.Input]]
+      } yield BulkEditTargetEnvironmentInput(s, e)
+    }
+
+  implicit val cogBulkEditTargetEnvironmentInput: Cogen[BulkEditTargetEnvironmentInput] =
+    Cogen[(
+      SelectTargetEnvironmentInput,
+      Input[CoordinatesModel.Input]
+    )].contramap { in => (
+      in.select,
+      in.explicitBase
+    )}
 }
 
 object ArbTargetModel extends ArbTargetModel

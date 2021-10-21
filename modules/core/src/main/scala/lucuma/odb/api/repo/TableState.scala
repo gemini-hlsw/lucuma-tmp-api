@@ -3,9 +3,10 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.core.model.{Asterism, Atom, ExecutionEvent, Observation, Program, Step, Target}
+import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target}
 import lucuma.core.optics.state.all._
-import lucuma.odb.api.model.{AsterismModel, AtomModel, DatabaseState, ExecutionEventModel, ObservationModel, ProgramModel, RepoState, SharingState, StepModel, TargetModel}
+import lucuma.odb.api.model.{AtomModel, DatabaseState, ExecutionEventModel, ObservationModel, ProgramModel, RepoState, SharingState, StepModel}
+import lucuma.odb.api.model.targetModel.{TargetEnvironment, TargetEnvironmentModel, TargetModel}
 import cats.data.State
 import cats.mtl.Stateful
 import monocle.Lens
@@ -17,9 +18,6 @@ trait TableState extends DatabaseState[Tables] {
 
   override val atom: RepoState[Tables, Atom.Id, AtomModel[Step.Id]] =
     RepoState.fromLenses(Tables.lastAtomId, Tables.atoms)
-
-  override val asterism: RepoState[Tables, Asterism.Id, AsterismModel] =
-    RepoState.fromLenses(Tables.lastAsterismId, Tables.asterisms)
 
   override val executionEvent: RepoState[Tables, ExecutionEvent.Id, ExecutionEventModel] =
     RepoState.fromLenses(Tables.lastExecutionEventId, Tables.executionEvents)
@@ -36,8 +34,8 @@ trait TableState extends DatabaseState[Tables] {
   override val target: RepoState[Tables, Target.Id, TargetModel] =
     RepoState.fromLenses(Tables.lastTargetId, Tables.targets)
 
-  override val programAsterism: SharingState[Tables, Program.Id, Asterism.Id] =
-    new SharingStateManyToMany[Program.Id, Asterism.Id](Tables.programAsterism)
+  override val targetEnvironment: RepoState[Tables, TargetEnvironment.Id, TargetEnvironmentModel] =
+    RepoState.fromLenses(Tables.lastTargetEnvironmentId, Tables.targetEnvironments)
 
 }
 

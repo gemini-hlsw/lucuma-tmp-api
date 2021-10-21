@@ -5,11 +5,11 @@ package lucuma.odb.api.model
 package arb
 
 import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
-import lucuma.core.model.{Asterism, Observation, Program, Target}
+import lucuma.core.model.{Observation, Program}
 import lucuma.core.util.arb.{ArbEnumerated, ArbGid}
-
 import eu.timepit.refined.scalacheck.all._
 import eu.timepit.refined.types.all.NonEmptyString
+import lucuma.odb.api.model.targetModel.CreateTargetEnvironmentInput
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
@@ -19,6 +19,7 @@ trait ArbObservationModel {
   import ArbScienceRequirements._
   import ArbEnumerated._
   import ArbGid._
+  import ArbTargetModel._
 
   def arbObservationModelWithPid(pid: Program.Id): Arbitrary[ObservationModel] =
     Arbitrary {
@@ -28,10 +29,9 @@ trait ArbObservationModel {
         nm <- arbitrary[Option[NonEmptyString]]
         os <- arbitrary[ObsStatus]
         as <- arbitrary[ObsActiveStatus]
-        ts <- arbitrary[Option[Either[Asterism.Id, Target.Id]]]
         cs <- arbitrary[ConstraintSetModel]
         sr <- arbitrary[ScienceRequirements]
-      } yield ObservationModel(id, ex, pid, nm, os, as, ts, cs, sr, PlannedTimeSummaryModel.Zero, None, None)
+      } yield ObservationModel(id, ex, pid, nm, os, as, cs, sr, None, None, PlannedTimeSummaryModel.Zero)
     }
 
   implicit val arbObservationModel: Arbitrary[ObservationModel] =
@@ -50,7 +50,6 @@ trait ArbObservationModel {
       Option[String],
       ObsStatus,
       ObsActiveStatus,
-      Option[Either[Asterism.Id, Target.Id]],
       ConstraintSetModel,
       ScienceRequirements
     )].contramap { in => (
@@ -60,7 +59,6 @@ trait ArbObservationModel {
       in.name.map(_.value),
       in.status,
       in.activeStatus,
-      in.pointing,
       in.constraintSet,
       in.scienceRequirements
     )}
@@ -73,7 +71,7 @@ trait ArbObservationModel {
         nm <- arbitrary[Option[NonEmptyString]]
         st <- arbitrary[Option[ObsStatus]]
         as <- arbitrary[Option[ObsActiveStatus]]
-        ts <- arbitrary[Option[Either[Asterism.Id, Target.Id]]]
+        ts <- arbitrary[Option[CreateTargetEnvironmentInput]]
         cs <- arbitrary[Option[ConstraintSetModel.Create]]
       } yield ObservationModel.Create(
         id,
@@ -81,8 +79,7 @@ trait ArbObservationModel {
         nm,
         st,
         as,
-        ts.flatMap(_.swap.toOption),
-        ts.flatMap(_.toOption),
+        ts,
         cs,
         None,
         None,
@@ -97,8 +94,7 @@ trait ArbObservationModel {
       Option[String],
       Option[ObsStatus],
       Option[ObsActiveStatus],
-      Option[Asterism.Id],
-      Option[Target.Id],
+      Option[CreateTargetEnvironmentInput],
       Option[ConstraintSetModel.Create]
     )].contramap { in => (
       in.observationId,
@@ -106,8 +102,7 @@ trait ArbObservationModel {
       in.name.map(_.value),
       in.status,
       in.activeStatus,
-      in.asterismId,
-      in.targetId,
+      in.targets,
       in.constraintSet
     )}
 

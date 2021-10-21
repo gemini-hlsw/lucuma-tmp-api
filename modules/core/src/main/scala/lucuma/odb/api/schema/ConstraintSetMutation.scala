@@ -11,7 +11,6 @@ import sangria.schema._
 
 trait ConstraintSetMutation {
 
-  import GeneralSchema.NonEmptyStringType
   import ConstraintSetSchema._
   import syntax.inputobjecttype._
 
@@ -49,7 +48,6 @@ trait ConstraintSetMutation {
     deriveInputObjectType[ConstraintSetModel.Edit](
       InputObjectTypeName("EditConstraintSetInput"),
       InputObjectTypeDescription("Edit constraint set"),
-      ReplaceInputField("name", NonEmptyStringType.notNullableField("name")),
       ReplaceInputField("imageQuality", EnumTypeImageQuality.notNullableField("imageQuality")),
       ReplaceInputField("cloudExtinction",
                         EnumTypeCloudExtinction.notNullableField("cloudExtinction")

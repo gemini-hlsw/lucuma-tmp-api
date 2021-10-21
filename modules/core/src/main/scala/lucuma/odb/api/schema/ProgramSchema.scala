@@ -17,11 +17,9 @@ import scala.collection.immutable.Seq
 
 object ProgramSchema {
 
-  import AsterismSchema.AsterismConnectionType
   import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, NonEmptyStringType, PlannedTimeSummaryType}
   import ObservationSchema.ObservationConnectionType
   import Paging._
-  import TargetSchema.TargetConnectionType
   import context._
 
   implicit val ProgramIdType: ScalarType[Program.Id] =
@@ -74,28 +72,6 @@ object ProgramSchema {
           resolve     = _.value.name
         ),
 
-        // Targets are extracted from the "database" as they are not directly
-        // referenced in the Program model class itself.
-
-        // QUESTION: I didn't bother with DeferredResolvers because it is an
-        // in-memory "repository" anyway.  Is there any reason we should use
-        // them for this toy service?
-
-        Field(
-          name        = "asterisms",
-          fieldType   = AsterismConnectionType[F],
-          description = Some("All asterisms associated with the program (needs pagination)."),
-          arguments   = List(
-            ArgumentPagingFirst,
-            ArgumentPagingCursor,
-            ArgumentIncludeDeleted
-          ),
-          resolve     = c =>
-            unsafeSelectTopLevelPageFuture(c.pagingAsterismId) { gid =>
-              c.ctx.asterism.selectPageForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
-            }
-        ),
-
         Field(
           name        = "observations",
           fieldType   = ObservationConnectionType[F],
@@ -108,21 +84,6 @@ object ProgramSchema {
           resolve     = c =>
             unsafeSelectTopLevelPageFuture(c.pagingObservationId) { gid =>
               c.ctx.observation.selectPageForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
-            }
-        ),
-
-        Field(
-          name        = "targets",
-          fieldType   = TargetConnectionType[F],
-          description = Some("All targets associated with the program (needs pagination)."),
-          arguments   = List(
-            ArgumentPagingFirst,
-            ArgumentPagingCursor,
-            ArgumentIncludeDeleted
-          ),
-          resolve     = c =>
-            unsafeSelectTopLevelPageFuture(c.pagingTargetId) { gid =>
-              c.ctx.target.selectPageForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
             }
         ),
 

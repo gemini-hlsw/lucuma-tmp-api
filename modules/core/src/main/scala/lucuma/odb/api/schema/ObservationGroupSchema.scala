@@ -57,7 +57,7 @@ object ObservationGroupSchema {
         Field(
           name        = valueName,
           fieldType   = outType,
-          description = s"Commonly held value across the observations".some,
+          description = "Commonly held value across the observations".some,
           resolve     = _.value.value
         )
 
@@ -90,7 +90,7 @@ object ObservationGroupSchema {
     name:        String,
     description: String,
     outType:     OutputType[A],
-    lookupAll:   (ObservationRepo[F], Program.Id) => F[List[ObservationModel.Group[A]]]
+    lookupAll:   (ObservationRepo[F], Program.Id, Boolean) => F[List[ObservationModel.Group[A]]]
   )(
     implicit ev: MonadError[F, Throwable]
   ): Field[OdbRepo[F], Unit] = {
@@ -127,7 +127,7 @@ object ObservationGroupSchema {
         Paging.unsafeSelectPageFuture[F, Observation.Id, ObservationModel.Group[A]](
           c.pagingObservationId,
           g   => Cursor.gid[Observation.Id].reverseGet(g.observationIds.head),
-          oid => lookupAll(c.ctx.observation, c.programId).map { gs =>
+          oid => lookupAll(c.ctx.observation, c.programId, c.includeDeleted).map { gs =>
             ResultPage.fromSeq(gs, c.arg(ArgumentPagingFirst), oid, _.observationIds.head)
           }
         )

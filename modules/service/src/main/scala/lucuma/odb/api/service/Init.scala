@@ -4,11 +4,11 @@
 package lucuma.odb.api.service
 
 import lucuma.odb.api.model._
+import lucuma.odb.api.model.targetModel._
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.`enum`._
 import lucuma.core.optics.syntax.all._
 import lucuma.core.math.syntax.int._
-
 import cats.data.State
 import cats.effect.Sync
 import cats.syntax.all._
@@ -153,8 +153,8 @@ object Init {
 """
   )
 
-  val targets: Either[Exception, List[TargetModel.CreateSidereal]] =
-    targetsJson.traverse(decode[TargetModel.CreateSidereal])
+  val targets: Either[Exception, List[CreateSiderealInput]] =
+    targetsJson.traverse(decode[CreateSiderealInput])
 
   import GmosModel.{CreateCcdReadout, CreateSouthDynamic}
   import StepConfig.CreateStepConfig
@@ -192,7 +192,7 @@ object Init {
         _ <- step.exposure                                        := FiniteDurationModel.Input(20.seconds)
         _ <- step.instrumentConfig.andThen(readout).andThen(xBin) := GmosXBinning.One
         _ <- step.instrumentConfig.andThen(readout).andThen(yBin) := GmosYBinning.One
-        _ <- step.instrumentConfig.andThen(roi)                   := GmosRoi.CentralStamp
+        _ <- step.instrumentConfig.andThen(roi)               := GmosRoi.CentralStamp
         _ <- step.instrumentConfig.andThen(fpu)                   := GmosSouthFpu.LongSlit_1_00.asRight.some
       } yield ()
     }
@@ -280,25 +280,26 @@ object Init {
 
   def obs(
     pid:   Program.Id,
-    target: Option[TargetModel]
+    target: Option[CreateSiderealInput]
   ): ObservationModel.Create =
     ObservationModel.Create(
       observationId        = None,
       programId            = pid,
-      name                 = target.map(_.target.name) orElse NonEmptyString.from("Observation").toOption,
-      asterismId           = None,
-      targetId             = target.map(_.id),
-      scienceRequirements  = ScienceRequirementsModel.Create.Default.some,
-      constraintSet        = None,
+      name                 = target.map(_.name) orElse NonEmptyString.from("Observation").toOption,
       status               = ObsStatus.New.some,
       activeStatus         = ObsActiveStatus.Active.some,
+      targets              = target.fold(none[CreateTargetEnvironmentInput]) { sidereal =>
+        CreateTargetEnvironmentInput.singleSidereal(sidereal).some
+      },
+      constraintSet        = None,
+      scienceRequirements  = ScienceRequirementsModel.Create.Default.some,
+      scienceConfiguration = None,
       config               =
         InstrumentConfigModel.Create.gmosSouth(
           GmosModel.CreateSouthStatic.Default,
           acquisitionSequence,
           scienceSequence
-        ).some,
-      scienceConfiguration = None
+        ).some
     )
 
   /**
@@ -319,18 +320,8 @@ object Init {
               )
             )
       cs <- targets.liftTo[F]
-      ts <- cs.map(_.copy(programIds = Some(List(p.id)))).traverse(repo.target.insertSidereal)
-//      a0 <- repo.asterism.insert(
-//              AsterismModel.Create(
-//                None,
-//                Some("More Constellation Than Asterism"),
-//                List(p.id),
-//                None
-//              )
-//            )
-//      _  <- repo.asterism.shareWithTargets(Sharing[Asterism.Id, Target.Id](a0.id, ts.take(2).map(_.id)))
-      _  <- repo.observation.insert(obs(p.id, ts.headOption))
-      _  <- repo.observation.insert(obs(p.id, ts.lastOption))
+      _  <- repo.observation.insert(obs(p.id, cs.headOption))
+      _  <- repo.observation.insert(obs(p.id, cs.lastOption))
       _  <- repo.observation.insert(obs(p.id, None))
     } yield ()
 

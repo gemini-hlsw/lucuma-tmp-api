@@ -3,28 +3,18 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.core.model.{Asterism, Observation, Program, Target}
-import lucuma.odb.api.model.{AsterismModel, ConstraintSetModel, Event, InputError, InstrumentConfigModel, ObservationModel, PlannedTimeSummaryModel, ScienceRequirements, ScienceRequirementsModel, TargetModel, ValidatedInput}
-import lucuma.odb.api.model.AsterismModel.AsterismEvent
-import lucuma.odb.api.model.ObservationModel.{BulkEdit, Group, ObservationEvent}
-import lucuma.odb.api.model.TargetModel.TargetEvent
-import lucuma.odb.api.model.syntax.validatedinput._
+import lucuma.core.model.{Observation, Program}
 import lucuma.core.optics.state.all._
-import cats.Eq
+import lucuma.odb.api.model.ObservationModel.{BulkEdit, Create, Edit, Group, ObservationEvent}
+import lucuma.odb.api.model.{ConstraintSetModel, Event, InputError, InstrumentConfigModel, ObservationModel, PlannedTimeSummaryModel, ScienceRequirements, ScienceRequirementsModel, ValidatedInput}
+import lucuma.odb.api.model.syntax.toplevel._
+import lucuma.odb.api.model.syntax.validatedinput._
 import cats.data.{EitherT, State}
 import cats.effect.{Async, Ref}
 import cats.implicits._
-import clue.data.{Assign, Ignore, Input, Unassign}
+import lucuma.odb.api.model.targetModel.{TargetEnvironmentEvent, TargetEnvironmentModel}
 
 sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, ObservationModel] {
-
-  def selectPageForAsterism(
-    aid:            Asterism.Id,
-    pid:            Option[Program.Id]     = None,
-    count:          Option[Int]            = None,
-    afterGid:       Option[Observation.Id] = None,
-    includeDeleted: Boolean                = false
-  ): F[ResultPage[ObservationModel]]
 
   def selectPageForObservations(
     oids:           Set[Observation.Id],
@@ -40,31 +30,31 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
     includeDeleted: Boolean                = false
   ): F[ResultPage[ObservationModel]]
 
-  def selectPageForTarget(
-    tid:            Target.Id,
-    pid:            Option[Program.Id]     = None,
-    count:          Option[Int]            = None,
-    afterGid:       Option[Observation.Id] = None,
-    includeDeleted: Boolean                = false
-  ): F[ResultPage[ObservationModel]]
-
   def selectManualConfig(
     oid: Observation.Id
   ): F[Option[InstrumentConfigModel]]
 
-  def insert(input: ObservationModel.Create): F[ObservationModel]
+  def insert(input: Create): F[ObservationModel]
 
-  def edit(edit: ObservationModel.Edit): F[ObservationModel]
+  def edit(edit: Edit): F[ObservationModel]
 
-  def editPointing(edit: ObservationModel.EditPointing): F[List[ObservationModel]]
+  def groupByConstraintSet(
+    pid:            Program.Id,
+    includeDeleted: Boolean
+  ): F[List[Group[ConstraintSetModel]]]
 
-  def groupByConstraintSet(pid: Program.Id): F[List[ObservationModel.Group[ConstraintSetModel]]]
+  def groupByScienceRequirements(
+    pid:            Program.Id,
+    includeDeleted: Boolean
+  ): F[List[Group[ScienceRequirements]]]
 
-  def bulkEditConstraintSet(edit: BulkEdit[ConstraintSetModel.Edit]): F[List[ObservationModel]]
+  def bulkEditConstraintSet(
+    be: BulkEdit[ConstraintSetModel.Edit]
+  ): F[List[ObservationModel]]
 
-  def groupByScienceRequirements(pid: Program.Id): F[List[ObservationModel.Group[ScienceRequirements]]]
-
-  def bulkEditScienceRequirements(edit: BulkEdit[ScienceRequirementsModel.Edit]): F[List[ObservationModel]]
+  def bulkEditScienceRequirements(
+    be: BulkEdit[ScienceRequirementsModel.Edit]
+  ): F[List[ObservationModel]]
 
 }
 
@@ -84,18 +74,6 @@ object ObservationRepo {
     ) with ObservationRepo[F]
       with LookupSupport {
 
-      override def selectPageForAsterism(
-        aid:            Asterism.Id,
-        pid:            Option[Program.Id],
-        count:          Option[Int],
-        afterGid:       Option[Observation.Id],
-        includeDeleted: Boolean
-      ): F[ResultPage[ObservationModel]] =
-
-        selectPageFiltered(count, afterGid, includeDeleted) { obs =>
-          obs.pointing.contains(aid.asLeft[Target.Id]) && pid.forall(_ === obs.programId)
-        }
-
       override def selectPageForObservations(
         oids:           Set[Observation.Id],
         count:          Option[Int],
@@ -114,20 +92,6 @@ object ObservationRepo {
 
         selectPageFiltered(count, afterGid, includeDeleted) { _.programId === pid }
 
-      override def selectPageForTarget(
-        tid:            Target.Id,
-        pid:            Option[Program.Id],
-        count:          Option[Int],
-        afterGid:       Option[Observation.Id],
-        includeDeleted: Boolean
-      ): F[ResultPage[ObservationModel]] =
-
-        selectPageFiltered(count, afterGid, includeDeleted) { obs =>
-          // this includes only observations that directly reference a target,
-          // but not those referencing an asterism that references the target
-          obs.pointing.contains(tid.asRight[Asterism.Id]) && pid.forall(_ === obs.programId)
-        }
-
       override def selectManualConfig(
         oid: Observation.Id
       ): F[Option[InstrumentConfigModel]] =
@@ -139,22 +103,17 @@ object ObservationRepo {
           } yield m
         }
 
-      override def insert(newObs: ObservationModel.Create): F[ObservationModel] = {
+      override def insert(newObs: Create): F[ObservationModel] = {
 
-        // Create the observation, keeping track of the asterism or target (if
-        // either) and constraint (if any) that will be linked.
-        def create(s: PlannedTimeSummaryModel): F[(Option[AsterismModel], Option[TargetModel], ObservationModel)] =
+        // Create the observation
+        def create(s: PlannedTimeSummaryModel): F[(Option[TargetEnvironmentModel], ObservationModel)] =
           EitherT(
             tablesRef.modify { tables =>
               val (tablesʹ, o) = newObs.create[State[Tables, *], Tables](TableState, s).run(tables).value
 
-              o.map { obs => (
-                obs.asterismId.flatMap(tables.asterisms.get),
-                obs.targetId.flatMap(tables.targets.get),
-                obs
-              )}.fold(
+              o.fold(
                 err => (tables,  InputError.Exception(err).asLeft),
-                tup => (tablesʹ, tup.asRight)
+                o   => (tablesʹ, (tablesʹ.targetEnvironments.values.find(_.observationId === o.id.some), o).asRight)
               )
 
             }
@@ -163,161 +122,99 @@ object ObservationRepo {
         for {
           s   <- PlannedTimeSummaryModel.random[F]
           tup <- create(s)
-          (oasterism, otarget, obs) = tup
-          _   <- oasterism.traverse_(a => eventService.publish(AsterismEvent(_, Event.EditType.Updated, a)))
-          _   <- otarget.traverse_(t => eventService.publish(TargetEvent(_, Event.EditType.Updated, t)))
-          _   <- eventService.publish(ObservationEvent(_, Event.EditType.Created, obs))
-        } yield obs
+          (env, o) = tup
+          _   <- eventService.publish(ObservationEvent(_, Event.EditType.Created, o))
+          _   <- env.traverse_(e => eventService.publish(TargetEnvironmentEvent(_, Event.EditType.Created, e)))
+        } yield o
 
       }
-
-      type Pointing = Option[Either[Asterism.Id, Target.Id]]
-      private val noPointing: Pointing = Option.empty
-
-      private def updatePointing(
-        oids:          List[Observation.Id],
-        asterism:      Input[Asterism.Id],
-        target:        Input[Target.Id],
-      ): State[Tables, ValidatedInput[(List[ObservationModel], List[AsterismModel], List[TargetModel])]] = {
-
-        val updateAsterism: Pointing => Pointing = in =>
-          asterism match {
-            case Ignore      => in
-            case Unassign    => in.flatMap(_.fold(_ => noPointing, _ => in))
-            case Assign(aid) => aid.asLeft[Target.Id].some
-          }
-
-        val updateTarget: Pointing => Pointing = in =>
-          target match {
-            case Ignore      => in
-            case Unassign    => in.flatMap(_.fold(_ => in, _ => noPointing))
-            case Assign(tid) => tid.asRight[Asterism.Id].some
-          }
-
-        val updatePointing = updateAsterism andThen updateTarget
-
-        // Don't send a change event for the old id if the id Input is Ignore or the value is unchanged.
-        // Also don't send an event for the new id (if Assign) if it is always the same as the old id.
-        def ids4Event[A: Eq](oa: Option[A], ia: Input[A]): List[A] = (oa, ia) match {
-          case (_, Ignore)                => Nil
-          case (Some(a), Unassign)        => List(a)
-          case (None, Unassign)           => Nil
-          case (Some(aOld), Assign(aNew)) => if (aOld === aNew) Nil else List(aOld, aNew)
-          case (None, Assign(aNew))       => List(aNew)
-        }
-
-        for {
-          vos <- TableState.observation.lookupAllValidated[State[Tables, *]](oids)
-          va  <- asterism.toOption.traverse(TableState.asterism.lookupValidated[State[Tables, *]]).map(_.sequence)
-          vt  <- target.toOption.traverse(TableState.target.lookupValidated[State[Tables, *]]).map(_.sequence)
-          tb  <- State.get
-        } yield (vos, va, vt).mapN { (os, _, _) =>
-
-          val (updatedOs, updatedAids, updatedTids) =
-            os.foldLeft((List.empty[ObservationModel], Set.empty[Asterism.Id], Set.empty[Target.Id])) {
-              case ((osʹ, aids, tids), o) =>
-                val newO = ObservationModel.pointing.modify(updatePointing)(o)
-                (
-                  newO  :: osʹ,
-                  aids  ++ ids4Event(ObservationModel.asterism.getOption(o), asterism),
-                  tids  ++ ids4Event(ObservationModel.target.getOption(o), target),
-                )
-            }
-
-          (
-           updatedOs,
-           updatedAids.toList.map(tb.asterisms.apply),
-           updatedTids.toList.map(tb.targets.apply)
-          )
-        }
-      }
-
-      private def doEdit(
-        oids:          List[Observation.Id],
-        editor:        State[ObservationModel, Unit],
-        asterism:      Input[Asterism.Id],
-        target:        Input[Target.Id]
-      ): F[List[ObservationModel]] = {
-
-        val update: State[Tables, ValidatedInput[(List[ObservationModel], List[AsterismModel], List[TargetModel])]] =
-          for {
-            voat  <- updatePointing(oids, asterism, target)
-            voatʹ <- voat.map { case (os, as, ts) =>
-              val os2 = os.map(o => editor.runS(o).value)
-              Tables.observations.mod(_ ++ os2.map(o => o.id -> o)).as((os2, as, ts))
-            }.sequence
-          } yield voatʹ
-
-        for {
-          oat <- tablesRef.modifyState(update).flatMap(_.liftTo[F])
-          (os, as, ts) = oat
-          _    <- os.traverse_(o => eventService.publish(ObservationModel.ObservationEvent.updated(o)))
-          _    <- as.traverse_(a => eventService.publish(AsterismModel.AsterismEvent.updated(a)))
-          _    <- ts.traverse_(t => eventService.publish(TargetModel.TargetEvent.updated(t)))
-        } yield os
-
-      }
-
-      override def editPointing(
-        edit: ObservationModel.EditPointing
-      ): F[List[ObservationModel]] =
-
-        for {
-          e  <- edit.pointing.liftTo[F]
-          os <- doEdit(
-              edit.observationIds,
-              State.pure[ObservationModel, Unit](()),
-              e.fold(Input.unassign[Asterism.Id])(_.fold(aid => Input(aid), _ => Input.ignore[Asterism.Id])),
-              e.fold(Input.unassign[Target.Id])(_.fold(_ => Input.ignore[Target.Id], tid => Input(tid)))
-            )
-        } yield os
 
       override def edit(
-        edit: ObservationModel.Edit
-      ): F[ObservationModel] =
+        edit: Edit
+      ): F[ObservationModel] = {
+        val update: State[Tables, ValidatedInput[ObservationModel]] =
+          for {
+            initial <- TableState.observation.lookupValidated[State[Tables, *]](edit.observationId)
+            edited   = initial.andThen(edit.edit)
+            _       <- edited.fold(
+              _ => State.get[Tables].void,
+              o => Tables.observations.mod_(obsMap => obsMap + (o.id -> o))
+            )
+          } yield edited
 
-        (edit.editor, edit.pointing).mapN { case (e, (a, t)) =>
-          doEdit(List(edit.observationId), e, a, t)
-        }.liftTo[F].flatten.map(_.head)
+        for {
+          o <- tablesRef.modifyState(update).flatMap(_.liftTo[F])
+          _ <- eventService.publish(ObservationModel.ObservationEvent.updated(o))
+        } yield o
+      }
 
       private def groupBy[A](
-         pid: Program.Id
-       )(
-         f: ObservationModel => A
-       ): F[List[Group[A]]] =
-         tablesRef.get.map { t =>
-           t.observations
-            .filter { case (_, o) => o.programId === pid }
-            .groupMap(tup => f(tup._2))(_._1)
-            .toList
-            .map { case (a, oids) => Group.from(a, oids) }
-            .sortBy(_.observationIds.head)
-         }
+        pid:            Program.Id,
+        includeDeleted: Boolean
+      )(
+        f: ObservationModel => A
+      ): F[List[Group[A]]] =
+        tablesRef.get.map { t =>
+          t.observations
+           .filter { case (_, o) => (o.programId === pid) && (includeDeleted || o.isPresent) }
+           .groupMap(tup => f(tup._2))(_._1)
+           .toList
+           .map { case (a, oids) => Group.from(a, oids) }
+           .sortBy(_.observationIds.head)
+        }
 
       override def groupByConstraintSet(
-        pid: Program.Id
-      ): F[List[ObservationModel.Group[ConstraintSetModel]]] =
-        groupBy(pid)(_.constraintSet)
+        pid:            Program.Id,
+        includeDeleted: Boolean
+      ): F[List[Group[ConstraintSetModel]]] =
+        groupBy(pid, includeDeleted)(_.constraintSet)
 
       override def groupByScienceRequirements(
-        pid: Program.Id
-      ): F[List[ObservationModel.Group[ScienceRequirements]]] =
-        groupBy(pid)(_.scienceRequirements)
+        pid:            Program.Id,
+        includeDeleted: Boolean
+      ): F[List[Group[ScienceRequirements]]] =
+        groupBy(pid, includeDeleted)(_.scienceRequirements)
 
-      def bulkEdit[A](
-        oids:   List[Observation.Id],
-        editor: ValidatedInput[State[A, Unit]],
-        modify: (A => A) => (ObservationModel => ObservationModel)
+
+      private def selectObservations(
+        programId:      Option[Program.Id],
+        observationIds: Option[List[Observation.Id]]
+      ): State[Tables, ValidatedInput[List[ObservationModel]]] =
+        for {
+          p   <- programId.traverse(pid => TableState.program.lookupValidated[State[Tables, *]](pid))
+          all <- p.traverse(_.traverse(p => Tables.observations.st.map(_.values.filter(_.programId === p.id).toList)))
+          sel <- observationIds.traverse(oids => TableState.observation.lookupAllValidated[State[Tables, *]](oids))
+        } yield {
+          val obsList = (all, sel) match {
+            case (Some(a), Some(s)) =>
+              (a, s).mapN { case (a, s) =>
+                val keep = a.map(_.id).toSet ++ s.map(_.id)
+                (a ++ s).filter(o => keep(o.id))
+              }
+
+            case _                  =>
+              (all orElse sel).getOrElse(List.empty[ObservationModel].validNec[InputError])
+          }
+
+          obsList.map(_.distinctBy(_.id).sortBy(_.id))
+        }
+
+      private def bulkEdit(
+        initialObsList: State[Tables, ValidatedInput[List[ObservationModel]]],
+        validateUpdate: ObservationModel => ValidatedInput[Unit],
+        editor:         ValidatedInput[ObservationModel => ObservationModel]
       ): F[List[ObservationModel]] = {
 
-        val update =
+        val update: State[Tables, ValidatedInput[List[ObservationModel]]] =
           for {
-            vos <- TableState.observation.lookupAllValidated[State[Tables, *]](oids)
-            os  <- (vos, editor).mapN { (os, ed) =>
-              val os2 = os.map(modify(a => ed.runS(a).value))
-              Tables.observations.mod(_ ++ os2.fproductLeft(_.id)).as(os2)
-            }.sequence
-          } yield os
+            initial <- initialObsList
+            edited   = (initial, initial.andThen(_.traverse(validateUpdate)), editor).mapN { case (os, _, ed) =>
+              os.map(ed)
+            }
+            _       <- edited.traverse { os =>
+              Tables.observations.mod_(_ ++ os.fproductLeft(_.id))
+            }
+          } yield edited
 
         for {
           os <- tablesRef.modifyState(update).flatMap(_.liftTo[F])
@@ -327,23 +224,27 @@ object ObservationRepo {
       }
 
       override def bulkEditConstraintSet(
-        edit: ObservationModel.BulkEdit[ConstraintSetModel.Edit]
+        be: BulkEdit[ConstraintSetModel.Edit]
       ): F[List[ObservationModel]] =
 
         bulkEdit(
-          edit.observationIds,
-          edit.input.editor,
-          ObservationModel.constraintSet.modify
+          selectObservations(be.selectProgram, be.selectObservations),
+          _ => ().validNec[InputError],
+          be.edit.editor.map { ed =>
+            ObservationModel.constraintSet.modify(cs => ed.runS(cs).value)
+          }
         )
 
       override def bulkEditScienceRequirements(
-        edit: ObservationModel.BulkEdit[ScienceRequirementsModel.Edit]
+        be: BulkEdit[ScienceRequirementsModel.Edit]
       ): F[List[ObservationModel]] =
 
         bulkEdit(
-          edit.observationIds,
-          edit.input.editor,
-          ObservationModel.scienceRequirements.modify
+          selectObservations(be.selectProgram, be.selectObservations),
+          _ => ().validNec[InputError],
+          be.edit.editor.map { ed =>
+            ObservationModel.scienceRequirements.modify(sr => ed.runS(sr).value)
+          }
         )
 
     }

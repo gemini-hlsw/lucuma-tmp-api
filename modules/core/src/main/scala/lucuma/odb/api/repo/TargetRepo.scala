@@ -3,147 +3,327 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{AsterismModel, Event, InputError, ProgramModel, Sharing, TargetModel, ValidatedInput}
-import lucuma.odb.api.model.TargetModel.{CreateNonsidereal, CreateSidereal, TargetEvent}
-import lucuma.core.model.{Asterism, Program, Target}
-import lucuma.core.optics.state.all._
-import cats._
-import cats.data.{EitherT, State}
-import cats.effect.Ref
-import cats.syntax.all._
+import cats.data.State
+import lucuma.core.model.{Observation, Program, Target}
+import lucuma.core.util.Gid
+import lucuma.odb.api.model.ValidatedInput
+import lucuma.odb.api.model.ObservationModel.ObservationEvent
+import lucuma.odb.api.model.ProgramModel.ProgramEvent
+import lucuma.odb.api.model.syntax.validatedinput._
+import lucuma.odb.api.model.syntax.toplevel._
+import lucuma.odb.api.model.targetModel.{TargetEnvironment, _}
+import cats.effect.{Async, Ref}
+import cats.implicits.catsKernelOrderingForOrder
+import cats.syntax.applicative._
+import cats.syntax.eq._
+import cats.syntax.flatMap._
+import cats.syntax.foldable._
+import cats.syntax.functor._
+import cats.syntax.traverse._
 
+import scala.collection.immutable.SortedSet
 
-sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
+sealed trait TargetRepo[F[_]] {
 
-  def selectPageForProgram(
+  def createUnaffiliatedTargetEnvironment(
+    id: Program.Id,
+    in: CreateTargetEnvironmentInput
+  ): F[TargetEnvironmentModel]
+
+  def selectScienceTarget(
+    id: Target.Id
+  ): F[Option[TargetModel]]
+
+  def unsafeSelectScienceTarget(
+    id: Target.Id
+  ): F[TargetModel]
+
+  def selectScienceTargetList(
+    id: TargetEnvironment.Id
+  ): F[List[TargetModel]]
+
+  def selectScienceTargetListForObservation(
+    id: Observation.Id
+  ): F[List[TargetModel]]
+
+  def selectTargetEnvironment(
+    id: TargetEnvironment.Id
+  ): F[Option[TargetEnvironmentModel]]
+
+  def unsafeSelectTargetEnvironment(
+    id: TargetEnvironment.Id
+  ): F[TargetEnvironmentModel]
+
+  def selectTargetEnvironmentForObservation(
+    id: Observation.Id
+  ): F[Option[TargetEnvironmentModel]]
+
+  def unsafeSelectTargetEnvironmentForObservation(
+    id: Observation.Id
+  ): F[TargetEnvironmentModel]
+
+  def groupBySingleScienceTarget(
     pid:            Program.Id,
-    count:          Option[Int]       = None,
-    afterGid:       Option[Target.Id] = None,
-    includeDeleted: Boolean           = false
-  ): F[ResultPage[TargetModel]]
+    includeDeleted: Boolean
+  ): F[List[TargetEnvironmentGroup[CommonTarget]]]
 
-  def selectPageForAsterism(
-    aid:            Asterism.Id,
-    count:          Option[Int]       = None,
-    afterGid:       Option[Target.Id] = None,
-    includeDeleted: Boolean           = false
-  ): F[ResultPage[TargetModel]]
+  def groupByScienceTargetList(
+    pid:            Program.Id,
+    includeDeleted: Boolean
+  ): F[List[TargetEnvironmentGroup[SortedSet[CommonTarget]]]]
 
-  def insertNonsidereal(input: CreateNonsidereal): F[TargetModel]
+  def groupByTargetEnvironment(
+    pid:            Program.Id,
+    includeDeleted: Boolean
+  ): F[List[TargetEnvironmentGroup[CommonTargetEnvironment]]]
 
-  def insertSidereal(input: CreateSidereal): F[TargetModel]
+  def bulkEditScienceTarget(
+    be: BulkEditTargetInput
+  ): F[List[TargetListEditResult]]
 
-  def shareWithAsterisms(input: Sharing[Target.Id, Asterism.Id]): F[TargetModel]
+  def bulkEditScienceTargetList(
+    be: BulkEditTargetListInput
+  ): F[List[TargetListEditResult]]
 
-  def unshareWithAsterisms(input: Sharing[Target.Id, Asterism.Id]): F[TargetModel]
+  def bulkReplaceScienceTargetList(
+    be: BulkReplaceTargetListInput
+  ): F[List[TargetListEditResult]]
 
-  def shareWithPrograms(input: Sharing[Target.Id, Program.Id]): F[TargetModel]
-
-  def unshareWithPrograms(input: Sharing[Target.Id, Program.Id]): F[TargetModel]
-
+  def bulkEditTargetEnvironment(
+    be: BulkEditTargetEnvironmentInput
+  ): F[List[TargetEnvironmentContext]]
 }
 
 object TargetRepo {
 
-  def create[F[_]](
+  def create[F[_]: Async](
     tablesRef:    Ref[F, Tables],
     eventService: EventService[F]
-  )(implicit M: MonadError[F, Throwable]): TargetRepo[F] =
+  ): TargetRepo[F] =
 
-    new TopLevelRepoBase[F, Target.Id, TargetModel](
-      tablesRef,
-      eventService,
-      Tables.lastTargetId,
-      Tables.targets,
-      (editType, model) => TargetEvent(_, editType, model)
-    ) with TargetRepo[F]
-      with LookupSupport {
+    new TargetRepo[F] {
 
-      override def selectPageForProgram(
-        pid:            Program.Id,
-        count:          Option[Int]       = None,
-        afterGid:       Option[Target.Id] = None,
-        includeDeleted: Boolean           = false
-      ): F[ResultPage[TargetModel]] =
-
-        selectPageFromIds(count, afterGid, includeDeleted) { tables =>
-          tables.programTarget.selectRight(pid) ++
-            tables.observations.values.filter(_.programId === pid).map(_.pointing).collect {
-              case Some(Right(tid)) => tid
-            }
+      override def createUnaffiliatedTargetEnvironment(
+        pid: Program.Id,
+        in:  CreateTargetEnvironmentInput
+      ): F[TargetEnvironmentModel] = {
+        val update = tablesRef.modify { t =>
+          val (tʹ, v) = in.createUnaffiliated[State[Tables, *], Tables](TableState, pid).run(t).value
+          (v.fold(_  => t, _  => tʹ), v.tupleRight(t.programs.get(pid)))
         }
-
-      override def selectPageForAsterism(
-        aid:            Asterism.Id,
-        count:          Option[Int]       = None,
-        afterGid:       Option[Target.Id] = None,
-        includeDeleted: Boolean           = false
-      ): F[ResultPage[TargetModel]] =
-
-        selectPageFromIds(count, afterGid, includeDeleted) { tables =>
-          tables.targetAsterism.selectLeft(aid)
-        }
-
-      private def insertTarget(
-        pids: Option[List[Program.Id]],
-        tm:   State[Tables, ValidatedInput[TargetModel]]
-      ): F[TargetModel] = {
-        val create = EitherT(
-          tablesRef.modify { tables =>
-            val (tablesʹ, t) = (for {
-              t <- tm
-              _ <- t.traverse(tm => Tables.programTarget.mod_(_ ++ pids.toList.flatten.tupleRight(tm.id)))
-            } yield t).run(tables).value
-
-            t.fold(
-              err => (tables,  InputError.Exception(err).asLeft),
-              tm  => (tablesʹ, tm.asRight)
-            )
-          }
-        ).rethrowT
 
         for {
-          t <- create
-          _ <- eventService.publish(TargetEvent(_, Event.EditType.Created, t))
-        } yield t
+          tup <- update.flatMap(_.liftTo[F])
+          (env, prg) = tup
+          _ <- prg.traverse_ { p => eventService.publish(ProgramEvent.updated(p)) }
+          _ <- eventService.publish(TargetEnvironmentEvent.created(env))
+        } yield env
       }
 
+      override def selectScienceTarget(
+        id: Target.Id
+      ): F[Option[TargetModel]] =
+        tablesRef.get.map(_.targets.get(id))
 
-      override def insertNonsidereal(input: CreateNonsidereal): F[TargetModel] =
-        insertTarget(input.programIds, input.create[State[Tables, *], Tables](TableState))
-
-      override def insertSidereal(input: CreateSidereal): F[TargetModel] =
-        insertTarget(input.programIds, input.create[State[Tables, *], Tables](TableState))
-
-      private def asterismSharing(
-        input: Sharing[Target.Id, Asterism.Id]
+      private def unsafeSelect[I: Gid, A](
+        id: I
       )(
-        update: (ManyToMany[Target.Id, Asterism.Id], IterableOnce[(Target.Id, Asterism.Id)]) => ManyToMany[Target.Id, Asterism.Id]
+        f:  I => F[Option[A]]
+      ): F[A] =
+        f(id).flatMap {
+          case None    => ExecutionException.missingReference[F,I,A](id)
+          case Some(a) => a.pure[F]
+        }
+
+      override def unsafeSelectScienceTarget(
+        id: Target.Id
       ): F[TargetModel] =
-        shareRight[Asterism.Id, AsterismModel](
-          "target", input, TableState.asterism.lookupValidated[State[Tables, *]], Tables.targetAsterism, AsterismModel.AsterismEvent.updated
-        )(update)
+        unsafeSelect(id)(selectScienceTarget)
 
-      override def shareWithAsterisms(input: Sharing[Target.Id, Asterism.Id]): F[TargetModel] =
-        asterismSharing(input)(_ ++ _)
+      override def selectScienceTargetList(
+        id: TargetEnvironment.Id
+      ): F[List[TargetModel]] =
+        tablesRef.get.map(_.targets.values.filter(_.targetEnvironmentId === id).toList)
 
-      override def unshareWithAsterisms(input: Sharing[Target.Id, Asterism.Id]): F[TargetModel] =
-        asterismSharing(input)(_ -- _)
+      override def selectScienceTargetListForObservation(
+        id: Observation.Id
+      ): F[List[TargetModel]] =
+        for {
+          e  <- selectTargetEnvironmentForObservation(id)
+          ts <- e.map(_.id).traverse(selectScienceTargetList)
+        } yield ts.toList.flatten
 
-      private def programSharing(
-        input: Sharing[Target.Id, Program.Id],
-      )(
-        update: (ManyToMany[Program.Id, Target.Id], IterableOnce[(Program.Id, Target.Id)]) => ManyToMany[Program.Id, Target.Id]
-      ): F[TargetModel] =
-        shareLeft[Program.Id, ProgramModel](
-          "target", input, TableState.program.lookupValidated[State[Tables, *]], Tables.programTarget, ProgramModel.ProgramEvent.updated
-        )(update)
+      override def selectTargetEnvironment(
+        id: TargetEnvironment.Id
+      ): F[Option[TargetEnvironmentModel]] =
+        tablesRef.get.map(_.targetEnvironments.get(id))
 
-      override def shareWithPrograms(input: Sharing[Target.Id, Program.Id]): F[TargetModel] =
-        programSharing(input)(_ ++ _)
+      override def unsafeSelectTargetEnvironment(
+        id: TargetEnvironment.Id
+      ): F[TargetEnvironmentModel] =
+        unsafeSelect(id)(selectTargetEnvironment)
 
-      override def unshareWithPrograms(input: Sharing[Target.Id, Program.Id]): F[TargetModel] =
-        programSharing(input)(_ -- _)
+      override def selectTargetEnvironmentForObservation(
+        id: Observation.Id
+      ): F[Option[TargetEnvironmentModel]] =
+        tablesRef.get.map(_.targetEnvironments.values.find(_.observationId.contains(id)))
+
+      override def unsafeSelectTargetEnvironmentForObservation(
+        id: Observation.Id
+      ): F[TargetEnvironmentModel] =
+        selectTargetEnvironmentForObservation(id).flatMap {
+          case None    => ExecutionException(s"Couldn't find target environment for observation ${Gid[Observation.Id].show(id)}").raiseError[F, TargetEnvironmentModel]
+          case Some(e) => e.pure[F]
+        }
+
+      private def filteredTargetEnvironments(
+        tables:         Tables,
+        pid:            Program.Id,
+        includeDeleted: Boolean
+      ): Map[TargetEnvironment.Id, TargetEnvironmentModel] = {
+
+        val includeEnv: TargetEnvironmentModel => Boolean = tem =>
+          (tem.programId === pid) &&
+            (includeDeleted || tem.observationId.forall { oid =>
+              tables.observations.get(oid).exists(_.isPresent)
+            })
+
+        tables
+          .targetEnvironments
+          .filter { case (_, tem) => includeEnv(tem) }
+
+      }
+
+      override def groupBySingleScienceTarget(
+        pid:            Program.Id,
+        includeDeleted: Boolean
+      ): F[List[TargetEnvironmentGroup[CommonTarget]]] =
+
+        tablesRef.get.map { t =>
+          val envs = filteredTargetEnvironments(t, pid, includeDeleted)
+          val tms  = t.targets.values.filter(tm => envs.isDefinedAt(tm.targetEnvironmentId))
+
+          tms
+            .groupBy(_.target)
+            .map { case (t, tms) =>
+              TargetEnvironmentGroup.from(
+                CommonTarget.from(t, tms.map(_.id)),
+                tms.map(_.targetEnvironmentId)
+              )
+            }
+            .toList
+            .sortBy(_.targetEnvironmentIds.head)
+        }
+
+      // Generates a List of tuples: target environment id and the corresponding
+      // science targets (if any) for the environment.
+      private def scienceTargets(
+        tables:         Tables,
+        pid:            Program.Id,
+        includeDeleted: Boolean
+      ): List[(TargetEnvironment.Id, List[TargetModel])] = {
+
+        val envs     = filteredTargetEnvironments(tables, pid, includeDeleted)
+        val targets  = tables.targets.values.filter(tm => envs.isDefinedAt(tm.targetEnvironmentId))
+
+        val nonEmpty =
+          targets
+            .groupBy(_.targetEnvironmentId)
+            .view
+            .mapValues(_.toList)
+
+        val empty    =
+          (envs.keySet -- nonEmpty.keySet).map(_ -> List.empty[TargetModel])
+
+        (nonEmpty ++ empty).toList
+
+      }
+
+      override def groupByScienceTargetList(
+        pid:            Program.Id,
+        includeDeleted: Boolean
+      ): F[List[TargetEnvironmentGroup[SortedSet[CommonTarget]]]] =
+
+        tablesRef.get.map { t =>
+          scienceTargets(t, pid, includeDeleted)
+            .groupBy(_._2.map(_.target).toSet) // group by Set[Target]
+            .toList
+            .map { case (_, vs) =>
+              val (vids, tms) = vs.unzip
+              TargetEnvironmentGroup.from(
+                CommonTarget.extractFromTargetModels(tms.flatten),
+                vids
+              )
+            }
+            .sortBy(_.targetEnvironmentIds.head)
+        }
+
+      override def groupByTargetEnvironment(
+        pid:            Program.Id,
+        includeDeleted: Boolean
+      ): F[List[TargetEnvironmentGroup[CommonTargetEnvironment]]] =
+
+        tablesRef.get.map { t =>
+          scienceTargets(t, pid, includeDeleted)
+            .groupBy { case (vid, targets) =>
+              // Grouping by (base, Set[Target])
+              (t.targetEnvironments(vid).explicitBase, targets.map(_.target).toSet)
+            }
+            .map { case (_, scienceTargets) =>
+              val (vids, tms) = scienceTargets.unzip
+
+              val commonEnvironment =
+                CommonTargetEnvironment(
+                  // all have the same coordinates because they were grouped on
+                  // coordinates, so pick any
+                  vids.headOption.flatMap(t.targetEnvironments.get).flatMap(_.explicitBase),
+                  CommonTarget.extractFromTargetModels(tms.flatten),
+                  SortedSet.from(vids)
+                )
+
+              TargetEnvironmentGroup.from(commonEnvironment, vids)
+            }
+            .toList
+            .sortBy(_.targetEnvironmentIds.head)
+        }
+
+      private def bulkEdit[C <: TargetEnvironmentContext](
+        edit: State[Tables, ValidatedInput[List[C]]]
+      ): F[List[C]] = {
+
+        val update = tablesRef.modify { t =>
+          val (tʹ, v) = edit.run(t).value
+          (v.fold(_  => t, _  => tʹ), v)
+        }
+
+        for {
+          c <- update.flatMap(_.liftTo[F])
+          _ <- c.traverse_(tec => eventService.publish(ProgramEvent.updated(tec.program)))
+          _ <- c.flatMap(_.observation.toList).traverse_(o => eventService.publish(ObservationEvent.updated(o)))
+          _ <- c.traverse_(tec => eventService.publish(TargetEnvironmentEvent.updated(tec.targetEnvironment)))
+        } yield c
+
+      }
+
+      override def bulkEditScienceTarget(
+        be: BulkEditTargetInput
+      ): F[List[TargetListEditResult]] =
+        bulkEdit(be.edit[State[Tables, *], Tables](TableState))
+
+      override def bulkEditScienceTargetList(
+        be: BulkEditTargetListInput
+      ): F[List[TargetListEditResult]] =
+        bulkEdit(be.edit[State[Tables, *], Tables](TableState))
+
+      override def bulkReplaceScienceTargetList(
+        be: BulkReplaceTargetListInput
+      ): F[List[TargetListEditResult]] =
+        bulkEdit(be.replace[State[Tables, *], Tables](TableState))
+
+      override def bulkEditTargetEnvironment(
+        be: BulkEditTargetEnvironmentInput
+      ): F[List[TargetEnvironmentContext]] =
+        bulkEdit(be.edit[State[Tables, *], Tables](TableState))
 
     }
 

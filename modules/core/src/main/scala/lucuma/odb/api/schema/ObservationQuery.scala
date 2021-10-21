@@ -5,7 +5,6 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.{ConstraintSetModel, InputError, ObservationModel, ScienceRequirements}
 import lucuma.odb.api.repo.{OdbRepo, ResultPage}
-
 import cats.MonadError
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
@@ -63,20 +62,20 @@ trait ObservationQuery {
 
   def groupByConstraintSet[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
 
-     ObservationGroupSchema.groupingField[F, ConstraintSetModel](
+    ObservationGroupSchema.groupingField[F, ConstraintSetModel](
       "constraintSet",
       "Observations grouped by commonly held constraints",
       ConstraintSetType[F],
-      (repo, pid) => repo.groupByConstraintSet(pid)
+      (repo, pid, includeDeleted) => repo.groupByConstraintSet(pid, includeDeleted)
     )
 
   def groupByScienceRequirements[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
 
-     ObservationGroupSchema.groupingField[F, ScienceRequirements](
+    ObservationGroupSchema.groupingField[F, ScienceRequirements](
       "scienceRequirements",
       "Observations grouped by commonly held science requirements",
       ScienceRequirementsType[F],
-      (repo, pid) => repo.groupByScienceRequirements(pid)
+      (repo, pid, includeDeleted) => repo.groupByScienceRequirements(pid, includeDeleted)
     )
 
   def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =

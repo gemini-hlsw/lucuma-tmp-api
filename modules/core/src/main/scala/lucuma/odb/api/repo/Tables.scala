@@ -3,8 +3,9 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.core.model.{Asterism, Atom, ExecutionEvent, Observation, Program, Step, Target}
-import lucuma.odb.api.model.{AsterismModel, AtomModel,ExecutionEventModel, ObservationModel, ProgramModel, StepModel, TargetModel}
+import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target}
+import lucuma.odb.api.model.{AtomModel, ExecutionEventModel, ObservationModel, ProgramModel, StepModel }
+import lucuma.odb.api.model.targetModel.{ TargetEnvironment, TargetEnvironmentModel, TargetModel}
 import cats.instances.order._
 import monocle.Lens
 import monocle.function.At
@@ -15,37 +16,28 @@ import scala.collection.immutable.{SortedMap, TreeMap}
  * Simplistic immutable database "tables" of top-level types keyed by Id.
  */
 final case class Tables(
-  ids:             Ids,
-  atoms:           SortedMap[Atom.Id, AtomModel[Step.Id]],
-  asterisms:       SortedMap[Asterism.Id, AsterismModel],
-  executionEvents: SortedMap[ExecutionEvent.Id, ExecutionEventModel],
-  observations:    SortedMap[Observation.Id, ObservationModel],
-  programs:        SortedMap[Program.Id, ProgramModel],
-  steps:           SortedMap[Step.Id, StepModel[_]],
-  targets:         SortedMap[Target.Id, TargetModel],
-
-  programAsterism: ManyToMany[Program.Id, Asterism.Id],
-  programTarget:   ManyToMany[Program.Id, Target.Id],
-  targetAsterism:  ManyToMany[Target.Id, Asterism.Id],
+  ids:                Ids,
+  atoms:              SortedMap[Atom.Id, AtomModel[Step.Id]],
+  executionEvents:    SortedMap[ExecutionEvent.Id, ExecutionEventModel],
+  observations:       SortedMap[Observation.Id, ObservationModel],
+  programs:           SortedMap[Program.Id, ProgramModel],
+  steps:              SortedMap[Step.Id, StepModel[_]],
+  targets:            SortedMap[Target.Id, TargetModel],
+  targetEnvironments: SortedMap[TargetEnvironment.Id, TargetEnvironmentModel]
 )
 
 object Tables extends TableOptics {
 
   val empty: Tables =
     Tables(
-      ids             = Ids.zero,
-
-      atoms           = TreeMap.empty[Atom.Id, AtomModel[Step.Id]],
-      asterisms       = TreeMap.empty[Asterism.Id, AsterismModel],
-      executionEvents = TreeMap.empty[ExecutionEvent.Id, ExecutionEventModel],
-      observations    = TreeMap.empty[Observation.Id, ObservationModel],
-      programs        = TreeMap.empty[Program.Id, ProgramModel],
-      steps           = TreeMap.empty[Step.Id, StepModel[_]],
-      targets         = TreeMap.empty[Target.Id, TargetModel],
-
-      programAsterism = ManyToMany.empty,
-      programTarget   = ManyToMany.empty,
-      targetAsterism  = ManyToMany.empty,
+      ids                = Ids.zero,
+      atoms              = TreeMap.empty[Atom.Id, AtomModel[Step.Id]],
+      executionEvents    = TreeMap.empty[ExecutionEvent.Id, ExecutionEventModel],
+      observations       = TreeMap.empty[Observation.Id, ObservationModel],
+      programs           = TreeMap.empty[Program.Id, ProgramModel],
+      steps              = TreeMap.empty[Step.Id, StepModel[_]],
+      targets            = TreeMap.empty[Target.Id, TargetModel],
+      targetEnvironments = TreeMap.empty[TargetEnvironment.Id, TargetEnvironmentModel]
     )
 
 }
@@ -60,9 +52,6 @@ sealed trait TableOptics { self: Tables.type =>
 
   val lastAtomId: Lens[Tables, Atom.Id] =
     ids.andThen(Ids.lastAtom)
-
-  val lastAsterismId: Lens[Tables, Asterism.Id] =
-    ids.andThen(Ids.lastAsterism)
 
   val lastExecutionEventId: Lens[Tables, ExecutionEvent.Id] =
     ids.andThen(Ids.lastExecutionEvent)
@@ -79,17 +68,14 @@ sealed trait TableOptics { self: Tables.type =>
   val lastTargetId: Lens[Tables, Target.Id] =
     ids.andThen(Ids.lastTarget)
 
+  val lastTargetEnvironmentId: Lens[Tables, TargetEnvironment.Id] =
+    ids.andThen(Ids.lastTargetEnvironment)
+
   val atoms: Lens[Tables, SortedMap[Atom.Id, AtomModel[Step.Id]]] =
     Lens[Tables, SortedMap[Atom.Id, AtomModel[Step.Id]]](_.atoms)(b => a => a.copy(atoms = b))
 
   def atom(aid: Atom.Id): Lens[Tables, Option[AtomModel[Step.Id]]] =
     atoms.andThen(At.at(aid))
-
-  val asterisms: Lens[Tables, SortedMap[Asterism.Id, AsterismModel]] =
-    Lens[Tables, SortedMap[Asterism.Id, AsterismModel]](_.asterisms)(b => a => a.copy(asterisms = b))
-
-  def asterism(aid: Asterism.Id): Lens[Tables, Option[AsterismModel]] =
-    asterisms.andThen(At.at(aid))
 
   val executionEvents: Lens[Tables, SortedMap[ExecutionEvent.Id, ExecutionEventModel]] =
     Lens[Tables, SortedMap[ExecutionEvent.Id, ExecutionEventModel]](_.executionEvents)(b => a => a.copy(executionEvents = b))
@@ -116,19 +102,15 @@ sealed trait TableOptics { self: Tables.type =>
     steps.andThen(At.at(sid))
 
   val targets: Lens[Tables, SortedMap[Target.Id, TargetModel]] =
-    Lens[Tables, SortedMap[Target.Id, TargetModel]](_.targets)(b => a => a.copy(targets = b))
+    Lens[Tables, SortedMap[Target.Id, TargetModel]](_.targets)(b => _.copy(targets = b))
 
   def target(tid: Target.Id): Lens[Tables, Option[TargetModel]] =
     targets.andThen(At.at(tid))
 
+  val targetEnvironments: Lens[Tables, SortedMap[TargetEnvironment.Id, TargetEnvironmentModel]] =
+    Lens[Tables, SortedMap[TargetEnvironment.Id, TargetEnvironmentModel]](_.targetEnvironments)(b => _.copy(targetEnvironments = b))
 
-  val programAsterism: Lens[Tables, ManyToMany[Program.Id, Asterism.Id]] =
-    Lens[Tables, ManyToMany[Program.Id, Asterism.Id]](_.programAsterism)(b => a => a.copy(programAsterism = b))
-
-  val programTarget: Lens[Tables, ManyToMany[Program.Id, Target.Id]] =
-    Lens[Tables, ManyToMany[Program.Id, Target.Id]](_.programTarget)(b => a => a.copy(programTarget = b))
-
-  val targetAsterism: Lens[Tables, ManyToMany[Target.Id, Asterism.Id]] =
-    Lens[Tables, ManyToMany[Target.Id, Asterism.Id]](_.targetAsterism)(b => a => a.copy(targetAsterism = b))
+  def targetEnvironment(vid: TargetEnvironment.Id): Lens[Tables, Option[TargetEnvironmentModel]] =
+    targetEnvironments.andThen(At.at(vid))
 
 }

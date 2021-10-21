@@ -16,8 +16,6 @@ trait OdbRepo[F[_]] {
 
   def eventService: EventService[F]
 
-  def asterism: AsterismRepo[F]
-
   def atom: AtomRepo[F]
 
   def executionEvent: ExecutionEventRepo[F]
@@ -55,9 +53,6 @@ object OdbRepo {
       override def eventService: EventService[F] =
         s
 
-      override def asterism: AsterismRepo[F] =
-        AsterismRepo.create(r, s)
-
       override def atom: AtomRepo[F] =
         AtomRepo.create(r)
 
@@ -74,7 +69,7 @@ object OdbRepo {
         StepRepo.create[F](r)
 
       override def target: TargetRepo[F] =
-        TargetRepo.create(r, s)
+        TargetRepo.create[F](r, s)
 
     }
 

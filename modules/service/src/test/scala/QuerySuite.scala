@@ -59,8 +59,8 @@ class QuerySuite extends OdbSuite {
             {
               "id" : "o-2",
               "constraintSet" : {
-                "cloudExtinction" : "THREE_POINT_ZERO",
-                "imageQuality" : "TWO_POINT_ZERO",
+                "cloudExtinction" : "POINT_THREE",
+                "imageQuality" : "POINT_EIGHT",
                 "skyBackground" : "BRIGHT",
                 "waterVapor" : "WET"
               }
@@ -68,8 +68,8 @@ class QuerySuite extends OdbSuite {
             {
               "id" : "o-3",
               "constraintSet" : {
-                "cloudExtinction" : "THREE_POINT_ZERO",
-                "imageQuality" : "TWO_POINT_ZERO",
+                "cloudExtinction" : "POINT_THREE",
+                "imageQuality" : "POINT_EIGHT",
                 "skyBackground" : "BRIGHT",
                 "waterVapor" : "WET"
               }
@@ -77,8 +77,35 @@ class QuerySuite extends OdbSuite {
             {
               "id" : "o-4",
               "constraintSet" : {
-                "cloudExtinction" : "THREE_POINT_ZERO",
-                "imageQuality" : "TWO_POINT_ZERO",
+                "cloudExtinction" : "POINT_THREE",
+                "imageQuality" : "POINT_EIGHT",
+                "skyBackground" : "BRIGHT",
+                "waterVapor" : "WET"
+              }
+            },
+            {
+              "id" : "o-5",
+              "constraintSet" : {
+                "cloudExtinction" : "POINT_THREE",
+                "imageQuality" : "POINT_EIGHT",
+                "skyBackground" : "BRIGHT",
+                "waterVapor" : "WET"
+              }
+            },
+            {
+              "id" : "o-6",
+              "constraintSet" : {
+                "cloudExtinction" : "POINT_THREE",
+                "imageQuality" : "POINT_EIGHT",
+                "skyBackground" : "BRIGHT",
+                "waterVapor" : "WET"
+              }
+            },
+            {
+              "id" : "o-7",
+              "constraintSet" : {
+                "cloudExtinction" : "POINT_THREE",
+                "imageQuality" : "POINT_EIGHT",
                 "skyBackground" : "BRIGHT",
                 "waterVapor" : "WET"
               }
@@ -117,15 +144,18 @@ class QuerySuite extends OdbSuite {
           "nodes" : [
             {
               "constraintSet" : {
-                "cloudExtinction" : "THREE_POINT_ZERO",
-                "imageQuality" : "TWO_POINT_ZERO",
+                "cloudExtinction" : "POINT_THREE",
+                "imageQuality" : "POINT_EIGHT",
                 "skyBackground" : "BRIGHT",
                 "waterVapor" : "WET"
               },
               "observationIds" : [
                 "o-2",
                 "o-3",
-                "o-4"
+                "o-4",
+                "o-5",
+                "o-6",
+                "o-7"
               ],
               "observations" : {
                 "nodes" : [
@@ -139,6 +169,18 @@ class QuerySuite extends OdbSuite {
                   },
                   {
                     "id" : "o-4",
+                    "name" : "NGC 3312"
+                  },
+                  {
+                    "id" : "o-5",
+                    "name" : "NGC 3312"
+                  },
+                  {
+                    "id" : "o-6",
+                    "name" : "NGC 5949"
+                  },
+                  {
+                    "id" : "o-7",
                     "name" : "Observation"
                   }
                 ]
@@ -186,7 +228,10 @@ class QuerySuite extends OdbSuite {
               "observationIds" : [
                 "o-2",
                 "o-3",
-                "o-4"
+                "o-4",
+                "o-5",
+                "o-6",
+                "o-7"
               ],
               "observations" : {
                 "nodes" : [
@@ -200,6 +245,18 @@ class QuerySuite extends OdbSuite {
                   },
                   {
                     "id" : "o-4",
+                    "name" : "NGC 3312"
+                  },
+                  {
+                    "id" : "o-5",
+                    "name" : "NGC 3312"
+                  },
+                  {
+                    "id" : "o-6",
+                    "name" : "NGC 5949"
+                  },
+                  {
+                    "id" : "o-7",
                     "name" : "Observation"
                   }
                 ]

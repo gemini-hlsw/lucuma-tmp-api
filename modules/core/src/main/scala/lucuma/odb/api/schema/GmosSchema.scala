@@ -26,8 +26,8 @@ object GmosSchema {
 
   implicit val EnumTypeGmosAmpGain: EnumType[GmosAmpGain] =
     EnumType.fromEnumerated(
-      "GmosAmpCount",
-      "GMOS amp count"
+      "GmosAmpGain",
+      "GMOS amp gain"
     )
 
   implicit val EnumTypeGmosAmpReadMode: EnumType[GmosAmpReadMode] =
@@ -42,10 +42,16 @@ object GmosSchema {
       "GMOS Custom Slit Width"
     )
 
-  implicit val EnumTypeGmosDetector: EnumType[GmosDetector] =
+  implicit val EnumTypeGmosNorthDetector: EnumType[GmosNorthDetector] =
     EnumType.fromEnumerated(
-      "GmosDetector",
-      "Detector type"
+      "GmosNorthDetector",
+      "GmosNorth Detector type"
+    )
+
+  implicit val EnumTypeGmosSouthDetector: EnumType[GmosSouthDetector] =
+    EnumType.fromEnumerated(
+      "GmosSouthDetector",
+      "GmosSouth Detector type"
     )
 
   implicit val EnumTypeGmosDisperserOrder: EnumType[GmosDisperserOrder] =
@@ -180,7 +186,7 @@ object GmosSchema {
       case Site.GS => Instrument.GmosSouth
     }
 
-  def GmosStaticConfig[F[_], S: EnumType, G <: GmosModel.Static[S]: ClassTag](
+  def GmosStaticConfig[F[_], S: EnumType, D: EnumType, G <: GmosModel.Static[S, D]: ClassTag](
     site: Site
   ): ObjectType[OdbRepo[F], G] =
     ObjectType(
@@ -197,7 +203,7 @@ object GmosSchema {
 
         Field(
           name        = "detector",
-          fieldType   = EnumTypeGmosDetector,
+          fieldType   = implicitly[EnumType[D]],
           description = Some("Detector in use (always HAMAMATSU for recent and new observations)"),
           resolve     = _.value.detector
         ),
@@ -220,10 +226,10 @@ object GmosSchema {
     )
 
   def GmosNorthStaticConfigType[F[_]]: ObjectType[OdbRepo[F], GmosModel.NorthStatic] =
-    GmosStaticConfig[F, GmosNorthStageMode, GmosModel.NorthStatic](Site.GN)
+    GmosStaticConfig[F, GmosNorthStageMode, GmosNorthDetector, GmosModel.NorthStatic](Site.GN)
 
   def GmosSouthStaticConfigType[F[_]]: ObjectType[OdbRepo[F], GmosModel.SouthStatic] =
-    GmosStaticConfig[F, GmosSouthStageMode, GmosModel.SouthStatic](Site.GS)
+    GmosStaticConfig[F, GmosSouthStageMode, GmosSouthDetector, GmosModel.SouthStatic](Site.GS)
 
   def GmosCcdReadoutType[F[_]]: ObjectType[OdbRepo[F], GmosModel.CcdReadout] =
     ObjectType(
