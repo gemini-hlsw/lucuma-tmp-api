@@ -147,8 +147,14 @@ object TargetSchema extends TargetScalars {
           fieldType   = EnumTypeMagnitudeSystem,
           description = Some("Magnitude System"),
           resolve     = _.value.system
-        )
+        ),
 
+        Field(
+          name        = "error",
+          fieldType   = OptionType(BigDecimalType),
+          description = Some("Magnitude error (unitless)"),
+          resolve     = _.value.error.map(MagnitudeValue.fromBigDecimal.reverseGet)
+        )
       )
     )
 

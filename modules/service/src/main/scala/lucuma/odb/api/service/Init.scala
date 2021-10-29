@@ -126,7 +126,8 @@ object Init {
     {
       "band": "B",
       "value": 12.63,
-      "system": "VEGA"
+      "system": "VEGA",
+      "error": 0.02
     },
     {
       "band": "V",
