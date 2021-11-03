@@ -12,7 +12,6 @@ import org.http4s.implicits._
 import org.http4s.HttpApp
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.middleware.Logger
-import org.http4s.server.staticcontent._
 import org.typelevel.log4cats.{Logger => Log4CatsLogger}
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
@@ -38,10 +37,6 @@ object Main extends IOApp {
     Dispatcher[F].map { implicit d => wsb =>
       Logger.httpApp(logHeaders = true, logBody = false) {
 
-          // Routes for static resources, ie. GraphQL Playground
-          val staticRoutes: HttpRoutes[F] =
-            resourceServiceBuilder[F]("/assets").toRoutes
-
           // Our schema is constant for now
           val schema = OdbSchema[F]
 
@@ -60,10 +55,10 @@ object Main extends IOApp {
 
           // Our GraphQL routes
           val graphQLRoutes: HttpRoutes[F] =
-            Routes.forService[F](graphQLService, wsb, "odb", "ws")
+            Routes.forService[F](graphQLService, wsb, "odb")
 
           // Done!
-          (staticRoutes <+> graphQLRoutes).orNotFound
+          graphQLRoutes.orNotFound
 
         }
 
