@@ -46,7 +46,7 @@ final case class EditSiderealInput(
      magnitudes    .traverse(_.editor)
     ).mapN { (name, catalogId, ra, dec, epoch, pm, rv, px, ms) =>
       for {
-        _ <- TargetModel.name           := name
+        _ <- Target.name           := name
         _ <- TargetModel.catalogId      := catalogId
         _ <- TargetModel.ra             := ra
         _ <- TargetModel.dec            := dec

@@ -14,8 +14,9 @@ import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
 import lucuma.core.`enum`.EphemerisKeyType
-import lucuma.core.model.{EphemerisKey, Target}
+import lucuma.core.model.{EphemerisKey, NonsiderealTarget, Target}
 import lucuma.odb.api.model.{InputError, MagnitudeModel, ValidatedInput}
+
 import scala.collection.immutable.SortedMap
 
 /**
@@ -39,7 +40,7 @@ final case class CreateNonsiderealInput(
     (toEphemerisKey,
      magnitudes.toList.flatten.traverse(_.toMagnitude)
     ).mapN { (k, ms) =>
-      Target(name, Left(k), SortedMap.from(ms.fproductLeft(_.band)))
+      NonsiderealTarget(name, k, SortedMap.from(ms.fproductLeft(_.band)))
     }
 
 }

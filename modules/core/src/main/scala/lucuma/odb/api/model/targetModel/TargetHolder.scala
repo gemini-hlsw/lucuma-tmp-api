@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.model.targetModel
 
-import lucuma.core.model.Target
+import lucuma.core.model.{EphemerisKey, NonsiderealTarget, SiderealTarget, SiderealTracking, Target}
 
 /**
  * An interface for objects that contain a `lucuma.core.model.Target`.
@@ -11,5 +11,11 @@ import lucuma.core.model.Target
 trait TargetHolder {
 
   def target: Target
+
+  def track: Either[EphemerisKey, SiderealTracking] =
+    target match {
+      case NonsiderealTarget(_, k, _) => Left(k)
+      case SiderealTarget(_, t, _)    => Right(t)
+    }
 
 }

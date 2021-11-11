@@ -30,8 +30,8 @@ final case class EditNonsiderealInput(
      key.validateIsNotNull("key")
     ).mapN { case (n, k) =>
       for {
-        _ <- TargetModel.name         := n
-        _ <- TargetModel.ephemerisKey := k
+        _ <- Target.name         := n
+        _ <- Target.ephemerisKey := k
       } yield ()
     }
 

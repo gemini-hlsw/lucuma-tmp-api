@@ -424,7 +424,7 @@ object TargetSchema extends TargetScalars {
           name        = "tracking",
           fieldType   = TrackingType[F],
           description = Some("Information required to find a target in the sky."),
-          resolve     = _.value.target.track
+          resolve     = _.value.track
         ),
 
         // TODO: move to ITC target source description

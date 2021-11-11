@@ -13,7 +13,7 @@ import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
 import lucuma.core.math.{Coordinates, Epoch}
-import lucuma.core.model.{SiderealTracking, Target}
+import lucuma.core.model.{SiderealTarget, SiderealTracking, Target}
 import lucuma.odb.api.model.{CatalogIdModel, DeclinationModel, MagnitudeModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel, ValidatedInput}
 import lucuma.odb.api.model.json.target._
 
@@ -64,7 +64,7 @@ final case class CreateSiderealInput(
     (toSiderealTracking,
      magnitudes.toList.flatten.traverse(_.toMagnitude)
     ).mapN { (pm, ms) =>
-      Target(name, Right(pm), SortedMap.from(ms.fproductLeft(_.band)))
+      SiderealTarget(name, pm, SortedMap.from(ms.fproductLeft(_.band)))
     }
 
 }

@@ -5,11 +5,9 @@ package lucuma.odb.api.model.targetModel
 
 import lucuma.core.`enum`.MagnitudeBand
 import lucuma.core.math.{Coordinates, Declination, Epoch, Parallax, ProperMotion, RadialVelocity, RightAscension}
-import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, SiderealTracking, Target}
+import lucuma.core.model.{CatalogId, Magnitude, SiderealTracking, Target}
 import cats.Eq
-import monocle.Focus
-import eu.timepit.refined.types.string.NonEmptyString
-import monocle.{Lens, Optional}
+import monocle.{Focus, Lens, Optional}
 
 import scala.collection.immutable.SortedMap
 
@@ -41,26 +39,11 @@ trait TargetModelOptics { self: TargetModel.type =>
   val target: Lens[TargetModel, Target] =
     Focus[TargetModel](_.target)
 
-  val name: Lens[Target, NonEmptyString] =
-    Target.name
-
-  val nonsiderealTarget: Optional[Target, Target] =
-    Optional.filter[Target](_.track.isLeft)
-
-  val siderealTarget: Optional[Target, Target] =
-    Optional.filter[Target](_.track.isRight)
-
-  val ephemerisKey: Optional[Target, EphemerisKey] =
-    Target.track.andThen(monocle.std.either.stdLeft[EphemerisKey, SiderealTracking])
-
-  val siderealTracking: Optional[Target, SiderealTracking] =
-    Target.track.andThen(monocle.std.either.stdRight[EphemerisKey, SiderealTracking])
-
   val catalogId: Optional[Target, Option[CatalogId]] =
-    siderealTracking.andThen(SiderealTracking.catalogId)
+    Target.siderealTracking.andThen(SiderealTracking.catalogId)
 
   val coordinates: Optional[Target, Coordinates] =
-    siderealTracking.andThen(SiderealTracking.baseCoordinates)
+    Target.siderealTracking.andThen(SiderealTracking.baseCoordinates)
 
   val ra: Optional[Target, RightAscension] =
     coordinates.andThen(Coordinates.rightAscension)
@@ -69,16 +52,16 @@ trait TargetModelOptics { self: TargetModel.type =>
     coordinates.andThen(Coordinates.declination)
 
   val epoch: Optional[Target, Epoch] =
-    siderealTracking.andThen(SiderealTracking.epoch)
+    Target.siderealTracking.andThen(SiderealTracking.epoch)
 
   val properMotion: Optional[Target, Option[ProperMotion]] =
-    siderealTracking.andThen(SiderealTracking.properMotion)
+    Target.siderealTracking.andThen(SiderealTracking.properMotion)
 
   val radialVelocity: Optional[Target, Option[RadialVelocity]] =
-    siderealTracking.andThen(SiderealTracking.radialVelocity)
+    Target.siderealTracking.andThen(SiderealTracking.radialVelocity)
 
   val parallax: Optional[Target, Option[Parallax]] =
-    siderealTracking.andThen(SiderealTracking.parallax)
+    Target.siderealTracking.andThen(SiderealTracking.parallax)
 
   val magnitudes: Lens[Target, SortedMap[MagnitudeBand, Magnitude]] =
     Target.magnitudes
