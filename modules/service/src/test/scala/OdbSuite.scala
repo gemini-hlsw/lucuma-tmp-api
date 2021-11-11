@@ -16,20 +16,18 @@ import clue.http4sjdk.Http4sJDKWSBackend
 import io.circe.literal._
 import lucuma.core.model.User
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.odb.api.service.{OdbService, Routes}
+import lucuma.odb.api.service.Main
 import lucuma.sso.client.SsoClient
 import munit.CatsEffectSuite
 import org.http4s.{Uri => Http4sUri, _}
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.headers.Authorization
-import org.http4s.implicits._
 import org.http4s.server.Server
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import sttp.model.Uri
+import org.http4s.server.websocket.WebSocketBuilder2
 
 /**
  * Mixin that allows execution of GraphQL operations on a per-suite instance of the Odb, shared
@@ -44,39 +42,40 @@ trait OdbSuite extends CatsEffectSuite {
     new SsoClient[IO, User] {
       def find(req: Request[IO]): IO[Option[User]] = IO.pure(None)
       def get(authorization: Authorization): IO[Option[User]] = IO.pure(None)
+      def require(req: Request[IO])(f: User => IO[Response[IO]]): IO[Response[IO]] = ???
       def map[B](f: User => B): SsoClient[IO,B] = ???
+      def filter(f: User => Boolean): SsoClient[IO,User] = ???
+      def collect[B](f: PartialFunction[User,B]): SsoClient[IO,B] = ???
     }
 
-  private val app: IO[HttpApp[IO]] =
-    OdbRepo
-      .create[IO]
-      .flatTap(TestInit.initialize(_))
-      .map(OdbService(_))
-      .map(Routes.forService(_, ssoClient).orNotFound)
+  private val httpApp: Resource[IO, WebSocketBuilder2[IO] => HttpApp[IO]] =
+    Resource.eval(OdbRepo.create[IO].flatTap(TestInit.initialize(_)))
+      .flatMap(Main.httpApp(_, ssoClient))
 
   private val server: Resource[IO, Server] =
-    Resource.make(IO.println("  • Server starting..."))(_ => IO.println("  • Server stopped.")) *>
-    Resource.eval(app).flatMap { app =>
-      BlazeServerBuilder[IO](ExecutionContext.global)
-        .withHttpApp(app)
+    // Resource.make(IO.println("  • Server starting..."))(_ => IO.println("  • Server stopped.")) *>
+    httpApp.flatMap { app =>
+      BlazeServerBuilder[IO]
+        .withHttpWebSocketApp(app)
         .bindAny()
         .resource
-        .flatTap(_ => Resource.eval(IO.println("  • Server started.")))
+        // .flatTap(_ => Resource.eval(IO.println("  • Server started.")))
     }
 
   private def transactionalClient(svr: Server): Resource[IO, TransactionalClient[IO, Nothing]] =
     for {
       xbe <- Http4sJDKBackend.apply[IO]
-      uri  = Uri.parse((svr.baseUri / "odb").renderString).toOption.get
-      xc  <- Resource.eval(TransactionalClient.of[IO, Nothing](uri)(Async[IO], xbe, Logger[IO]))
+      uri  = svr.baseUri / "odb"
+      xc  <- Resource.eval(TransactionalClient.of[IO, Nothing](uri, headers = Headers(Authorization(Credentials.Token(AuthScheme.Bearer, "123"))))(Async[IO], xbe, Logger[IO]))
     } yield xc
 
   private def streamingClient(svr: Server): Resource[IO, PersistentStreamingClient[IO, Nothing, _, _]] =
     for {
       sbe <- Http4sJDKWSBackend[IO]
-      uri  = Uri.parse((svr.baseUri / "ws").copy(scheme = Some(Http4sUri.Scheme.unsafeFromString("ws"))).renderString).toOption.get
+      uri  = (svr.baseUri / "ws").copy(scheme = Some(Http4sUri.Scheme.unsafeFromString("ws")))
       sc  <- Resource.eval(ApolloWebSocketClient.of(uri)(Async[IO], Logger[IO], sbe))
-      _   <- Resource.make(sc.connect() *> sc.initialize())(_ => sc.terminate() *> sc.disconnect())
+      ps   = Map("Authorization" -> Json.fromString("Bearer 123"))
+      _   <- Resource.make(sc.connect() *> sc.initialize(ps))(_ => sc.terminate() *> sc.disconnect())
     } yield sc
 
   case class Operation(

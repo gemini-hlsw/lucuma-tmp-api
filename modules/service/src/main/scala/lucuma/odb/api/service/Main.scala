@@ -3,51 +3,80 @@
 
 package lucuma.odb.api.service
 
-import lucuma.core.model.User
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.sso.client.SsoClient
 
-import cats.effect.{Async, ExitCode, IO, IOApp}
+import cats.effect.{Async, ExitCode, IO, IOApp, Resource}
 import cats.implicits._
 import fs2.Stream
 import org.http4s.implicits._
 import org.http4s.HttpApp
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.middleware.Logger
-import org.http4s.server.staticcontent._
 import org.typelevel.log4cats.{Logger => Log4CatsLogger}
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-import scala.concurrent.ExecutionContext.global
+import lucuma.graphql.routes.SangriaGraphQLService
+import lucuma.graphql.routes.GraphQLService
+import lucuma.odb.api.schema.OdbSchema
+import cats.effect.std.Dispatcher
+import lucuma.graphql.routes.Routes
+import org.http4s.HttpRoutes
+import lucuma.sso.client.SsoClient
+import lucuma.core.model.User
+import org.http4s.headers.Authorization
+import org.http4s.server.websocket.WebSocketBuilder2
+import cats.data.OptionT
 
 // #server
 object Main extends IOApp {
+
+  def httpApp[F[_]: Log4CatsLogger: Async](
+    odb:        OdbRepo[F],
+    userClient: SsoClient[F, User],
+  ): Resource[F, WebSocketBuilder2[F] => HttpApp[F]] =
+    Dispatcher[F].map { implicit d => wsb =>
+      Logger.httpApp(logHeaders = true, logBody = false) {
+
+          // Our schema is constant for now
+          val schema = OdbSchema[F]
+
+          // Our GraphQL service, computed per-request.
+          // For now we check log the user, if any, but it's not required.
+          def graphQLService(auth: Option[Authorization]): F[Option[GraphQLService[F]]] =
+            OptionT
+              .fromOption[F](auth)
+              .flatMap(a => OptionT(userClient.get(a)))
+              .value
+              .flatMap { ou =>
+                Log4CatsLogger[F].info(s"GraphQL request (user=$ou).").as {
+                  new SangriaGraphQLService(schema, odb, OdbSchema.exceptionHandler).some
+                }
+              }
+
+          // Our GraphQL routes
+          val graphQLRoutes: HttpRoutes[F] =
+            Routes.forService[F](graphQLService, wsb, "odb")
+
+          // Done!
+          graphQLRoutes.orNotFound
+
+        }
+
+    }
+
 
   def stream[F[_]: Log4CatsLogger: Async](
     odb: OdbRepo[F],
     cfg: Config
   ): Stream[F, Nothing] = {
-    val odbService   = OdbService.apply[F](odb)
-
-    def app(userClient: SsoClient[F, User]): HttpApp[F] =
-      Logger.httpApp(logHeaders = true, logBody = false)((
-
-        // Routes for static resources, ie. GraphQL Playground
-        resourceServiceBuilder[F]("/assets").toRoutes <+>
-
-        // Routes for the ODB GraphQL service
-        Routes.forService[F](odbService, userClient)
-
-      ).orNotFound)
-
     // Spin up the server ...
     for {
       sso       <- Stream.resource(cfg.ssoClient[F])
       userClient = sso.map(_.user)
-      exitCode  <- BlazeServerBuilder[F](global)
+      httpApp   <- Stream.resource(httpApp(odb, userClient))
+      exitCode  <- BlazeServerBuilder[F]
         .bindHttp(cfg.port, "0.0.0.0")
-        .withHttpApp(app(userClient))
-        .withWebSockets(true)
+        .withHttpWebSocketApp(httpApp)
         .serve
     } yield exitCode
   }.drain
