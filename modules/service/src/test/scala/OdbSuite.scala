@@ -29,6 +29,8 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import scala.concurrent.duration._
 import org.http4s.server.websocket.WebSocketBuilder2
 
+import scala.annotation.nowarn
+
 /**
  * Mixin that allows execution of GraphQL operations on a per-suite instance of the Odb, shared
  * among all tests.
@@ -42,10 +44,10 @@ trait OdbSuite extends CatsEffectSuite {
     new SsoClient[IO, User] {
       def find(req: Request[IO]): IO[Option[User]] = IO.pure(None)
       def get(authorization: Authorization): IO[Option[User]] = IO.pure(None)
-      def require(req: Request[IO])(f: User => IO[Response[IO]]): IO[Response[IO]] = ???
+      @nowarn def require(req: Request[IO])(f: User => IO[Response[IO]]): IO[Response[IO]] = ???
       def map[B](f: User => B): SsoClient[IO,B] = ???
-      def filter(f: User => Boolean): SsoClient[IO,User] = ???
-      def collect[B](f: PartialFunction[User,B]): SsoClient[IO,B] = ???
+      @nowarn def filter(f: User => Boolean): SsoClient[IO,User] = ???
+      @nowarn def collect[B](f: PartialFunction[User,B]): SsoClient[IO,B] = ???
     }
 
   private val httpApp: Resource[IO, WebSocketBuilder2[IO] => HttpApp[IO]] =
