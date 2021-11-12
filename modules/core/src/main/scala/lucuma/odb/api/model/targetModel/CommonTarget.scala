@@ -23,7 +23,7 @@ object CommonTarget {
 
   implicit val OrderCommonTarget: Order[CommonTarget] =
     Order.from { (a, b) =>
-      Target.TargetNameOrder.compare(a.target, b.target) match {
+      Target.NameOrder.compare(a.target, b.target) match {
         case 0 => Order[SortedSet[Target.Id]].compare(a.ids, b.ids)
         case i => i
       }

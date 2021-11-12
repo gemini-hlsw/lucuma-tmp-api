@@ -46,15 +46,15 @@ final case class EditSiderealInput(
      magnitudes    .traverse(_.editor)
     ).mapN { (name, catalogId, ra, dec, epoch, pm, rv, px, ms) =>
       for {
-        _ <- TargetModel.name           := name
-        _ <- TargetModel.catalogId      := catalogId
-        _ <- TargetModel.ra             := ra
-        _ <- TargetModel.dec            := dec
-        _ <- TargetModel.epoch          := epoch
-        _ <- TargetModel.properMotion   := pm
-        _ <- TargetModel.radialVelocity := rv
-        _ <- TargetModel.parallax       := px
-        _ <- TargetModel.magnitudes.mod(m => ms.fold(m)(_.runS(m).value))
+        _ <- Target.name              := name
+        _ <- Target.catalogId         := catalogId
+        _ <- Target.baseRA            := ra
+        _ <- Target.baseDec           := dec
+        _ <- Target.epoch             := epoch
+        _ <- TargetModel.properMotion := pm
+        _ <- Target.radialVelocity    := rv
+        _ <- Target.parallax          := px
+        _ <- Target.magnitudes.mod(m => ms.fold(m)(_.runS(m).value))
       } yield ()
     }
 
