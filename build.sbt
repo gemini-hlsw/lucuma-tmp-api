@@ -4,7 +4,7 @@ val catsMtlVersion              = "1.2.1"
 val catsTestkitScalaTestVersion = "2.1.5"
 val catsVersion                 = "2.6.1"
 val catsScalacheckVersion       = "0.3.1"
-val catsTimeVersion             = "0.4.0"
+val catsTimeVersion             = "0.5.0"
 val circeOpticsVersion          = "0.14.1"
 val circeVersion                = "0.14.1"
 val cirisVersion                = "2.2.1"
@@ -85,7 +85,7 @@ lazy val core = project
       "org.typelevel"              %% "cats-core"                 % catsVersion,
       "org.typelevel"              %% "cats-effect"               % catsEffectVersion,
       "org.typelevel"              %% "cats-mtl"                  % catsMtlVersion,
-      "io.chrisdavenport"          %% "cats-time"                 % catsTimeVersion,
+      "org.typelevel"          %% "cats-time"                 % catsTimeVersion,
       "io.circe"                   %% "circe-core"                % circeVersion,
       "io.circe"                   %% "circe-literal"             % circeVersion,
       "io.circe"                   %% "circe-optics"              % circeOpticsVersion,
