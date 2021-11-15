@@ -62,4 +62,4 @@ trait ToEnumTypeOps {
     new EnumTypeOps[A](enumType)
 }
 
-object enum extends ToEnumTypeCompanionOps with ToEnumTypeOps
+object `enum` extends ToEnumTypeCompanionOps with ToEnumTypeOps
