@@ -5,6 +5,7 @@ package lucuma.odb.api.model.targetModel
 
 import cats.Order
 import lucuma.core.math.Coordinates
+import lucuma.core.model.TargetEnvironment
 
 import scala.collection.immutable.SortedSet
 

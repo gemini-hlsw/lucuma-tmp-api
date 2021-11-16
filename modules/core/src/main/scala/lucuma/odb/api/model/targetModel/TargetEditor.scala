@@ -12,7 +12,7 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
 import cats.syntax.validated._
-import lucuma.core.model.Target
+import lucuma.core.model.{Target, TargetEnvironment}
 import lucuma.odb.api.model.{DatabaseState, ValidatedInput}
 
 import scala.collection.immutable.SortedSet

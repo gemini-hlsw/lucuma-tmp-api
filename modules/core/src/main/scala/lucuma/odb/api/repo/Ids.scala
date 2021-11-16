@@ -3,8 +3,7 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target}
-import lucuma.odb.api.model.targetModel.TargetEnvironment
+import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target, TargetEnvironment}
 import cats.kernel.BoundedEnumerable
 import monocle.Lens
 

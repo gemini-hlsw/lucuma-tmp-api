@@ -11,6 +11,7 @@ import cats.syntax.functor._
 import cats.syntax.traverse._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
+import lucuma.core.model.TargetEnvironment
 import lucuma.odb.api.model.{DatabaseState, ValidatedInput}
 import lucuma.odb.api.model.syntax.validatedinput._
 

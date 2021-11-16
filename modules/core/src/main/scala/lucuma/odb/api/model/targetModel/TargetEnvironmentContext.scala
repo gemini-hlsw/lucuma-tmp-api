@@ -10,6 +10,7 @@ import cats.syntax.apply._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
+import lucuma.core.model.TargetEnvironment
 import lucuma.odb.api.model.{DatabaseState, ObservationModel, ProgramModel, ValidatedInput}
 import lucuma.odb.api.model.syntax.validatedinput._
 

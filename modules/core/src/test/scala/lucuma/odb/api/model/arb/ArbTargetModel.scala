@@ -11,7 +11,7 @@ import lucuma.core.`enum`.EphemerisKeyType
 import lucuma.core.math.{Coordinates, Epoch}
 import lucuma.core.math.arb.{ArbCoordinates, ArbEpoch}
 import lucuma.core.model.arb.ArbEphemerisKey
-import lucuma.core.model.{EphemerisKey, Observation, Program, Target}
+import lucuma.core.model.{EphemerisKey, Observation, Program, Target, TargetEnvironment}
 import lucuma.core.model.arb.ArbTarget
 import lucuma.core.util.arb.{ArbEnumerated, ArbGid}
 import lucuma.odb.api.model.targetModel._

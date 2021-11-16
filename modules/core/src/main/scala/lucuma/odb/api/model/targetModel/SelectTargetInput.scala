@@ -9,7 +9,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
-import lucuma.core.model.Target
+import lucuma.core.model.{Target, TargetEnvironment}
 
 //
 // # Target selection.  Choose at least one of `names` or `targetIds`.

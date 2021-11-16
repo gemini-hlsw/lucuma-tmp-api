@@ -8,6 +8,7 @@ import cats.mtl.Stateful
 import cats.syntax.option._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
+import lucuma.core.model.TargetEnvironment
 import lucuma.odb.api.model.{DatabaseState, ValidatedInput}
 
 import scala.collection.immutable.SortedSet

@@ -4,14 +4,14 @@
 package lucuma.odb.api.repo
 
 import cats.data.State
-import lucuma.core.model.{Observation, Program, Target}
+import lucuma.core.model.{Observation, Program, Target, TargetEnvironment}
 import lucuma.core.util.Gid
 import lucuma.odb.api.model.ValidatedInput
 import lucuma.odb.api.model.ObservationModel.ObservationEvent
 import lucuma.odb.api.model.ProgramModel.ProgramEvent
 import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.odb.api.model.syntax.toplevel._
-import lucuma.odb.api.model.targetModel.{TargetEnvironment, _}
+import lucuma.odb.api.model.targetModel._
 import cats.effect.{Async, Ref}
 import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.applicative._

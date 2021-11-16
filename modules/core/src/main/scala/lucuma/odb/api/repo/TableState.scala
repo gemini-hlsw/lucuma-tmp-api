@@ -3,10 +3,10 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target}
+import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target, TargetEnvironment}
 import lucuma.core.optics.state.all._
 import lucuma.odb.api.model.{AtomModel, DatabaseState, ExecutionEventModel, ObservationModel, ProgramModel, RepoState, SharingState, StepModel}
-import lucuma.odb.api.model.targetModel.{TargetEnvironment, TargetEnvironmentModel, TargetModel}
+import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
 import cats.data.State
 import cats.mtl.Stateful
 import monocle.Lens

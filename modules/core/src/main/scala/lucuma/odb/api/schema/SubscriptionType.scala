@@ -9,7 +9,7 @@ import lucuma.odb.api.model.{ObservationModel, ProgramModel}
 import lucuma.odb.api.model.ObservationModel.ObservationEvent
 import lucuma.odb.api.model.ProgramModel.ProgramEvent
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.core.model.{Observation, Program}
+import lucuma.core.model.{Observation, Program, TargetEnvironment}
 import cats.{Applicative, Eq, MonadError}
 import cats.effect.std.Dispatcher
 import cats.syntax.applicative._
@@ -17,7 +17,7 @@ import cats.syntax.apply._
 import cats.syntax.eq._
 import cats.syntax.functor._
 import fs2.Stream
-import lucuma.odb.api.model.targetModel.{TargetEnvironment, TargetEnvironmentEvent, TargetEnvironmentModel}
+import lucuma.odb.api.model.targetModel.{TargetEnvironmentEvent, TargetEnvironmentModel}
 import sangria.schema._
 import sangria.streaming.SubscriptionStream
 import sangria.streaming.SubscriptionStreamLike._
