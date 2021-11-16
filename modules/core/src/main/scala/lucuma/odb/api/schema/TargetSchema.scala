@@ -8,18 +8,18 @@ import lucuma.odb.api.schema.syntax.all._
 import lucuma.odb.api.model.{DeclinationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
 import lucuma.odb.api.model.targetModel.{CommonTarget, CommonTargetEnvironment, TargetEnvironment, TargetEnvironmentModel, TargetHolder, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.core.`enum`.{CatalogName, MagnitudeBand, MagnitudeSystem, EphemerisKeyType => EphemerisKeyTypeEnum}
+import lucuma.core.`enum`.{CatalogName, MagnitudeBand, MagnitudeSystem,EphemerisKeyType => EphemerisKeyTypeEnum}
 import lucuma.core.math.{Coordinates, Declination, MagnitudeValue, Parallax, ProperMotion, RadialVelocity, RightAscension, VelocityAxis}
 import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, SiderealTracking, Target}
 import cats.syntax.all._
 import cats.effect.std.Dispatcher
-import lucuma.odb.api.schema.GeneralSchema.ArgumentIncludeDeleted
-import lucuma.odb.api.schema.ObservationSchema.ObservationType
 import sangria.schema.{Field, _}
 
 object TargetSchema extends TargetScalars {
 
-  import GeneralSchema.NonEmptyStringType
+  import GeneralSchema.{ArgumentIncludeDeleted, NonEmptyStringType}
+  import ObservationSchema.ObservationType
+  import ProgramSchema.ProgramType
 
   import context._
 
@@ -489,6 +489,19 @@ object TargetSchema extends TargetScalars {
               o <- e.observationId.flatTraverse(c.ctx.observation.select(_, c.includeDeleted))
             } yield o
           )
+        ),
+
+        Field(
+          name        = "program",
+          fieldType   = ProgramType[F],
+          description = "Program that contains this target".some,
+          arguments   = List(ArgumentIncludeDeleted),
+          resolve     = c => c.unsafeToFuture(
+            for {
+              e <- c.ctx.target.unsafeSelectTargetEnvironment(c.value.targetEnvironmentId)
+              p <- c.ctx.program.unsafeSelect(e.programId, c.includeDeleted)
+            } yield p
+          )
         )
       )
     )
@@ -581,7 +594,14 @@ object TargetSchema extends TargetScalars {
           resolve     = c => c.observation { repo =>
             c.value.observationId.flatTraverse(repo.select(_, c.includeDeleted))
           }
+        ),
 
+        Field(
+          name        = "program",
+          fieldType   = ProgramType[F],
+          description = "Program housing this environment".some,
+          arguments   = List(ArgumentIncludeDeleted),
+          resolve     = c => c.program(_.unsafeSelect(c.value.programId, c.includeDeleted))
         )
 
       )
