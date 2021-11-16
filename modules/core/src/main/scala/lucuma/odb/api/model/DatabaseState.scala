@@ -3,8 +3,8 @@
 
 package lucuma.odb.api.model
 
-import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target}
-import lucuma.odb.api.model.targetModel.{ TargetEnvironment, TargetEnvironmentModel, TargetModel }
+import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target, TargetEnvironment}
+import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
 
 trait DatabaseState[T] extends DatabaseReader[T] {
 

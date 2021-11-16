@@ -10,7 +10,7 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
 import eu.timepit.refined.types.string.NonEmptyString
-import lucuma.core.model.Target
+import lucuma.core.model.{Target, TargetEnvironment}
 import lucuma.odb.api.model.{DatabaseState, ValidatedInput}
 import lucuma.odb.api.model.syntax.validatedinput._
 

@@ -4,13 +4,10 @@
 package lucuma.odb.api.model.targetModel
 
 import lucuma.core.math.Coordinates
-import lucuma.core.model.{Observation, Program, WithId}
+import lucuma.core.model.{Observation, Program, TargetEnvironment}
 import cats.Eq
-import eu.timepit.refined.auto._
+//import eu.timepit.refined.auto._
 import monocle.Lens
-
-// Will eventually come from lucuma.core.model
-object TargetEnvironment extends WithId('v')
 
 /**
  * The TargetEnvironmentModel with id and references to the containing

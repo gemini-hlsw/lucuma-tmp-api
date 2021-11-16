@@ -3,9 +3,9 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target}
+import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target, TargetEnvironment}
 import lucuma.odb.api.model.{AtomModel, ExecutionEventModel, ObservationModel, ProgramModel, StepModel }
-import lucuma.odb.api.model.targetModel.{ TargetEnvironment, TargetEnvironmentModel, TargetModel}
+import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
 import cats.instances.order._
 import monocle.Lens
 import monocle.function.At

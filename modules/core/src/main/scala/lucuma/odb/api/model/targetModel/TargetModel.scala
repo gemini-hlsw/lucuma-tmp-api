@@ -4,7 +4,7 @@
 package lucuma.odb.api.model.targetModel
 
 import lucuma.core.math.ProperMotion
-import lucuma.core.model.{SiderealTracking, Target}
+import lucuma.core.model.{SiderealTracking, Target, TargetEnvironment}
 import cats.Eq
 import monocle.{Focus, Lens, Optional}
 

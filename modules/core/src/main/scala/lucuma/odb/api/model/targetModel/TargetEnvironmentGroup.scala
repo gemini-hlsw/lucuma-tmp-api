@@ -5,7 +5,7 @@ package lucuma.odb.api.model.targetModel
 
 import cats.{Eq, Functor}
 import cats.implicits.catsKernelOrderingForOrder
-
+import lucuma.core.model.TargetEnvironment
 import scala.collection.immutable.SortedSet
 
 /**

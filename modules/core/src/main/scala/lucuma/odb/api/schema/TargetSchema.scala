@@ -6,11 +6,11 @@ package lucuma.odb.api.schema
 import cats.MonadError
 import lucuma.odb.api.schema.syntax.all._
 import lucuma.odb.api.model.{DeclinationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
-import lucuma.odb.api.model.targetModel.{CommonTarget, CommonTargetEnvironment, TargetEnvironment, TargetEnvironmentModel, TargetHolder, TargetModel}
+import lucuma.odb.api.model.targetModel.{CommonTarget, CommonTargetEnvironment, TargetEnvironmentModel, TargetHolder, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.`enum`.{CatalogName, MagnitudeBand, MagnitudeSystem,EphemerisKeyType => EphemerisKeyTypeEnum}
 import lucuma.core.math.{Coordinates, Declination, MagnitudeValue, Parallax, ProperMotion, RadialVelocity, RightAscension, VelocityAxis}
-import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, SiderealTracking, Target}
+import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, SiderealTracking, Target, TargetEnvironment}
 import cats.syntax.all._
 import cats.effect.std.Dispatcher
 import sangria.schema.{Field, _}

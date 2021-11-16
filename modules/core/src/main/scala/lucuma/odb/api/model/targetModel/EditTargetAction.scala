@@ -9,6 +9,7 @@ import cats.mtl.Stateful
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
+import lucuma.core.model.TargetEnvironment
 import lucuma.odb.api.model.{DatabaseState, ValidatedInput}
 
 import scala.collection.immutable.SortedSet
@@ -19,8 +20,10 @@ import scala.collection.immutable.SortedSet
  */
 trait EditTargetAction {
 
+  //noinspection MutatorLikeMethodIsParameterless
   def addSidereal:     Option[CreateSiderealInput]
 
+  //noinspection MutatorLikeMethodIsParameterless
   def addNonsidereal:  Option[CreateNonsiderealInput]
 
   def editSidereal:    Option[EditSiderealInput]

@@ -14,7 +14,7 @@ import cats.syntax.traverse._
 import cats.syntax.validated._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
-import lucuma.core.model.{Observation, Program}
+import lucuma.core.model.{Observation, Program, TargetEnvironment}
 import lucuma.odb.api.model.{CoordinatesModel, DatabaseState, InputError, ValidatedInput}
 
 import scala.collection.immutable.SortedSet

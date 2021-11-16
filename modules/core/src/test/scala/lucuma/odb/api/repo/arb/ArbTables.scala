@@ -5,7 +5,7 @@ package lucuma.odb.api.repo
 package arb
 
 import lucuma.core.arb.ArbTime
-import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target}
+import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target, TargetEnvironment}
 import lucuma.odb.api.model.{AtomModel, ExecutionEventModel, InstrumentConfigModel, ObservationModel, ProgramModel, StepModel}
 import lucuma.core.util.Gid
 import lucuma.odb.api.model.SequenceModel.SequenceType.{Acquisition, Science}
@@ -13,7 +13,6 @@ import lucuma.odb.api.model.arb._
 import cats.data.{Nested, State}
 import cats.kernel.instances.order._
 import cats.syntax.all._
-import lucuma.odb.api.model.targetModel.TargetEnvironment
 import org.scalacheck._
 import org.scalacheck.cats.implicits._
 import org.scalacheck.Arbitrary.arbitrary
