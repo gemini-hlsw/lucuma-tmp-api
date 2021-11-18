@@ -6,7 +6,7 @@ package lucuma.odb.api.model
 import lucuma.core.model.{Atom, Observation, Step}
 import cats.{Eq, Functor}
 import cats.mtl.Stateful
-import io.chrisdavenport.cats.time._
+import org.typelevel.cats.time._
 
 import java.time.Instant
 

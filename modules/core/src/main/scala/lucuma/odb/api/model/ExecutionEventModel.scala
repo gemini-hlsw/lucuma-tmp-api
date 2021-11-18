@@ -9,7 +9,7 @@ import lucuma.core.util.Enumerated
 import cats.{Eq, Monad, Order}
 import cats.syntax.all._
 import eu.timepit.refined.types.numeric._
-import io.chrisdavenport.cats.time.instances.instant._
+import org.typelevel.cats.time.instances.instant._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import io.circe.refined._
