@@ -9,7 +9,7 @@ import lucuma.core.optics.Format
 import atto._
 import Atto._
 import cats.Order
-import io.chrisdavenport.cats.time.instances.localdate._
+import org.typelevel.cats.time.instances.localdate._
 import eu.timepit.refined.types.all.PosInt
 import io.circe.Decoder
 
