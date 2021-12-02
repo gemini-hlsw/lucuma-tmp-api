@@ -40,7 +40,7 @@ final case class CreateNonsiderealInput(
     (toEphemerisKey,
      magnitudes.toList.flatten.traverse(_.toMagnitude)
     ).mapN { (k, ms) =>
-      NonsiderealTarget(name, k, SortedMap.from(ms.fproductLeft(_.band)))
+      NonsiderealTarget(name, k, SortedMap.from(ms.fproductLeft(_.band)), None)
     }
 
 }

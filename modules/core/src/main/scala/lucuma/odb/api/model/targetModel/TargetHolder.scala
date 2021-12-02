@@ -14,8 +14,8 @@ trait TargetHolder {
 
   def track: Either[EphemerisKey, SiderealTracking] =
     target match {
-      case NonsiderealTarget(_, k, _) => Left(k)
-      case SiderealTarget(_, t, _)    => Right(t)
+      case NonsiderealTarget(_, k, _, _) => Left(k)
+      case SiderealTarget(_, t, _, _)    => Right(t)
     }
 
 }
