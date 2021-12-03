@@ -18,9 +18,9 @@ trait RepoState[T, A, B] extends RepoReader[T, A, B] {
 
   def getUnusedId[F[_]: Monad](suggestion: Option[A])(implicit G: Gid[A], S: Stateful[F, T]): F[ValidatedInput[A]]
 
-  def saveNew[F[_]: Applicative](a: A, b: B)(implicit G: Gid[A], S: Stateful[F, T]): F[ValidatedInput[Unit]]
+  def saveNew[F[_]: Monad](a: A, b: B)(implicit G: Gid[A], S: Stateful[F, T]): F[ValidatedInput[Unit]]
 
-  def saveNewIfValid[F[_]: Applicative](b: ValidatedInput[B])(id: B => A)(implicit G: Gid[A], S: Stateful[F, T]): F[ValidatedInput[Unit]]
+  def saveNewIfValid[F[_]: Monad](b: ValidatedInput[B])(id: B => A)(implicit G: Gid[A], S: Stateful[F, T]): F[ValidatedInput[Unit]]
 
   def update[F[_]: Applicative](a: A, b: B)(implicit G: Gid[A], S: Stateful[F, T]): F[Unit]
 
@@ -76,13 +76,13 @@ object RepoState {
           }
         }
 
-      override def saveNew[F[_]: Applicative](a: A, b: B)(implicit G: Gid[A], S: Stateful[F, T]): F[ValidatedInput[Unit]] =
-        isDefinedAt(a).ifA(
-          Applicative[F].pure(alreadyDefined(a).invalidNec[Unit]),
+      override def saveNew[F[_]: Monad](a: A, b: B)(implicit G: Gid[A], S: Stateful[F, T]): F[ValidatedInput[Unit]] =
+        isDefinedAt(a).ifM(
+          alreadyDefined(a).invalidNec[Unit].pure[F],
           update(a, b).map(_.validNec[InputError])
         )
 
-      override def saveNewIfValid[F[_]: Applicative](b: ValidatedInput[B])(id: B => A)(implicit G: Gid[A], S: Stateful[F, T]): F[ValidatedInput[Unit]] =
+      override def saveNewIfValid[F[_]: Monad](b: ValidatedInput[B])(id: B => A)(implicit G: Gid[A], S: Stateful[F, T]): F[ValidatedInput[Unit]] =
         b.fold(
           nec => Applicative[F].pure(nec.invalid[Unit]),
           v   => saveNew(id(v), v)

@@ -64,7 +64,7 @@ final case class CreateSiderealInput(
     (toSiderealTracking,
      magnitudes.toList.flatten.traverse(_.toMagnitude)
     ).mapN { (pm, ms) =>
-      SiderealTarget(name, pm, SortedMap.from(ms.fproductLeft(_.band)))
+      SiderealTarget(name, pm, SortedMap.from(ms.fproductLeft(_.band)), None)
     }
 
 }
