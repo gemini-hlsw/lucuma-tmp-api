@@ -51,7 +51,7 @@ final case class EditSiderealInput(
         _ <- Target.baseRA            := ra
         _ <- Target.baseDec           := dec
         _ <- Target.epoch             := epoch
-        _ <- TargetModel.properMotion := pm
+        _ <- Target.properMotion      := pm
         _ <- Target.radialVelocity    := rv
         _ <- Target.parallax          := px
         _ <- Target.magnitudes.mod(m => ms.fold(m)(_.runS(m).value))
