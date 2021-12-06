@@ -3,10 +3,9 @@
 
 package lucuma.odb.api.model.targetModel
 
-import lucuma.core.math.ProperMotion
-import lucuma.core.model.{SiderealTracking, Target, TargetEnvironment}
+import lucuma.core.model.{Target, TargetEnvironment}
 import cats.Eq
-import monocle.{Focus, Lens, Optional}
+import monocle.{Focus, Lens}
 
 
 /**
@@ -36,11 +35,5 @@ trait TargetModelOptics { self: TargetModel.type =>
 
   val target: Lens[TargetModel, Target] =
     Focus[TargetModel](_.target)
-
-  // Target.properMotion is Optional[Target, ProperMotion], which makes it
-  // impossible to assign None to the ProperMotion of a SiderealTarget ?
-
-  val properMotion: Optional[Target, Option[ProperMotion]] =
-    Target.siderealTracking.andThen(SiderealTracking.properMotion)
 
 }
