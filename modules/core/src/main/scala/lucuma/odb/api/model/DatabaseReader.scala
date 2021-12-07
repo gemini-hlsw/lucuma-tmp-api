@@ -3,8 +3,8 @@
 
 package lucuma.odb.api.model
 
-import lucuma.core.model.{Atom, Observation, Program, Step, Target, TargetEnvironment }
-import lucuma.odb.api.model.targetModel.{ TargetEnvironmentModel, TargetModel }
+import lucuma.core.model.{Atom, Observation, Program, Step, Target}
+import lucuma.odb.api.model.targetModel.TargetModel
 
 trait DatabaseReader[T] {
 
@@ -17,7 +17,5 @@ trait DatabaseReader[T] {
   def step:              RepoReader[T, Step.Id, StepModel[_]]
 
   def target:            RepoReader[T, Target.Id, TargetModel]
-
-  def targetEnvironment: RepoReader[T, TargetEnvironment.Id, TargetEnvironmentModel]
 
 }

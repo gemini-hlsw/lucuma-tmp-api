@@ -42,7 +42,7 @@ final class TargetModelSuite extends DisciplineSuite {
 
   checkAll("EditSiderealInput", EqTests[EditSiderealInput].eqv)
   checkAll("EditNonsiderealInput", EqTests[EditNonsiderealInput].eqv)
-  checkAll("EditTargetInput", EqTests[EditTargetInput].eqv)
+  checkAll("EditTargetInput", EqTests[EditAsterismInput].eqv)
 
   checkAll("CreateTargetEnvironmentInput", EqTests[CreateTargetEnvironmentInput].eqv)
   checkAll("SelectTargetEnvironmentInput", EqTests[SelectTargetEnvironmentInput].eqv)

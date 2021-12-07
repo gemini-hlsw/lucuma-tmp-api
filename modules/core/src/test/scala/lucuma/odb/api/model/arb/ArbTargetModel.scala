@@ -261,18 +261,18 @@ trait ArbTargetModel {
       in.key
     )}
 
-  implicit val arbEditTargetInput: Arbitrary[EditTargetInput] =
+  implicit val arbEditTargetInput: Arbitrary[EditAsterismInput] =
     Arbitrary {
       Gen.oneOf(
-        arbitrary[CreateSiderealInput].map(EditTargetInput.addSidereal),
-        arbitrary[CreateNonsiderealInput].map(EditTargetInput.addNonsidereal),
-        arbitrary[EditSiderealInput].map(EditTargetInput.editSidereal),
-        arbitrary[EditNonsiderealInput].map(EditTargetInput.editNonsidereal),
-        arbitrary[SelectTargetInput].map(EditTargetInput.delete)
+        arbitrary[CreateSiderealInput].map(EditAsterismInput.addSidereal),
+        arbitrary[CreateNonsiderealInput].map(EditAsterismInput.addNonsidereal),
+        arbitrary[EditSiderealInput].map(EditAsterismInput.editSidereal),
+        arbitrary[EditNonsiderealInput].map(EditAsterismInput.editNonsidereal),
+        arbitrary[SelectTargetInput].map(EditAsterismInput.delete)
       )
     }
 
-  implicit val cogEditTargetInput: Cogen[EditTargetInput] =
+  implicit val cogEditTargetInput: Cogen[EditAsterismInput] =
     Cogen[(
       Option[CreateSiderealInput],
       Option[CreateNonsiderealInput],
@@ -280,8 +280,8 @@ trait ArbTargetModel {
       Option[EditNonsiderealInput],
       Option[SelectTargetInput]
     )].contramap { in => (
-      in.addSidereal,
-      in.addNonsidereal,
+      in.newSidereal,
+      in.newNonsidereal,
       in.editSidereal,
       in.editNonsidereal,
       in.delete
@@ -302,7 +302,7 @@ trait ArbTargetModel {
       Option[List[CreateTargetInput]]
     )].contramap { in => (
       in.explicitBase,
-      in.science
+      in.asterism
     )}
 
   implicit val arbSelectTargetEnvironmentInput: Arbitrary[SelectTargetEnvironmentInput] =
@@ -361,14 +361,14 @@ trait ArbTargetModel {
     Arbitrary {
       for {
         s <- arbitrary[Option[SelectTargetEnvironmentInput]]
-        e <- arbitrary[List[EditTargetInput]]
+        e <- arbitrary[List[EditAsterismInput]]
       } yield BulkEditTargetListInput(s, e)
     }
 
   implicit val cogBulkEditTargetListInput: Cogen[BulkEditTargetListInput] =
     Cogen[(
       Option[SelectTargetEnvironmentInput],
-      List[EditTargetInput]
+      List[EditAsterismInput]
     )].contramap { in => (
       in.select,
       in.edits

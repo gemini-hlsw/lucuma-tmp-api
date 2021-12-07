@@ -6,12 +6,11 @@ package lucuma.odb.api.model
 import lucuma.odb.api.model.Existence._
 import lucuma.odb.api.model.ScienceConfigurationModel.ScienceConfigurationModelEdit
 import lucuma.odb.api.model.syntax.input._
-import lucuma.odb.api.model.targetModel.CreateTargetEnvironmentInput
+import lucuma.odb.api.model.targetModel.TargetEnvironmentModel
 import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.{Observation, Program}
 import lucuma.core.optics.state.all._
 import lucuma.core.optics.syntax.lens._
-
 import cats.{Eq, Functor, Monad}
 import cats.data.State
 import cats.implicits.catsKernelOrderingForOrder
@@ -74,7 +73,7 @@ object ObservationModel extends ObservationOptics {
     name:                 Option[NonEmptyString],
     status:               Option[ObsStatus],
     activeStatus:         Option[ObsActiveStatus],
-    targets:              Option[CreateTargetEnvironmentInput],
+    targets:              Option[TargetEnvironmentModel.Create],
     constraintSet:        Option[ConstraintSetModel.Create],
     scienceRequirements:  Option[ScienceRequirementsModel.Create],
     scienceConfiguration: Option[ScienceConfigurationModel.Create],
@@ -109,7 +108,7 @@ object ObservationModel extends ObservationOptics {
           )
         }
         _ <- db.observation.saveNewIfValid(o)(_.id)
-        t <- targets.getOrElse(CreateTargetEnvironmentInput.Empty).create(db, programId, i.toOption)
+        t <- targets.getOrElse(TargetEnvironmentModel.Create.Empty).create[F, T](db)
       } yield t *> o
 
   }
@@ -159,9 +158,6 @@ object ObservationModel extends ObservationOptics {
     scienceRequirements:  Option[ScienceRequirementsModel.Edit] = None,
     scienceConfiguration: Input[ScienceConfigurationModelEdit]  = Input.ignore
   ) {
-
-    val id: Observation.Id =
-      observationId
 
     def editOrCreateSciConfig(
       ed: Option[Option[Either[ScienceConfigurationModel, State[ScienceConfigurationModel, Unit]]]]
@@ -214,7 +210,7 @@ object ObservationModel extends ObservationOptics {
       deriveConfiguredDecoder[Edit]
 
     implicit val EqEdit: Eq[Edit] =
-      Eq.by{ a => (
+      Eq.by { a => (
         a.observationId,
         a.existence,
         a.name,

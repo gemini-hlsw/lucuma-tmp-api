@@ -6,7 +6,7 @@ package lucuma.odb.api.schema
 import cats.MonadError
 import cats.effect.std.Dispatcher
 import lucuma.odb.api.model.{CatalogIdModel, CoordinatesModel, DeclinationModel, MagnitudeModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
-import lucuma.odb.api.model.targetModel.{BulkEditTargetEnvironmentInput, BulkEditTargetInput, BulkEditTargetListInput, BulkReplaceTargetListInput, CreateNonsiderealInput, CreateSiderealInput, CreateTargetEnvironmentInput, CreateTargetInput, EditNonsiderealInput, EditSiderealInput, EditTargetInput, SelectTargetEnvironmentInput, SelectTargetInput, TargetEditResult, TargetEnvironmentContext, TargetListEditResult}
+import lucuma.odb.api.model.targetModel.{BulkEditTargetEnvironmentInput, BulkEditTargetInput, BulkEditTargetListInput, BulkReplaceTargetListInput, CreateNonsiderealInput, CreateSiderealInput, CreateTargetEnvironmentInput, CreateTargetInput, EditNonsiderealInput, EditSiderealInput, EditAsterismInput, SelectTargetEnvironmentInput, SelectTargetInput, TargetEditResult, TargetEnvironmentContext, TargetListEditResult}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
 import lucuma.core.`enum`.MagnitudeSystem
@@ -281,8 +281,8 @@ trait TargetMutation extends TargetScalars {
       "Editing input for a single science target"
     )
 
-  implicit val InputObjectEditTargetInput: InputObjectType[EditTargetInput] =
-    deriveInputObjectType[EditTargetInput](
+  implicit val InputObjectEditTargetInput: InputObjectType[EditAsterismInput] =
+    deriveInputObjectType[EditAsterismInput](
       InputObjectTypeName("EditTargetInput"),
       InputObjectTypeDescription("Single target edit options")
     )

@@ -3,8 +3,8 @@
 
 package lucuma.odb.api.model
 
-import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target, TargetEnvironment}
-import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
+import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target}
+import lucuma.odb.api.model.targetModel.TargetModel
 
 trait DatabaseState[T] extends DatabaseReader[T] {
 
@@ -19,7 +19,5 @@ trait DatabaseState[T] extends DatabaseReader[T] {
   def step:              RepoState[T, Step.Id, StepModel[_]]
 
   def target:            RepoState[T, Target.Id, TargetModel]
-
-  def targetEnvironment: RepoState[T, TargetEnvironment.Id, TargetEnvironmentModel]
 
 }

@@ -22,7 +22,6 @@ import lucuma.odb.api.model.syntax.input._
 
 
 final case class EditSiderealInput(
-  select:           SelectTargetInput,
   name:             Input[NonEmptyString]            = Input.ignore,
   catalogId:        Input[CatalogIdModel.Input]      = Input.ignore,
   ra:               Input[RightAscensionModel.Input] = Input.ignore,
@@ -32,9 +31,9 @@ final case class EditSiderealInput(
   radialVelocity:   Input[RadialVelocityModel.Input] = Input.ignore,
   parallax:         Input[ParallaxModel.Input]       = Input.ignore,
   magnitudes:       Option[MagnitudeModel.EditList],
-) extends TargetEditor {
+) {
 
-  override val editor: ValidatedInput[State[Target, Unit]] =
+  val editor: ValidatedInput[State[Target, Unit]] =
     (name          .validateIsNotNull("name"),
      catalogId     .validateNullable(_.toCatalogId),
      ra            .validateNotNullable("ra")(_.toRightAscension),
@@ -72,7 +71,6 @@ object EditSiderealInput {
 
   implicit val EqEditSidereal: Eq[EditSiderealInput] =
     Eq.by(es => (
-      es.select,
       es.name,
       es.catalogId,
       es.ra,

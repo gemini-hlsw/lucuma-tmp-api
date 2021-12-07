@@ -20,12 +20,11 @@ import lucuma.odb.api.model.syntax.input._
 
 
 final case class EditNonsiderealInput(
-  select: SelectTargetInput,
   name:   Input[NonEmptyString] = Input.ignore,
   key:    Input[EphemerisKey]   = Input.ignore,
-) extends TargetEditor {
+) {
 
-  override val editor: ValidatedInput[State[Target, Unit]] =
+  val editor: ValidatedInput[State[Target, Unit]] =
     (name.validateIsNotNull("name"),
      key.validateIsNotNull("key")
     ).mapN { case (n, k) =>
@@ -48,7 +47,6 @@ object EditNonsiderealInput {
 
   implicit val EqEditNonsidereal: Eq[EditNonsiderealInput] =
     Eq.by(en => (
-      en.select,
       en.name,
       en.key
     ))
