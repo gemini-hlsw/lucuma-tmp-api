@@ -25,8 +25,8 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
     query ="""
       mutation UpdateTargetEnvironment($envEdit: BulkEditTargetEnvironmentInput!) {
         updateTargetEnvironment(input: $envEdit) {
-          observation { id }
-          targetEnvironment {
+          id
+          targets {
             explicitBase {
               ra { hms }
               dec { dms }
@@ -39,10 +39,8 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
       {
         "updateTargetEnvironment": [
           {
-            "observation": {
-              "id": "o-3"
-            },
-            "targetEnvironment": {
+            "id": "o-3",
+            "targets": {
               "explicitBase": {
                 "ra": {
                   "hms": "01:00:00.000000"
@@ -59,15 +57,15 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
     variables =json"""
       {
         "envEdit": {
-          "select": {
-            "observations": [ "o-3" ]
-          },
-          "explicitBase": {
-            "ra": {
-              "hms": "01:00:00.00"
-            },
-            "dec": {
-              "dms": "02:00:00.00"
+          "selectObservations": [ "o-3" ],
+          "edit": {
+            "explicitBase": {
+              "ra": {
+                "hms": "01:00:00.00"
+              },
+              "dec": {
+                "dms": "02:00:00.00"
+              }
             }
           }
         }
