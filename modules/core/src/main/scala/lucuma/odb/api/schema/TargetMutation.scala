@@ -190,8 +190,8 @@ trait TargetMutation extends TargetScalars {
 
   implicit val InputObjectEditTargetInput: InputObjectType[TargetModel.Edit] = {
 
-//    import TargetModel.Edit
-//    deriveInputObjectType[Edit](
+      // Not able to derive this for some reason, TBD.
+//    deriveInputObjectType[TargetModel.Edit](
 //      InputObjectTypeName("EditTargetInput"),
 //      InputObjectTypeDescription("Single target edit options"),
 //      ReplaceInputField("existence",  EnumTypeExistence.notNullableField("existence"))
@@ -229,6 +229,8 @@ trait TargetMutation extends TargetScalars {
     )
 
   implicit val InputObjectTypeTargetEnvironmentEdit: InputObjectType[TargetEnvironmentModel.Edit] = {
+
+    // Not able to derive this for some reason, TBD.
 //    deriveInputObjectType[TargetEnvironmentModel.Edit](
 //      InputObjectTypeName("EditTargetEnvironmentInput"),
 //      InputObjectTypeDescription("Target environment editing parameters"),

@@ -174,12 +174,6 @@ object ObservationModel extends ObservationOptics {
         case _              => None
       }
 
-//    def edit[F[_]: Monad, T](
-//      db: DatabaseState[T],
-//      o:  ObservationModel
-//    )(implicit S: Stateful[F, T]): F[ValidatedInput[ObservationModel]] =
-//      editor(db).map(_.map(_.runS(o).value))
-
     def editor[F[_]: Monad, T](
       db: DatabaseState[T]
     )(implicit S: Stateful[F, T]): F[ValidatedInput[State[ObservationModel, Unit]]] = {

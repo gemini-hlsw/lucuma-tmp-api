@@ -99,92 +99,6 @@ trait TargetQuery {
       resolve     = c => c.target(_.selectObservationTargetEnvironment(c.observationId))
     )
 
-//  def TargetEnvironmentGroupType[F[_]: Dispatcher, A](
-//    name:      String,
-//    valueName: String,
-//    outType:   OutputType[A]
-//  )(implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], TargetEnvironmentGroup[A]] =
-//    ObjectType(
-//      name     = name,
-//      fieldsFn = () => fields(
-//
-//        Field(
-//          name        = "targetEnvironmentIds",
-//          fieldType   = ListType(TargetEnvironmentIdType),
-//          description = "IDs of target environments that share the common value".some,
-//          resolve     = _.value.targetEnvironmentIds.toList
-//        ),
-//
-//        Field(
-//          name        = "observationIds",
-//          fieldType   = ListType(ObservationIdType),
-//          description = "IDs of observations that share the common value".some,
-//          resolve     = c => c.target { repo =>
-//            Nested(c.value.targetEnvironmentIds.toList.traverse(repo.unsafeSelectTargetEnvironment))
-//              .map(_.observationId.toList)
-//              .value
-//              .map(_.flatten)
-//          }
-//        ),
-//
-//        Field(
-//          name        = "targetEnvironments",
-//          fieldType   = ListType(TargetEnvironmentModelType[F]),
-//          description = "Target environments that share the common value".some,
-//          resolve     = c => c.target { repo =>
-//            c.value.targetEnvironmentIds.toList.traverse(repo.unsafeSelectTargetEnvironment)
-//          }
-//        ),
-//
-//        Field(
-//          name        = valueName,
-//          fieldType   = outType,
-//          description = "Commonly held value across the target environments".some,
-//          resolve     = _.value.value
-//        )
-//      )
-//    )
-
-//  def groupByScienceTarget[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
-//    Field(
-//      name        = "scienceTargetGroup",
-//      fieldType   = ListType(TargetEnvironmentGroupType[F, CommonTarget]("GroupByTarget", "commonTarget", CommonTargetType[F])),
-//      description = "Target environments grouped by those that share the same target".some,
-//      arguments   = List(
-//        ProgramIdArgument,
-//        ArgumentIncludeDeleted
-//      ),
-//      resolve     = c => c.target(_.groupBySingleScienceTarget(c.programId, c.includeDeleted))
-//    )
-//
-//  def groupByScienceTargetList[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
-//    Field(
-//      name        = "scienceTargetListGroup",
-//      fieldType   = ListType(TargetEnvironmentGroupType[F, Seq[CommonTarget]]("GroupByTargetList", "commonTargetList", ListType(CommonTargetType[F]))),
-//      description = "Target environments grouped by those that share the same collection of targets".some,
-//      arguments   = List(
-//        ProgramIdArgument,
-//        ArgumentIncludeDeleted
-//      ),
-//      resolve     = c => c.target { repo =>
-//        Nested(repo.groupByScienceTargetList(c.programId, c.includeDeleted))
-//          .map(_.map(Seq.from))
-//          .value
-//      }
-//    )
-//
-//  def groupByTargetEnvironment[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
-//    Field(
-//      name        = "targetEnvironmentGroup",
-//      fieldType   = ListType(TargetEnvironmentGroupType[F, CommonTargetEnvironment]("GroupByTargetEnvironment", "commonTargetEnvironment", CommonTargetEnvironmentType[F])),
-//      description = "Target environments grouped by those that share the same properties and targets".some,
-//      arguments   = List(
-//        ProgramIdArgument,
-//        ArgumentIncludeDeleted
-//      ),
-//      resolve     = c => c.target(_.groupByTargetEnvironment(c.programId, c.includeDeleted))
-//    )
-//
   def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
     List(
       target[F],
@@ -192,9 +106,6 @@ trait TargetQuery {
       firstScienceTarget[F],
       asterism[F],
       targetEnvironment[F]
-//      groupByScienceTarget[F],
-//      groupByScienceTargetList[F],
-//      groupByTargetEnvironment[F]
     )
 }
 
