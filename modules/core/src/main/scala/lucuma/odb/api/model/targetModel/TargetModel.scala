@@ -50,9 +50,9 @@ object TargetModel extends TargetModelOptics {
 
     Order.by { a =>
       (
+        a.id,
         a.existence,
         a.target,
-        a.id,
         a.observed
       )
     }

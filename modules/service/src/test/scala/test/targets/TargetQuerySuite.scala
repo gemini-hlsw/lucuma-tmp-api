@@ -19,37 +19,18 @@ class TargetQuerySuite extends OdbSuite {
   // o-7: <none>
   //
 
-  // Pick the first alphabetically by name (or only in this case) science target
-  // for o-2.
+  // Pick the first (or only in this case) science target for o-2.
   queryTest(
     query ="""
       query ScienceTargetForObservation {
-        scienceTarget(observationId: "o-2") {
+        firstScienceTarget(observationId: "o-2") {
           name
         }
       }
     """,
     expected =json"""
       {
-        "scienceTarget": {
-          "name": "NGC 5949"
-        }
-      }
-    """
-  )
-
-  // Now query by target environment id
-  queryTest(
-    query ="""
-      query ScienceTargetForObservation {
-        scienceTarget(targetEnvironmentId: "v-2") {
-          name
-        }
-      }
-    """,
-    expected =json"""
-      {
-        "scienceTarget": {
+        "firstScienceTarget": {
           "name": "NGC 5949"
         }
       }
@@ -59,15 +40,15 @@ class TargetQuerySuite extends OdbSuite {
   // Fetch all science targets for o-6.
   queryTest(
     query ="""
-      query ScienceTargetsForObservation {
-        scienceTargetList(observationId: "o-6") {
+      query AsterismForObservation {
+        asterism(observationId: "o-6") {
           name
         }
       }
     """,
     expected =json"""
       {
-        "scienceTargetList": [
+        "asterism": [
           {
             "name": "NGC 5949"
           },
@@ -123,6 +104,7 @@ class TargetQuerySuite extends OdbSuite {
   // NGC 3312 => o-3, o-4, o-5, o-6
   // NGC 3269 => o-6
   // NGC 4749 => <none>
+/* Disabled at the moment
   queryTest(
     query ="""
       query GroupByScienceTarget {
@@ -176,8 +158,9 @@ class TargetQuerySuite extends OdbSuite {
       }
     """
   )
+ */
 
-  // Group by all science targets.
+  // Group by asterism.
   //
   // NGC 5949                     => o-2
   // NGC 3312                     => o-3, o-4, o-5
@@ -186,23 +169,26 @@ class TargetQuerySuite extends OdbSuite {
   // NGC 4749                     => <none>
   queryTest(
     query ="""
-      query GroupByAllScienceTargets {
-        scienceTargetListGroup(programId: "p-2") {
-          observationIds
-          commonTargetList {
-            name
+      query GroupByAsterism {
+        asterismGroup(programId: "p-2") {
+          nodes {
+            observationIds
+            asterism {
+              name
+            }
           }
         }
       }
     """,
     expected = json"""
       {
-        "scienceTargetListGroup": [
+        "asterismGroup": {
+          "nodes": [
             {
               "observationIds": [
                 "o-2"
               ],
-              "commonTargetList": [
+              "asterism": [
                 {
                   "name": "NGC 5949"
                 }
@@ -214,7 +200,7 @@ class TargetQuerySuite extends OdbSuite {
                 "o-4",
                 "o-5"
               ],
-              "commonTargetList": [
+              "asterism": [
                 {
                   "name": "NGC 3312"
                 }
@@ -224,15 +210,15 @@ class TargetQuerySuite extends OdbSuite {
               "observationIds": [
                 "o-6"
               ],
-              "commonTargetList": [
+              "asterism": [
+                {
+                  "name": "NGC 5949"
+                },
                 {
                   "name": "NGC 3269"
                 },
                 {
                   "name": "NGC 3312"
-                },
-                {
-                  "name": "NGC 5949"
                 }
               ]
             },
@@ -240,19 +226,11 @@ class TargetQuerySuite extends OdbSuite {
               "observationIds": [
                 "o-7"
               ],
-              "commonTargetList": [
-              ]
-            },
-            {
-              "observationIds": [
-              ],
-              "commonTargetList": [
-                {
-                  "name": "NGC 4749"
-                }
+              "asterism": [
               ]
             }
-        ]
+          ]
+        }
       }
     """
   )
@@ -265,14 +243,16 @@ class TargetQuerySuite extends OdbSuite {
     query ="""
       query GroupByTargetEnvironment {
         targetEnvironmentGroup(programId: "p-2") {
-          observationIds
-          commonTargetEnvironment {
-            explicitBase {
-              ra { hms }
-              dec { dms }
-            }
-            scienceTargets {
-              name
+          nodes {
+            observationIds
+            targetEnvironment {
+              explicitBase {
+                ra { hms }
+                dec { dms }
+              }
+              asterism {
+                name
+              }
             }
           }
         }
@@ -280,96 +260,86 @@ class TargetQuerySuite extends OdbSuite {
     """,
     expected = json"""
       {
-        "targetEnvironmentGroup": [
-          {
-            "observationIds" : [
-              "o-2"
-            ],
-            "commonTargetEnvironment" : {
-              "explicitBase" : null,
-              "scienceTargets" : [
-                {
-                  "name" : "NGC 5949"
-                }
-              ]
-            }
-          },
-          {
-            "observationIds" : [
-              "o-3",
-              "o-4"
-            ],
-            "commonTargetEnvironment" : {
-              "explicitBase" : null,
-              "scienceTargets" : [
-                {
-                  "name" : "NGC 3312"
-                }
-              ]
-            }
-          },
-          {
-            "observationIds" : [
-              "o-5"
-            ],
-            "commonTargetEnvironment" : {
-              "explicitBase" : {
-                "ra" : {
-                  "hms" : "10:37:01.992000"
+        "targetEnvironmentGroup": {
+          "nodes": [
+            {
+              "observationIds" : [
+                "o-2"
+              ],
+              "targetEnvironment" : {
+                "explicitBase" : null,
+                "asterism" : [
+                  {
+                    "name" : "NGC 5949"
+                  }
+                ]
+              }
+            },
+            {
+              "observationIds" : [
+                "o-3",
+                "o-4"
+              ],
+              "targetEnvironment" : {
+                "explicitBase" : null,
+                "asterism" : [
+                  {
+                    "name" : "NGC 3312"
+                  }
+                ]
+              }
+            },
+            {
+              "observationIds" : [
+                "o-5"
+              ],
+              "targetEnvironment" : {
+                "explicitBase" : {
+                  "ra" : {
+                    "hms" : "10:37:01.992000"
+                  },
+                  "dec" : {
+                    "dms" : "-27:33:54.000000"
+                  }
                 },
-                "dec" : {
-                  "dms" : "-27:33:54.000000"
-                }
-              },
-              "scienceTargets" : [
-                {
-                  "name" : "NGC 3312"
-                }
-              ]
+                "asterism" : [
+                  {
+                    "name" : "NGC 3312"
+                  }
+                ]
+              }
+            },
+            {
+              "observationIds" : [
+                "o-6"
+              ],
+              "targetEnvironment" : {
+                "explicitBase" : null,
+                "asterism" : [
+                  {
+                    "name" : "NGC 5949"
+                  },
+                  {
+                    "name" : "NGC 3269"
+                  },
+                  {
+                    "name" : "NGC 3312"
+                  }
+                ]
+              }
+            },
+            {
+              "observationIds" : [
+                "o-7"
+              ],
+              "targetEnvironment" : {
+                "explicitBase" : null,
+                "asterism" : [
+                ]
+              }
             }
-          },
-          {
-            "observationIds" : [
-              "o-6"
-            ],
-            "commonTargetEnvironment" : {
-              "explicitBase" : null,
-              "scienceTargets" : [
-                {
-                  "name" : "NGC 3269"
-                },
-                {
-                  "name" : "NGC 3312"
-                },
-                {
-                  "name" : "NGC 5949"
-                }
-              ]
-            }
-          },
-          {
-            "observationIds" : [
-              "o-7"
-            ],
-            "commonTargetEnvironment" : {
-              "explicitBase" : null,
-              "scienceTargets" : [
-              ]
-            }
-          },
-          {
-            "observationIds" : [
-            ],
-            "commonTargetEnvironment" : {
-              "explicitBase" : null,
-              "scienceTargets" : [
-                {
-                  "name": "NGC 4749"
-                }
-              ]
-            }
-          }
-        ]
+          ]
+        }
       }
     """
   )

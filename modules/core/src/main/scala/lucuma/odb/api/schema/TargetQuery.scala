@@ -8,6 +8,7 @@ import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import lucuma.odb.api.repo.{OdbRepo, ResultPage}
 import lucuma.odb.api.model.targetModel.TargetModel
+import lucuma.odb.api.schema.TargetSchema.TargetIdArgument
 import sangria.schema._
 
 
@@ -19,6 +20,18 @@ trait TargetQuery {
   import Paging._
   import ProgramSchema.{ OptionalProgramIdArgument, ProgramIdArgument }
   import TargetSchema.{TargetEnvironmentType, TargetConnectionType, TargetType}
+
+  def target[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+    Field(
+      name        = "target",
+      fieldType   = OptionType(TargetType[F]),
+      description = "Retrieves the target with the given id, if it exists".some,
+      arguments   = List(
+        TargetIdArgument,
+        ArgumentIncludeDeleted
+      ),
+      resolve     = c => c.target(_.select(c.targetId, c.includeDeleted))
+    )
 
   def referencedScienceTargets[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
@@ -174,6 +187,7 @@ trait TargetQuery {
 //
   def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
     List(
+      target[F],
       referencedScienceTargets[F],
       firstScienceTarget[F],
       asterism[F],
