@@ -111,6 +111,13 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
 
       implicit val DecoderEditGmosNorthLongSlit: Decoder[EditGmosNorthLongSlit] =
         deriveConfiguredDecoder[EditGmosNorthLongSlit]
+
+      implicit val EqEditGmosNorthLongSlit: Eq[EditGmosNorthLongSlit] =
+        Eq.by { a => (
+          a.filter,
+          a.disperser,
+          a.slitWidth
+        )}
     }
 
     final case class GmosSouthLongSlit(
@@ -137,6 +144,7 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
 
       implicit val EqGmosSouth: Eq[GmosSouthLongSlit] =
         Eq.by(a => (a.filter, a.disperser, a.slitWidth))
+
     }
 
     final case class CreateGmosSouthLongSlit(
@@ -185,6 +193,14 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
 
       implicit val DecoderEditGmosSouthLongSlit: Decoder[EditGmosSouthLongSlit] =
         deriveConfiguredDecoder[EditGmosSouthLongSlit]
+
+      implicit val EqEditGmosSouthLongSlit: Eq[EditGmosSouthLongSlit] =
+        Eq.by { a => (
+          a.filter,
+          a.disperser,
+          a.slitWidth
+        )}
+
     }
   }
 
@@ -305,6 +321,12 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
   object ScienceConfigurationModelEdit {
     implicit val DecoderScienceConfigurationModelEdit: Decoder[ScienceConfigurationModelEdit] =
       deriveDecoder[ScienceConfigurationModelEdit]
+
+    implicit val EqScienceConfigurationModelEdit: Eq[ScienceConfigurationModelEdit] =
+      Eq.by { a => (
+        a.set,
+        a.edit
+      )}
   }
 
   final case class Edit(
@@ -349,6 +371,12 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
 
     implicit val DecoderEdit: Decoder[Edit] =
       deriveConfiguredDecoder[Edit]
+
+    implicit val EqEdit: Eq[Edit] =
+      Eq.by { a => (
+        a.gmosNorthLongSlit,
+        a.gmosSouthLongSlit
+      )}
   }
 }
 

@@ -10,6 +10,7 @@ import cats.data.State
 import cats.mtl.Stateful
 import cats.syntax.apply._
 import cats.syntax.functor._
+import cats.syntax.option._
 import cats.syntax.traverse._
 import clue.data.Input
 import io.circe.Decoder
@@ -98,6 +99,12 @@ object TargetEnvironmentModel extends TargetEnvironmentModelOptics {
   }
 
   object Edit {
+
+    def explicitBase(c: CoordinatesModel.Input): Edit =
+      Edit(Input.assign(c), None)
+
+    def asterism(tids: List[Target.Id]): Edit =
+      Edit(Input.ignore, tids.some)
 
     import io.circe.generic.extras.semiauto._
     import io.circe.generic.extras.Configuration

@@ -199,7 +199,7 @@ object Init {
     }
 
   val ac3: CreateStepConfig[CreateSouthDynamic] =
-    (step.exposure := (FiniteDurationModel.Input(30.seconds))).runS(ac2).value
+    (step.exposure := FiniteDurationModel.Input(30.seconds)).runS(ac2).value
 
   val acquisitionSequence: SequenceModel.Create[CreateSouthDynamic] =
     SequenceModel.Create(
@@ -281,7 +281,7 @@ object Init {
 
   def obs(
     pid:   Program.Id,
-    target: Option[CreateSiderealInput]
+    target: Option[TargetModel]
   ): ObservationModel.Create =
     ObservationModel.Create(
       observationId        = None,
@@ -289,8 +289,8 @@ object Init {
       name                 = target.map(_.name) orElse NonEmptyString.from("Observation").toOption,
       status               = ObsStatus.New.some,
       activeStatus         = ObsActiveStatus.Active.some,
-      targets              = target.fold(none[CreateTargetEnvironmentInput]) { sidereal =>
-        CreateTargetEnvironmentInput.singleSidereal(sidereal).some
+      targets              = target.fold(none[TargetEnvironmentModel.Create]) { sidereal =>
+        TargetEnvironmentModel.Create(List(sidereal.id).some, None).some
       },
       constraintSet        = None,
       scienceRequirements  = ScienceRequirementsModel.Create.Default.some,
@@ -321,8 +321,9 @@ object Init {
               )
             )
       cs <- targets.liftTo[F]
-      _  <- repo.observation.insert(obs(p.id, cs.headOption))
-      _  <- repo.observation.insert(obs(p.id, cs.lastOption))
+      ts <- cs.traverse(c => repo.target.insert(TargetModel.Create(None, p.id, Some(c), None)))
+      _  <- repo.observation.insert(obs(p.id, ts.headOption))
+      _  <- repo.observation.insert(obs(p.id, ts.lastOption))
       _  <- repo.observation.insert(obs(p.id, None))
     } yield ()
 

@@ -30,7 +30,7 @@ final case class EditSiderealInput(
   properMotion:     Input[ProperMotionModel.Input]   = Input.ignore,
   radialVelocity:   Input[RadialVelocityModel.Input] = Input.ignore,
   parallax:         Input[ParallaxModel.Input]       = Input.ignore,
-  magnitudes:       Option[MagnitudeModel.EditList],
+  magnitudes:       Option[MagnitudeModel.EditList]
 ) {
 
   val editor: ValidatedInput[State[Target, Unit]] =

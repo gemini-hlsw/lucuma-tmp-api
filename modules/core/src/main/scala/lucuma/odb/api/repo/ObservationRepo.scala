@@ -3,16 +3,18 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.core.model.{Observation, Program}
+import lucuma.core.model.{Observation, Program, Target}
 import lucuma.core.optics.state.all._
 import lucuma.odb.api.model.ObservationModel.{BulkEdit, Create, Edit, Group, ObservationEvent}
 import lucuma.odb.api.model.{ConstraintSetModel, Event, InputError, InstrumentConfigModel, ObservationModel, PlannedTimeSummaryModel, ScienceRequirements, ScienceRequirementsModel, ValidatedInput}
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.model.syntax.validatedinput._
+import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
 import cats.data.{EitherT, State}
 import cats.effect.{Async, Ref}
 import cats.implicits._
-import lucuma.odb.api.model.targetModel.{TargetEnvironmentEvent, TargetEnvironmentModel}
+
+import scala.collection.immutable.SortedSet
 
 sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, ObservationModel] {
 
@@ -38,6 +40,31 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
 
   def edit(edit: Edit): F[ObservationModel]
 
+  def groupByTarget(
+    pid:            Program.Id,
+    includeDeleted: Boolean
+  ): F[List[Group[Target.Id]]]
+
+  def groupByTargetInstantiated(
+    pid:            Program.Id,
+    includeDeleted: Boolean
+  ): F[List[Group[TargetModel]]]
+
+  def groupByAsterism(
+    pid:            Program.Id,
+    includeDeleted: Boolean
+  ): F[List[Group[SortedSet[Target.Id]]]]
+
+  def groupByAsterismInstantiated(
+    pid:            Program.Id,
+    includeDeleted: Boolean
+  ): F[List[Group[Seq[TargetModel]]]]
+
+  def groupByTargetEnvironment(
+    pid:            Program.Id,
+    includeDeleted: Boolean
+  ): F[List[Group[TargetEnvironmentModel]]]
+
   def groupByConstraintSet(
     pid:            Program.Id,
     includeDeleted: Boolean
@@ -47,6 +74,10 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
     pid:            Program.Id,
     includeDeleted: Boolean
   ): F[List[Group[ScienceRequirements]]]
+
+  def bulkEditTargetEnvironment(
+    be: BulkEdit[TargetEnvironmentModel.Edit]
+  ): F[List[ObservationModel]]
 
   def bulkEditConstraintSet(
     be: BulkEdit[ConstraintSetModel.Edit]
@@ -106,25 +137,23 @@ object ObservationRepo {
       override def insert(newObs: Create): F[ObservationModel] = {
 
         // Create the observation
-        def create(s: PlannedTimeSummaryModel): F[(Option[TargetEnvironmentModel], ObservationModel)] =
+        def create(s: PlannedTimeSummaryModel): F[ObservationModel] =
           EitherT(
             tablesRef.modify { tables =>
               val (tablesʹ, o) = newObs.create[State[Tables, *], Tables](TableState, s).run(tables).value
 
               o.fold(
                 err => (tables,  InputError.Exception(err).asLeft),
-                o   => (tablesʹ, (tablesʹ.targetEnvironments.values.find(_.observationId === o.id.some), o).asRight)
+                o   => (tablesʹ, o.asRight)
               )
 
             }
           ).rethrowT
 
         for {
-          s   <- PlannedTimeSummaryModel.random[F]
-          tup <- create(s)
-          (env, o) = tup
-          _   <- eventService.publish(ObservationEvent(_, Event.EditType.Created, o))
-          _   <- env.traverse_(e => eventService.publish(TargetEnvironmentEvent(_, Event.EditType.Created, e)))
+          s <- PlannedTimeSummaryModel.random[F]
+          o <- create(s)
+          _ <- eventService.publish(ObservationEvent(_, Event.EditType.Created, o))
         } yield o
 
       }
@@ -134,11 +163,13 @@ object ObservationRepo {
       ): F[ObservationModel] = {
         val update: State[Tables, ValidatedInput[ObservationModel]] =
           for {
+            ed      <- edit.editor[State[Tables, *], Tables](TableState)
             initial <- TableState.observation.lookupValidated[State[Tables, *]](edit.observationId)
-            edited   = initial.andThen(edit.edit)
+            edited   = (ed, initial).mapN { (e, i) => e.runS(i).value }
             _       <- edited.fold(
               _ => State.get[Tables].void,
               o => Tables.observations.mod_(obsMap => obsMap + (o.id -> o))
+
             )
           } yield edited
 
@@ -148,6 +179,44 @@ object ObservationRepo {
         } yield o
       }
 
+      // Targets are different because they exist apart from observations.
+      // In other words, there are targets which no observations reference.
+
+      override def groupByTarget(
+        pid:            Program.Id,
+        includeDeleted: Boolean
+      ): F[List[Group[Target.Id]]] =
+        tablesRef.get.map { t =>
+
+          val used =
+            t.observations
+             .values
+             .filter(o => (o.programId === pid) && (includeDeleted || o.isPresent))
+             .flatMap(o => o.targets.asterism.toList.tupleRight(o.id))
+             .groupMap(_._1)(_._2)
+             .map { case (a, oids) => Group.from(a, oids) }
+             .toList
+
+          val unused =
+            (t.targets.keySet -- used.map(_.value))
+              .toList
+              .map(tid => Group(tid, SortedSet.empty[Observation.Id]))
+
+          (unused ::: used).sortBy(_.value)
+
+        }
+
+      override def groupByTargetInstantiated(
+        pid:            Program.Id,
+        includeDeleted: Boolean
+      ): F[List[Group[TargetModel]]] =
+
+        for {
+          g <- groupByTarget(pid, includeDeleted)
+          t <- tablesRef.get
+        } yield g.map(_.map(t.targets.apply))
+
+
       private def groupBy[A](
         pid:            Program.Id,
         includeDeleted: Boolean
@@ -156,12 +225,36 @@ object ObservationRepo {
       ): F[List[Group[A]]] =
         tablesRef.get.map { t =>
           t.observations
-           .filter { case (_, o) => (o.programId === pid) && (includeDeleted || o.isPresent) }
-           .groupMap(tup => f(tup._2))(_._1)
-           .toList
+           .values
+           .filter(o => (o.programId === pid) && (includeDeleted || o.isPresent))
+           .map(o => (f(o), o.id))
+           .groupMap(_._1)(_._2)
            .map { case (a, oids) => Group.from(a, oids) }
+           .toList
            .sortBy(_.observationIds.head)
         }
+
+      override def groupByAsterism(
+        pid:            Program.Id,
+        includeDeleted: Boolean
+      ): F[List[Group[SortedSet[Target.Id]]]] =
+        groupBy(pid, includeDeleted)(_.targets.asterism)
+
+      override def groupByAsterismInstantiated(
+        pid:            Program.Id,
+        includeDeleted: Boolean
+      ): F[List[Group[Seq[TargetModel]]]] =
+
+        for {
+          g <- groupByAsterism(pid, includeDeleted)
+          t <- tablesRef.get
+        } yield g.map(_.map(_.toList.map(t.targets.apply)))
+
+      override def groupByTargetEnvironment(
+       pid:            Program.Id,
+       includeDeleted: Boolean
+     ): F[List[Group[TargetEnvironmentModel]]] =
+       groupBy(pid, includeDeleted)(_.targets)
 
       override def groupByConstraintSet(
         pid:            Program.Id,
@@ -199,18 +292,37 @@ object ObservationRepo {
           obsList.map(_.distinctBy(_.id).sortBy(_.id))
         }
 
+      override def bulkEditTargetEnvironment(
+        be: BulkEdit[TargetEnvironmentModel.Edit]
+      ): F[List[ObservationModel]] = {
+
+        val update =
+          for {
+            ini <- selectObservations(be.selectProgram, be.selectObservations)
+            ed  <- be.edit.editor[State[Tables, *], Tables](TableState)
+            osʹ  = (ini, ed).mapN { (os, e) =>
+              os.map(ObservationModel.targetEnvironment.modify(env => e.runS(env).value))
+            }
+            _   <- osʹ.traverse { os =>
+              Tables.observations.mod_(_ ++ os.fproductLeft(_.id))
+            }
+          } yield osʹ
+
+        for {
+          os <- tablesRef.modifyState(update).flatMap(_.liftTo[F])
+          _  <- os.traverse_(o => eventService.publish(ObservationModel.ObservationEvent.updated(o)))
+        } yield os
+      }
+
       private def bulkEdit(
         initialObsList: State[Tables, ValidatedInput[List[ObservationModel]]],
-        validateUpdate: ObservationModel => ValidatedInput[Unit],
         editor:         ValidatedInput[ObservationModel => ObservationModel]
       ): F[List[ObservationModel]] = {
 
         val update: State[Tables, ValidatedInput[List[ObservationModel]]] =
           for {
             initial <- initialObsList
-            edited   = (initial, initial.andThen(_.traverse(validateUpdate)), editor).mapN { case (os, _, ed) =>
-              os.map(ed)
-            }
+            edited   = (initial, editor).mapN { case (os, ed) => os.map(ed) }
             _       <- edited.traverse { os =>
               Tables.observations.mod_(_ ++ os.fproductLeft(_.id))
             }
@@ -229,7 +341,6 @@ object ObservationRepo {
 
         bulkEdit(
           selectObservations(be.selectProgram, be.selectObservations),
-          _ => ().validNec[InputError],
           be.edit.editor.map { ed =>
             ObservationModel.constraintSet.modify(cs => ed.runS(cs).value)
           }
@@ -241,7 +352,6 @@ object ObservationRepo {
 
         bulkEdit(
           selectObservations(be.selectProgram, be.selectObservations),
-          _ => ().validNec[InputError],
           be.edit.editor.map { ed =>
             ObservationModel.scienceRequirements.modify(sr => ed.runS(sr).value)
           }

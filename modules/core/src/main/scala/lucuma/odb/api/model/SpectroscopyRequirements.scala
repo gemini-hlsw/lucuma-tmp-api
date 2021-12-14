@@ -136,6 +136,18 @@ object SpectroscopyScienceRequirementsModel {
     implicit val customConfig: Configuration = Configuration.default.withDefaults
 
     implicit val DecoderEdit: Decoder[Edit] = deriveConfiguredDecoder[Edit]
+
+    implicit val EqEdit: Eq[Edit] =
+      Eq.by { a => (
+        a.wavelength,
+        a.resolution,
+        a.signalToNoise,
+        a.signalToNoiseAt,
+        a.wavelengthCoverage,
+        a.focalPlane,
+        a.focalPlaneAngle,
+        a.capabilities
+      )}
   }
 
 

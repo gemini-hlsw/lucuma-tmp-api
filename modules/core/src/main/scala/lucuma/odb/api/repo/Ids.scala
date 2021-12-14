@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target, TargetEnvironment}
+import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target}
 import cats.kernel.BoundedEnumerable
 import monocle.Lens
 
@@ -18,7 +18,6 @@ final case class Ids(
   program:           Program.Id,
   step:              Step.Id,
   target:            Target.Id,
-  targetEnvironment: TargetEnvironment.Id
 )
 
 object Ids extends IdsOptics {
@@ -32,8 +31,6 @@ object Ids extends IdsOptics {
       program           = BoundedEnumerable[Program.Id].minBound,
       step              = BoundedEnumerable[Step.Id].minBound,
       target            = BoundedEnumerable[Target.Id].minBound,
-      targetEnvironment = BoundedEnumerable[TargetEnvironment.Id].minBound
-
     )
 
 }
@@ -60,8 +57,5 @@ sealed trait IdsOptics { self: Ids.type =>
 
   val lastTarget: Lens[Ids, Target.Id] =
     Lens[Ids, Target.Id](_.target)(b => _.copy(target = b))
-
-  val lastTargetEnvironment: Lens[Ids, TargetEnvironment.Id] =
-    Lens[Ids, TargetEnvironment.Id](_.targetEnvironment)(b => _.copy(targetEnvironment = b))
 
 }

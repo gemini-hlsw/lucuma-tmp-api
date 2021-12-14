@@ -11,12 +11,13 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
 import clue.data.Input
+import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import lucuma.core.model.{Program, Target}
 import lucuma.core.optics.state.all._
 import lucuma.core.optics.syntax.lens._
-import lucuma.odb.api.model.{DatabaseState, Existence, TopLevelModel, ValidatedInput}
+import lucuma.odb.api.model.{DatabaseState, Event, Existence, TopLevelModel, ValidatedInput}
 import lucuma.odb.api.model.syntax.input._
 import monocle.{Focus, Lens}
 
@@ -30,7 +31,12 @@ final case class TargetModel(
   programId: Program.Id,
   target:    Target,
   observed:  Boolean
-)
+) {
+
+  def name: NonEmptyString =
+    target.name
+
+}
 
 object TargetModel extends TargetModelOptics {
 
@@ -133,6 +139,22 @@ object TargetModel extends TargetModelOptics {
         a.sidereal,
         a.nonSidereal
       )}
+
+  }
+
+  final case class TargetEvent (
+    id:       Long,
+    editType: Event.EditType,
+    value:    TargetModel,
+  ) extends Event.Edit[TargetModel]
+
+  object TargetEvent {
+
+    def created(value: TargetModel)(id: Long): TargetEvent =
+      TargetEvent(id, Event.EditType.Created, value)
+
+    def updated(value: TargetModel)(id: Long): TargetEvent =
+      TargetEvent(id, Event.EditType.Updated, value)
 
   }
 

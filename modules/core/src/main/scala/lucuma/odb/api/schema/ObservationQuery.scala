@@ -8,6 +8,8 @@ import lucuma.odb.api.repo.{OdbRepo, ResultPage}
 import cats.MonadError
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
+import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
+import lucuma.odb.api.schema.TargetSchema.TargetEnvironmentType
 import sangria.schema._
 
 trait ObservationQuery {
@@ -19,6 +21,7 @@ trait ObservationQuery {
   import ProgramSchema.OptionalProgramIdArgument
   import ObservationSchema.{ObservationIdArgument, ObservationType, ObservationConnectionType, OptionalListObservationIdArgument}
   import ScienceRequirementsSchema.ScienceRequirementsType
+  import TargetSchema.TargetType
 
   def observations[F[_]: Dispatcher](implicit E: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
@@ -60,6 +63,24 @@ trait ObservationQuery {
       resolve     = c => c.observation(_.select(c.observationId, c.includeDeleted))
     )
 
+  def groupByAsterism[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+
+    ObservationGroupSchema.groupingField[F, Seq[TargetModel]](
+      "asterism",
+      "Observations grouped by commonly held science asterisms",
+      ListType(TargetType[F]),
+      (repo, pid, includeDeleted) => repo.groupByAsterismInstantiated(pid, includeDeleted)
+    )
+
+  def groupByTargetEnvironment[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+
+    ObservationGroupSchema.groupingField[F, TargetEnvironmentModel](
+      "targetEnvironment",
+      "Observations grouped by common target environment",
+      TargetEnvironmentType[F],
+      (repo, pid, includeDeleted) => repo.groupByTargetEnvironment(pid, includeDeleted)
+    )
+
   def groupByConstraintSet[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
 
     ObservationGroupSchema.groupingField[F, ConstraintSetModel](
@@ -82,6 +103,8 @@ trait ObservationQuery {
     List(
       observations,
       forId,
+      groupByAsterism,
+      groupByTargetEnvironment,
       groupByConstraintSet,
       groupByScienceRequirements
     )

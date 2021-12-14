@@ -3,10 +3,10 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target, TargetEnvironment}
+import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target}
 import lucuma.core.optics.state.all._
 import lucuma.odb.api.model.{AtomModel, DatabaseState, ExecutionEventModel, ObservationModel, ProgramModel, RepoState, SharingState, StepModel}
-import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
+import lucuma.odb.api.model.targetModel.TargetModel
 import cats.data.State
 import cats.mtl.Stateful
 import monocle.Lens
@@ -33,9 +33,6 @@ trait TableState extends DatabaseState[Tables] {
 
   override val target: RepoState[Tables, Target.Id, TargetModel] =
     RepoState.fromLenses(Tables.lastTargetId, Tables.targets)
-
-  override val targetEnvironment: RepoState[Tables, TargetEnvironment.Id, TargetEnvironmentModel] =
-    RepoState.fromLenses(Tables.lastTargetEnvironmentId, Tables.targetEnvironments)
 
 }
 

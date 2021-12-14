@@ -35,20 +35,14 @@ final class TargetModelSuite extends DisciplineSuite {
   checkAll("TargetModel", EqTests[TargetModel].eqv)
   checkAll("TargetEnvironmentModel", EqTests[TargetEnvironmentModel].eqv)
 
-  checkAll("CreateTargetInput", EqTests[CreateTargetInput].eqv)
+  checkAll("TargetModel.Create", EqTests[TargetModel.Create].eqv)
   checkAll("CreateNonsiderealInput", EqTests[CreateNonsiderealInput].eqv)
   checkAll("CreateSiderealInput", EqTests[CreateSiderealInput].eqv)
-  checkAll("SelectTargetInput", EqTests[SelectTargetInput].eqv)
 
   checkAll("EditSiderealInput", EqTests[EditSiderealInput].eqv)
   checkAll("EditNonsiderealInput", EqTests[EditNonsiderealInput].eqv)
   checkAll("EditTargetInput", EqTests[EditAsterismInput].eqv)
 
-  checkAll("CreateTargetEnvironmentInput", EqTests[CreateTargetEnvironmentInput].eqv)
-  checkAll("SelectTargetEnvironmentInput", EqTests[SelectTargetEnvironmentInput].eqv)
-
-  checkAll("BulkEditTargetInput", EqTests[BulkEditTargetInput].eqv)
-  checkAll("BulkEditTargetListInput", EqTests[BulkEditTargetListInput].eqv)
-  checkAll("BulkEditTargetEnvironmentInput", EqTests[BulkEditTargetEnvironmentInput].eqv)
+  checkAll("TargetEnvironmentModel.Create", EqTests[TargetEnvironmentModel.Create].eqv)
 
 }

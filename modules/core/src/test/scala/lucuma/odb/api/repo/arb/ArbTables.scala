@@ -5,7 +5,7 @@ package lucuma.odb.api.repo
 package arb
 
 import lucuma.core.arb.ArbTime
-import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target, TargetEnvironment}
+import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target}
 import lucuma.odb.api.model.{AtomModel, ExecutionEventModel, InstrumentConfigModel, ObservationModel, ProgramModel, StepModel}
 import lucuma.core.util.Gid
 import lucuma.odb.api.model.SequenceModel.SequenceType.{Acquisition, Science}
@@ -78,10 +78,9 @@ trait ArbTables extends SplitSetHelper {
           lastGid[Observation.Id](os),
           lastGid[Program.Id](ps),
           lastGid[Step.Id](SortedMap.empty[Step.Id, StepModel[_]]),
-          Gid[Target.Id].minBound,
-          Gid[TargetEnvironment.Id].minBound
+          Gid[Target.Id].minBound
         )
-      } yield Tables(ids, SortedMap.empty, SortedMap.empty, os, ps, SortedMap.empty, SortedMap.empty, SortedMap.empty)
+      } yield Tables(ids, SortedMap.empty, SortedMap.empty, os, ps, SortedMap.empty, SortedMap.empty)
     }
 
   /**
