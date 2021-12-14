@@ -21,7 +21,7 @@ trait TargetMutation extends TargetScalars {
   import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
   import NumericUnitsSchema._
   import ProgramSchema.ProgramIdType
-  import TargetSchema.{EnumTypeCatalogName, EphemerisKeyTypeEnumType, EnumTypeMagnitudeBand, EnumTypeMagnitudeSystem, TargetIdType, TargetType}
+  import TargetSchema.{EnumTypeCatalogName, EphemerisKeyTypeEnumType, EnumTypeMagnitudeBand, EnumTypeMagnitudeSystem, TargetIdArgument, TargetIdType, TargetType}
 
   import syntax.inputtype._
   import syntax.inputobjecttype._
@@ -262,10 +262,29 @@ trait TargetMutation extends TargetScalars {
       resolve   = c => c.target(_.edit(c.arg(ArgumentEditTargetInput)))
     )
 
+    def delete[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+    Field(
+      name      = "deleteTarget",
+      fieldType = TargetType[F],
+      arguments = List(TargetIdArgument),
+      resolve   = c => c.target(_.delete(c.targetId))
+    )
+
+  def undelete[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+    Field(
+      name      = "undeleteTarget",
+      fieldType = TargetType[F],
+      arguments = List(TargetIdArgument),
+      resolve   = c => c.target(_.undelete(c.targetId))
+    )
+
+
   def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
     List(
       createTarget,
-      updateTarget
+      updateTarget,
+      delete,
+      undelete
     )
 
 }

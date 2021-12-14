@@ -13,6 +13,7 @@ import lucuma.core.math.{Coordinates, Declination, MagnitudeValue, Parallax, Pro
 import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, NonsiderealTarget, SiderealTarget, SiderealTracking, Target}
 import cats.syntax.all._
 import cats.effect.std.Dispatcher
+import lucuma.odb.api.schema.GeneralSchema.EnumTypeExistence
 import sangria.schema.{Field, _}
 
 object TargetSchema extends TargetScalars {
@@ -394,6 +395,13 @@ object TargetSchema extends TargetScalars {
           fieldType   = TargetIdType,
           description = "Target ID".some,
           resolve     = _.value.id
+        ),
+
+        Field(
+          name        = "existence",
+          fieldType   = EnumTypeExistence,
+          description = "DELETED or PRESENT".some,
+          resolve     = _.value.existence
         ),
 
         Field(
