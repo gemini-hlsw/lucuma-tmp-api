@@ -168,7 +168,6 @@ trait TargetMutation extends TargetScalars {
       InputObjectTypeName("EditNonsiderealInput"),
       InputObjectTypeDescription("Nonsidereal target edit parameters"),
 
-      ReplaceInputField("name", NonEmptyStringType.notNullableField("name")),
       ReplaceInputField("key",  EphemerisKeyType  .notNullableField("key"))
     )
 
@@ -180,7 +179,6 @@ trait TargetMutation extends TargetScalars {
 
       DocumentInputField("magnitudes",    "Edit magnitudes"                                               ),
 
-      ReplaceInputField("name",           NonEmptyStringType       .notNullableField("name"       )),
       ReplaceInputField("catalogId",      InputObjectCatalogId     .nullableField("catalogId"     )),
       ReplaceInputField("ra",             InputObjectRightAscension.notNullableField("ra"         )),
       ReplaceInputField("dec",            InputObjectDeclination   .notNullableField("dec"        )),
@@ -205,6 +203,7 @@ trait TargetMutation extends TargetScalars {
       List(
         InputField("targetId",    TargetIdType),
         InputField("existence",   OptionInputType(EnumTypeExistence)),
+        InputField("name",        OptionInputType(NonEmptyStringType)),
         InputField("sidereal",    OptionInputType(InputObjectTypeEditSidereal)),
         InputField("nonSidereal", OptionInputType(InputObjectTypeEditNonsidereal))
       )

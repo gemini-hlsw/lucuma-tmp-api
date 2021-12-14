@@ -179,10 +179,11 @@ trait ArbTargetModel {
       in.nonsidereal
     )}
 
+//          name  <- arbitrary[Input[NonEmptyString]]
+
   implicit val arbEditSidereal: Arbitrary[EditSiderealInput] =
     Arbitrary {
       for {
-        name  <- arbitrary[Input[NonEmptyString]]
         cat   <- arbitrary[Input[CatalogIdModel.Input]]
         ra    <- arbNotNullableInput[RightAscensionModel.Input].arbitrary
         dec   <- arbNotNullableInput[DeclinationModel.Input].arbitrary
@@ -192,7 +193,6 @@ trait ArbTargetModel {
         px    <- arbitrary[Input[ParallaxModel.Input]]
         mags  <- arbitrary[Option[MagnitudeModel.EditList]]
       } yield EditSiderealInput(
-        name,
         cat,
         ra,
         dec,
@@ -206,7 +206,6 @@ trait ArbTargetModel {
 
   implicit val cogEditSidereal: Cogen[EditSiderealInput] =
     Cogen[(
-      Input[String],
       Input[CatalogIdModel.Input],
       Input[RightAscensionModel.Input],
       Input[DeclinationModel.Input],
@@ -215,7 +214,6 @@ trait ArbTargetModel {
       Input[RadialVelocityModel.Input],
       Input[ParallaxModel.Input]
     )].contramap { in => (
-      in.name.map(_.value),
       in.catalogId,
       in.ra,
       in.dec,
@@ -228,24 +226,20 @@ trait ArbTargetModel {
   implicit val arbEditNonSidereal: Arbitrary[EditNonsiderealInput] =
     Arbitrary {
       for {
-        name <- arbitrary[Input[NonEmptyString]]
         key  <- arbitrary[Input[EphemerisKey]]
       } yield EditNonsiderealInput(
-        name,
         key
       )
     }
 
   implicit val cogEditNonSidereal: Cogen[EditNonsiderealInput] =
     Cogen[(
-      Input[String],
       Input[EphemerisKey]
     )].contramap { in => (
-      in.name.map(_.value),
       in.key
     )}
 
-  implicit val arbEditTargetInput: Arbitrary[EditAsterismInput] =
+  implicit val arbEditAsterismInput: Arbitrary[EditAsterismInput] =
     Arbitrary {
       for {
         a <- arbitrary[Option[Target.Id]]
@@ -253,7 +247,7 @@ trait ArbTargetModel {
       } yield EditAsterismInput(a, d)
     }
 
-  implicit val cogEditTargetInput: Cogen[EditAsterismInput] =
+  implicit val cogEditAsterismInput: Cogen[EditAsterismInput] =
     Cogen[(
       Option[Target.Id],
       Option[Target.Id]

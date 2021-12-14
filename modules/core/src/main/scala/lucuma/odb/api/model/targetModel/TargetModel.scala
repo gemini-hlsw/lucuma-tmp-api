@@ -11,8 +11,10 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
 import clue.data.Input
+import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
+import io.circe.refined._
 import io.circe.generic.semiauto._
 import lucuma.core.model.{Program, Target}
 import lucuma.core.optics.state.all._
@@ -99,6 +101,7 @@ object TargetModel extends TargetModelOptics {
   final case class Edit(
     targetId:    Target.Id,
     existence:   Input[Existence]             = Input.ignore,
+    name:        Input[NonEmptyString]        = Input.ignore,
     sidereal:    Option[EditSiderealInput]    = None,
     nonSidereal: Option[EditNonsiderealInput] = None
   ) {
@@ -108,15 +111,17 @@ object TargetModel extends TargetModelOptics {
 
     private val editor: ValidatedInput[State[TargetModel, Unit]] =
       (existence.validateIsNotNull("existence"),
+       name     .validateIsNotNull("name"),
        sidereal.traverse(_.editor),
        nonSidereal.traverse(_.editor)
-      ).mapN { (e, s, n) =>
+      ).mapN { (e, n, s, ns) =>
         for {
           _ <- TargetModel.existence := e
+          _ <- TargetModel.name      := n
           _ <- s.fold(State.get[TargetModel].void) { ed =>
             TargetModel.target.mod_(ed.runS(_).value)
           }
-          _ <- n.fold(State.get[TargetModel].void) { ed =>
+          _ <- ns.fold(State.get[TargetModel].void) { ed =>
             TargetModel.target.mod_(ed.runS(_).value)
           }
         } yield ()
@@ -136,6 +141,7 @@ object TargetModel extends TargetModelOptics {
       Eq.by { a => (
         a.targetId,
         a.existence,
+        a.name,
         a.sidereal,
         a.nonSidereal
       )}
@@ -170,6 +176,9 @@ trait TargetModelOptics { self: TargetModel.type =>
 
   val target: Lens[TargetModel, Target] =
     Focus[TargetModel](_.target)
+
+  val name: Lens[TargetModel, NonEmptyString] =
+    target.andThen(Target.name)
 
   val observed: Lens[TargetModel, Boolean] =
     Focus[TargetModel](_.observed)
