@@ -20,6 +20,48 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
   // o-7: <none>
   //
 
+  // In o-3, replace NGC 3312 with NGC 5949
+  queryTest(
+    query ="""
+      mutation UpdateTargetEnvironment($envEdit: BulkEditTargetEnvironmentInput!) {
+        updateTargetEnvironment(input: $envEdit) {
+          id
+          targets {
+            asterism {
+              name
+            }
+          }
+        }
+      }
+    """,
+    expected =json"""
+      {
+        "updateTargetEnvironment": [
+          {
+            "id": "o-3",
+            "targets": {
+              "asterism": [
+                {
+                  "name": "NGC 5949"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    """,
+    variables =json"""
+      {
+        "envEdit": {
+          "selectObservations": [ "o-3" ],
+          "edit": {
+            "asterism": [ "t-2" ]
+          }
+        }
+      }
+    """.some
+  )
+
   // Add an explicit base to o-3
   queryTest(
     query ="""
