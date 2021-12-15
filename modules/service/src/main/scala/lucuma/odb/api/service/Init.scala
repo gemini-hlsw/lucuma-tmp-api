@@ -193,7 +193,7 @@ object Init {
         _ <- step.exposure                                        := FiniteDurationModel.Input(20.seconds)
         _ <- step.instrumentConfig.andThen(readout).andThen(xBin) := GmosXBinning.One
         _ <- step.instrumentConfig.andThen(readout).andThen(yBin) := GmosYBinning.One
-        _ <- step.instrumentConfig.andThen(roi)               := GmosRoi.CentralStamp
+        _ <- step.instrumentConfig.andThen(roi)                   := GmosRoi.CentralStamp
         _ <- step.instrumentConfig.andThen(fpu)                   := GmosSouthFpu.LongSlit_1_00.asRight.some
       } yield ()
     }
@@ -222,7 +222,7 @@ object Init {
   val gmos520: CreateSouthDynamic =
     edit(gmosAc) {
       for {
-        _ <- exposure                 := FiniteDurationModel.Input.fromSeconds(950.0)
+        _ <- exposure                 := FiniteDurationModel.Input.fromSeconds(5.0)
         _ <- readout.andThen(ampRead) := GmosAmpReadMode.Slow
         _ <- readout.andThen(xBin)    := GmosXBinning.Two
         _ <- readout.andThen(yBin)    := GmosYBinning.Two
