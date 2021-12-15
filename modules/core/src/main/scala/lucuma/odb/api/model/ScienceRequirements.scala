@@ -75,6 +75,12 @@ object ScienceRequirementsModel {
     implicit val customConfig: Configuration = Configuration.default.withDefaults
 
     implicit val DecoderEdit: Decoder[Edit] = deriveConfiguredDecoder
+
+    implicit val EqEdit: Eq[Edit] =
+      Eq.by { a => (
+        a.mode,
+        a.spectroscopyRequirements
+      )}
   }
 
 }

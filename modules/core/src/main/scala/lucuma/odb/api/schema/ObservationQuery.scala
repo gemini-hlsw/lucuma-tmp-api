@@ -8,6 +8,9 @@ import lucuma.odb.api.repo.{OdbRepo, ResultPage}
 import cats.MonadError
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
+import lucuma.core.model.{Observation, Target}
+import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
+import lucuma.odb.api.schema.TargetSchema.TargetEnvironmentType
 import sangria.schema._
 
 trait ObservationQuery {
@@ -19,6 +22,7 @@ trait ObservationQuery {
   import ProgramSchema.OptionalProgramIdArgument
   import ObservationSchema.{ObservationIdArgument, ObservationType, ObservationConnectionType, OptionalListObservationIdArgument}
   import ScienceRequirementsSchema.ScienceRequirementsType
+  import TargetSchema.TargetType
 
   def observations[F[_]: Dispatcher](implicit E: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
@@ -60,28 +64,68 @@ trait ObservationQuery {
       resolve     = c => c.observation(_.select(c.observationId, c.includeDeleted))
     )
 
+  def groupByTarget[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+
+    ObservationGroupSchema.groupingField[F, TargetModel, Target.Id](
+      "target",
+      "Observations grouped by commonly held targets",
+      TargetType[F],
+      (repo, pid, includeDeleted) => repo.groupByTargetInstantiated(pid, includeDeleted),
+      _.pagingTargetId,
+      _.value.id
+    )
+
+  def groupByAsterism[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+
+    ObservationGroupSchema.groupingField[F, Seq[TargetModel], Observation.Id](
+      "asterism",
+      "Observations grouped by commonly held science asterisms",
+      ListType(TargetType[F]),
+      (repo, pid, includeDeleted) => repo.groupByAsterismInstantiated(pid, includeDeleted),
+      _.pagingObservationId,
+      _.observationIds.head
+    )
+
+  def groupByTargetEnvironment[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+
+    ObservationGroupSchema.groupingField[F, TargetEnvironmentModel, Observation.Id](
+      "targetEnvironment",
+      "Observations grouped by common target environment",
+      TargetEnvironmentType[F],
+      (repo, pid, includeDeleted) => repo.groupByTargetEnvironment(pid, includeDeleted),
+      _.pagingObservationId,
+      _.observationIds.head
+    )
+
   def groupByConstraintSet[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
 
-    ObservationGroupSchema.groupingField[F, ConstraintSetModel](
+    ObservationGroupSchema.groupingField[F, ConstraintSetModel, Observation.Id](
       "constraintSet",
       "Observations grouped by commonly held constraints",
       ConstraintSetType[F],
-      (repo, pid, includeDeleted) => repo.groupByConstraintSet(pid, includeDeleted)
+      (repo, pid, includeDeleted) => repo.groupByConstraintSet(pid, includeDeleted),
+      _.pagingObservationId,
+      _.observationIds.head
     )
 
   def groupByScienceRequirements[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
 
-    ObservationGroupSchema.groupingField[F, ScienceRequirements](
+    ObservationGroupSchema.groupingField[F, ScienceRequirements, Observation.Id](
       "scienceRequirements",
       "Observations grouped by commonly held science requirements",
       ScienceRequirementsType[F],
-      (repo, pid, includeDeleted) => repo.groupByScienceRequirements(pid, includeDeleted)
+      (repo, pid, includeDeleted) => repo.groupByScienceRequirements(pid, includeDeleted),
+      _.pagingObservationId,
+      _.observationIds.head
     )
 
   def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
     List(
       observations,
       forId,
+      groupByTarget,
+      groupByAsterism,
+      groupByTargetEnvironment,
       groupByConstraintSet,
       groupByScienceRequirements
     )

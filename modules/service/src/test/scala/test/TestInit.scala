@@ -14,12 +14,17 @@ import lucuma.core.model.Program
 import lucuma.core.optics.syntax.all._
 import lucuma.odb.api.model.OffsetModel.ComponentInput
 import lucuma.odb.api.model._
-import lucuma.odb.api.model.targetModel.{BulkEditTargetEnvironmentInput, CreateSiderealInput, CreateTargetEnvironmentInput, CreateTargetInput, SelectTargetEnvironmentInput}
+import lucuma.odb.api.model.targetModel.{CreateSiderealInput, TargetEnvironmentModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 
 import scala.concurrent.duration._
 
 object TestInit {
+
+  // 2) NGC 5949
+  // 3) NGC 3269
+  // 4) NGC 3312
+  // 5) NGC 4749
 
   val targetsJson = List(
 """
@@ -314,7 +319,7 @@ object TestInit {
 
   def obs(
     pid:     Program.Id,
-    targets: List[CreateSiderealInput]
+    targets: List[TargetModel]
   ): ObservationModel.Create =
     ObservationModel.Create(
       observationId        = None,
@@ -322,7 +327,7 @@ object TestInit {
       name                 = targets.headOption.map(_.name) orElse NonEmptyString.from("Observation").toOption,
       status               = ObsStatus.New.some,
       activeStatus         = ObsActiveStatus.Active.some,
-      targets              = CreateTargetEnvironmentInput.fromSidereal(targets).some,
+      targets              = TargetEnvironmentModel.Create(targets.map(_.id).some, None).some,
       constraintSet        = None,
       scienceRequirements  = ScienceRequirementsModel.Create.Default.some,
       scienceConfiguration = None,
@@ -351,35 +356,31 @@ object TestInit {
                 NonEmptyString.from("An Empty Placeholder Program").toOption
               )
             )
-      ts <- targets.liftTo[F]
-      cs  = ts.init
-      _  <- repo.observation.insert(obs(p.id, cs.headOption.toList)) // 2
-      _  <- repo.observation.insert(obs(p.id, cs.lastOption.toList)) // 3
-      _  <- repo.observation.insert(obs(p.id, cs.lastOption.toList)) // 4
-//      _  <- repo.observation.insert(obs(p.id, cs.lastOption.toList)) // 5
-      o  <- repo.observation.insert(obs(p.id, cs.lastOption.toList)) // 5
+      cs <- targets.liftTo[F]
+      ts <- cs.init.traverse(c => repo.target.insert(TargetModel.Create.sidereal(None, p.id, c)))
+      _  <- repo.observation.insert(obs(p.id, ts.headOption.toList)) // 2
+      _  <- repo.observation.insert(obs(p.id, ts.lastOption.toList)) // 3
+      _  <- repo.observation.insert(obs(p.id, ts.lastOption.toList)) // 4
+      o  <- repo.observation.insert(obs(p.id, ts.lastOption.toList)) // 5
 
       // Add an explicit base to the last observation's target environment
-      _  <- repo.target.bulkEditTargetEnvironment(
-              BulkEditTargetEnvironmentInput.explicitBase(
-                SelectTargetEnvironmentInput.observations(List(o.id)),
-                RightAscensionModel.Input.fromDegrees(159.2583),
-                DeclinationModel.Input.fromDegrees(-27.5650)
+      _  <- repo.observation.bulkEditTargetEnvironment(
+              ObservationModel.BulkEdit.observations(
+                List(o.id),
+                TargetEnvironmentModel.Edit.explicitBase(
+                  CoordinatesModel.Input(
+                      RightAscensionModel.Input.fromDegrees(159.2583),
+                      DeclinationModel.Input.fromDegrees(-27.5650)
+                  )
+                )
               )
             )
 
-      _  <- repo.observation.insert(obs(p.id, cs))                   // 6
+      // Add an unused target (t-5 NGC 4749)
+      _  <- repo.target.insert(TargetModel.Create.sidereal(None, p.id, cs.last))
+
+      _  <- repo.observation.insert(obs(p.id, ts))                   // 6
       _  <- repo.observation.insert(obs(p.id, Nil))                  // 7
-
-      // Add an unaffiliated target environment
-      _  <- repo.target.createUnaffiliatedTargetEnvironment(
-              p.id,
-              CreateTargetEnvironmentInput(
-                None,
-                None,
-                Some(List(CreateTargetInput.sidereal(ts.last)))
-              )
-            )
 
     } yield ()
 

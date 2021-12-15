@@ -40,7 +40,7 @@ final case class CreateSiderealInput(
   radialVelocity: Option[RadialVelocityModel.Input],
   parallax:       Option[ParallaxModel.Input],
   magnitudes:     Option[List[MagnitudeModel.Create]]
-) extends TargetCreator {
+) {
 
   val toSiderealTracking: ValidatedInput[SiderealTracking] =
     (catalogId.traverse(_.toCatalogId),
@@ -60,7 +60,7 @@ final case class CreateSiderealInput(
       )
     }
 
-  override val toGemTarget: ValidatedInput[Target] =
+  val toGemTarget: ValidatedInput[Target] =
     (toSiderealTracking,
      magnitudes.toList.flatten.traverse(_.toMagnitude)
     ).mapN { (pm, ms) =>

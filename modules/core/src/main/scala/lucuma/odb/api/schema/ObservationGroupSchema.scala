@@ -3,12 +3,14 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.ObservationModel
+import lucuma.odb.api.model.{InputError, ObservationModel}
 import lucuma.odb.api.repo.{ObservationRepo, OdbRepo, ResultPage}
 import cats.MonadError
+import cats.Order.catsKernelOrderingForOrder
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
-import lucuma.core.model.{Observation, Program}
+import lucuma.core.model.Program
+import lucuma.core.util.Gid
 import sangria.schema._
 
 
@@ -86,11 +88,13 @@ object ObservationGroupSchema {
       edgeType
     )
 
-  def groupingField[F[_]: Dispatcher, A](
+  def groupingField[F[_]: Dispatcher, A, G: Gid](
     name:        String,
     description: String,
     outType:     OutputType[A],
-    lookupAll:   (ObservationRepo[F], Program.Id, Boolean) => F[List[ObservationModel.Group[A]]]
+    lookupAll:   (ObservationRepo[F], Program.Id, Boolean) => F[List[ObservationModel.Group[A]]],
+    cursor:      Context[OdbRepo[F], Unit] => Either[InputError, Option[G]],
+    gid:         ObservationModel.Group[A] => G
   )(
     implicit ev: MonadError[F, Throwable]
   ): Field[OdbRepo[F], Unit] = {
@@ -124,11 +128,11 @@ object ObservationGroupSchema {
         ArgumentIncludeDeleted
       ),
       resolve    = c =>
-        Paging.unsafeSelectPageFuture[F, Observation.Id, ObservationModel.Group[A]](
-          c.pagingObservationId,
-          g   => Cursor.gid[Observation.Id].reverseGet(g.observationIds.head),
-          oid => lookupAll(c.ctx.observation, c.programId, c.includeDeleted).map { gs =>
-            ResultPage.fromSeq(gs, c.arg(ArgumentPagingFirst), oid, _.observationIds.head)
+        Paging.unsafeSelectPageFuture[F, G, ObservationModel.Group[A]](
+          cursor(c),
+          grp   => Cursor.gid[G].reverseGet(gid(grp)),
+          after => lookupAll(c.ctx.observation, c.programId, c.includeDeleted).map { gs =>
+            ResultPage.fromSeq(gs.sortBy(gid), c.arg(ArgumentPagingFirst), after, gid)
           }
         )
     )

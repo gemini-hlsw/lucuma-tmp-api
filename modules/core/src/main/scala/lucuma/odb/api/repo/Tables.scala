@@ -3,9 +3,9 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target, TargetEnvironment}
-import lucuma.odb.api.model.{AtomModel, ExecutionEventModel, ObservationModel, ProgramModel, StepModel }
-import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
+import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target}
+import lucuma.odb.api.model.{AtomModel, ExecutionEventModel, ObservationModel, ProgramModel, StepModel}
+import lucuma.odb.api.model.targetModel.TargetModel
 import cats.instances.order._
 import monocle.Lens
 import monocle.function.At
@@ -23,7 +23,6 @@ final case class Tables(
   programs:           SortedMap[Program.Id, ProgramModel],
   steps:              SortedMap[Step.Id, StepModel[_]],
   targets:            SortedMap[Target.Id, TargetModel],
-  targetEnvironments: SortedMap[TargetEnvironment.Id, TargetEnvironmentModel]
 )
 
 object Tables extends TableOptics {
@@ -37,7 +36,6 @@ object Tables extends TableOptics {
       programs           = TreeMap.empty[Program.Id, ProgramModel],
       steps              = TreeMap.empty[Step.Id, StepModel[_]],
       targets            = TreeMap.empty[Target.Id, TargetModel],
-      targetEnvironments = TreeMap.empty[TargetEnvironment.Id, TargetEnvironmentModel]
     )
 
 }
@@ -67,9 +65,6 @@ sealed trait TableOptics { self: Tables.type =>
 
   val lastTargetId: Lens[Tables, Target.Id] =
     ids.andThen(Ids.lastTarget)
-
-  val lastTargetEnvironmentId: Lens[Tables, TargetEnvironment.Id] =
-    ids.andThen(Ids.lastTargetEnvironment)
 
   val atoms: Lens[Tables, SortedMap[Atom.Id, AtomModel[Step.Id]]] =
     Lens[Tables, SortedMap[Atom.Id, AtomModel[Step.Id]]](_.atoms)(b => a => a.copy(atoms = b))
@@ -106,11 +101,5 @@ sealed trait TableOptics { self: Tables.type =>
 
   def target(tid: Target.Id): Lens[Tables, Option[TargetModel]] =
     targets.andThen(At.at(tid))
-
-  val targetEnvironments: Lens[Tables, SortedMap[TargetEnvironment.Id, TargetEnvironmentModel]] =
-    Lens[Tables, SortedMap[TargetEnvironment.Id, TargetEnvironmentModel]](_.targetEnvironments)(b => _.copy(targetEnvironments = b))
-
-  def targetEnvironment(vid: TargetEnvironment.Id): Lens[Tables, Option[TargetEnvironmentModel]] =
-    targetEnvironments.andThen(At.at(vid))
 
 }

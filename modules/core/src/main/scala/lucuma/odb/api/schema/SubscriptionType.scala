@@ -9,7 +9,7 @@ import lucuma.odb.api.model.{ObservationModel, ProgramModel}
 import lucuma.odb.api.model.ObservationModel.ObservationEvent
 import lucuma.odb.api.model.ProgramModel.ProgramEvent
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.core.model.{Observation, Program, TargetEnvironment}
+import lucuma.core.model.{Observation, Program, Target}
 import cats.{Applicative, Eq, MonadError}
 import cats.effect.std.Dispatcher
 import cats.syntax.applicative._
@@ -17,7 +17,8 @@ import cats.syntax.apply._
 import cats.syntax.eq._
 import cats.syntax.functor._
 import fs2.Stream
-import lucuma.odb.api.model.targetModel.{TargetEnvironmentEvent, TargetEnvironmentModel}
+import lucuma.odb.api.model.targetModel.TargetModel.TargetEvent
+import lucuma.odb.api.model.targetModel.TargetModel
 import sangria.schema._
 import sangria.streaming.SubscriptionStream
 import sangria.streaming.SubscriptionStreamLike._
@@ -29,7 +30,7 @@ object SubscriptionType {
 
   import ObservationSchema.OptionalObservationIdArgument
   import ProgramSchema.OptionalProgramIdArgument
-  import TargetSchema.OptionalTargetEnvironmentIdArgument
+  import TargetSchema.OptionalTargetIdArgument
   import syntax.`enum`._
   import context._
 
@@ -39,8 +40,8 @@ object SubscriptionType {
   implicit def programType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], ProgramModel] =
     ProgramSchema.ProgramType[F]
 
-  implicit def targetEnvironmentType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], TargetEnvironmentModel] =
-    TargetSchema.TargetEnvironmentModelType[F]
+  implicit def targetType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], TargetModel] =
+    TargetSchema.TargetType[F]
 
   implicit val EditTypeEnum: EnumType[Event.EditType] =
     EnumType.fromEnumerated(
@@ -161,9 +162,9 @@ object SubscriptionType {
           _.value.id
         ) { (_, e) => Set(e.value.programId).pure[F] },
 
-        editedField[F, TargetEnvironment.Id, TargetEnvironmentModel, TargetEnvironmentEvent](
-          "targetEnvironment",
-          OptionalTargetEnvironmentIdArgument,
+        editedField[F, Target.Id, TargetModel, TargetEvent](
+          "target",
+          OptionalTargetIdArgument,
           _.value.id
         ) { (_, e) => Set(e.value.programId).pure[F] },
 

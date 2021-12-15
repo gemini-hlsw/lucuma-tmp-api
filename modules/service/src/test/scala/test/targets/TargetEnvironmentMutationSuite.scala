@@ -20,13 +20,55 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
   // o-7: <none>
   //
 
+  // In o-3, replace NGC 3312 with NGC 5949
+  queryTest(
+    query ="""
+      mutation UpdateTargetEnvironment($envEdit: BulkEditTargetEnvironmentInput!) {
+        updateTargetEnvironment(input: $envEdit) {
+          id
+          targets {
+            asterism {
+              name
+            }
+          }
+        }
+      }
+    """,
+    expected =json"""
+      {
+        "updateTargetEnvironment": [
+          {
+            "id": "o-3",
+            "targets": {
+              "asterism": [
+                {
+                  "name": "NGC 5949"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    """,
+    variables =json"""
+      {
+        "envEdit": {
+          "selectObservations": [ "o-3" ],
+          "edit": {
+            "asterism": [ "t-2" ]
+          }
+        }
+      }
+    """.some
+  )
+
   // Add an explicit base to o-3
   queryTest(
     query ="""
       mutation UpdateTargetEnvironment($envEdit: BulkEditTargetEnvironmentInput!) {
         updateTargetEnvironment(input: $envEdit) {
-          observation { id }
-          targetEnvironment {
+          id
+          targets {
             explicitBase {
               ra { hms }
               dec { dms }
@@ -39,10 +81,8 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
       {
         "updateTargetEnvironment": [
           {
-            "observation": {
-              "id": "o-3"
-            },
-            "targetEnvironment": {
+            "id": "o-3",
+            "targets": {
               "explicitBase": {
                 "ra": {
                   "hms": "01:00:00.000000"
@@ -59,15 +99,15 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
     variables =json"""
       {
         "envEdit": {
-          "select": {
-            "observations": [ "o-3" ]
-          },
-          "explicitBase": {
-            "ra": {
-              "hms": "01:00:00.00"
-            },
-            "dec": {
-              "dms": "02:00:00.00"
+          "selectObservations": [ "o-3" ],
+          "edit": {
+            "explicitBase": {
+              "ra": {
+                "hms": "01:00:00.00"
+              },
+              "dec": {
+                "dms": "02:00:00.00"
+              }
             }
           }
         }

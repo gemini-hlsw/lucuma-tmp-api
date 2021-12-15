@@ -11,7 +11,7 @@ import cats.MonadError
 import cats.data.State
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
-import lucuma.odb.api.schema.TargetSchema.TargetEnvironmentModelType
+import lucuma.odb.api.schema.TargetSchema.TargetEnvironmentType
 import sangria.schema._
 
 import scala.collection.immutable.Seq
@@ -80,7 +80,7 @@ object ObservationSchema {
         Field(
           name        = "existence",
           fieldType   = EnumTypeExistence,
-          description = Some("Deleted or Present"),
+          description = Some("DELETED or PRESENT"),
           resolve     = _.value.existence
         ),
 
@@ -122,9 +122,9 @@ object ObservationSchema {
 
         Field(
           name        = "targets",
-          fieldType   = TargetEnvironmentModelType[F],
+          fieldType   = TargetEnvironmentType[F],
           description = "The observation's target(s)".some,
-          resolve     = c => c.target(_.unsafeSelectTargetEnvironmentForObservation(c.value.id))
+          resolve     = c => c.target(_.unsafeSelectObservationTargetEnvironment(c.value.id))
         ),
 
         Field(

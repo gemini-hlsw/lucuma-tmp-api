@@ -31,12 +31,12 @@ final case class CreateNonsiderealInput(
   keyType:    EphemerisKeyType,
   des:        String,
   magnitudes: Option[List[MagnitudeModel.Create]]
-) extends TargetCreator {
+) {
 
   val toEphemerisKey: ValidatedInput[EphemerisKey] =
     CreateNonsiderealInput.parse.ephemerisKey("des", keyType, des)
 
-  override val toGemTarget: ValidatedInput[Target] =
+  val toGemTarget: ValidatedInput[Target] =
     (toEphemerisKey,
      magnitudes.toList.flatten.traverse(_.toMagnitude)
     ).mapN { (k, ms) =>

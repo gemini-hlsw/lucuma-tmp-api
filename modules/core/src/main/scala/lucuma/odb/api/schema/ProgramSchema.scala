@@ -61,7 +61,7 @@ object ProgramSchema {
         Field(
           name        = "existence",
           fieldType   = EnumTypeExistence,
-          description = Some("Deleted or Present"),
+          description = Some("DELETED or PRESENT"),
           resolve     = _.value.existence
         ),
 

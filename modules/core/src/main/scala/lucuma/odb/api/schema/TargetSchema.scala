@@ -6,19 +6,19 @@ package lucuma.odb.api.schema
 import cats.MonadError
 import lucuma.odb.api.schema.syntax.all._
 import lucuma.odb.api.model.{DeclinationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
-import lucuma.odb.api.model.targetModel.{CommonTarget, CommonTargetEnvironment, TargetEnvironmentModel, TargetHolder, TargetModel}
+import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.core.`enum`.{CatalogName, MagnitudeBand, MagnitudeSystem,EphemerisKeyType => EphemerisKeyTypeEnum}
+import lucuma.core.`enum`.{CatalogName, MagnitudeBand, MagnitudeSystem, EphemerisKeyType => EphemerisKeyTypeEnum}
 import lucuma.core.math.{Coordinates, Declination, MagnitudeValue, Parallax, ProperMotion, RadialVelocity, RightAscension, VelocityAxis}
-import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, SiderealTracking, Target, TargetEnvironment}
+import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, NonsiderealTarget, SiderealTarget, SiderealTracking, Target}
 import cats.syntax.all._
 import cats.effect.std.Dispatcher
+import lucuma.odb.api.schema.GeneralSchema.EnumTypeExistence
 import sangria.schema.{Field, _}
 
 object TargetSchema extends TargetScalars {
 
   import GeneralSchema.{ArgumentIncludeDeleted, NonEmptyStringType}
-  import ObservationSchema.ObservationType
   import ProgramSchema.ProgramType
 
   import context._
@@ -38,23 +38,6 @@ object TargetSchema extends TargetScalars {
       name         = "targetId",
       argumentType = OptionInputType(TargetIdType),
       description  = "Target ID"
-    )
-
-  implicit val TargetEnvironmentIdType: ScalarType[TargetEnvironment.Id] =
-    ObjectIdSchema.idType[TargetEnvironment.Id]("TargetEnvironmentId")
-
-  val TargetEnvironmentIdArgument: Argument[TargetEnvironment.Id] =
-    Argument(
-      name         = "targetEnvironmentId",
-      argumentType = TargetEnvironmentIdType,
-      description  = "Target Environment ID"
-    )
-
-  val OptionalTargetEnvironmentIdArgument: Argument[Option[TargetEnvironment.Id]] =
-    Argument(
-      name         = "targetEnvironmentId",
-      argumentType = OptionInputType(TargetEnvironmentIdType),
-      description  = "Target environment ID"
     )
 
   implicit val EnumTypeCatalogName: EnumType[CatalogName] =
@@ -402,59 +385,9 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-  // TargetModelType includes all this information.  We could nest this type
-  // inside TargetModelType but then you have another level to traverse to get
-  // at the actual target data.  We need a target type without the ids though
-  // for grouping.  If you include the ids then there is no group of
-  // environments that share the same target.
-
-  def TargetInterfaceType[F[_]]: InterfaceType[OdbRepo[F], TargetHolder] =
-    InterfaceType[OdbRepo[F], TargetHolder](
-      "TargetDescription",
-      "Target data fields",
-      fields[OdbRepo[F], TargetHolder](
-        Field(
-          name        = "name",
-          fieldType   = NonEmptyStringType,
-          description = Some("Target name."),
-          resolve     = _.value.target.name
-        ),
-
-        Field(
-          name        = "tracking",
-          fieldType   = TrackingType[F],
-          description = Some("Information required to find a target in the sky."),
-          resolve     = _.value.track
-        ),
-
-        // TODO: move to ITC target source description
-        Field(
-          name        = "magnitudes",
-          fieldType   = ListType(MagnitudeType[F]),
-          description = Some("Target magnitudes"),
-          resolve     = _.value.target.magnitudes.values.toList
-        )
-      )
-    )
-
-  def CommonTargetType[F[_]]: ObjectType[OdbRepo[F], CommonTarget] =
-    ObjectType(
-      name       = "CommonTarget",
-      interfaces = List(PossibleInterface.apply[OdbRepo[F], CommonTarget](TargetInterfaceType[F])),
-      fields     = fields(
-        Field(
-          name        = "ids",
-          fieldType   = ListType(TargetIdType),
-          description = "Target IDs that share the common target information".some,
-          resolve     = _.value.ids.toList
-        )
-      )
-    )
-
-  def TargetModelType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], TargetModel] =
+  def TargetType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], TargetModel] =
     ObjectType(
       name     = "Target",
-      interfaces = List(PossibleInterface.apply[OdbRepo[F], TargetModel](TargetInterfaceType[F])),
       fieldsFn = () => fields(
 
         Field(
@@ -465,30 +398,17 @@ object TargetSchema extends TargetScalars {
         ),
 
         Field(
-          name        = "targetEnvironmentId",
-          fieldType   = TargetEnvironmentIdType,
-          description = "Target environment ID".some,
-          resolve     = _.value.targetEnvironmentId
+          name        = "existence",
+          fieldType   = EnumTypeExistence,
+          description = "DELETED or PRESENT".some,
+          resolve     = _.value.existence
         ),
 
         Field(
-          name        = "targetEnvironment",
-          fieldType   = TargetEnvironmentModelType,
-          description = "Target environment that houses this target".some,
-          resolve     = c => c.target(_.unsafeSelectTargetEnvironment(c.value.targetEnvironmentId))
-        ),
-
-        Field(
-          name        = "observation",
-          fieldType   = OptionType(ObservationType[F]),
-          description = "Observation that references this target, if any.".some,
-          arguments   = List(ArgumentIncludeDeleted),
-          resolve     = c => c.unsafeToFuture(
-            for {
-              e <- c.ctx.target.unsafeSelectTargetEnvironment(c.value.targetEnvironmentId)
-              o <- e.observationId.flatTraverse(c.ctx.observation.select(_, c.includeDeleted))
-            } yield o
-          )
+          name        = "name",
+          fieldType   = NonEmptyStringType,
+          description = Some("Target name."),
+          resolve     = _.value.target.name
         ),
 
         Field(
@@ -497,67 +417,81 @@ object TargetSchema extends TargetScalars {
           description = "Program that contains this target".some,
           arguments   = List(ArgumentIncludeDeleted),
           resolve     = c => c.unsafeToFuture(
-            for {
-              e <- c.ctx.target.unsafeSelectTargetEnvironment(c.value.targetEnvironmentId)
-              p <- c.ctx.program.unsafeSelect(e.programId, c.includeDeleted)
-            } yield p
+            c.ctx.program.unsafeSelect(c.value.programId, c.includeDeleted)
           )
-        )
-      )
-    )
-
-//  def TargetEdgeType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Edge[Target]] =
-//    Paging.EdgeType(
-//      "TargetEdge",
-//      "A Target and its cursor",
-//      TargetModelType[F]
-//    )
-//
-//  def TargetConnectionType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Connection[Target]] =
-//    Paging.ConnectionType(
-//      "TargetConnection",
-//      "Targets in the current page",
-//      TargetModelType[F],
-//      TargetEdgeType[F]
-//    )
-
-  def CommonTargetEnvironmentType[F[_]]: ObjectType[OdbRepo[F], CommonTargetEnvironment] =
-    ObjectType(
-      name = "CommonTargetEnvironment",
-      fieldsFn = () => fields(
-        Field(
-          name        = "explicitBase",
-          fieldType   = OptionType(CoordinateType[F]),
-          description = "When set, overrides the default base position of the target group".some,
-          resolve     = _.value.explicitBase
         ),
 
         Field(
-          name        = "scienceTargets",
-          fieldType   = ListType(CommonTargetType[F]),
-          description = "All science targets, if any".some,
-          resolve     = _.value.science.toList
+          name        = "tracking",
+          fieldType   = TrackingType[F],
+          description = Some("Information required to find a target in the sky."),
+          resolve     = c => c.value.target match {
+            case SiderealTarget(_, siderealTracking, _, _) => siderealTracking.asRight[EphemerisKey]
+            case NonsiderealTarget(_, ephemerisKey, _, _)  => ephemerisKey.asLeft[SiderealTracking]
+          }
+        ),
+
+        // TODO: move to ITC target source description
+        Field(
+          name        = "magnitudes",
+          fieldType   = ListType(MagnitudeType[F]),
+          description = Some("Target magnitudes"),
+          resolve     = _.value.target.magnitudes.values.toList
+        )
+
+      )
+    )
+
+  def TargetEdgeType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Edge[TargetModel]] =
+    Paging.EdgeType(
+      "TargetEdge",
+      "A Target and its cursor",
+      TargetType[F]
+    )
+
+  def TargetConnectionType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Connection[TargetModel]] =
+    Paging.ConnectionType(
+      "TargetConnection",
+      "Targets in the current page",
+      TargetType[F],
+      TargetEdgeType[F]
+    )
+
+  def TargetEnvironmentType[F[_]: Dispatcher](
+    implicit ev: MonadError[F, Throwable]
+  ): ObjectType[OdbRepo[F], TargetEnvironmentModel] = {
+
+    def asterism(
+      env:             TargetEnvironmentModel,
+      includeDeleted:  Boolean,
+      repo:            OdbRepo[F]
+    ): F[List[TargetModel]] =
+      env.asterism.toList.flatTraverse(tid => repo.target.select(tid, includeDeleted).map(_.toList))
+
+    ObjectType(
+      name = "TargetEnvironment",
+      fieldsFn = () => fields(
+
+        Field(
+          name        = "asterism",
+          fieldType   = ListType(TargetType[F]),
+          description = "All the observation's science targets, if any".some,
+          arguments   = List(ArgumentIncludeDeleted),
+          resolve     = c =>
+            c.unsafeToFuture(
+              asterism(c.value, c.includeDeleted, c.ctx)
+            )
         ),
 
         Field(
           name        = "firstScienceTarget",
-          fieldType   = OptionType(CommonTargetType[F]),
-          description = "First science target, if any".some,
-          resolve     = _.value.science.headOption
-        )
-      )
-    )
-
-  def TargetEnvironmentModelType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], TargetEnvironmentModel] =
-    ObjectType(
-      name = "TargetEnvironment",
-      fieldsFn = () => fields (
-
-        Field(
-          name        = "id",
-          fieldType   = TargetEnvironmentIdType,
-          description = "Target environment id".some,
-          resolve     = _.value.id
+          fieldType   = OptionType(TargetType[F]),
+          description = "First, perhaps only, science target in the asterism".some,
+          arguments   = List(ArgumentIncludeDeleted),
+          resolve     = c =>
+            c.unsafeToFuture(
+              asterism(c.value, c.includeDeleted, c.ctx).map(_.headOption)
+            )
         ),
 
         // TODO: a `base` field that takes a date and time and tells you where
@@ -570,40 +504,9 @@ object TargetSchema extends TargetScalars {
           fieldType   = OptionType(CoordinateType[F]),
           description = "When set, overrides the default base position of the target group".some,
           resolve     = _.value.explicitBase
-        ),
-
-        Field(
-          name        = "scienceTargets",
-          fieldType   = ListType(TargetModelType[F]),
-          description = "All science targets, if any".some,
-          resolve     = c => c.target(_.selectScienceTargetList(c.value.id))
-        ),
-
-        Field(
-          name        = "firstScienceTarget",
-          fieldType   = OptionType(TargetModelType[F]),
-          description = "First science target, if any".some,
-          resolve     = c => c.target(_.selectScienceTargetList(c.value.id).map(_.headOption))
-        ),
-
-        Field(
-          name        = "observation",
-          fieldType   = OptionType(ObservationType[F]),
-          description = "Observation housing this environment, if any".some,
-          arguments   = List(ArgumentIncludeDeleted),
-          resolve     = c => c.observation { repo =>
-            c.value.observationId.flatTraverse(repo.select(_, c.includeDeleted))
-          }
-        ),
-
-        Field(
-          name        = "program",
-          fieldType   = ProgramType[F],
-          description = "Program housing this environment".some,
-          arguments   = List(ArgumentIncludeDeleted),
-          resolve     = c => c.program(_.unsafeSelect(c.value.programId, c.includeDeleted))
         )
 
       )
     )
+  }
 }

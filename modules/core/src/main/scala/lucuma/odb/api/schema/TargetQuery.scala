@@ -3,13 +3,12 @@
 
 package lucuma.odb.api.schema
 
-import cats.{Monad, MonadError}
-import cats.data.Nested
+import cats.MonadError
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
-import lucuma.odb.api.repo.OdbRepo
-import lucuma.odb.api.model.targetModel.{CommonTarget, CommonTargetEnvironment, TargetEnvironmentGroup, TargetModel}
-import lucuma.odb.api.schema.TargetSchema.CommonTargetEnvironmentType
+import lucuma.odb.api.repo.{OdbRepo, ResultPage}
+import lucuma.odb.api.model.targetModel.TargetModel
+import lucuma.odb.api.schema.TargetSchema.TargetIdArgument
 import sangria.schema._
 
 
@@ -17,144 +16,96 @@ trait TargetQuery {
   import context._
 
   import GeneralSchema.ArgumentIncludeDeleted
-  import ObservationSchema.{ OptionalObservationIdArgument, ObservationIdType }
-  import ProgramSchema.ProgramIdArgument
-  import TargetSchema.{OptionalTargetEnvironmentIdArgument, TargetEnvironmentIdType, TargetEnvironmentModelType, TargetModelType, CommonTargetType}
+  import ObservationSchema.{ ObservationIdArgument, OptionalListObservationIdArgument }
+  import Paging._
+  import ProgramSchema.{ OptionalProgramIdArgument, ProgramIdArgument }
+  import TargetSchema.{TargetEnvironmentType, TargetConnectionType, TargetType}
 
-  private def lookupScienceTargets[F[_]: Monad](
-    c: Context[OdbRepo[F], Unit]
-  ): F[List[TargetModel]] =
-    for {
-      e <- c.arg(OptionalTargetEnvironmentIdArgument).traverse(c.ctx.target.selectScienceTargetList)
-      o <- c.arg(OptionalObservationIdArgument).traverse(c.ctx.target.selectScienceTargetListForObservation)
-    } yield e.orElse(o).toList.flatten
-
-  def scienceTarget[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def target[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
-      name        = "scienceTarget",
-      fieldType   = OptionType(TargetModelType[F]),
-      description = "The first (or only) science target (if any) for the given observation (or environment)".some,
-      arguments   = List(OptionalObservationIdArgument, OptionalTargetEnvironmentIdArgument),
-      resolve     = c => c.unsafeToFuture(lookupScienceTargets[F](c).map(_.headOption))
+      name        = "target",
+      fieldType   = OptionType(TargetType[F]),
+      description = "Retrieves the target with the given id, if it exists".some,
+      arguments   = List(
+        TargetIdArgument,
+        ArgumentIncludeDeleted
+      ),
+      resolve     = c => c.target(_.select(c.targetId, c.includeDeleted))
     )
 
-  def scienceTargetList[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def referencedScienceTargets[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
-      name        = "scienceTargetList",
-      fieldType   = ListType(TargetModelType[F]),
+      name        = "referencedScienceTargets",
+      fieldType   = TargetConnectionType[F],
+      description = "All the science targets that are used by one or more observations in the given program".some,
+      arguments   = List(
+        ProgramIdArgument,
+        ArgumentPagingFirst,
+        ArgumentPagingCursor,
+        ArgumentIncludeDeleted
+      ),
+      resolve = c =>
+        unsafeSelectTopLevelPageFuture(c.pagingTargetId) { gid =>
+          c.ctx.target.selectReferencedPageForProgram(c.programId, c.pagingFirst, gid, c.includeDeleted)
+        }
+    )
+
+  def allScienceTargets[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+    Field(
+      name        = "allScienceTargets",
+      fieldType   = TargetConnectionType[F],
+      description = "All the science targets (used or not) associated with a given program or specific observations".some,
+      arguments   = List(
+        OptionalProgramIdArgument,
+        OptionalListObservationIdArgument,
+        ArgumentPagingFirst,
+        ArgumentPagingCursor,
+        ArgumentIncludeDeleted
+      ),
+      resolve = c =>
+        unsafeSelectTopLevelPageFuture(c.pagingTargetId) { gid =>
+          (c.optionalProgramId, c.arg(OptionalListObservationIdArgument)) match {
+            case (_, Some(oids)) => c.ctx.target.selectPageForObservations(oids.toSet, c.pagingFirst, gid, c.includeDeleted)
+            case (Some(pid), _)  => c.ctx.target.selectPageForProgram(pid, c.pagingFirst, gid, c.includeDeleted)
+            case _               => ResultPage.empty[TargetModel].pure[F]
+          }
+        }
+    )
+
+  def firstScienceTarget[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+    Field(
+      name        = "firstScienceTarget",
+      fieldType   = OptionType(TargetType[F]),
+      description = "The first (or only) science target (if any) for the given observation".some,
+      arguments   = List(ObservationIdArgument, ArgumentIncludeDeleted),
+      resolve     = c => c.target(_.selectObservationFirstTarget(c.observationId))
+    )
+
+  def asterism[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+    Field(
+      name        = "asterism",
+      fieldType   = ListType(TargetType[F]),
       description = "All science targets (if any) for the given observation (or environment)".some,
-      arguments   = List(OptionalObservationIdArgument, OptionalTargetEnvironmentIdArgument),
-      resolve     = c => c.unsafeToFuture(lookupScienceTargets[F](c))
+      arguments   = List(ObservationIdArgument, ArgumentIncludeDeleted),
+      resolve     = c => c.target(_.selectObservationAsterism(c.observationId, c.includeDeleted).map(_.toList))
     )
 
   def targetEnvironment[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name        = "targetEnvironment",
-      fieldType   = OptionType(TargetEnvironmentModelType[F]),
+      fieldType   = OptionType(TargetEnvironmentType[F]),
       description = "Target environment for the given observation (or environment id)".some,
-      arguments   = List(OptionalObservationIdArgument, OptionalTargetEnvironmentIdArgument),
-      resolve     = c => c.unsafeToFuture {
-        for {
-          e <- c.arg(OptionalTargetEnvironmentIdArgument).flatTraverse(c.ctx.target.selectTargetEnvironment)
-          o <- c.arg(OptionalObservationIdArgument).flatTraverse(c.ctx.target.selectTargetEnvironmentForObservation)
-        } yield e.orElse(o)
-      }
-    )
-
-  def TargetEnvironmentGroupType[F[_]: Dispatcher, A](
-    name:      String,
-    valueName: String,
-    outType:   OutputType[A]
-  )(implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], TargetEnvironmentGroup[A]] =
-    ObjectType(
-      name     = name,
-      fieldsFn = () => fields(
-
-        Field(
-          name        = "targetEnvironmentIds",
-          fieldType   = ListType(TargetEnvironmentIdType),
-          description = "IDs of target environments that share the common value".some,
-          resolve     = _.value.targetEnvironmentIds.toList
-        ),
-
-        Field(
-          name        = "observationIds",
-          fieldType   = ListType(ObservationIdType),
-          description = "IDs of observations that share the common value".some,
-          resolve     = c => c.target { repo =>
-            Nested(c.value.targetEnvironmentIds.toList.traverse(repo.unsafeSelectTargetEnvironment))
-              .map(_.observationId.toList)
-              .value
-              .map(_.flatten)
-          }
-        ),
-
-        Field(
-          name        = "targetEnvironments",
-          fieldType   = ListType(TargetEnvironmentModelType[F]),
-          description = "Target environments that share the common value".some,
-          resolve     = c => c.target { repo =>
-            c.value.targetEnvironmentIds.toList.traverse(repo.unsafeSelectTargetEnvironment)
-          }
-        ),
-
-        Field(
-          name        = valueName,
-          fieldType   = outType,
-          description = "Commonly held value across the target environments".some,
-          resolve     = _.value.value
-        )
-      )
-    )
-
-  def groupByScienceTarget[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
-    Field(
-      name        = "scienceTargetGroup",
-      fieldType   = ListType(TargetEnvironmentGroupType[F, CommonTarget]("GroupByTarget", "commonTarget", CommonTargetType[F])),
-      description = "Target environments grouped by those that share the same target".some,
-      arguments   = List(
-        ProgramIdArgument,
-        ArgumentIncludeDeleted
-      ),
-      resolve     = c => c.target(_.groupBySingleScienceTarget(c.programId, c.includeDeleted))
-    )
-
-  def groupByScienceTargetList[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
-    Field(
-      name        = "scienceTargetListGroup",
-      fieldType   = ListType(TargetEnvironmentGroupType[F, Seq[CommonTarget]]("GroupByTargetList", "commonTargetList", ListType(CommonTargetType[F]))),
-      description = "Target environments grouped by those that share the same collection of targets".some,
-      arguments   = List(
-        ProgramIdArgument,
-        ArgumentIncludeDeleted
-      ),
-      resolve     = c => c.target { repo =>
-        Nested(repo.groupByScienceTargetList(c.programId, c.includeDeleted))
-          .map(_.map(Seq.from))
-          .value
-      }
-    )
-
-  def groupByTargetEnvironment[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
-    Field(
-      name        = "targetEnvironmentGroup",
-      fieldType   = ListType(TargetEnvironmentGroupType[F, CommonTargetEnvironment]("GroupByTargetEnvironment", "commonTargetEnvironment", CommonTargetEnvironmentType[F])),
-      description = "Target environments grouped by those that share the same properties and targets".some,
-      arguments   = List(
-        ProgramIdArgument,
-        ArgumentIncludeDeleted
-      ),
-      resolve     = c => c.target(_.groupByTargetEnvironment(c.programId, c.includeDeleted))
+      arguments   = List(ObservationIdArgument),
+      resolve     = c => c.target(_.selectObservationTargetEnvironment(c.observationId))
     )
 
   def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
     List(
-      scienceTarget[F],
-      scienceTargetList[F],
-      targetEnvironment[F],
-      groupByScienceTarget[F],
-      groupByScienceTargetList[F],
-      groupByTargetEnvironment[F]
+      target[F],
+      referencedScienceTargets[F],
+      firstScienceTarget[F],
+      asterism[F],
+      targetEnvironment[F]
     )
 }
 
