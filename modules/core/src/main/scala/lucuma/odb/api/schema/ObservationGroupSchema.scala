@@ -129,10 +129,10 @@ object ObservationGroupSchema {
       ),
       resolve    = c =>
         Paging.unsafeSelectPageFuture[F, G, ObservationModel.Group[A]](
-          cursor(c), //c.pagingObservationId,
-          grp => Cursor.gid[G].reverseGet(gid(grp)), //g.observationIds.head),
-          g   => lookupAll(c.ctx.observation, c.programId, c.includeDeleted).map { gs =>
-            ResultPage.fromSeq(gs.sortBy(gid), c.arg(ArgumentPagingFirst), g, gid)//_.observationIds.head)
+          cursor(c),
+          grp   => Cursor.gid[G].reverseGet(gid(grp)),
+          after => lookupAll(c.ctx.observation, c.programId, c.includeDeleted).map { gs =>
+            ResultPage.fromSeq(gs.sortBy(gid), c.arg(ArgumentPagingFirst), after, gid)
           }
         )
     )

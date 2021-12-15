@@ -22,6 +22,10 @@ import scala.concurrent.duration._
 
 object Init {
 
+  // 2) NGC 5949
+  // 3) NGC 3269
+  // 4) NGC 3312
+
   val targetsJson = List(
 """
 {

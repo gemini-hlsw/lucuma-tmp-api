@@ -197,8 +197,15 @@ object ObservationRepo {
              .map { case (a, oids) => Group.from(a, oids) }
              .toList
 
+          val allTargetIds =
+            t.targets
+             .values
+             .filter(t => (t.programId === pid) && (includeDeleted || t.isPresent))
+             .map(_.id)
+             .toSet
+
           val unused =
-            (t.targets.keySet -- used.map(_.value))
+            (allTargetIds -- used.map(_.value))
               .toList
               .map(tid => Group(tid, SortedSet.empty[Observation.Id]))
 

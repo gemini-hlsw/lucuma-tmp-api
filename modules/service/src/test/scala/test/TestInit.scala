@@ -21,6 +21,11 @@ import scala.concurrent.duration._
 
 object TestInit {
 
+  // 2) NGC 5949
+  // 3) NGC 3269
+  // 4) NGC 3312
+  // 5) NGC 4749
+
   val targetsJson = List(
 """
 {
@@ -352,7 +357,7 @@ object TestInit {
               )
             )
       cs <- targets.liftTo[F]
-      ts <- cs.init.traverse(c => repo.target.insert(TargetModel.Create(None, p.id, Some(c), None)))
+      ts <- cs.init.traverse(c => repo.target.insert(TargetModel.Create.sidereal(None, p.id, c)))
       _  <- repo.observation.insert(obs(p.id, ts.headOption.toList)) // 2
       _  <- repo.observation.insert(obs(p.id, ts.lastOption.toList)) // 3
       _  <- repo.observation.insert(obs(p.id, ts.lastOption.toList)) // 4
@@ -370,6 +375,9 @@ object TestInit {
                 )
               )
             )
+
+      // Add an unused target (t-5 NGC 4749)
+      _  <- repo.target.insert(TargetModel.Create.sidereal(None, p.id, cs.last))
 
       _  <- repo.observation.insert(obs(p.id, ts))                   // 6
       _  <- repo.observation.insert(obs(p.id, Nil))                  // 7

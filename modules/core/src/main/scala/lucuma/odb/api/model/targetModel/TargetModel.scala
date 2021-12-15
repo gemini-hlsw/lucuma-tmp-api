@@ -9,6 +9,7 @@ import cats.mtl.Stateful
 import cats.syntax.apply._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
+import cats.syntax.option._
 import cats.syntax.traverse._
 import clue.data.Input
 import eu.timepit.refined.cats._
@@ -85,6 +86,20 @@ object TargetModel extends TargetModelOptics {
   }
 
   object Create {
+
+    def sidereal(
+      targetId:  Option[Target.Id],
+      programId: Program.Id,
+      input:     CreateSiderealInput
+    ): Create =
+      Create(targetId, programId, input.some, None)
+
+    def nonsidereal(
+      targetId:  Option[Target.Id],
+      programId: Program.Id,
+      input:     CreateNonsiderealInput
+    ): Create =
+      Create(targetId, programId, None, input.some)
 
     implicit val DecoderCreate: Decoder[Create] =
       deriveDecoder[Create]

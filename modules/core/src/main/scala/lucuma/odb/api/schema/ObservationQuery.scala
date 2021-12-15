@@ -8,7 +8,7 @@ import lucuma.odb.api.repo.{OdbRepo, ResultPage}
 import cats.MonadError
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
-import lucuma.core.model.Observation
+import lucuma.core.model.{Observation, Target}
 import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
 import lucuma.odb.api.schema.TargetSchema.TargetEnvironmentType
 import sangria.schema._
@@ -64,6 +64,17 @@ trait ObservationQuery {
       resolve     = c => c.observation(_.select(c.observationId, c.includeDeleted))
     )
 
+  def groupByTarget[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+
+    ObservationGroupSchema.groupingField[F, TargetModel, Target.Id](
+      "target",
+      "Observations grouped by commonly held targets",
+      TargetType[F],
+      (repo, pid, includeDeleted) => repo.groupByTargetInstantiated(pid, includeDeleted),
+      _.pagingTargetId,
+      _.value.id
+    )
+
   def groupByAsterism[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
 
     ObservationGroupSchema.groupingField[F, Seq[TargetModel], Observation.Id](
@@ -112,6 +123,7 @@ trait ObservationQuery {
     List(
       observations,
       forId,
+      groupByTarget,
       groupByAsterism,
       groupByTargetEnvironment,
       groupByConstraintSet,

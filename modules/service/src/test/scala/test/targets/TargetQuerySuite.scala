@@ -104,61 +104,63 @@ class TargetQuerySuite extends OdbSuite {
   // NGC 3312 => o-3, o-4, o-5, o-6
   // NGC 3269 => o-6
   // NGC 4749 => <none>
-/* Disabled at the moment
   queryTest(
     query ="""
       query GroupByScienceTarget {
-        scienceTargetGroup(programId: "p-2") {
-           observationIds
-           commonTarget {
-             name
-           }
+        targetGroup(programId: "p-2") {
+          nodes {
+            observationIds
+            target {
+              name
+            }
+          }
         }
       }
     """,
     expected = json"""
       {
-        "scienceTargetGroup": [
-          {
-            "observationIds": [
-              "o-2",
-              "o-6"
-            ],
-            "commonTarget": {
-              "name": "NGC 5949"
+        "targetGroup": {
+          "nodes": [
+            {
+              "observationIds": [
+                "o-2",
+                "o-6"
+              ],
+              "target": {
+                "name": "NGC 5949"
+              }
+            },
+            {
+              "observationIds": [
+                "o-6"
+              ],
+              "target": {
+                "name": "NGC 3269"
+              }
+            },
+            {
+              "observationIds": [
+                "o-3",
+                "o-4",
+                "o-5",
+                "o-6"
+              ],
+              "target": {
+                "name": "NGC 3312"
+              }
+            },
+            {
+              "observationIds": [
+              ],
+              "target": {
+                "name": "NGC 4749"
+              }
             }
-          },
-          {
-            "observationIds": [
-              "o-3",
-              "o-4",
-              "o-5",
-              "o-6"
-            ],
-            "commonTarget": {
-              "name": "NGC 3312"
-            }
-          },
-          {
-            "observationIds": [
-              "o-6"
-            ],
-            "commonTarget": {
-              "name": "NGC 3269"
-            }
-          },
-          {
-            "observationIds": [
-            ],
-            "commonTarget": {
-              "name": "NGC 4749"
-            }
-          }
-        ]
+          ]
+        }
       }
     """
   )
- */
 
   // Group by asterism.
   //
