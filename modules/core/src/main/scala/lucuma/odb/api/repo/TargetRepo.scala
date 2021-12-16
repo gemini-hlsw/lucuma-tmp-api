@@ -11,9 +11,10 @@ import lucuma.odb.api.model.targetModel._
 import lucuma.odb.api.model.targetModel.TargetModel.TargetEvent
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.model.syntax.validatedinput._
+import cats.Order.catsKernelOrderingForOrder
 import cats.effect.{Async, Ref}
-import cats.implicits.{catsKernelOrderingForOrder, catsSyntaxTuple2Semigroupal}
 import cats.syntax.applicative._
+import cats.syntax.apply._
 import cats.syntax.either._
 import cats.syntax.eq._
 import cats.syntax.flatMap._
