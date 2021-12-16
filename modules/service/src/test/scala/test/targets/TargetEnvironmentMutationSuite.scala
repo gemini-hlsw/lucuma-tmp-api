@@ -62,6 +62,34 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
     """.some
   )
 
+  //
+  queryTestFailure(
+    query ="""
+      mutation UpdateTargetEnvironment($envEdit: BulkEditTargetEnvironmentInput!) {
+        updateTargetEnvironment(input: $envEdit) {
+          id
+          targets {
+            asterism {
+              name
+            }
+          }
+        }
+      }
+    """,
+    errors = List("Cannot assign targets from programs other than p-2"),
+    variables =json"""
+      {
+        "envEdit": {
+          "selectObservations": [ "o-3" ],
+          "edit": {
+            "asterism": [ "t-6" ]
+          }
+        }
+      }
+    """.some
+  )
+
+
   // Add an explicit base to o-3
   queryTest(
     query ="""

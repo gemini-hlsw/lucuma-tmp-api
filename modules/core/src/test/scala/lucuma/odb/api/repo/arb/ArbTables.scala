@@ -13,13 +13,14 @@ import lucuma.odb.api.model.arb._
 import cats.data.{Nested, State}
 import cats.kernel.instances.order._
 import cats.syntax.all._
+import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
 import org.scalacheck._
 import org.scalacheck.cats.implicits._
 import org.scalacheck.Arbitrary.arbitrary
 
 import java.time.Instant
 
-import scala.collection.immutable.SortedMap
+import scala.collection.immutable.{SortedMap, SortedSet}
 
 trait ArbTables extends SplitSetHelper {
 
@@ -27,6 +28,7 @@ trait ArbTables extends SplitSetHelper {
   import ArbInstrumentConfigModel._
   import ArbObservationModel._
   import ArbProgramModel._
+  import ArbTargetModel._
   import ArbTime._
 
   private def map[I: Gid, M: Arbitrary](updateId: (M, I) => M): Gen[SortedMap[I, M]] =
@@ -42,26 +44,66 @@ trait ArbTables extends SplitSetHelper {
         )
       }
 
-  private def mapObservations(
-    pids: List[Program.Id]
-  ): Gen[SortedMap[Observation.Id, ObservationModel]] = {
+  private def mapWithValidPid[I: Gid, M: Arbitrary](
+    pids: List[Program.Id],
+    updateId: (M, I) => M,
+    updatePid: (M, Program.Id) => M
+  ): Gen[SortedMap[I, M]] =
 
     if (pids.isEmpty)
-      Gen.const(SortedMap.empty[Observation.Id, ObservationModel])
+      Gen.const(SortedMap.empty[I, M])
     else
       for {
-        om <- map[Observation.Id, ObservationModel]((o, i) => o.copy(id = i))
-        ps <- Gen.listOfN(om.size, Gen.oneOf(pids))
+        ms <- map[I, M](updateId)
+        ps <- Gen.listOfN(ms.size, Gen.oneOf(pids))
       } yield
         SortedMap.from(
-          om.toList.zip(ps).map { case ((i, o), pid) =>
-            (i, o.copy(programId = pid))
-          }
+          ms.toList.zip(ps).map { case ((i, m), pid) => (i, updatePid(m, pid)) }
         )
+
+  private def mapObservations(
+    pids: List[Program.Id],
+    ts:   SortedMap[Target.Id, TargetModel]
+  ): Gen[SortedMap[Observation.Id, ObservationModel]] = {
+
+    // valid targets for each program id
+    val validTids: Map[Program.Id, List[Target.Id]] =
+      ts.values.toList.groupBy(_.programId).view.mapValues(_.map(_.id)).toMap
+
+    for {
+      // observation map where every observation references a valid program
+      m <- mapWithValidPid[Observation.Id, ObservationModel](
+             pids,
+             (m, i)   => m.copy(id = i),
+             (m, pid) => m.copy(programId = pid)
+           )
+
+      // observations where target asterisms refer to valid existing targets
+      // for the program
+      os <- m.values.toList.traverse { om =>
+              Gen.someOf(validTids.getOrElse(om.programId, List.empty))
+                  .map { ts =>
+                    ObservationModel.targetEnvironment
+                      .andThen(TargetEnvironmentModel.asterism)
+                      .replace(SortedSet.from(ts))(om)
+                  }
+            }
+
+    } yield SortedMap.from(os.fproductLeft(_.id))
+
   }
 
   private def mapPrograms: Gen[SortedMap[Program.Id, ProgramModel]] =
     map[Program.Id, ProgramModel]((p, i) => p.copy(id = i))
+
+  private def mapTargets(
+    pids: List[Program.Id]
+  ): Gen[SortedMap[Target.Id, TargetModel]] =
+    mapWithValidPid[Target.Id, TargetModel](
+      pids,
+      (m, i)   => m.copy(id = i),
+      (m, pid) => m.copy(programId = pid)
+    )
 
   private def lastGid[I: Gid](ms: SortedMap[I, _]): I =
     if (ms.isEmpty) Gid[I].minBound else ms.lastKey
@@ -70,7 +112,8 @@ trait ArbTables extends SplitSetHelper {
     Arbitrary {
       for {
         ps <- mapPrograms
-        os <- mapObservations(ps.keys.toList)
+        ts <- mapTargets(ps.keys.toList)
+        os <- mapObservations(ps.keys.toList, ts)
         ids = Ids(
           0L,
           lastGid[Atom.Id](SortedMap.empty[Atom.Id, AtomModel[_]]),
@@ -78,9 +121,9 @@ trait ArbTables extends SplitSetHelper {
           lastGid[Observation.Id](os),
           lastGid[Program.Id](ps),
           lastGid[Step.Id](SortedMap.empty[Step.Id, StepModel[_]]),
-          Gid[Target.Id].minBound
+          lastGid[Target.Id](ts)
         )
-      } yield Tables(ids, SortedMap.empty, SortedMap.empty, os, ps, SortedMap.empty, SortedMap.empty)
+      } yield Tables(ids, SortedMap.empty, SortedMap.empty, os, ps, SortedMap.empty, ts)
     }
 
   /**

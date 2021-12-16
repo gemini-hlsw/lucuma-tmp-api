@@ -10,7 +10,7 @@ import lucuma.odb.api.model.{ConstraintSetModel, Event, InputError, InstrumentCo
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
-import cats.data.{EitherT, State}
+import cats.data.{EitherT, Nested, State}
 import cats.effect.{Async, Ref}
 import cats.implicits._
 
@@ -163,15 +163,16 @@ object ObservationRepo {
       ): F[ObservationModel] = {
         val update: State[Tables, ValidatedInput[ObservationModel]] =
           for {
-            ed      <- edit.editor[State[Tables, *], Tables](TableState)
-            initial <- TableState.observation.lookupValidated[State[Tables, *]](edit.observationId)
-            edited   = (ed, initial).mapN { (e, i) => e.runS(i).value }
-            _       <- edited.fold(
+            initial   <- TableState.observation.lookupValidated[State[Tables, *]](edit.observationId)
+            edited     = (edit.editor, initial).mapN { (e, i) => e.runS(i).value }
+            validated <- edited
+                           .traverse(_.validate[State[Tables, *], Tables](TableState))
+                           .map(_.andThen(identity))
+            _         <- validated.fold(
               _ => State.get[Tables].void,
               o => Tables.observations.mod_(obsMap => obsMap + (o.id -> o))
-
             )
-          } yield edited
+          } yield validated
 
         for {
           o <- tablesRef.modifyState(update).flatMap(_.liftTo[F])
@@ -305,15 +306,16 @@ object ObservationRepo {
 
         val update =
           for {
-            ini <- selectObservations(be.selectProgram, be.selectObservations)
-            ed  <- be.edit.editor[State[Tables, *], Tables](TableState)
-            osʹ  = (ini, ed).mapN { (os, e) =>
+            ini  <- selectObservations(be.selectProgram, be.selectObservations)
+            osʹ   = (ini, be.edit.editor).mapN { (os, e) =>
               os.map(ObservationModel.targetEnvironment.modify(env => e.runS(env).value))
             }
-            _   <- osʹ.traverse { os =>
+            nos  <- Nested(osʹ).traverse(_.validate[State[Tables, *], Tables](TableState))
+            vos   = nos.value.map(_.sequence).andThen(identity)
+            _    <- vos.traverse { os =>
               Tables.observations.mod_(_ ++ os.fproductLeft(_.id))
             }
-          } yield osʹ
+          } yield vos
 
         for {
           os <- tablesRef.modifyState(update).flatMap(_.liftTo[F])
