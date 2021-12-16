@@ -8,7 +8,7 @@ import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import lucuma.odb.api.repo.{OdbRepo, ResultPage}
 import lucuma.odb.api.model.targetModel.TargetModel
-import lucuma.odb.api.schema.TargetSchema.TargetIdArgument
+import lucuma.odb.api.schema.TargetSchema.ArgumentTargetId
 import sangria.schema._
 
 
@@ -27,7 +27,7 @@ trait TargetQuery {
       fieldType   = OptionType(TargetType[F]),
       description = "Retrieves the target with the given id, if it exists".some,
       arguments   = List(
-        TargetIdArgument,
+        ArgumentTargetId,
         ArgumentIncludeDeleted
       ),
       resolve     = c => c.target(_.select(c.targetId, c.includeDeleted))

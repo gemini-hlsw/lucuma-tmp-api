@@ -21,7 +21,7 @@ trait TargetMutation extends TargetScalars {
   import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
   import NumericUnitsSchema._
   import ProgramSchema.ProgramIdType
-  import TargetSchema.{EnumTypeCatalogName, EphemerisKeyTypeEnumType, EnumTypeMagnitudeBand, EnumTypeMagnitudeSystem, TargetIdArgument, TargetIdType, TargetType}
+  import TargetSchema.{EnumTypeCatalogName, EphemerisKeyTypeEnumType, EnumTypeMagnitudeBand, EnumTypeMagnitudeSystem, ArgumentTargetId, TargetIdType, TargetType}
 
   import syntax.inputtype._
   import syntax.inputobjecttype._
@@ -255,6 +255,27 @@ trait TargetMutation extends TargetScalars {
       resolve   = c => c.target(_.insert(c.arg(ArgumentTargetCreate)))
     )
 
+  def cloneTarget[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] = {
+    val existing  = Argument(
+      name         = "existingTargetId",
+      argumentType = TargetIdType,
+      description  = "The existing target's id"
+    )
+
+    val suggested = Argument(
+      name         = "suggestedCloneId",
+      argumentType = OptionInputType(TargetIdType),
+      description  = "The new target clone's id (will be generated if not supplied)"
+    )
+
+    Field(
+      name      = "cloneTarget",
+      fieldType = TargetType[F],
+      arguments = List(existing, suggested),
+      resolve   = c => c.target(_.clone(c.arg(existing), c.arg(suggested)))
+    )
+  }
+
   def updateTarget[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name      = "updateTarget",
@@ -267,7 +288,7 @@ trait TargetMutation extends TargetScalars {
     Field(
       name      = "deleteTarget",
       fieldType = TargetType[F],
-      arguments = List(TargetIdArgument),
+      arguments = List(ArgumentTargetId),
       resolve   = c => c.target(_.delete(c.targetId))
     )
 
@@ -275,7 +296,7 @@ trait TargetMutation extends TargetScalars {
     Field(
       name      = "undeleteTarget",
       fieldType = TargetType[F],
-      arguments = List(TargetIdArgument),
+      arguments = List(ArgumentTargetId),
       resolve   = c => c.target(_.undelete(c.targetId))
     )
 
@@ -283,6 +304,7 @@ trait TargetMutation extends TargetScalars {
   def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
     List(
       createTarget,
+      cloneTarget,
       updateTarget,
       delete,
       undelete
