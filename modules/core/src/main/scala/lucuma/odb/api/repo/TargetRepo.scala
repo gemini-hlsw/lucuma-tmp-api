@@ -11,9 +11,10 @@ import lucuma.odb.api.model.targetModel._
 import lucuma.odb.api.model.targetModel.TargetModel.TargetEvent
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.model.syntax.validatedinput._
+import cats.Order.catsKernelOrderingForOrder
 import cats.effect.{Async, Ref}
-import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.applicative._
+import cats.syntax.apply._
 import cats.syntax.either._
 import cats.syntax.eq._
 import cats.syntax.flatMap._
@@ -115,6 +116,15 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
   def insert(newTarget: TargetModel.Create): F[TargetModel]
 
   def edit(edit: TargetModel.Edit): F[TargetModel]
+
+  /**
+   * Clones the target referenced by `existingTid`.  Uses the `suggestedTid` for
+   * its ID if it is supplied by the caller and not currently in use.
+   */
+  def clone(
+    existingTid:  Target.Id,
+    suggestedTid: Option[Target.Id]
+  ): F[TargetModel]
 
 }
 
@@ -287,6 +297,24 @@ object TargetRepo {
         for {
           t <- tablesRef.modifyState(update).flatMap(_.liftTo[F])
           _ <- eventService.publish(TargetEvent.updated(t))
+        } yield t
+
+      }
+
+      override def clone(
+        existingTid:  Target.Id,
+        suggestedTid: Option[Target.Id]
+      ): F[TargetModel] = {
+
+        val update: State[Tables, ValidatedInput[TargetModel]] =
+          for {
+            t <- TableState.target.lookupValidated[State[Tables, *]](existingTid)
+            i <- TableState.target.getUnusedId[State[Tables, *]](suggestedTid)
+          } yield (t, i).mapN((t2, i2) => t2.clone(i2))
+
+        for {
+          t <- tablesRef.modifyState(update).flatMap(_.liftTo[F])
+          _ <- eventService.publish(TargetEvent.created(t))
         } yield t
 
       }

@@ -39,6 +39,9 @@ final case class TargetModel(
   def name: NonEmptyString =
     target.name
 
+  def clone(newId: Target.Id): TargetModel =
+    copy(id = newId, existence = Existence.Present, observed = false)
+
 }
 
 object TargetModel extends TargetModelOptics {
