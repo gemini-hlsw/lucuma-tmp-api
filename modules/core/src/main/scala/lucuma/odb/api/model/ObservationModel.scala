@@ -44,7 +44,14 @@ final case class ObservationModel(
   scienceConfiguration: Option[ScienceConfigurationModel],
   config:               Option[InstrumentConfigModel.Reference],
   plannedTimeSummary:   PlannedTimeSummaryModel
-)
+) {
+
+  def validate[F[_]: Monad, T](
+    db: DatabaseState[T]
+  )(implicit S: Stateful[F, T]): F[ValidatedInput[ObservationModel]] =
+    targets.validate[F, T](db, programId).map(_.as(this))
+
+}
 
 
 object ObservationModel extends ObservationOptics {
@@ -111,8 +118,9 @@ object ObservationModel extends ObservationOptics {
             s
           )
         }
-        _ <- db.observation.saveNewIfValid(o)(_.id)
-      } yield o
+        oʹ <- o.traverse(_.validate[F, T](db)).map(_.andThen(identity))
+        _  <- db.observation.saveNewIfValid(oʹ)(_.id)
+      } yield oʹ
 
   }
 
@@ -174,40 +182,34 @@ object ObservationModel extends ObservationOptics {
         case _              => None
       }
 
-    def editor[F[_]: Monad, T](
-      db: DatabaseState[T]
-    )(implicit S: Stateful[F, T]): F[ValidatedInput[State[ObservationModel, Unit]]] = {
-      targets.traverse(_.editor[F, T](db)).map { t =>
-        (existence   .validateIsNotNull("existence"),
-         status      .validateIsNotNull("status"),
-         activeStatus.validateIsNotNull("active"),
-         t.sequence,
-         constraintSet.traverse(_.editor),
-         scienceRequirements.traverse(_.editor),
-         scienceConfiguration.validateNullable(_.editor)
-        ).mapN { (e, s, a, tʹ, c, sr, sc) =>
-          for {
-            _ <- ObservationModel.existence    := e
-            _ <- ObservationModel.name         := name.toOptionOption
-            _ <- ObservationModel.status       := s
-            _ <- ObservationModel.activeStatus := a
-            _ <- tʹ.fold(State.get[ObservationModel].void) { ed =>
-              ObservationModel.targetEnvironment.mod_(ed.runS(_).value)
-            }
-            _ <- c.fold(State.get[ObservationModel].void) { ed =>
-              ObservationModel.constraintSet.mod_(ed.runS(_).value)
-            }
-            _ <- sr.fold(State.get[ObservationModel].void) { ed =>
-              ObservationModel.scienceRequirements.mod_(ed.runS(_).value)
-            }
-            _ <- sc.fold(State.get[ObservationModel].void) { ed =>
-              ObservationModel.scienceConfiguration.mod_(editOrCreateSciConfig(ed))
-            }
-          } yield ()
-        }
+    val editor: ValidatedInput[State[ObservationModel, Unit]] =
+      (existence   .validateIsNotNull("existence"),
+       status      .validateIsNotNull("status"),
+       activeStatus.validateIsNotNull("active"),
+       targets.traverse(_.editor),
+       constraintSet.traverse(_.editor),
+       scienceRequirements.traverse(_.editor),
+       scienceConfiguration.validateNullable(_.editor)
+      ).mapN { (e, s, a, tʹ, c, sr, sc) =>
+        for {
+          _ <- ObservationModel.existence    := e
+          _ <- ObservationModel.name         := name.toOptionOption
+          _ <- ObservationModel.status       := s
+          _ <- ObservationModel.activeStatus := a
+          _ <- tʹ.fold(State.get[ObservationModel].void) { ed =>
+            ObservationModel.targetEnvironment.mod_(ed.runS(_).value)
+          }
+          _ <- c.fold(State.get[ObservationModel].void) { ed =>
+            ObservationModel.constraintSet.mod_(ed.runS(_).value)
+          }
+          _ <- sr.fold(State.get[ObservationModel].void) { ed =>
+            ObservationModel.scienceRequirements.mod_(ed.runS(_).value)
+          }
+          _ <- sc.fold(State.get[ObservationModel].void) { ed =>
+            ObservationModel.scienceConfiguration.mod_(editOrCreateSciConfig(ed))
+          }
+        } yield ()
       }
-    }
-
   }
 
   object Edit {

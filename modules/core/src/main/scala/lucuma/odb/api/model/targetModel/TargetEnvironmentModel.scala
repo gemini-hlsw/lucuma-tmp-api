@@ -6,18 +6,20 @@ package lucuma.odb.api.model.targetModel
 import lucuma.core.math.Coordinates
 import cats.{Eq, Monad}
 import cats.Order.catsKernelOrderingForOrder
-import cats.data.State
+import cats.data.{NonEmptyChain, State}
 import cats.mtl.Stateful
 import cats.syntax.apply._
+import cats.syntax.eq._
 import cats.syntax.functor._
 import cats.syntax.option._
 import cats.syntax.traverse._
 import clue.data.Input
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
-import lucuma.core.model.Target
+import lucuma.core.model.{Program, Target}
 import lucuma.core.optics.syntax.all._
-import lucuma.odb.api.model.{CoordinatesModel, DatabaseState, ValidatedInput}
+import lucuma.core.util.Gid
+import lucuma.odb.api.model.{CoordinatesModel, DatabaseState, InputError, ValidatedInput}
 import lucuma.odb.api.model.syntax.input._
 import monocle.Lens
 
@@ -26,7 +28,23 @@ import scala.collection.immutable.SortedSet
 final case class TargetEnvironmentModel(
   asterism:     SortedSet[Target.Id],
   explicitBase: Option[Coordinates]
-)
+) {
+
+  def validate[F[_]: Monad, T](
+    db: DatabaseState[T],
+    pid: Program.Id
+  )(implicit S: Stateful[F, T]): F[ValidatedInput[List[TargetModel]]] = {
+    def err: NonEmptyChain[InputError] =
+      NonEmptyChain.one(
+        InputError.fromMessage(s"Cannot assign targets from programs other than ${Gid[Program.Id].show(pid)}")
+      )
+
+    db.target
+      .lookupAllValidated(asterism.toList)
+      .map(_.ensure(err)(_.forall(_.programId === pid)))
+  }
+
+}
 
 object TargetEnvironmentModel extends TargetEnvironmentModelOptics {
 
@@ -81,21 +99,13 @@ object TargetEnvironmentModel extends TargetEnvironmentModelOptics {
     asterism:     Option[List[Target.Id]]       = None
   ) {
 
-    def editor[F[_]: Monad, T](
-      db: DatabaseState[T]
-    )(implicit S: Stateful[F, T]): F[ValidatedInput[State[TargetEnvironmentModel, Unit]]] =
-
-      asterism.traverse(db.target.lookupAllValidated[F]).map { as =>
-        (explicitBase.validateNullable(_.toCoordinates),
-         as.sequence
-        ).mapN { (b, _) =>
-          for {
-            _ <- TargetEnvironmentModel.explicitBase := b
-            _ <- TargetEnvironmentModel.asterism     := asterism.map(ts => SortedSet.from(ts)(catsKernelOrderingForOrder))
-          } yield ()
-        }
+    val editor: ValidatedInput[State[TargetEnvironmentModel, Unit]] =
+      explicitBase.validateNullable(_.toCoordinates).map { b =>
+        for {
+          _ <- TargetEnvironmentModel.explicitBase := b
+          _ <- TargetEnvironmentModel.asterism     := asterism.map(ts => SortedSet.from(ts)(catsKernelOrderingForOrder))
+        } yield ()
       }
-
   }
 
   object Edit {
