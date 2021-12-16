@@ -71,4 +71,27 @@ class ScienceTargetMutationSuite extends OdbSuite {
     clients = List(ClientOption.Http)  // cannot run this test twice since it changes required state
   )
 
+  // Clone an existing deleted, target.
+  queryTest(
+    query ="""
+      mutation CloneTarget {
+        cloneTarget(existingTargetId: "t-4", suggestedCloneId: "t-abc") {
+          id
+          name
+          existence
+        }
+      }
+    """,
+    expected =json"""
+      {
+        "cloneTarget": {
+          "id": "t-abc",
+          "name": "NGC 3312",
+          "existence": "PRESENT"
+        }
+      }
+    """,
+    None,
+    clients = List(ClientOption.Http)
+  )
 }

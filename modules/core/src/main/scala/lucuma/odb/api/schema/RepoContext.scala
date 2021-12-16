@@ -35,10 +35,10 @@ final class RepoContextOps[F[_]](val self: Context[OdbRepo[F], _]) {
     self.arg(ProgramSchema.OptionalProgramIdArgument)
 
   def targetId: Target.Id =
-    self.arg(TargetSchema.TargetIdArgument)
+    self.arg(TargetSchema.ArgumentTargetId)
 
   def optionalTargetId: Option[Target.Id] =
-    self.arg(TargetSchema.OptionalTargetIdArgument)
+    self.arg(TargetSchema.ArgumentOptionalTargetId)
 
   def includeDeleted: Boolean =
     self.arg(GeneralSchema.ArgumentIncludeDeleted)

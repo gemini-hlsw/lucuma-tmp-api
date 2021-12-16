@@ -26,14 +26,14 @@ object TargetSchema extends TargetScalars {
   implicit val TargetIdType: ScalarType[Target.Id] =
     ObjectIdSchema.idType[Target.Id]("TargetId")
 
-  val TargetIdArgument: Argument[Target.Id] =
+  val ArgumentTargetId: Argument[Target.Id] =
     Argument(
       name         = "targetId",
       argumentType = TargetIdType,
       description  = "Target ID"
     )
 
-  val OptionalTargetIdArgument: Argument[Option[Target.Id]] =
+  val ArgumentOptionalTargetId: Argument[Option[Target.Id]] =
     Argument(
       name         = "targetId",
       argumentType = OptionInputType(TargetIdType),

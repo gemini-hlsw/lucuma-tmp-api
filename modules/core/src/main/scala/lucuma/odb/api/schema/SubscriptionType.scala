@@ -30,7 +30,7 @@ object SubscriptionType {
 
   import ObservationSchema.OptionalObservationIdArgument
   import ProgramSchema.OptionalProgramIdArgument
-  import TargetSchema.OptionalTargetIdArgument
+  import TargetSchema.ArgumentOptionalTargetId
   import syntax.`enum`._
   import context._
 
@@ -164,7 +164,7 @@ object SubscriptionType {
 
         editedField[F, Target.Id, TargetModel, TargetEvent](
           "target",
-          OptionalTargetIdArgument,
+          ArgumentOptionalTargetId,
           _.value.id
         ) { (_, e) => Set(e.value.programId).pure[F] },
 
