@@ -350,7 +350,8 @@ object TestInit {
                 NonEmptyString.from("The real dark matter was the friends we made along the way").toOption
               )
             )
-      _  <- repo.program.insert(
+
+      p3 <- repo.program.insert(
               ProgramModel.Create(
                 None,
                 NonEmptyString.from("An Empty Placeholder Program").toOption
@@ -381,6 +382,9 @@ object TestInit {
 
       _  <- repo.observation.insert(obs(p.id, ts))                   // 6
       _  <- repo.observation.insert(obs(p.id, Nil))                  // 7
+
+      // Add an unused target for the otherwise empty program. (t-6)
+      _  <- repo.target.insert(TargetModel.Create.sidereal(None, p3.id, cs.last))
 
     } yield ()
 
