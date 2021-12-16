@@ -76,7 +76,7 @@ trait TargetQuery {
     Field(
       name        = "firstScienceTarget",
       fieldType   = OptionType(TargetType[F]),
-      description = "The first (or only) science target (if any) for the given observation".some,
+      description = "The first (or only) science target (if any) for the given observation.  This will essentially pick a random target from the observation's asterism and is meant as a convenience when there is only one target.".some,
       arguments   = List(ObservationIdArgument, ArgumentIncludeDeleted),
       resolve     = c => c.target(_.selectObservationFirstTarget(c.observationId))
     )

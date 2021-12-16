@@ -5,6 +5,7 @@ package lucuma.odb.api.schema
 
 import cats.MonadError
 import cats.effect.std.Dispatcher
+import cats.syntax.option._
 import lucuma.odb.api.model.{CatalogIdModel, CoordinatesModel, DeclinationModel, MagnitudeModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
 import lucuma.odb.api.model.targetModel.{CreateNonsiderealInput, CreateSiderealInput, EditNonsiderealInput, EditSiderealInput, TargetEnvironmentModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
@@ -160,7 +161,7 @@ trait TargetMutation extends TargetScalars {
   val ArgumentTargetCreate: Argument[TargetModel.Create] =
     InputObjectTypeCreateTarget.argument(
       "input",
-      "Target description"
+      "Target description.  One (and only one) of sidereal or nonsidereal must be specified."
     )
 
   implicit val InputObjectTypeEditNonsidereal: InputObjectType[EditNonsiderealInput] =
@@ -213,7 +214,7 @@ trait TargetMutation extends TargetScalars {
   val ArgumentEditTargetInput: Argument[TargetModel.Edit] =
     InputObjectEditTargetInput.argument(
       "input",
-      "Parameters for editing an existing target"
+      "Parameters for editing an existing target. Nonsidereal edits are ignored for sidereal targets and vice versa."
     )
 
   implicit val InputObjectTypeCreateTargetEnvironmentInput: InputObjectType[TargetEnvironmentModel.Create] =
@@ -249,10 +250,11 @@ trait TargetMutation extends TargetScalars {
 
   def createTarget[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
-      name      = "createTarget",
-      fieldType = TargetType[F],
-      arguments = List(ArgumentTargetCreate),
-      resolve   = c => c.target(_.insert(c.arg(ArgumentTargetCreate)))
+      name        = "createTarget",
+      fieldType   = TargetType[F],
+      description = "Creates a new target according to the provided parameters.  Only one of sidereal or nonsidereal may be specified.".some,
+      arguments   = List(ArgumentTargetCreate),
+      resolve     = c => c.target(_.insert(c.arg(ArgumentTargetCreate)))
     )
 
   def cloneTarget[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] = {
@@ -269,35 +271,39 @@ trait TargetMutation extends TargetScalars {
     )
 
     Field(
-      name      = "cloneTarget",
-      fieldType = TargetType[F],
-      arguments = List(existing, suggested),
-      resolve   = c => c.target(_.clone(c.arg(existing), c.arg(suggested)))
+      name        = "cloneTarget",
+      fieldType   = TargetType[F],
+      description = "Makes a copy of an existing target, setting it to unobserved and to PRESENT".some,
+      arguments   = List(existing, suggested),
+      resolve     = c => c.target(_.clone(c.arg(existing), c.arg(suggested)))
     )
   }
 
   def updateTarget[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
-      name      = "updateTarget",
-      fieldType = TargetType[F],
-      arguments = List(ArgumentEditTargetInput),
-      resolve   = c => c.target(_.edit(c.arg(ArgumentEditTargetInput)))
+      name        = "updateTarget",
+      fieldType   = TargetType[F],
+      description = "Edits an existing target".some,
+      arguments   = List(ArgumentEditTargetInput),
+      resolve     = c => c.target(_.edit(c.arg(ArgumentEditTargetInput)))
     )
 
     def delete[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
-      name      = "deleteTarget",
-      fieldType = TargetType[F],
-      arguments = List(ArgumentTargetId),
-      resolve   = c => c.target(_.delete(c.targetId))
+      name        = "deleteTarget",
+      fieldType   = TargetType[F],
+      description = "Marks the target as DELETED.  Use undeleteTarget to retrieve it.".some,
+      arguments   = List(ArgumentTargetId),
+      resolve     = c => c.target(_.delete(c.targetId))
     )
 
   def undelete[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
-      name      = "undeleteTarget",
-      fieldType = TargetType[F],
-      arguments = List(ArgumentTargetId),
-      resolve   = c => c.target(_.undelete(c.targetId))
+      name        = "undeleteTarget",
+      fieldType   = TargetType[F],
+      description = "Marks the target as PRESENT.".some,
+      arguments   = List(ArgumentTargetId),
+      resolve     = c => c.target(_.undelete(c.targetId))
     )
 
 
