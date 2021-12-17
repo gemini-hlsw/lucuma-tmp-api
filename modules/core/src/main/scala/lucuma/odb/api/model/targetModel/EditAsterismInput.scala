@@ -3,41 +3,31 @@
 
 package lucuma.odb.api.model.targetModel
 
-import cats.data.{Nested, State}
-import cats.mtl.Stateful
-import cats.{Eq, Monad}
+import cats.data.State
+import cats.Eq
 import cats.syntax.functor._
 import cats.syntax.option._
+import cats.syntax.traverse._
+import cats.syntax.validated._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import lucuma.core.model.Target
 import lucuma.core.optics.state.all._
-import lucuma.odb.api.model.{DatabaseState, ValidatedInput}
+import lucuma.odb.api.model.{InputError, ValidatedInput}
 
-import scala.collection.immutable.SortedSet
 
 final case class EditAsterismInput(
   add:    Option[Target.Id],
   delete: Option[Target.Id]
 ) {
 
-  private def updateAsterism[F[_]: Monad, T](
-    db:  DatabaseState[T],
-    tid: Target.Id
-  )(
-    op:  (SortedSet[Target.Id], Target.Id) => SortedSet[Target.Id]
-  )(implicit S: Stateful[F, T]): F[ValidatedInput[State[TargetEnvironmentModel, Unit]]] =
-    Nested(db.target.lookupValidated(tid)).as {
-      TargetEnvironmentModel.asterism.mod_(op(_, tid))
-    }.value
-
-  def editor[F[_]: Monad, T](
-    db: DatabaseState[T]
-  )(implicit S: Stateful[F, T]): F[ValidatedInput[State[TargetEnvironmentModel, Unit]]] =
-    ValidatedInput.requireOneF("edit",
-      add.map(tid => updateAsterism(db, tid)(_ + _)),
-      delete.map(tid => updateAsterism(db, tid)(_ + _))
-    )
+  val editor: ValidatedInput[State[TargetEnvironmentModel, Unit]] =
+    (add, delete) match {
+      case (Some(a), None) => TargetEnvironmentModel.asterism.mod_(_ + a).validNec[InputError]
+      case (None, Some(d)) => TargetEnvironmentModel.asterism.mod_(_ - d).validNec[InputError]
+      case (None, None)    => InputError.fromMessage(s"One of `add` or `delete` must be specified for each operation").invalidNec[State[TargetEnvironmentModel, Unit]]
+      case _               => InputError.fromMessage(s"Select only one of `add` or `delete` for each operation").invalidNec[State[TargetEnvironmentModel, Unit]]
+    }
 
 }
 
@@ -60,5 +50,8 @@ object EditAsterismInput {
 
   def delete(tid: Target.Id): EditAsterismInput =
     Empty.copy(delete = tid.some)
+
+  def multiEditor(inputs: List[EditAsterismInput]): ValidatedInput[State[TargetEnvironmentModel, Unit]] =
+    inputs.traverse(_.editor).map(_.sequence.void)
 
 }
