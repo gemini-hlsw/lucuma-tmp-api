@@ -257,13 +257,6 @@ trait TargetMutation extends TargetScalars {
       InputObjectTypeDescription("Add or delete targets in an asterism")
     )
 
-//  val ArgumentListEditAsterism: Argument[Seq[EditAsterismInput @@ FromInput.InputObjectResult]] =
-//    Argument(
-//      name         = "asterismEdits",
-//      argumentType = ListInputType(InputObjectTypeEditAsterism),
-//      description  = "Target additions and/or deletions"
-//    )
-
   def createTarget[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name        = "createTarget",
