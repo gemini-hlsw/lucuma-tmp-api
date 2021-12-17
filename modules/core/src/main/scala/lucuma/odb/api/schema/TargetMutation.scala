@@ -5,12 +5,14 @@ package lucuma.odb.api.schema
 
 import cats.MonadError
 import cats.effect.std.Dispatcher
+import cats.syntax.functor._
 import cats.syntax.option._
 import lucuma.odb.api.model.{CatalogIdModel, CoordinatesModel, DeclinationModel, MagnitudeModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
-import lucuma.odb.api.model.targetModel.{CreateNonsiderealInput, CreateSiderealInput, EditNonsiderealInput, EditSiderealInput, TargetEnvironmentModel, TargetModel}
+import lucuma.odb.api.model.targetModel.{CreateNonsiderealInput, CreateSiderealInput, EditAsterismInput, EditNonsiderealInput, EditSiderealInput, TargetEnvironmentModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
 import lucuma.core.`enum`.MagnitudeSystem
+import lucuma.core.model.Target
 import sangria.macros.derive.{ReplaceInputField, _}
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -248,6 +250,19 @@ trait TargetMutation extends TargetScalars {
     )
   }
 
+  implicit val InputObjectTypeEditAsterism: InputObjectType[EditAsterismInput] =
+    deriveInputObjectType[EditAsterismInput](
+      InputObjectTypeName("EditAsterismInput"),
+      InputObjectTypeDescription("Add or delete targets in an asterism")
+    )
+
+//  val ArgumentListEditAsterism: Argument[Seq[EditAsterismInput @@ FromInput.InputObjectResult]] =
+//    Argument(
+//      name         = "asterismEdits",
+//      argumentType = ListInputType(InputObjectTypeEditAsterism),
+//      description  = "Target additions and/or deletions"
+//    )
+
   def createTarget[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
       name        = "createTarget",
@@ -258,24 +273,37 @@ trait TargetMutation extends TargetScalars {
     )
 
   def cloneTarget[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] = {
-    val existing  = Argument(
-      name         = "existingTargetId",
-      argumentType = TargetIdType,
-      description  = "The existing target's id"
-    )
+    import ObservationSchema.OptionalListObservationIdArgument
 
-    val suggested = Argument(
-      name         = "suggestedCloneId",
-      argumentType = OptionInputType(TargetIdType),
-      description  = "The new target clone's id (will be generated if not supplied)"
-    )
+    val existing: Argument[Target.Id] =
+      Argument(
+        name         = "existingTargetId",
+        argumentType = TargetIdType,
+        description  = "The existing target's id"
+      )
+
+    val suggested: Argument[Option[Target.Id]] =
+      Argument(
+        name         = "suggestedCloneId",
+        argumentType = OptionInputType(TargetIdType),
+        description  = "The new target clone's id (will be generated if not supplied)"
+      )
 
     Field(
       name        = "cloneTarget",
       fieldType   = TargetType[F],
       description = "Makes a copy of an existing target, setting it to unobserved and to PRESENT".some,
-      arguments   = List(existing, suggested),
-      resolve     = c => c.target(_.clone(c.arg(existing), c.arg(suggested)))
+      arguments   = List(existing, suggested, OptionalListObservationIdArgument),
+      resolve     = c => {
+        for {
+          t <- c.ctx.target.clone(c.arg(existing), c.arg(suggested))
+//          _ <- c.ctx.observation.bulkEditTargetEnvironment(
+//            ObservationModel.BulkEdit(c.arg(OptionalListObservationIdArgument), None, TargetEnvironmentModel.Edit.)
+//          )
+        } yield t
+
+        c.target(_.clone(c.arg(existing), c.arg(suggested)))
+      }
     )
   }
 

@@ -10,7 +10,7 @@ import lucuma.odb.api.schema.syntax.inputtype._
 import cats.MonadError
 import cats.effect.std.Dispatcher
 import io.circe.Decoder
-import lucuma.odb.api.model.targetModel.TargetEnvironmentModel
+import lucuma.odb.api.model.targetModel.{EditAsterismInput, TargetEnvironmentModel}
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -24,7 +24,7 @@ trait ObservationMutation {
   import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
   import ObservationSchema.{ObsActiveStatusType, ObservationIdType, ObservationIdArgument, ObsStatusType, ObservationType}
   import ProgramSchema.ProgramIdType
-  import TargetMutation.{InputObjectTypeCreateTargetEnvironmentInput, InputObjectTypeTargetEnvironmentEdit}
+  import TargetMutation.{InputObjectTypeCreateTargetEnvironmentInput, InputObjectTypeEditAsterism, InputObjectTypeTargetEnvironmentEdit}
   import syntax.inputobjecttype._
 
   val InputObjectTypeObservationCreate: InputObjectType[ObservationModel.Create] =
@@ -80,6 +80,12 @@ trait ObservationMutation {
 
   }
 
+  val ArgumentAsterismBulkEdit: Argument[BulkEdit[Seq[EditAsterismInput]]] =
+    bulkEditArgument[Seq[EditAsterismInput]](
+      "asterism",
+      ListInputType(InputObjectTypeEditAsterism)
+    )
+
   val ArgumentTargetEnvironmentBulkEdit: Argument[BulkEdit[TargetEnvironmentModel.Edit]] =
     bulkEditArgument[TargetEnvironmentModel.Edit](
       "targetEnvironment",
@@ -112,6 +118,14 @@ trait ObservationMutation {
       fieldType = ObservationType[F],
       arguments = List(ArgumentObservationEdit),
       resolve   = c => c.observation(_.edit(c.arg(ArgumentObservationEdit)))
+    )
+
+  def updateAsterism[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+    Field(
+      name      = "updateAsterism",
+      fieldType = ListType(ObservationType[F]),
+      arguments = List(ArgumentAsterismBulkEdit),
+      resolve   = c => c.observation(_.bulkEditAsterism(c.arg(ArgumentAsterismBulkEdit)))
     )
 
   def updateTargetEnvironment[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
@@ -158,6 +172,7 @@ trait ObservationMutation {
     List(
       create,
       update,
+      updateAsterism,
       updateTargetEnvironment,
       updateConstraintSet,
       updateScienceRequirements,

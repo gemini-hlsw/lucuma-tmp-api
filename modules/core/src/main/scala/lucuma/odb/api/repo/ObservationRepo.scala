@@ -9,7 +9,7 @@ import lucuma.odb.api.model.ObservationModel.{BulkEdit, Create, Edit, Group, Obs
 import lucuma.odb.api.model.{ConstraintSetModel, Event, InputError, InstrumentConfigModel, ObservationModel, PlannedTimeSummaryModel, ScienceRequirements, ScienceRequirementsModel, ValidatedInput}
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.model.syntax.validatedinput._
-import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
+import lucuma.odb.api.model.targetModel.{EditAsterismInput, TargetEnvironmentModel, TargetModel}
 import cats.data.{EitherT, Nested, State}
 import cats.effect.{Async, Ref}
 import cats.implicits._
@@ -74,6 +74,10 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
     pid:            Program.Id,
     includeDeleted: Boolean
   ): F[List[Group[ScienceRequirements]]]
+
+  def bulkEditAsterism(
+    be: BulkEdit[Seq[EditAsterismInput]]
+  ): F[List[ObservationModel]]
 
   def bulkEditTargetEnvironment(
     be: BulkEdit[TargetEnvironmentModel.Edit]
@@ -300,14 +304,16 @@ object ObservationRepo {
           obsList.map(_.distinctBy(_.id).sortBy(_.id))
         }
 
-      override def bulkEditTargetEnvironment(
-        be: BulkEdit[TargetEnvironmentModel.Edit]
+      // A bulk edit for target environment with a post-observation validation
+      private def doBulkEditTargets(
+        be: BulkEdit[_],
+        ed: ValidatedInput[State[TargetEnvironmentModel, Unit]]
       ): F[List[ObservationModel]] = {
 
         val update =
           for {
             ini  <- selectObservations(be.selectProgram, be.selectObservations)
-            osʹ   = (ini, be.edit.editor).mapN { (os, e) =>
+            osʹ   = (ini, ed).mapN { (os, e) =>
               os.map(ObservationModel.targetEnvironment.modify(env => e.runS(env).value))
             }
             nos  <- Nested(osʹ).traverse(_.validate[State[Tables, *], Tables](TableState))
@@ -321,7 +327,18 @@ object ObservationRepo {
           os <- tablesRef.modifyState(update).flatMap(_.liftTo[F])
           _  <- os.traverse_(o => eventService.publish(ObservationModel.ObservationEvent.updated(o)))
         } yield os
+
       }
+
+      override def bulkEditTargetEnvironment(
+        be: BulkEdit[TargetEnvironmentModel.Edit]
+      ): F[List[ObservationModel]] =
+        doBulkEditTargets(be, be.edit.editor)
+
+      override def bulkEditAsterism(
+        be: BulkEdit[Seq[EditAsterismInput]]
+      ): F[List[ObservationModel]] =
+        doBulkEditTargets(be, EditAsterismInput.multiEditor(be.edit.toList))
 
       private def bulkEdit(
         initialObsList: State[Tables, ValidatedInput[List[ObservationModel]]],

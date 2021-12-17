@@ -237,7 +237,7 @@ object TestInit {
     }
 
   val ac3: CreateStepConfig[CreateSouthDynamic] =
-    (step.exposure := (FiniteDurationModel.Input(30.seconds))).runS(ac2).value
+    (step.exposure := FiniteDurationModel.Input(30.seconds)).runS(ac2).value
 
   val acquisitionSequence: SequenceModel.Create[CreateSouthDynamic] =
     SequenceModel.Create(

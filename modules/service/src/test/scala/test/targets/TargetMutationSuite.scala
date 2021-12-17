@@ -7,7 +7,7 @@ package targets
 import cats.syntax.option._
 import io.circe.literal._
 
-class ScienceTargetMutationSuite extends OdbSuite {
+class TargetMutationSuite extends OdbSuite {
 
   // Edit NGC 3312 to remove parallax altogether.
   queryTest(
