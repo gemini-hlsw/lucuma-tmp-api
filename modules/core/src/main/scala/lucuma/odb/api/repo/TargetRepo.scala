@@ -310,7 +310,12 @@ object TargetRepo {
           for {
             t <- TableState.target.lookupValidated[State[Tables, *]](existingTid)
             i <- TableState.target.getUnusedId[State[Tables, *]](suggestedTid)
-          } yield (t, i).mapN((t2, i2) => t2.clone(i2))
+            c  = (t, i).mapN((tʹ, iʹ) => tʹ.clone(iʹ))
+            _ <- c.fold(
+              _ => State.get[Tables].void,
+              c => Tables.targets.mod_(m => m + (c.id -> c))
+            )
+          } yield c
 
         for {
           t <- tablesRef.modifyState(update).flatMap(_.liftTo[F])

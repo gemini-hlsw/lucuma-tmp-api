@@ -5,9 +5,10 @@ package lucuma.odb.api.schema
 
 import cats.MonadError
 import cats.effect.std.Dispatcher
+import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
-import lucuma.odb.api.model.{CatalogIdModel, CoordinatesModel, DeclinationModel, MagnitudeModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
+import lucuma.odb.api.model.{CatalogIdModel, CoordinatesModel, DeclinationModel, MagnitudeModel, ObservationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
 import lucuma.odb.api.model.targetModel.{CreateNonsiderealInput, CreateSiderealInput, EditAsterismInput, EditNonsiderealInput, EditSiderealInput, TargetEnvironmentModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
@@ -295,14 +296,21 @@ trait TargetMutation extends TargetScalars {
       description = "Makes a copy of an existing target, setting it to unobserved and to PRESENT".some,
       arguments   = List(existing, suggested, OptionalListObservationIdArgument),
       resolve     = c => {
-        for {
-          t <- c.ctx.target.clone(c.arg(existing), c.arg(suggested))
-//          _ <- c.ctx.observation.bulkEditTargetEnvironment(
-//            ObservationModel.BulkEdit(c.arg(OptionalListObservationIdArgument), None, TargetEnvironmentModel.Edit.)
-//          )
-        } yield t
-
-        c.target(_.clone(c.arg(existing), c.arg(suggested)))
+        c.unsafeToFuture(
+          for {
+            t <- c.ctx.target.clone(c.arg(existing), c.arg(suggested))
+            _ <- c.ctx.observation.bulkEditAsterism(
+              ObservationModel.BulkEdit(
+                c.arg(OptionalListObservationIdArgument).map(_.toList),
+                None,
+                List(
+                  EditAsterismInput.delete(c.arg(existing)),
+                  EditAsterismInput.add(t.id)
+                )
+              )
+            )
+          } yield t
+        )
       }
     )
   }
