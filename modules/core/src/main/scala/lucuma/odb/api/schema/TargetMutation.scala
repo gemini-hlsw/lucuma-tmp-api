@@ -286,7 +286,7 @@ trait TargetMutation extends TargetScalars {
     Field(
       name        = "cloneTarget",
       fieldType   = TargetType[F],
-      description = "Makes a copy of an existing target, setting it to unobserved and to PRESENT".some,
+      description = "Makes a copy of an existing target, setting it to unobserved and to PRESENT.  If observationIds is specified, the clone will replace the existing target in those observations".some,
       arguments   = List(existing, suggested, OptionalListObservationIdArgument),
       resolve     = c => {
         c.unsafeToFuture(
