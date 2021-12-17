@@ -53,4 +53,95 @@ class TargetCloneSuite extends OdbSuite {
     None,
     clients = List(ClientOption.Http)
   )
+
+  // Group by asterism.
+  //
+  // NGC 5949                     => o-2
+  // NGC 3312                     => o-3, o-4, o-5
+  // NGC 3269, NGC 3312, NGC 5949 => o-6
+  // <nothing>                    => o-7
+  // NGC 4749                     => <none>
+  queryTest(
+    query ="""
+      query GroupByAsterism {
+        asterismGroup(programId: "p-2") {
+          nodes {
+            observationIds
+            asterism {
+              id
+              name
+            }
+          }
+        }
+      }
+    """,
+    expected = json"""
+      {
+        "asterismGroup": {
+          "nodes": [
+            {
+              "observationIds": [
+                "o-2"
+              ],
+              "asterism": [
+                {
+                  "id": "t-2",
+                  "name": "NGC 5949"
+                }
+              ]
+            },
+            {
+              "observationIds": [
+                "o-3",
+                "o-4"
+              ],
+              "asterism": [
+                {
+                  "id": "t-a",
+                  "name": "NGC 3312"
+                }
+              ]
+            },
+            {
+              "observationIds": [
+                "o-5"
+              ],
+              "asterism": [
+                {
+                  "id": "t-4",
+                  "name": "NGC 3312"
+                }
+              ]
+            },
+            {
+              "observationIds": [
+                "o-6"
+              ],
+              "asterism": [
+                {
+                  "id": "t-2",
+                  "name": "NGC 5949"
+                },
+                {
+                  "id": "t-3",
+                  "name": "NGC 3269"
+                },
+                {
+                  "id": "t-4",
+                  "name": "NGC 3312"
+                }
+              ]
+            },
+            {
+              "observationIds": [
+                "o-7"
+              ],
+              "asterism": [
+              ]
+            }
+          ]
+        }
+      }
+    """
+  )
 }
