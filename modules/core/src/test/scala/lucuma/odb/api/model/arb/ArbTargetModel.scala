@@ -87,7 +87,7 @@ trait ArbTargetModel {
     Arbitrary {
       for {
         name  <- arbitrary[NonEmptyString]
-        cat   <- arbitrary[Option[CatalogIdModel.Input]]
+        cat   <- arbitrary[Option[CatalogInfoModel.Input]]
         ra    <- arbitrary[RightAscensionModel.Input]
         dec   <- arbitrary[DeclinationModel.Input]
         epoch <- arbitrary[Option[Epoch]]
@@ -111,7 +111,7 @@ trait ArbTargetModel {
   implicit val cogCreateSidereal: Cogen[CreateSiderealInput] =
     Cogen[(
       String,
-      Option[CatalogIdModel.Input],
+      Option[CatalogInfoModel.Input],
       RightAscensionModel.Input,
       DeclinationModel.Input,
       Option[Epoch],
@@ -121,7 +121,7 @@ trait ArbTargetModel {
       Option[List[MagnitudeModel.Create]]
     )].contramap { in => (
       in.name.value,
-      in.catalogId,
+      in.catalogInfo,
       in.ra,
       in.dec,
       in.epoch,
@@ -184,7 +184,7 @@ trait ArbTargetModel {
   implicit val arbEditSidereal: Arbitrary[EditSiderealInput] =
     Arbitrary {
       for {
-        cat   <- arbitrary[Input[CatalogIdModel.Input]]
+        cat   <- arbitrary[Input[CatalogInfoModel.Input]]
         ra    <- arbNotNullableInput[RightAscensionModel.Input].arbitrary
         dec   <- arbNotNullableInput[DeclinationModel.Input].arbitrary
         epoch <- arbNotNullableInput[Epoch].arbitrary
@@ -206,7 +206,7 @@ trait ArbTargetModel {
 
   implicit val cogEditSidereal: Cogen[EditSiderealInput] =
     Cogen[(
-      Input[CatalogIdModel.Input],
+      Input[CatalogInfoModel.Input],
       Input[RightAscensionModel.Input],
       Input[DeclinationModel.Input],
       Input[Epoch],

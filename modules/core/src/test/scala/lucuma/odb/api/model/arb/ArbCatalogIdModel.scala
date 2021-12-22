@@ -13,12 +13,12 @@ import org.scalacheck.Arbitrary.arbitrary
 
 trait ArbCatalogIdModel {
 
-  implicit val arbCatalogIdModelInput: Arbitrary[CatalogIdModel.Input] =
+  implicit val arbCatalogIdModelInput: Arbitrary[CatalogInfoModel.Input] =
     Arbitrary {
-      arbitrary[CatalogId].map(id => CatalogIdModel.Input(id.catalog, id.id.value))
+      arbitrary[CatalogId].map(id => CatalogInfoModel.Input(id.catalog, id.id.value))
     }
 
-  implicit val cogCatalogIdModelInput: Cogen[CatalogIdModel.Input] =
+  implicit val cogCatalogIdModelInput: Cogen[CatalogInfoModel.Input] =
     Cogen[CatalogId].contramap(i => CatalogId(i.name, i.id).get)
 }
 

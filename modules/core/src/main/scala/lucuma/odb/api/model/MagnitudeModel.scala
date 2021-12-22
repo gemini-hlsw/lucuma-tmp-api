@@ -2,10 +2,7 @@
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
 package lucuma.odb.api.model
-
-import lucuma.core.`enum`.{MagnitudeBand, MagnitudeSystem}
-import lucuma.core.math.MagnitudeValue
-import lucuma.core.model.Magnitude
+/*
 import lucuma.core.optics.state.all._
 import lucuma.core.optics.syntax.lens._
 import lucuma.odb.api.model.syntax.input._
@@ -19,15 +16,14 @@ import monocle.Lens
 import monocle.function.At
 
 import scala.collection.immutable.SortedMap
-
+*/
 object MagnitudeModel {
-
+/*
   private def toMagnitudeValue(field: String, d: BigDecimal): ValidatedInput[MagnitudeValue] =
     MagnitudeValue
       .fromBigDecimal
       .getOption(d)
       .toValidNec(InputError.fromMessage(s"Could not read '$field' field value $d as a magnitude value"))
-
   final case class Create(
     band:   MagnitudeBand,
     value:  BigDecimal,
@@ -190,6 +186,6 @@ object MagnitudeModel {
       )}
 
   }
-
+*/
 
 }

@@ -4,9 +4,7 @@
 package lucuma.odb.api.model.targetModel
 
 import cats.Eq
-import cats.syntax.apply._
 import cats.syntax.option._
-import cats.syntax.traverse._
 import lucuma.core.math.dimensional.GroupedUnitOfMeasure
 import lucuma.core.math.units.VegaMagnitude
 import eu.timepit.refined.cats._
@@ -17,8 +15,8 @@ import io.circe.refined._
 import lucuma.core.`enum`.{Band, EphemerisKeyType, PlanetSpectrum}
 import lucuma.core.math.BrightnessUnits._
 import lucuma.core.math.BrightnessValue
-import lucuma.core.model.{BandBrightness, EphemerisKey, SourceProfile, SpectralDefinition, Target, UnnormalizedSpectralEnergyDistribution}
-import lucuma.odb.api.model.{InputError, MagnitudeModel, ValidatedInput}
+import lucuma.core.model.{BandBrightness, EphemerisKey, SourceProfile, SpectralDefinition, Target, UnnormalizedSED}
+import lucuma.odb.api.model.{InputError, ValidatedInput}
 
 import scala.collection.immutable.SortedMap
 
@@ -32,24 +30,22 @@ import scala.collection.immutable.SortedMap
 final case class CreateNonsiderealInput(
   name:       NonEmptyString,
   keyType:    EphemerisKeyType,
-  des:        String,
-  magnitudes: Option[List[MagnitudeModel.Create]]
+  des:        String
+//  magnitudes: Option[List[MagnitudeModel.Create]]
 ) {
 
   val toEphemerisKey: ValidatedInput[EphemerisKey] =
     CreateNonsiderealInput.parse.ephemerisKey("des", keyType, des)
 
   val toGemTarget: ValidatedInput[Target] =
-    (toEphemerisKey,
-     magnitudes.toList.flatten.traverse(_.toMagnitude)
-    ).mapN { (k, _) =>
+    toEphemerisKey.map { k =>
       Target.Nonsidereal(
         name,
         k,
         // Nonsense value to satisfy the compiler for now.
         SourceProfile.Point(
           SpectralDefinition.BandNormalized(
-            UnnormalizedSpectralEnergyDistribution.Planet(PlanetSpectrum.Mars),
+            UnnormalizedSED.Planet(PlanetSpectrum.Mars),
             SortedMap.from[Band, BandBrightness[Integrated]](
               List(
                 (
@@ -79,8 +75,7 @@ object CreateNonsiderealInput {
     Eq.by(cn => (
       cn.name,
       cn.keyType,
-      cn.des,
-      cn.magnitudes
+      cn.des
     ))
 
     object parse {

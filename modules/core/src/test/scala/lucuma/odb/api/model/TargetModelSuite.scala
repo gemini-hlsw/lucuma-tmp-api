@@ -20,7 +20,7 @@ final class TargetModelSuite extends DisciplineSuite {
   import ArbRightAscensionModel._
   import ArbTargetModel._
 
-  checkAll("CatalogIdModel.Input", EqTests[CatalogIdModel.Input].eqv)
+  checkAll("CatalogIdModel.Input", EqTests[CatalogInfoModel.Input].eqv)
   checkAll("CoordinatesModel.Input", EqTests[CoordinatesModel.Input].eqv)
   checkAll("DeclinationModel.Input", EqTests[DeclinationModel.Input].eqv)
   checkAll("MagnitudeModel.Create", EqTests[MagnitudeModel.Create].eqv)

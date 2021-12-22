@@ -8,11 +8,10 @@ import cats.effect.std.Dispatcher
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
-import lucuma.odb.api.model.{CatalogIdModel, CoordinatesModel, DeclinationModel, MagnitudeModel, ObservationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
+import lucuma.odb.api.model.{CatalogInfoModel, CoordinatesModel, DeclinationModel, ObservationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
 import lucuma.odb.api.model.targetModel.{CreateNonsiderealInput, CreateSiderealInput, EditAsterismInput, EditNonsiderealInput, EditSiderealInput, TargetEnvironmentModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
-import lucuma.core.`enum`.MagnitudeSystem
 import lucuma.core.model.Target
 import sangria.macros.derive.{ReplaceInputField, _}
 import sangria.marshalling.circe._
@@ -25,7 +24,7 @@ trait TargetMutation extends TargetScalars {
   import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
   import NumericUnitsSchema._
   import ProgramSchema.ProgramIdType
-  import TargetSchema.{EnumTypeCatalogName, EphemerisKeyTypeEnumType, EnumTypeMagnitudeBand, EnumTypeMagnitudeSystem, ArgumentTargetId, TargetIdType, TargetType}
+  import TargetSchema.{EnumTypeCatalogName, EphemerisKeyTypeEnumType, ArgumentTargetId, TargetIdType, TargetType}
 
   import syntax.inputtype._
   import syntax.inputobjecttype._
@@ -60,8 +59,8 @@ trait TargetMutation extends TargetScalars {
       "Unit options for parallax values"
     )
 
-  implicit val InputObjectCatalogId: InputObjectType[CatalogIdModel.Input] =
-    deriveInputObjectType[CatalogIdModel.Input](
+  implicit val InputObjectCatalogId: InputObjectType[CatalogInfoModel.Input] =
+    deriveInputObjectType[CatalogInfoModel.Input](
       InputObjectTypeName("CatalogIdInput"),
       InputObjectTypeDescription("Catalog id consisting of catalog name and string identifier")
     )
@@ -108,40 +107,40 @@ trait TargetMutation extends TargetScalars {
       InputObjectTypeDescription("Parallax, choose one of the available units")
     )
 
-  implicit val InputObjectMagnitudeCreate: InputObjectType[MagnitudeModel.Create] =
-    deriveInputObjectType[MagnitudeModel.Create](
-      InputObjectTypeName("MagnitudeCreateInput"),
-      InputObjectTypeDescription("Magnitude creation parameters"),
-      ReplaceInputField(
-        "system",
-        InputField(
-          name         = "system",
-          fieldType    = OptionInputType(EnumTypeMagnitudeSystem),
-          defaultValue = Some(MagnitudeSystem.Vega: MagnitudeSystem)
-        )
-      )
-    )
+//  implicit val InputObjectMagnitudeCreate: InputObjectType[MagnitudeModel.Create] =
+//    deriveInputObjectType[MagnitudeModel.Create](
+//      InputObjectTypeName("MagnitudeCreateInput"),
+//      InputObjectTypeDescription("Magnitude creation parameters"),
+//      ReplaceInputField(
+//        "system",
+//        InputField(
+//          name         = "system",
+//          fieldType    = OptionInputType(EnumTypeMagnitudeSystem),
+//          defaultValue = Some(MagnitudeSystem.Vega: MagnitudeSystem)
+//        )
+//      )
+//    )
+//
+//  implicit val InputObjectMagnitudeEdit: InputObjectType[MagnitudeModel.Edit] =
+//    deriveInputObjectType[MagnitudeModel.Edit](
+//      InputObjectTypeName("MagnitudeEditInput"),
+//      InputObjectTypeDescription("Magnitude editing parameters"),
+//      ReplaceInputField("value",  BigDecimalType.notNullableField("value")          ),
+//      ReplaceInputField("system", EnumTypeMagnitudeSystem.notNullableField("system")),
+//      ReplaceInputField("error",  BigDecimalType.nullableField("error")             )
+//    )
 
-  implicit val InputObjectMagnitudeEdit: InputObjectType[MagnitudeModel.Edit] =
-    deriveInputObjectType[MagnitudeModel.Edit](
-      InputObjectTypeName("MagnitudeEditInput"),
-      InputObjectTypeDescription("Magnitude editing parameters"),
-      ReplaceInputField("value",  BigDecimalType.notNullableField("value")          ),
-      ReplaceInputField("system", EnumTypeMagnitudeSystem.notNullableField("system")),
-      ReplaceInputField("error",  BigDecimalType.nullableField("error")             )
-    )
-
-  implicit val InputObjectMagnitudeEditAction: InputObjectType[MagnitudeModel.EditAction] =
-    deriveInputObjectType[MagnitudeModel.EditAction](
-      InputObjectTypeName("MagnitudeEditAction"),
-      InputObjectTypeDescription("Magnitude edit action (choose one option only)")
-    )
-
-  implicit val InputObjectMagnitudeEditList: InputObjectType[MagnitudeModel.EditList] =
-    deriveInputObjectType[MagnitudeModel.EditList](
-      InputObjectTypeName("MagnitudeEditList"),
-      InputObjectTypeDescription("Magnitude list editing (choose one option only)")
-    )
+//  implicit val InputObjectMagnitudeEditAction: InputObjectType[MagnitudeModel.EditAction] =
+//    deriveInputObjectType[MagnitudeModel.EditAction](
+//      InputObjectTypeName("MagnitudeEditAction"),
+//      InputObjectTypeDescription("Magnitude edit action (choose one option only)")
+//    )
+//
+//  implicit val InputObjectMagnitudeEditList: InputObjectType[MagnitudeModel.EditList] =
+//    deriveInputObjectType[MagnitudeModel.EditList](
+//      InputObjectTypeName("MagnitudeEditList"),
+//      InputObjectTypeDescription("Magnitude list editing (choose one option only)")
+//    )
 
   implicit val InputObjectTypeCreateNonsidereal: InputObjectType[CreateNonsiderealInput] =
     deriveInputObjectType[CreateNonsiderealInput](
@@ -181,9 +180,9 @@ trait TargetMutation extends TargetScalars {
       InputObjectTypeName("EditSiderealInput"),
       InputObjectTypeDescription("Sidereal target edit parameters"),
 
-      DocumentInputField("magnitudes",    "Edit magnitudes"                                               ),
+//      DocumentInputField("magnitudes",    "Edit magnitudes"                                               ),
 
-      ReplaceInputField("catalogId",      InputObjectCatalogId     .nullableField("catalogId"     )),
+      ReplaceInputField("catalogInfo",    InputObjectCatalogId     .nullableField("catalogId"     )),
       ReplaceInputField("ra",             InputObjectRightAscension.notNullableField("ra"         )),
       ReplaceInputField("dec",            InputObjectDeclination   .notNullableField("dec"        )),
       ReplaceInputField("epoch",          EpochStringType          .notNullableField("epoch"      )),

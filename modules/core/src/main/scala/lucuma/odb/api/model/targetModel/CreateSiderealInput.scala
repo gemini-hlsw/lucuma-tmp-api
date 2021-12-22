@@ -16,8 +16,8 @@ import lucuma.core.math.BrightnessUnits.{Brightness, Integrated}
 import lucuma.core.math.dimensional.GroupedUnitOfMeasure
 import lucuma.core.math.units.VegaMagnitude
 import lucuma.core.math.{BrightnessValue, Coordinates, Epoch}
-import lucuma.core.model.{BandBrightness, SiderealTracking, SourceProfile, SpectralDefinition, Target, UnnormalizedSpectralEnergyDistribution}
-import lucuma.odb.api.model.{CatalogIdModel, DeclinationModel, MagnitudeModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel, ValidatedInput}
+import lucuma.core.model.{BandBrightness, SiderealTracking, SourceProfile, SpectralDefinition, Target, UnnormalizedSED}
+import lucuma.odb.api.model.{CatalogInfoModel, DeclinationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel, ValidatedInput}
 import lucuma.odb.api.model.json.target._
 
 import scala.collection.immutable.SortedMap
@@ -35,26 +35,23 @@ import scala.collection.immutable.SortedMap
  */
 final case class CreateSiderealInput(
   name:           NonEmptyString,
-  catalogId:      Option[CatalogIdModel.Input],
+  catalogInfo:    Option[CatalogInfoModel.Input],
   ra:             RightAscensionModel.Input,
   dec:            DeclinationModel.Input,
   epoch:          Option[Epoch],
   properMotion:   Option[ProperMotionModel.Input],
   radialVelocity: Option[RadialVelocityModel.Input],
-  parallax:       Option[ParallaxModel.Input],
-  magnitudes:     Option[List[MagnitudeModel.Create]]
+  parallax:       Option[ParallaxModel.Input]
 ) {
 
   val toSiderealTracking: ValidatedInput[SiderealTracking] =
-    (catalogId.traverse(_.toCatalogId),
-     ra.toRightAscension,
+    (ra.toRightAscension,
      dec.toDeclination,
      properMotion.traverse(_.toProperMotion),
      radialVelocity.traverse(_.toRadialVelocity),
      parallax.traverse(_.toParallax)
-    ).mapN { (catalogId, ra, dec, pm, rv, px) =>
+    ).mapN { (ra, dec, pm, rv, px) =>
       SiderealTracking(
-        catalogId,
         Coordinates(ra, dec),
         epoch.getOrElse(Epoch.J2000),
         pm,
@@ -64,16 +61,16 @@ final case class CreateSiderealInput(
     }
 
   val toGemTarget: ValidatedInput[Target] =
-    (toSiderealTracking,
-     magnitudes.toList.flatten.traverse(_.toMagnitude)
-    ).mapN { (pm, _) =>
+    (catalogInfo.traverse(_.toCatalogInfo),
+     toSiderealTracking
+    ).mapN { (ci, pm) =>
       Target.Sidereal(
         name,
         pm,
         // Nonsense value to satisfy the compiler for now.
         SourceProfile.Point(
           SpectralDefinition.BandNormalized(
-            UnnormalizedSpectralEnergyDistribution.Planet(PlanetSpectrum.Mars),
+            UnnormalizedSED.Planet(PlanetSpectrum.Mars),
             SortedMap.from[Band, BandBrightness[Integrated]](
               List(
                 (
@@ -87,8 +84,9 @@ final case class CreateSiderealInput(
             )
           )
         ),
-//        SortedMap.from(ms.fproductLeft(_.band)),
-        None)
+        ci,
+        None
+      )
     }
 
 }
@@ -102,14 +100,13 @@ object CreateSiderealInput {
   ): CreateSiderealInput =
     CreateSiderealInput(
       name           = name,
-      catalogId      = None,
+      catalogInfo      = None,
       ra             = ra,
       dec            = dec,
       epoch          = None,
       properMotion   = None,
       radialVelocity = None,
-      parallax       = None,
-      magnitudes     = None
+      parallax       = None
     )
 
   implicit val DecoderCreateSiderealInput: Decoder[CreateSiderealInput] =
@@ -118,14 +115,13 @@ object CreateSiderealInput {
   implicit val EqCreateSidereal: Eq[CreateSiderealInput] =
     Eq.by(cs => (
       cs.name,
-      cs.catalogId,
+      cs.catalogInfo,
       cs.ra,
       cs.dec,
       cs.epoch,
       cs.properMotion,
       cs.radialVelocity,
-      cs.parallax,
-      cs.magnitudes
+      cs.parallax
     ))
 
 }

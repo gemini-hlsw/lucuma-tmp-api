@@ -15,9 +15,9 @@ val fs2Version                  = "3.2.3"
 val jawnVersion                 = "1.3.0"
 val kindProjectorVersion        = "0.13.2"
 val logbackVersion              = "1.2.9"
-val lucumaCoreVersion           = "0.16.0"
+val lucumaCoreVersion           = "0.18.0"
 val lucumaGraphQLRoutesVersion  = "0.1.2"
-val lucumaSsoVersion            = "0.0.11"
+//val lucumaSsoVersion            = "0.0.11"
 val log4catsVersion             = "2.1.1"
 val monocleVersion              = "3.1.0"
 val munitCatsEffectVersion      = "1.0.7"
@@ -143,7 +143,7 @@ lazy val service = project
       "org.http4s"                 %% "http4s-dsl"                    % http4sVersion,
       "edu.gemini"                 %% "clue-http4s-jdk-client"        % clueVersion            % Test,
       "org.typelevel"              %% "munit-cats-effect-3"           % munitCatsEffectVersion % Test,
-      "edu.gemini"                 %% "lucuma-sso-backend-client"     % lucumaSsoVersion,
+//      "edu.gemini"                 %% "lucuma-sso-backend-client"     % lucumaSsoVersion,
       "edu.gemini"                 %% "lucuma-graphql-routes-sangria" % lucumaGraphQLRoutesVersion,
     ),
     testFrameworks += new TestFramework("munit.Framework"),

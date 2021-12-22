@@ -21,8 +21,9 @@ import lucuma.odb.api.schema.OdbSchema
 import cats.effect.std.Dispatcher
 import lucuma.graphql.routes.Routes
 import org.http4s.HttpRoutes
-import lucuma.sso.client.SsoClient
-import lucuma.core.model.User
+// TODO: SSO
+//import lucuma.sso.client.SsoClient
+//import lucuma.core.model.User
 import org.http4s.headers.Authorization
 import org.http4s.server.websocket.WebSocketBuilder2
 import cats.data.OptionT
@@ -32,7 +33,8 @@ object Main extends IOApp {
 
   def httpApp[F[_]: Log4CatsLogger: Async](
     odb:        OdbRepo[F],
-    userClient: SsoClient[F, User],
+// TODO: SSO
+//    userClient: SsoClient[F, User],
   ): Resource[F, WebSocketBuilder2[F] => HttpApp[F]] =
     Dispatcher[F].map { implicit d => wsb =>
       Logger.httpApp(logHeaders = true, logBody = false) {
@@ -45,13 +47,17 @@ object Main extends IOApp {
           def graphQLService(auth: Option[Authorization]): F[Option[GraphQLService[F]]] =
             OptionT
               .fromOption[F](auth)
-              .flatMap(a => OptionT(userClient.get(a)))
+              // TODO: SSO
+//              .flatMap(a => OptionT(userClient.get(a)))
               .value
-              .flatMap { ou =>
-                Log4CatsLogger[F].info(s"GraphQL request (user=$ou).").as {
-                  new SangriaGraphQLService(schema, odb, OdbSchema.exceptionHandler).some
-                }
-              }
+              .as(new SangriaGraphQLService(schema, odb, OdbSchema.exceptionHandler).some)
+
+              // TODO: SSO
+//              .flatMap { ou =>
+//                Log4CatsLogger[F].info(s"GraphQL request (user=$ou).").as {
+//                  new SangriaGraphQLService(schema, odb, OdbSchema.exceptionHandler).some
+//                }
+//              }
 
           // Our GraphQL routes
           val graphQLRoutes: HttpRoutes[F] =
@@ -71,9 +77,10 @@ object Main extends IOApp {
   ): Stream[F, Nothing] = {
     // Spin up the server ...
     for {
-      sso       <- Stream.resource(cfg.ssoClient[F])
-      userClient = sso.map(_.user)
-      httpApp   <- Stream.resource(httpApp(odb, userClient))
+      // TODO: SSO
+//      sso       <- Stream.resource(cfg.ssoClient[F])
+//      userClient = sso.map(_.user)
+      httpApp   <- Stream.resource(httpApp(odb)) //, userClient)) // TODO: SSO
       exitCode  <- BlazeServerBuilder[F]
         .bindHttp(cfg.port, "0.0.0.0")
         .withHttpWebSocketApp(httpApp)
