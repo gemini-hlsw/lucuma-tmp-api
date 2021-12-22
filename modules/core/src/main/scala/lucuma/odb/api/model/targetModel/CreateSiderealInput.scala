@@ -5,15 +5,18 @@ package lucuma.odb.api.model.targetModel
 
 import cats.Eq
 import cats.syntax.apply._
-import cats.syntax.functor._
 import cats.syntax.traverse._
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
-import lucuma.core.math.{Coordinates, Epoch}
-import lucuma.core.model.{SiderealTarget, SiderealTracking, Target}
+import lucuma.core.`enum`.{Band, PlanetSpectrum}
+import lucuma.core.math.BrightnessUnits.{Brightness, Integrated}
+import lucuma.core.math.dimensional.GroupedUnitOfMeasure
+import lucuma.core.math.units.VegaMagnitude
+import lucuma.core.math.{BrightnessValue, Coordinates, Epoch}
+import lucuma.core.model.{BandBrightness, SiderealTracking, SourceProfile, SpectralDefinition, Target, UnnormalizedSpectralEnergyDistribution}
 import lucuma.odb.api.model.{CatalogIdModel, DeclinationModel, MagnitudeModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel, ValidatedInput}
 import lucuma.odb.api.model.json.target._
 
@@ -63,8 +66,29 @@ final case class CreateSiderealInput(
   val toGemTarget: ValidatedInput[Target] =
     (toSiderealTracking,
      magnitudes.toList.flatten.traverse(_.toMagnitude)
-    ).mapN { (pm, ms) =>
-      SiderealTarget(name, pm, SortedMap.from(ms.fproductLeft(_.band)), None)
+    ).mapN { (pm, _) =>
+      Target.Sidereal(
+        name,
+        pm,
+        // Nonsense value to satisfy the compiler for now.
+        SourceProfile.Point(
+          SpectralDefinition.BandNormalized(
+            UnnormalizedSpectralEnergyDistribution.Planet(PlanetSpectrum.Mars),
+            SortedMap.from[Band, BandBrightness[Integrated]](
+              List(
+                (
+                  Band.R: Band,
+                  BandBrightness(
+                    GroupedUnitOfMeasure[Brightness[Integrated], VegaMagnitude].withValue(BrightnessValue.fromDouble(10.0)),
+                    Band.R: Band,
+                  )
+                )
+              )
+            )
+          )
+        ),
+//        SortedMap.from(ms.fproductLeft(_.band)),
+        None)
     }
 
 }

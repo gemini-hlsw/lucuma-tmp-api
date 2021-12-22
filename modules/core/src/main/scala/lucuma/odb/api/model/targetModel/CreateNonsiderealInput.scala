@@ -5,16 +5,19 @@ package lucuma.odb.api.model.targetModel
 
 import cats.Eq
 import cats.syntax.apply._
-import cats.syntax.functor._
 import cats.syntax.option._
 import cats.syntax.traverse._
+import lucuma.core.math.dimensional.GroupedUnitOfMeasure
+import lucuma.core.math.units.VegaMagnitude
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
-import lucuma.core.`enum`.EphemerisKeyType
-import lucuma.core.model.{EphemerisKey, NonsiderealTarget, Target}
+import lucuma.core.`enum`.{Band, EphemerisKeyType, PlanetSpectrum}
+import lucuma.core.math.BrightnessUnits._
+import lucuma.core.math.BrightnessValue
+import lucuma.core.model.{BandBrightness, EphemerisKey, SourceProfile, SpectralDefinition, Target, UnnormalizedSpectralEnergyDistribution}
 import lucuma.odb.api.model.{InputError, MagnitudeModel, ValidatedInput}
 
 import scala.collection.immutable.SortedMap
@@ -39,8 +42,30 @@ final case class CreateNonsiderealInput(
   val toGemTarget: ValidatedInput[Target] =
     (toEphemerisKey,
      magnitudes.toList.flatten.traverse(_.toMagnitude)
-    ).mapN { (k, ms) =>
-      NonsiderealTarget(name, k, SortedMap.from(ms.fproductLeft(_.band)), None)
+    ).mapN { (k, _) =>
+      Target.Nonsidereal(
+        name,
+        k,
+        // Nonsense value to satisfy the compiler for now.
+        SourceProfile.Point(
+          SpectralDefinition.BandNormalized(
+            UnnormalizedSpectralEnergyDistribution.Planet(PlanetSpectrum.Mars),
+            SortedMap.from[Band, BandBrightness[Integrated]](
+              List(
+                (
+                  Band.R: Band,
+                  BandBrightness(
+                    GroupedUnitOfMeasure[Brightness[Integrated], VegaMagnitude].withValue(BrightnessValue.fromDouble(10.0)),
+                    Band.R: Band,
+                  )
+                )
+              )
+            )
+          )
+        ),
+//        SortedMap.from(ms.fproductLeft(_.band)),
+        None
+      )
     }
 
 }

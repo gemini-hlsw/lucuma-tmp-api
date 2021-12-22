@@ -10,7 +10,7 @@ import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.`enum`.{CatalogName, MagnitudeBand, MagnitudeSystem, EphemerisKeyType => EphemerisKeyTypeEnum}
 import lucuma.core.math.{Coordinates, Declination, MagnitudeValue, Parallax, ProperMotion, RadialVelocity, RightAscension, VelocityAxis}
-import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, NonsiderealTarget, SiderealTarget, SiderealTracking, Target}
+import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, SiderealTracking, Target}
 import cats.syntax.all._
 import cats.effect.std.Dispatcher
 import lucuma.odb.api.schema.GeneralSchema.EnumTypeExistence
@@ -426,18 +426,18 @@ object TargetSchema extends TargetScalars {
           fieldType   = TrackingType[F],
           description = Some("Information required to find a target in the sky."),
           resolve     = c => c.value.target match {
-            case SiderealTarget(_, siderealTracking, _, _) => siderealTracking.asRight[EphemerisKey]
-            case NonsiderealTarget(_, ephemerisKey, _, _)  => ephemerisKey.asLeft[SiderealTracking]
+            case Target.Sidereal(_, siderealTracking, _, _) => siderealTracking.asRight[EphemerisKey]
+            case Target.Nonsidereal(_, ephemerisKey, _, _)  => ephemerisKey.asLeft[SiderealTracking]
           }
-        ),
+        )
 
         // TODO: move to ITC target source description
-        Field(
-          name        = "magnitudes",
-          fieldType   = ListType(MagnitudeType[F]),
-          description = Some("Target magnitudes"),
-          resolve     = _.value.target.magnitudes.values.toList
-        )
+//        Field(
+//          name        = "magnitudes",
+//          fieldType   = ListType(MagnitudeType[F]),
+//          description = Some("Target magnitudes"),
+//          resolve     = _.value.target.magnitudes.values.toList
+//        )
 
       )
     )

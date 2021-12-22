@@ -12,7 +12,7 @@ import eu.timepit.refined.cats._
 import io.circe.Decoder
 import lucuma.core.math.Epoch
 import lucuma.core.model.Target
-import lucuma.core.optics.state.all._
+//import lucuma.core.optics.state.all._
 import lucuma.core.optics.syntax.optional._
 import lucuma.odb.api.model.{CatalogIdModel, DeclinationModel, MagnitudeModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel, ValidatedInput}
 import lucuma.odb.api.model.json.target._
@@ -39,7 +39,7 @@ final case class EditSiderealInput(
      radialVelocity.validateNullable(_.toRadialVelocity),
      parallax      .validateNullable(_.toParallax),
      magnitudes    .traverse(_.editor)
-    ).mapN { (catalogId, ra, dec, epoch, pm, rv, px, ms) =>
+    ).mapN { (catalogId, ra, dec, epoch, pm, rv, px, _ /*ms*/) =>
       for {
         _ <- Target.catalogId         := catalogId
         _ <- Target.baseRA            := ra
@@ -48,7 +48,7 @@ final case class EditSiderealInput(
         _ <- Target.properMotion      := pm
         _ <- Target.radialVelocity    := rv
         _ <- Target.parallax          := px
-        _ <- Target.magnitudes.mod(m => ms.fold(m)(_.runS(m).value))
+//        _ <- Target.magnitudes.mod(m => ms.fold(m)(_.runS(m).value))
       } yield ()
     }
 
