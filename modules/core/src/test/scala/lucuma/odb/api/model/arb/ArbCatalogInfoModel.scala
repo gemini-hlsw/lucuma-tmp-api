@@ -4,22 +4,22 @@
 package lucuma.odb.api.model
 package arb
 
-import lucuma.core.model.CatalogId
-import lucuma.core.model.arb.ArbCatalogId._
+import lucuma.core.model.CatalogInfo
+import lucuma.core.model.arb.ArbCatalogInfo._
 
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
 
-trait ArbCatalogIdModel {
+trait ArbCatalogInfoModel {
 
   implicit val arbCatalogIdModelInput: Arbitrary[CatalogInfoModel.Input] =
     Arbitrary {
-      arbitrary[CatalogId].map(id => CatalogInfoModel.Input(id.catalog, id.id.value))
+      arbitrary[CatalogInfo].map(id => CatalogInfoModel.Input(id.catalog, id.id.value))
     }
 
   implicit val cogCatalogIdModelInput: Cogen[CatalogInfoModel.Input] =
-    Cogen[CatalogId].contramap(i => CatalogId(i.name, i.id).get)
+    Cogen[CatalogInfo].contramap(i => CatalogInfo(i.name, i.id).get)
 }
 
-object ArbCatalogIdModel extends ArbCatalogIdModel
+object ArbCatalogInfoModel extends ArbCatalogInfoModel

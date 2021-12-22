@@ -4,19 +4,19 @@
 package lucuma.odb.api.model
 package arb
 
-import lucuma.core.`enum`.{MagnitudeBand, MagnitudeSystem}
-import lucuma.core.model.Magnitude
-import lucuma.core.model.arb.ArbMagnitude
-import lucuma.core.math.MagnitudeValue
-import lucuma.core.util.arb.ArbEnumerated
-
-import cats.syntax.all._
-import clue.data.Input
-import org.scalacheck._
-import org.scalacheck.Arbitrary.arbitrary
+//import lucuma.core.`enum`.{MagnitudeBand, MagnitudeSystem}
+//import lucuma.core.model.Magnitude
+//import lucuma.core.model.arb.ArbMagnitude
+//import lucuma.core.math.MagnitudeValue
+//import lucuma.core.util.arb.ArbEnumerated
+//
+//import cats.syntax.all._
+//import clue.data.Input
+//import org.scalacheck._
+//import org.scalacheck.Arbitrary.arbitrary
 
 trait ArbMagnitudeModel {
-
+/*
   import ArbEnumerated._
   import ArbInput._
   import ArbMagnitude._
@@ -97,6 +97,7 @@ trait ArbMagnitudeModel {
       in.replaceList,
       in.editList
     )}
+ */
 }
 
 object ArbMagnitudeModel extends ArbMagnitudeModel
