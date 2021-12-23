@@ -13,6 +13,7 @@ import lucuma.core.`enum`.{Band, GalaxySpectrum, HIIRegionSpectrum, PlanetSpectr
 import lucuma.core.math.{BrightnessUnits, BrightnessValue, Wavelength}
 import lucuma.core.math.BrightnessUnits.{Integrated, Surface}
 import lucuma.core.math.dimensional.GroupedUnitType
+import lucuma.core.model.SpectralDefinition.BandNormalized
 import lucuma.core.model.UnnormalizedSED.{BlackBody, CoolStarModel, Galaxy, HIIRegion, Planet, PlanetaryNebula, PowerLaw, Quasar, StellarLibrary, UserDefined}
 import lucuma.core.model.{BandBrightness, UnnormalizedSED}
 import lucuma.core.syntax.string._
@@ -348,4 +349,39 @@ object SourceProfileSchema {
       EnumTypeBrightnessSurface
     )
 
+  private def BandNormalizedType[F[_], T](
+    name:      String,
+    bandBrightnessType: ObjectType[OdbRepo[F], BandBrightness[T]]
+  ): ObjectType[OdbRepo[F], BandNormalized[T]] =
+    ObjectType(
+      name     = name,
+      fieldsFn = () => fields(
+
+        Field(
+          name        = "sed",
+          fieldType   = UnnormalizedSedType[F],
+          description = "Un-normalized spectral energy distribution".some,
+          resolve     = _.value.sed
+        ),
+
+        Field(
+          name        = "brightnesses",
+          fieldType   = ListType(bandBrightnessType),
+          resolve     = _.value.brightnesses.toList.map(_._2)
+        ),
+
+      )
+    )
+
+  def BandNormalizedIntegrated[F[_]]: ObjectType[OdbRepo[F], BandNormalized[Integrated]] =
+    BandNormalizedType[F, Integrated](
+      "BandNormalizedIntegrated",
+      BandBrightnessIntegrated[F]
+    )
+
+  def BandNormalizedSurface[F[_]]: ObjectType[OdbRepo[F], BandNormalized[Surface]] =
+    BandNormalizedType[F, Surface](
+      "BandNormalizedSurface",
+      BandBrightnessSurface[F]
+    )
 }
