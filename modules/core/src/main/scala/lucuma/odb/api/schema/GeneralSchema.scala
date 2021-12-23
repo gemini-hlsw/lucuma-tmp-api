@@ -5,9 +5,8 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.{Existence, PlannedTimeSummaryModel}
 import lucuma.odb.api.repo.OdbRepo
-
 import cats.syntax.all._
-import eu.timepit.refined.types.all.NonEmptyString
+import eu.timepit.refined.types.all.{NonEmptyString, PosBigDecimal}
 import sangria.schema._
 import sangria.validation.ValueCoercionViolation
 
@@ -46,6 +45,59 @@ object GeneralSchema {
         case _                                      => Left(EmptyStringViolation)
       }
     )
+
+  private def refinedNumericViolation(desc: String): ValueCoercionViolation =
+    new ValueCoercionViolation(s"Expected a $desc") {
+    }
+
+  def RefinedDecimalType[R](
+    name: String,
+    desc: String,
+    f: BigDecimal => Either[String, R],
+    g: R => BigDecimal
+  ): ScalarType[R] = {
+    val viol: ValueCoercionViolation =
+      refinedNumericViolation(desc)
+
+    ScalarType[R](
+      name            = name,
+      description     = desc.some,
+      coerceUserInput = in =>
+        BigDecimalType.coerceUserInput(in).flatMap { bd => f(bd).leftMap(_ => viol) },
+      coerceOutput    = (a, _) => g(a),
+      coerceInput     = { v =>
+        BigDecimalType.coerceInput(v).flatMap { bd => f(bd).leftMap(_ => viol) }
+      }
+    )
+  }
+
+  implicit val PosBigDecimalType: ScalarType[PosBigDecimal] =
+    RefinedDecimalType[PosBigDecimal](
+      "PosBigDecimal",
+      "positive decimal value",
+      PosBigDecimal.from,
+      _.value
+    )
+
+    /*
+  final case object NotPositiveBigDecimalViolation extends ValueCoercionViolation("Expected a positive decimal value")
+
+  implicit val PosBigDecimalType: ScalarType[PosBigDecimal] =
+    ScalarType[PosBigDecimal](
+      name            = "PosBigDecimal",
+      description     = "A positive decimal value".some,
+      coerceUserInput = in =>
+        BigDecimalType.coerceUserInput(in).flatMap { bd =>
+          PosBigDecimal.from(bd).leftMap(_ => NotPositiveBigDecimalViolation)
+        },
+      coerceOutput    = (a, _) => a.value,
+      coerceInput     = { v =>
+        BigDecimalType.coerceInput(v).flatMap { bd =>
+          PosBigDecimal.from(bd).leftMap(_ => NotPositiveBigDecimalViolation)
+        }
+      }
+    )
+*/
 
   def PlannedTimeSummaryType[F[_]]: ObjectType[OdbRepo[F], PlannedTimeSummaryModel] =
     ObjectType(

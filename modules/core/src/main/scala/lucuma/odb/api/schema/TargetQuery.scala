@@ -6,6 +6,12 @@ package lucuma.odb.api.schema
 import cats.MonadError
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
+import lucuma.core.`enum`.Band
+import lucuma.core.math.BrightnessUnits.{Brightness, Integrated}
+import lucuma.core.math.BrightnessValue
+import lucuma.core.math.dimensional.GroupedUnitOfMeasure
+import lucuma.core.math.units.VegaMagnitude
+import lucuma.core.model.BandBrightness
 import lucuma.odb.api.repo.{OdbRepo, ResultPage}
 import lucuma.odb.api.model.targetModel.TargetModel
 import lucuma.odb.api.schema.TargetSchema.ArgumentTargetId
@@ -99,13 +105,54 @@ trait TargetQuery {
       resolve     = c => c.target(_.selectObservationTargetEnvironment(c.observationId))
     )
 
+  def test[F[_]]: Field[OdbRepo[F], Unit] = {
+    import SourceProfileSchema._
+
+    Field(
+      name        = "test",
+      fieldType   = EnumTypeBrightnessIntegrated,
+      description = "test".some,
+      resolve     = _ => lucuma.core.math.units.defineVegaMagnitude
+    )
+  }
+
+  def test2[F[_]]: Field[OdbRepo[F], Unit] = {
+    import SourceProfileSchema._
+
+    Field(
+      name        = "test2",
+      fieldType   = EnumTypeBrightnessSurface,
+      description = "test2".some,
+      resolve     = _ => lucuma.core.math.units.defineVegaMagnitudePerArcsec2
+    )
+  }
+
+  def test3[F[_]]: Field[OdbRepo[F], Unit] = {
+    import SourceProfileSchema._
+
+    Field(
+      name        = "test3",
+      fieldType   = BandBrightnessIntegrated[F],
+      description = "test3".some,
+      resolve     = _ => {
+        BandBrightness[Integrated](
+          GroupedUnitOfMeasure[Brightness[Integrated], VegaMagnitude].withValue(BrightnessValue.fromDouble(10.0)),
+          Band.R: Band
+        )
+      }
+    )
+  }
+
   def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
     List(
       target[F],
       referencedScienceTargets[F],
       firstScienceTarget[F],
       asterism[F],
-      targetEnvironment[F]
+      targetEnvironment[F],
+      test[F],
+      test2[F],
+      test3[F]
     )
 }
 
