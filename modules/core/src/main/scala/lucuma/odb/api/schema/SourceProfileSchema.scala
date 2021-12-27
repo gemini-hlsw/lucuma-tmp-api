@@ -13,12 +13,12 @@ import lucuma.core.`enum`.{Band, GalaxySpectrum, HIIRegionSpectrum, PlanetSpectr
 import lucuma.core.math.{BrightnessUnits, BrightnessValue, Wavelength}
 import lucuma.core.math.BrightnessUnits.{Integrated, Surface}
 import lucuma.core.math.dimensional.GroupedUnitType
-import lucuma.core.model.SpectralDefinition.BandNormalized
+import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
 import lucuma.core.model.UnnormalizedSED.{BlackBody, CoolStarModel, Galaxy, HIIRegion, Planet, PlanetaryNebula, PowerLaw, Quasar, StellarLibrary, UserDefined}
-import lucuma.core.model.{BandBrightness, UnnormalizedSED}
+import lucuma.core.model.{BandBrightness, EmissionLine, UnnormalizedSED}
 import lucuma.core.syntax.string._
 import lucuma.odb.api.repo.OdbRepo
-import sangria.schema._
+import sangria.schema.{Field, _}
 
 import scala.reflect.ClassTag
 
@@ -188,7 +188,7 @@ object SourceProfileSchema {
 
   def BlackBodyType[F[_]]: ObjectType[OdbRepo[F], BlackBody] =
     KelvinBasedSed[F, BlackBody](
-      name        = "BlackBocy",
+      name        = "BlackBody",
       description = "Black body SED",
       _.temperature
     )
@@ -307,7 +307,7 @@ object SourceProfileSchema {
       fieldsFn = () => fields(
 
         Field(
-          name        = "value",
+          name        = "magnitude",
           fieldType   = BigDecimalType,
           description = "Magnitude value".some,
           resolve     = c => BrightnessValue.fromBigDecimal.reverseGet(c.value.quantity.value)
@@ -350,7 +350,7 @@ object SourceProfileSchema {
     )
 
   private def BandNormalizedType[F[_], T](
-    name:      String,
+    name:               String,
     bandBrightnessType: ObjectType[OdbRepo[F], BandBrightness[T]]
   ): ObjectType[OdbRepo[F], BandNormalized[T]] =
     ObjectType(
@@ -384,4 +384,96 @@ object SourceProfileSchema {
       "BandNormalizedSurface",
       BandBrightnessSurface[F]
     )
+
+  private def EmissionLineType[F[_], T](
+    name:      String,
+    unitsType: EnumType[UnitDefinition]
+  ): ObjectType[OdbRepo[F], EmissionLine[T]] =
+    ObjectType(
+      name     = name,
+      fieldsFn = () => fields(
+
+        Field(
+          name        = "wavelength",
+          fieldType   = WavelengthType[F],
+          resolve     = _.value.wavelength
+        ),
+
+        // TODO: units like -> "kilometersPerSecond": 1  ?
+        Field(
+          name        = "lineWidth",
+          fieldType   = PosBigDecimalType,
+          description = "km/s".some,
+          resolve     = _.value.lineWidth.value
+        ),
+
+        Field(
+          name        = "lineFlux",
+          fieldType   = PosBigDecimalType,
+          resolve     = _.value.lineFlux.value
+        ),
+
+        Field(
+          name        = "units",
+          fieldType   = unitsType,
+          resolve     = _.value.lineFlux.unit.definition
+        )
+      )
+    )
+
+  def EmissionLineIntegrated[F[_]]: ObjectType[OdbRepo[F], EmissionLine[Integrated]] =
+    EmissionLineType[F, Integrated](
+      "EmissionLineIntegrated",
+      EnumTypeLineFluxIntegrated
+    )
+
+  def EmissionLineSurface[F[_]]: ObjectType[OdbRepo[F], EmissionLine[Surface]] =
+    EmissionLineType[F, Surface](
+      "EmissionLineSurface",
+      EnumTypeLineFluxSurface
+    )
+
+  private def EmissionLinesType[F[_], T](
+    name:         String,
+    lineType:     ObjectType[OdbRepo[F], EmissionLine[T]],
+    fdcUnitsType: EnumType[UnitDefinition]
+  ): ObjectType[OdbRepo[F], EmissionLines[T]] =
+    ObjectType(
+      name     = name,
+      fieldsFn = () => fields(
+
+        Field(
+          name      = "lines",
+          fieldType = ListType(lineType),
+          resolve   = _.value.lines.values.toList
+        ),
+
+        Field(
+          name      = "fluxDensityContinuum",
+          fieldType = PosBigDecimalType,
+          resolve   = _.value.fluxDensityContinuum.value
+        ),
+
+        Field(
+          name      = "units",
+          fieldType = fdcUnitsType,
+          resolve   = _.value.fluxDensityContinuum.unit.definition
+        )
+      )
+    )
+
+  def EmissionLinesIntegrated[F[_]]: ObjectType[OdbRepo[F], EmissionLines[Integrated]] =
+    EmissionLinesType[F, Integrated](
+      "EmissionLinesIntegrated",
+      EmissionLineIntegrated[F],
+      EnumTypeFluxDensityContinuumIntegrated
+    )
+
+  def EmissionLinesSurface[F[_]]: ObjectType[OdbRepo[F], EmissionLines[Surface]] =
+    EmissionLinesType[F, Surface](
+      "EmissionLinesSurface",
+      EmissionLineSurface[F],
+      EnumTypeFluxDensityContinuumSurface
+    )
+
 }
