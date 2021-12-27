@@ -6,16 +6,19 @@ package lucuma.odb.api.schema
 import cats.MonadError
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
-import lucuma.core.`enum`.Band
+import lucuma.core.`enum`.{Band, PlanetSpectrum}
 import lucuma.core.math.BrightnessUnits.{Brightness, Integrated}
-import lucuma.core.math.BrightnessValue
+import lucuma.core.math.{BrightnessUnits, BrightnessValue}
 import lucuma.core.math.dimensional.GroupedUnitOfMeasure
 import lucuma.core.math.units.VegaMagnitude
-import lucuma.core.model.BandBrightness
+import lucuma.core.model.{BandBrightness, UnnormalizedSED}
+import lucuma.core.model.SpectralDefinition.BandNormalized
 import lucuma.odb.api.repo.{OdbRepo, ResultPage}
 import lucuma.odb.api.model.targetModel.TargetModel
 import lucuma.odb.api.schema.TargetSchema.ArgumentTargetId
 import sangria.schema._
+
+import scala.collection.immutable.SortedMap
 
 
 trait TargetQuery {
@@ -112,7 +115,7 @@ trait TargetQuery {
       name        = "test",
       fieldType   = EnumTypeBrightnessIntegrated,
       description = "test".some,
-      resolve     = _ => lucuma.core.math.units.defineVegaMagnitude
+      resolve     = _ => BrightnessUnits.Brightness.Integrated.all.head
     )
   }
 
@@ -123,7 +126,7 @@ trait TargetQuery {
       name        = "test2",
       fieldType   = EnumTypeBrightnessSurface,
       description = "test2".some,
-      resolve     = _ => lucuma.core.math.units.defineVegaMagnitudePerArcsec2
+      resolve     = _ => BrightnessUnits.Brightness.Surface.all.head
     )
   }
 
@@ -132,14 +135,36 @@ trait TargetQuery {
 
     Field(
       name        = "test3",
-      fieldType   = BandBrightnessIntegrated[F],
+      fieldType   = BandBrightnessIntegrated[OdbRepo[F]],
       description = "test3".some,
-      resolve     = _ => {
+      resolve     = _ =>
         BandBrightness[Integrated](
           GroupedUnitOfMeasure[Brightness[Integrated], VegaMagnitude].withValue(BrightnessValue.fromDouble(10.0)),
           Band.R: Band
         )
-      }
+    )
+  }
+
+  def test4[F[_]]: Field[OdbRepo[F], Unit] = {
+    import SourceProfileSchema._
+
+    Field(
+      name        = "test4",
+      fieldType   = BandNormalizedIntegrated[OdbRepo[F]],
+      description = "test4".some,
+      resolve     = _ =>
+        BandNormalized[Integrated](
+          UnnormalizedSED.Planet(PlanetSpectrum.Mars),
+          SortedMap.from(
+            List(
+              (Band.R: Band) ->
+              BandBrightness[Integrated](
+                GroupedUnitOfMeasure[Brightness[Integrated], VegaMagnitude].withValue(BrightnessValue.fromDouble(10.0)),
+                Band.R: Band
+              )
+          )
+        )
+      )
     )
   }
 
@@ -152,7 +177,8 @@ trait TargetQuery {
       targetEnvironment[F],
       test[F],
       test2[F],
-      test3[F]
+      test3[F],
+      test4[F],
     )
 }
 

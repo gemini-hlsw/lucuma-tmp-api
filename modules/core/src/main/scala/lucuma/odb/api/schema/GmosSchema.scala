@@ -322,7 +322,7 @@ object GmosSchema {
 
         Field(
           name        = "wavelength",
-          fieldType   = WavelengthType[F],
+          fieldType   = WavelengthType[OdbRepo[F]],
           description = Some(s"Grating wavelength"),
           resolve     = _.value.wavelength
         )
