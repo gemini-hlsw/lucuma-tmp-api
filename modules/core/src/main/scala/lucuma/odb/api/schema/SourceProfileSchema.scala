@@ -14,7 +14,7 @@ import lucuma.core.math.BrightnessUnits.{Brightness, FluxDensityContinuum, Integ
 import lucuma.core.math.dimensional.{GroupedUnitQty, GroupedUnitType}
 import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
 import lucuma.core.model.UnnormalizedSED.{BlackBody, CoolStarModel, Galaxy, HIIRegion, Planet, PlanetaryNebula, PowerLaw, Quasar, StellarLibrary, UserDefined}
-import lucuma.core.model.{BandBrightness, EmissionLine, UnnormalizedSED}
+import lucuma.core.model.{BandBrightness, EmissionLine, SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.core.syntax.string._
 import sangria.schema.{Field, _}
 import sangria.validation.FloatCoercionViolation
@@ -23,6 +23,7 @@ import scala.reflect.ClassTag
 
 object SourceProfileSchema {
 
+  import AngleSchema.AngleType
   import GeneralSchema.PosBigDecimalType
   import syntax.`enum`._
   import WavelengthSchema.WavelengthType
@@ -497,5 +498,91 @@ object SourceProfileSchema {
       EmissionLineSurface[C],
       EnumTypeFluxDensityContinuumSurface
     )
+
+  def SpectralDefinitionType[C, T](
+    unitCategoryName: String,
+    bandNormalizedType: ObjectType[C, BandNormalized[T]],
+    emissionLinesType:  ObjectType[C, EmissionLines[T]]
+  ): OutputType[SpectralDefinition[T]] =
+    UnionType(
+      name         = s"SpectralDefinition$unitCategoryName",
+      description  = s"Spectral definition ${unitCategoryName.toLowerCase}".some,
+      types        = List(
+        bandNormalizedType,
+        emissionLinesType,
+      )
+    ).mapValue[SpectralDefinition[T]](identity)
+
+  def SpectralDefinitionIntegrated[C]: OutputType[SpectralDefinition[Integrated]] =
+    SpectralDefinitionType[C, Integrated](
+      "Integrated",
+      BandNormalizedIntegrated[C],
+      EmissionLinesIntegrated[C]
+    )
+
+  def SpectralDefinitionSurface[C]: OutputType[SpectralDefinition[Surface]] =
+    SpectralDefinitionType[C, Surface](
+      "Surface",
+      BandNormalizedSurface[C],
+      EmissionLinesSurface[C]
+    )
+
+  def PointType[C]: ObjectType[C, SourceProfile.Point] =
+    ObjectType(
+      name     = "PointSource",
+      fieldsFn = () => fields(
+         Field(
+           name        = "spectralDefinition",
+           description = "Point source".some,
+           fieldType   = SpectralDefinitionIntegrated[C],
+           resolve     = _.value.spectralDefinition
+         )
+      )
+    )
+
+  def UniformType[C]: ObjectType[C, SourceProfile.Uniform] =
+    ObjectType(
+      name     = "UniformSource",
+      fieldsFn = () => fields(
+        Field(
+          name         = "spectralDefinition",
+          description  = "Uniform source".some,
+          fieldType    = SpectralDefinitionSurface[C],
+          resolve      = _.value.spectralDefinition
+        )
+      )
+    )
+
+  def GaussianType[C]: ObjectType[C, SourceProfile.Gaussian] =
+    ObjectType(
+      name     = "GaussianSource",
+      fieldsFn = () => fields(
+
+        Field(
+          name         = "fwhm",
+          description  = "full width at half maximum".some,
+          fieldType    = AngleType[C],
+          resolve      = _.value.source.fwhm
+        ),
+
+        Field(
+          name         = "spectralDefinition",
+          description  = "Gaussian source".some,
+          fieldType    = SpectralDefinitionIntegrated[C],
+          resolve      = _.value.spectralDefinition
+        )
+      )
+    )
+
+  def SourceProfileType[C]: OutputType[SourceProfile] =
+    UnionType(
+      name        = "SourceProfile",
+      description = "source profile".some,
+      types       = List(
+        PointType[C],
+        UniformType[C],
+        GaussianType[C]
+      )
+    ).mapValue[SourceProfile](identity)
 
 }
