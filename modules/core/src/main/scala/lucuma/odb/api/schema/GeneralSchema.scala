@@ -46,58 +46,19 @@ object GeneralSchema {
       }
     )
 
-  private def refinedNumericViolation(desc: String): ValueCoercionViolation =
+  private def refinedViolation(desc: String): ValueCoercionViolation =
     new ValueCoercionViolation(s"Expected a $desc") {
     }
 
-  def RefinedDecimalType[R](
-    name: String,
-    desc: String,
-    f: BigDecimal => Either[String, R],
-    g: R => BigDecimal
-  ): ScalarType[R] = {
-    val viol: ValueCoercionViolation =
-      refinedNumericViolation(desc)
+  val PosBigDecimalViolation: ValueCoercionViolation =
+    refinedViolation("positive big decimal")
 
-    ScalarType[R](
-      name            = name,
-      description     = desc.some,
-      coerceUserInput = in =>
-        BigDecimalType.coerceUserInput(in).flatMap { bd => f(bd).leftMap(_ => viol) },
-      coerceOutput    = (a, _) => g(a),
-      coerceInput     = { v =>
-        BigDecimalType.coerceInput(v).flatMap { bd => f(bd).leftMap(_ => viol) }
-      }
+  implicit val PosBigDecimalType: ScalarAlias[PosBigDecimal, BigDecimal] =
+    ScalarAlias(
+      BigDecimalType,
+      _.value,
+      bd => PosBigDecimal.from(bd).leftMap(_ => PosBigDecimalViolation)
     )
-  }
-
-  implicit val PosBigDecimalType: ScalarType[PosBigDecimal] =
-    RefinedDecimalType[PosBigDecimal](
-      "PosBigDecimal",
-      "positive decimal value",
-      PosBigDecimal.from,
-      _.value
-    )
-
-    /*
-  final case object NotPositiveBigDecimalViolation extends ValueCoercionViolation("Expected a positive decimal value")
-
-  implicit val PosBigDecimalType: ScalarType[PosBigDecimal] =
-    ScalarType[PosBigDecimal](
-      name            = "PosBigDecimal",
-      description     = "A positive decimal value".some,
-      coerceUserInput = in =>
-        BigDecimalType.coerceUserInput(in).flatMap { bd =>
-          PosBigDecimal.from(bd).leftMap(_ => NotPositiveBigDecimalViolation)
-        },
-      coerceOutput    = (a, _) => a.value,
-      coerceInput     = { v =>
-        BigDecimalType.coerceInput(v).flatMap { bd =>
-          PosBigDecimal.from(bd).leftMap(_ => NotPositiveBigDecimalViolation)
-        }
-      }
-    )
-*/
 
   def PlannedTimeSummaryType[F[_]]: ObjectType[OdbRepo[F], PlannedTimeSummaryModel] =
     ObjectType(

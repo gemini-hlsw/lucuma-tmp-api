@@ -100,7 +100,7 @@ object CreateSiderealInput {
   ): CreateSiderealInput =
     CreateSiderealInput(
       name           = name,
-      catalogInfo      = None,
+      catalogInfo    = None,
       ra             = ra,
       dec            = dec,
       epoch          = None,

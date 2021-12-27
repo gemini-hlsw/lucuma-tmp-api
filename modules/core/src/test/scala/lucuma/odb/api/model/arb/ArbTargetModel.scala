@@ -33,7 +33,6 @@ trait ArbTargetModel {
   import ArbEpoch._
   import ArbGid._
   import ArbInput._
-//  import ArbMagnitudeModel._
   import ArbParallaxModel._
   import ArbProperMotionModel._
   import ArbRadialVelocityModel._
@@ -94,7 +93,6 @@ trait ArbTargetModel {
         pm    <- arbitrary[Option[ProperMotionModel.Input]]
         rv    <- arbitrary[Option[RadialVelocityModel.Input]]
         px    <- arbitrary[Option[ParallaxModel.Input]]
-//        mags  <- arbitrary[Option[List[MagnitudeModel.Create]]]
       } yield CreateSiderealInput(
         name,
         cat,
@@ -117,7 +115,6 @@ trait ArbTargetModel {
       Option[ProperMotionModel.Input],
       Option[RadialVelocityModel.Input],
       Option[ParallaxModel.Input],
-//      Option[List[MagnitudeModel.Create]]
     )].contramap { in => (
       in.name.value,
       in.catalogInfo,
@@ -135,12 +132,10 @@ trait ArbTargetModel {
         name <- arbitrary[NonEmptyString]
         key  <- arbitrary[EphemerisKeyType]
         des  <- arbitrary[NonEmptyString]
-//        mags <- arbitrary[Option[List[MagnitudeModel.Create]]]
       } yield CreateNonsiderealInput(
         name,
         key,
         des.value
-//        mags
       )
     }
 
@@ -149,7 +144,6 @@ trait ArbTargetModel {
       String,
       EphemerisKeyType,
       String,
-//      Option[List[MagnitudeModel.Create]]
     )].contramap { in => (
       in.name.value, in.keyType, in.des
     )}
@@ -176,8 +170,6 @@ trait ArbTargetModel {
       in.sidereal,
       in.nonsidereal
     )}
-
-//          name  <- arbitrary[Input[NonEmptyString]]
 
   implicit val arbEditSidereal: Arbitrary[EditSiderealInput] =
     Arbitrary {

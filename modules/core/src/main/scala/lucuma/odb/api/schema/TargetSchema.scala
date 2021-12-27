@@ -20,6 +20,7 @@ object TargetSchema extends TargetScalars {
 
   import GeneralSchema.{ArgumentIncludeDeleted, NonEmptyStringType}
   import ProgramSchema.ProgramType
+  import SourceProfileSchema._
 
   import context._
 
@@ -45,18 +46,6 @@ object TargetSchema extends TargetScalars {
       "CatalogName",
       "Catalog name values"
     )
-
-//  implicit val EnumTypeMagnitudeBand: EnumType[MagnitudeBand] =
-//    EnumType.fromEnumerated(
-//      "MagnitudeBand",
-//      "Magnitude band"
-//    )
-//
-//  implicit val EnumTypeMagnitudeSystem: EnumType[MagnitudeSystem] =
-//    EnumType.fromEnumerated(
-//      "MagnitudeSystem",
-//      "Magnitude system"
-//    )
 
   implicit val EphemerisKeyTypeEnumType: EnumType[EphemerisKeyTypeEnum] =
     EnumType.fromEnumerated(
@@ -113,41 +102,6 @@ object TargetSchema extends TargetScalars {
         )
       )
     )
-
-//  def MagnitudeType[F[_]]: ObjectType[OdbRepo[F], Magnitude] =
-//    ObjectType(
-//      name = "Magnitude",
-//      fieldsFn = () => fields(
-//
-//        Field(
-//          name        = "value",
-//          fieldType   = BigDecimalType,
-//          description = Some("Magnitude value (unitless)"),
-//          resolve     = m => MagnitudeValue.fromBigDecimal.reverseGet(m.value.value)
-//        ),
-//
-//        Field(
-//          name        = "band",
-//          fieldType   = EnumTypeMagnitudeBand,
-//          description = Some("Magnitude band"),
-//          resolve     = _.value.band
-//        ),
-//
-//        Field(
-//          name        = "system",
-//          fieldType   = EnumTypeMagnitudeSystem,
-//          description = Some("Magnitude System"),
-//          resolve     = _.value.system
-//        ),
-//
-//        Field(
-//          name        = "error",
-//          fieldType   = OptionType(BigDecimalType),
-//          description = Some("Magnitude error (unitless)"),
-//          resolve     = _.value.error.map(MagnitudeValue.fromBigDecimal.reverseGet)
-//        )
-//      )
-//    )
 
   def ProperMotionComponentType[A, F[_]](
     name: String,
@@ -440,15 +394,14 @@ object TargetSchema extends TargetScalars {
             case Target.Sidereal(_, siderealTracking, _, _, _) => siderealTracking.asRight[EphemerisKey]
             case Target.Nonsidereal(_, ephemerisKey, _, _)     => ephemerisKey.asLeft[SiderealTracking]
           }
-        )
+        ),
 
-        // TODO: move to ITC target source description
-//        Field(
-//          name        = "magnitudes",
-//          fieldType   = ListType(MagnitudeType[F]),
-//          description = Some("Target magnitudes"),
-//          resolve     = _.value.target.magnitudes.values.toList
-//        )
+        Field(
+          name        = "sourceProfile",
+          fieldType   = SourceProfileType[OdbRepo[F]],
+          description = "source profile".some ,
+          resolve     = c => c.value.target.sourceProfile
+        )
 
       )
     )

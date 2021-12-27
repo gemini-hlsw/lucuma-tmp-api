@@ -107,41 +107,6 @@ trait TargetMutation extends TargetScalars {
       InputObjectTypeDescription("Parallax, choose one of the available units")
     )
 
-//  implicit val InputObjectMagnitudeCreate: InputObjectType[MagnitudeModel.Create] =
-//    deriveInputObjectType[MagnitudeModel.Create](
-//      InputObjectTypeName("MagnitudeCreateInput"),
-//      InputObjectTypeDescription("Magnitude creation parameters"),
-//      ReplaceInputField(
-//        "system",
-//        InputField(
-//          name         = "system",
-//          fieldType    = OptionInputType(EnumTypeMagnitudeSystem),
-//          defaultValue = Some(MagnitudeSystem.Vega: MagnitudeSystem)
-//        )
-//      )
-//    )
-//
-//  implicit val InputObjectMagnitudeEdit: InputObjectType[MagnitudeModel.Edit] =
-//    deriveInputObjectType[MagnitudeModel.Edit](
-//      InputObjectTypeName("MagnitudeEditInput"),
-//      InputObjectTypeDescription("Magnitude editing parameters"),
-//      ReplaceInputField("value",  BigDecimalType.notNullableField("value")          ),
-//      ReplaceInputField("system", EnumTypeMagnitudeSystem.notNullableField("system")),
-//      ReplaceInputField("error",  BigDecimalType.nullableField("error")             )
-//    )
-
-//  implicit val InputObjectMagnitudeEditAction: InputObjectType[MagnitudeModel.EditAction] =
-//    deriveInputObjectType[MagnitudeModel.EditAction](
-//      InputObjectTypeName("MagnitudeEditAction"),
-//      InputObjectTypeDescription("Magnitude edit action (choose one option only)")
-//    )
-//
-//  implicit val InputObjectMagnitudeEditList: InputObjectType[MagnitudeModel.EditList] =
-//    deriveInputObjectType[MagnitudeModel.EditList](
-//      InputObjectTypeName("MagnitudeEditList"),
-//      InputObjectTypeDescription("Magnitude list editing (choose one option only)")
-//    )
-
   implicit val InputObjectTypeCreateNonsidereal: InputObjectType[CreateNonsiderealInput] =
     deriveInputObjectType[CreateNonsiderealInput](
       InputObjectTypeName("CreateNonsiderealInput"),
@@ -179,8 +144,6 @@ trait TargetMutation extends TargetScalars {
     deriveInputObjectType[EditSiderealInput](
       InputObjectTypeName("EditSiderealInput"),
       InputObjectTypeDescription("Sidereal target edit parameters"),
-
-//      DocumentInputField("magnitudes",    "Edit magnitudes"                                               ),
 
       ReplaceInputField("catalogInfo",    InputObjectCatalogId     .nullableField("catalogId"     )),
       ReplaceInputField("ra",             InputObjectRightAscension.notNullableField("ra"         )),

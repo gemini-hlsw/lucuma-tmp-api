@@ -31,7 +31,6 @@ final case class CreateNonsiderealInput(
   name:       NonEmptyString,
   keyType:    EphemerisKeyType,
   des:        String
-//  magnitudes: Option[List[MagnitudeModel.Create]]
 ) {
 
   val toEphemerisKey: ValidatedInput[EphemerisKey] =
@@ -59,7 +58,6 @@ final case class CreateNonsiderealInput(
             )
           )
         ),
-//        SortedMap.from(ms.fproductLeft(_.band)),
         None
       )
     }
