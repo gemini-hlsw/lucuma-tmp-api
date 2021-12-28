@@ -92,10 +92,7 @@ object SourceProfileSchema {
     name:        String,
     enumType:    EnumType[E],
     extractEnum: T => E
-  ): ObjectType[C, T] = {
-    println(name)
-    println(enumType.name)
-
+  ): ObjectType[C, T] =
     ObjectType(
       name        = name,
       fieldsFn    = () => fields(
@@ -107,7 +104,6 @@ object SourceProfileSchema {
         )
       )
     )
-  }
 
   private def KelvinBasedSed[C, T: ClassTag](
     name:          String,
@@ -414,7 +410,7 @@ object SourceProfileSchema {
 
   private def EmissionLineType[C, T](
     unitCategoryName: String,
-    unitsType: EnumType[GroupedUnitType[LineFlux[T]]]
+    lineFluxType: ObjectType[C, GroupedUnitQty[PosBigDecimal, LineFlux[T]]]
   ): ObjectType[C, EmissionLine[T]] =
     ObjectType(
       name     = s"EmissionLine$unitCategoryName",
@@ -436,32 +432,42 @@ object SourceProfileSchema {
 
         Field(
           name        = "lineFlux",
-          fieldType   = GroupedUnitQtyType[C, PosBigDecimal, LineFlux[T]](
-                   s"LineFlux$unitCategoryName",
-                          PosBigDecimalType,
-                          unitsType
-                        ),
+          fieldType   = lineFluxType,
           resolve     = _.value.lineFlux
         )
       )
     )
 
+  def LineFluxIntegratedType[C]: ObjectType[C, GroupedUnitQty[PosBigDecimal, LineFlux[Integrated]]] =
+    GroupedUnitQtyType[C, PosBigDecimal, LineFlux[Integrated]](
+      "LineFluxIntegrated",
+      PosBigDecimalType,
+      EnumTypeLineFluxIntegrated
+    )
+
+  def LineFluxSurfaceType[C]: ObjectType[C, GroupedUnitQty[PosBigDecimal, LineFlux[Surface]]] =
+    GroupedUnitQtyType[C, PosBigDecimal, LineFlux[Surface]](
+      "LineFluxSurface",
+      PosBigDecimalType,
+      EnumTypeLineFluxSurface
+    )
+
   def EmissionLineIntegrated[C]: ObjectType[C, EmissionLine[Integrated]] =
     EmissionLineType[C, Integrated](
       "Integrated",
-      EnumTypeLineFluxIntegrated
+      LineFluxIntegratedType[C]
     )
 
   def EmissionLineSurface[C]: ObjectType[C, EmissionLine[Surface]] =
     EmissionLineType[C, Surface](
       "Surface",
-      EnumTypeLineFluxSurface
+      LineFluxSurfaceType[C]
     )
 
   private def EmissionLinesType[C, T](
     unitCategoryName: String,
     lineType:         ObjectType[C, EmissionLine[T]],
-    fdcUnitsType:     EnumType[GroupedUnitType[FluxDensityContinuum[T]]]
+    fdcType:          ObjectType[C, GroupedUnitQty[PosBigDecimal, FluxDensityContinuum[T]]]
   ): ObjectType[C, EmissionLines[T]] =
     ObjectType(
       name     = s"EmissionLines$unitCategoryName",
@@ -475,28 +481,38 @@ object SourceProfileSchema {
 
         Field(
           name      = "fluxDensityContinuum",
-          fieldType = GroupedUnitQtyType[C, PosBigDecimal, FluxDensityContinuum[T]](
-                        s"FluxDensityContinuum$unitCategoryName",
-                        PosBigDecimalType,
-                        fdcUnitsType
-                      ),
+          fieldType = fdcType,
           resolve   = _.value.fluxDensityContinuum
         )
       )
+    )
+
+  def FluxDensityContinuumIntegratedType[C]: ObjectType[C, GroupedUnitQty[PosBigDecimal, FluxDensityContinuum[Integrated]]] =
+    GroupedUnitQtyType[C, PosBigDecimal, FluxDensityContinuum[Integrated]](
+      "FluxDensityContinuumIntegrated",
+      PosBigDecimalType,
+      EnumTypeFluxDensityContinuumIntegrated
+    )
+
+  def FluxDensityContinuumSurfaceType[C]: ObjectType[C, GroupedUnitQty[PosBigDecimal, FluxDensityContinuum[Surface]]] =
+    GroupedUnitQtyType[C, PosBigDecimal, FluxDensityContinuum[Surface]](
+      "FluxDensityContinuumSurface",
+      PosBigDecimalType,
+      EnumTypeFluxDensityContinuumSurface
     )
 
   def EmissionLinesIntegrated[C]: ObjectType[C, EmissionLines[Integrated]] =
     EmissionLinesType[C, Integrated](
       "Integrated",
       EmissionLineIntegrated[C],
-      EnumTypeFluxDensityContinuumIntegrated
+      FluxDensityContinuumIntegratedType[C]
     )
 
   def EmissionLinesSurface[C]: ObjectType[C, EmissionLines[Surface]] =
     EmissionLinesType[C, Surface](
       "Surface",
       EmissionLineSurface[C],
-      EnumTypeFluxDensityContinuumSurface
+      FluxDensityContinuumSurfaceType[C]
     )
 
   def SpectralDefinitionType[C, T](
@@ -504,7 +520,7 @@ object SourceProfileSchema {
     bandNormalizedType: ObjectType[C, BandNormalized[T]],
     emissionLinesType:  ObjectType[C, EmissionLines[T]]
   ): OutputType[SpectralDefinition[T]] =
-    UnionType(
+    UnionType.apply[C](
       name         = s"SpectralDefinition$unitCategoryName",
       description  = s"Spectral definition ${unitCategoryName.toLowerCase}".some,
       types        = List(

@@ -4,7 +4,6 @@
 package lucuma.odb.api.service
 
 import lucuma.odb.api.repo.OdbRepo
-
 import cats.effect.{Async, ExitCode, IO, IOApp, Resource}
 import cats.implicits._
 import fs2.Stream
@@ -14,7 +13,6 @@ import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.middleware.Logger
 import org.typelevel.log4cats.{Logger => Log4CatsLogger}
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-
 import lucuma.graphql.routes.SangriaGraphQLService
 import lucuma.graphql.routes.GraphQLService
 import lucuma.odb.api.schema.OdbSchema
