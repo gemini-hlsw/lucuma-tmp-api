@@ -10,13 +10,13 @@ import eu.timepit.refined.types.numeric.PosBigDecimal
 import lucuma.core.`enum`.{Band, PlanetSpectrum}
 import lucuma.core.math.BrightnessUnits.{Brightness, FluxDensityContinuum, Integrated, LineFlux}
 import lucuma.core.math.BrightnessValue
-import lucuma.core.math.dimensional.GroupedUnitOfMeasure
 import lucuma.core.math.units.VegaMagnitude
 import lucuma.core.model.{BandBrightness, EmissionLine, SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.odb.api.repo.{OdbRepo, ResultPage}
 import lucuma.odb.api.model.targetModel.TargetModel
 import lucuma.odb.api.schema.TargetSchema.ArgumentTargetId
 import sangria.schema._
+import shapeless.tag.@@
 
 import scala.collection.immutable.SortedMap
 
@@ -122,9 +122,9 @@ trait TargetQuery {
             SortedMap.from[Band, BandBrightness[Integrated]](
               List(
                 (Band.R: Band) ->
-                  BandBrightness(
-                    GroupedUnitOfMeasure[Brightness[Integrated], VegaMagnitude].withValue(BrightnessValue.fromDouble(10.0)),
-                    Band.R: Band,
+                  BandBrightness[Integrated, VegaMagnitude](
+                    BrightnessValue.fromDouble(10.0),
+                    Band.R: Band
                   )
               )
             )
@@ -156,11 +156,11 @@ trait TargetQuery {
                   EmissionLine[Integrated](
                     Wavelength.Min,
                     Quantity[PosBigDecimal, KilometersPerSecond](one),
-                    GroupedUnitQty(one, LineFlux.Integrated.all.head)
+                    shapeless.tag[LineFlux[Integrated]](Qty(one, LineFlux.Integrated.all.head))
                   )
               )
             ),
-            GroupedUnitQty(one, FluxDensityContinuum.Integrated.all.head)
+            shapeless.tag[FluxDensityContinuum[Integrated]](Qty(one, FluxDensityContinuum.Integrated.all.head))
           )
     )
   }
@@ -184,7 +184,7 @@ trait TargetQuery {
                   EmissionLine[Integrated](
                     Wavelength.Min,
                     Quantity[PosBigDecimal, KilometersPerSecond](one),
-                    GroupedUnitQty(one, LineFlux.Integrated.all.head)
+                    shapeless.tag[LineFlux[Integrated]](Qty(one, LineFlux.Integrated.all.head))
                   )
     )
   }
@@ -196,13 +196,15 @@ trait TargetQuery {
 
     val one: PosBigDecimal = PosBigDecimal.from(BigDecimal("1.0")).toOption.get
 
-    println("XXXXXXX" + GroupedUnitQty(one, LineFlux.Integrated.all.head))
+    println("XXXXXXX" + shapeless.tag[LineFlux[Integrated]](Qty(one, LineFlux.Integrated.all.head)))
 
     Field(
       name        = "testLineFluxIntegrated",
       fieldType   = LineFluxIntegratedType,
       description = "test line flux integrated".some,
-      resolve     = _ => GroupedUnitQty(one, LineFlux.Integrated.all.head)
+      resolve     = _ => {
+        shapeless.tag[LineFlux[Integrated]](Qty(one, LineFlux.Integrated.all.head)): Qty[PosBigDecimal] @@ LineFlux[Integrated]
+      }
     )
   }
 
@@ -234,9 +236,9 @@ trait TargetQuery {
             SortedMap.from[Band, BandBrightness[Integrated]](
               List(
                 (Band.R: Band) ->
-                  BandBrightness(
-                    GroupedUnitOfMeasure[Brightness[Integrated], VegaMagnitude].withValue(BrightnessValue.fromDouble(10.0)),
-                    Band.R: Band,
+                  BandBrightness[Integrated, VegaMagnitude](
+                    BrightnessValue.fromDouble(10.0),
+                    Band.R: Band
                   )
               )
             )
@@ -259,9 +261,9 @@ trait TargetQuery {
             SortedMap.from[Band, BandBrightness[Integrated]](
               List(
                 (Band.R: Band) ->
-                  BandBrightness(
-                    GroupedUnitOfMeasure[Brightness[Integrated], VegaMagnitude].withValue(BrightnessValue.fromDouble(10.0)),
-                    Band.R: Band,
+                  BandBrightness[Integrated, VegaMagnitude](
+                    BrightnessValue.fromDouble(10.0),
+                    Band.R: Band
                   )
               )
             )
@@ -298,9 +300,9 @@ trait TargetQuery {
             SortedMap.from[Band, BandBrightness[Integrated]](
               List(
                 (Band.R: Band) ->
-                  BandBrightness(
-                    GroupedUnitOfMeasure[Brightness[Integrated], VegaMagnitude].withValue(BrightnessValue.fromDouble(10.0)),
-                    Band.R: Band,
+                  BandBrightness[Integrated, VegaMagnitude](
+                    BrightnessValue.fromDouble(10.0),
+                    Band.R: Band
                   )
               )
             )

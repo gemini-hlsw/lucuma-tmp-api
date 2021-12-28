@@ -5,7 +5,6 @@ package lucuma.odb.api.model.targetModel
 
 import cats.Eq
 import cats.syntax.option._
-import lucuma.core.math.dimensional.GroupedUnitOfMeasure
 import lucuma.core.math.units.VegaMagnitude
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string.NonEmptyString
@@ -13,6 +12,7 @@ import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
 import lucuma.core.`enum`.{Band, EphemerisKeyType, PlanetSpectrum}
+import lucuma.core.`enum`.Band._
 import lucuma.core.math.BrightnessUnits._
 import lucuma.core.math.BrightnessValue
 import lucuma.core.model.{BandBrightness, EphemerisKey, SourceProfile, SpectralDefinition, Target, UnnormalizedSED}
@@ -49,8 +49,8 @@ final case class CreateNonsiderealInput(
               List(
                 (
                   Band.R: Band,
-                  BandBrightness(
-                    GroupedUnitOfMeasure[Brightness[Integrated], VegaMagnitude].withValue(BrightnessValue.fromDouble(10.0)),
+                  BandBrightness[Integrated, VegaMagnitude](
+                    BrightnessValue.fromDouble(10.0),
                     Band.R: Band,
                   )
                 )

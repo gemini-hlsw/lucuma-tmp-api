@@ -12,8 +12,7 @@ import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
 import lucuma.core.`enum`.{Band, PlanetSpectrum}
-import lucuma.core.math.BrightnessUnits.{Brightness, Integrated}
-import lucuma.core.math.dimensional.GroupedUnitOfMeasure
+import lucuma.core.math.BrightnessUnits.Integrated
 import lucuma.core.math.units.VegaMagnitude
 import lucuma.core.math.{BrightnessValue, Coordinates, Epoch}
 import lucuma.core.model.{BandBrightness, SiderealTracking, SourceProfile, SpectralDefinition, Target, UnnormalizedSED}
@@ -75,9 +74,9 @@ final case class CreateSiderealInput(
               List(
                 (
                   Band.R: Band,
-                  BandBrightness(
-                    GroupedUnitOfMeasure[Brightness[Integrated], VegaMagnitude].withValue(BrightnessValue.fromDouble(10.0)),
-                    Band.R: Band,
+                  BandBrightness[Integrated, VegaMagnitude](
+                    BrightnessValue.fromDouble(10.0),
+                    Band.R: Band
                   )
                 )
               )
