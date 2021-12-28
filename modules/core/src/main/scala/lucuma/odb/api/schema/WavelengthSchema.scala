@@ -14,7 +14,7 @@ object WavelengthSchema {
   import NumericUnitsSchema._
   import syntax.enum._
 
-  def WavelengthType[C]: ObjectType[C, Wavelength] =
+  val WavelengthType: ObjectType[Any, Wavelength] =
     ObjectType(
       name     = "Wavelength",
       fieldsFn = () => fields(

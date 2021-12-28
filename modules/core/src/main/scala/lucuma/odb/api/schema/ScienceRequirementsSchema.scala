@@ -77,7 +77,7 @@ object ScienceRequirementsSchema {
         fields(
           Field(
             name        = "wavelength",
-            fieldType   = OptionType(WavelengthType[OdbRepo[F]]),
+            fieldType   = OptionType(WavelengthType),
             description = Some("Requested central wavelength"),
             resolve     = _.value.wavelength
           ),
@@ -98,14 +98,14 @@ object ScienceRequirementsSchema {
 
           Field(
             name        = "signalToNoiseAt",
-            fieldType   = OptionType(WavelengthType[OdbRepo[F]]),
+            fieldType   = OptionType(WavelengthType),
             description = Some("Requested wavelength for the requested signal to noise"),
             resolve     = _.value.signalToNoiseAt
           ),
 
           Field(
             name        = "wavelengthCoverage",
-            fieldType   = OptionType(WavelengthType[OdbRepo[F]]),
+            fieldType   = OptionType(WavelengthType),
             description = Some("Wavelength range"),
             resolve     = _.value.wavelengthCoverage
           ),

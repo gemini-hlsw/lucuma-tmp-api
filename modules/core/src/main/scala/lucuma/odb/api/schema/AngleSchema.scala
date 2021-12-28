@@ -11,25 +11,25 @@ import sangria.schema._
 
 object AngleSchema {
 
-  def unitFields[C]: List[Field[C, Angle]] =
-    Field[C, Angle, Long, Long](
+  val unitFields: List[Field[Any, Angle]] =
+    Field[Any, Angle, Long, Long](
       name        = "microarcseconds",
       description = "Angle in µas".some,
       fieldType   = LongType,
-      resolve     = (c: Context[C, Angle]) => Value[C, Long](c.value.toMicroarcseconds)
+      resolve     = (c: Context[Any, Angle]) => Value[Any, Long](c.value.toMicroarcseconds)
     ) :: Enumerated[AngleModel.Units].all.tail.map { u =>
-      Field.apply[C, Angle, BigDecimal, BigDecimal](
+      Field.apply[Any, Angle, BigDecimal, BigDecimal](
         name        = u.name,
         description = s"Angle in ${u.abbreviation}".some,
         fieldType   = BigDecimalType,
-        resolve     = (c: Context[C, Angle]) => Value[C, BigDecimal](u.signedDecimal.get(c.value))
+        resolve     = (c: Context[Any, Angle]) => Value[Any, BigDecimal](u.signedDecimal.get(c.value))
       )
     }
 
-  def AngleType[C]: ObjectType[C, Angle] =
-    ObjectType[C, Angle](
+  def AngleType: ObjectType[Any, Angle] =
+    ObjectType[Any, Angle](
       name        = "Angle",
-      fields      = unitFields[C]
+      fields      = unitFields
     )
 
 }

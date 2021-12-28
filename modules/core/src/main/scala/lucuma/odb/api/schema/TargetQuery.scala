@@ -113,7 +113,7 @@ trait TargetQuery {
 
     Field(
       name        = "testBandNormalizedIntegrated",
-      fieldType   = BandNormalizedIntegrated[OdbRepo[F]],
+      fieldType   = BandNormalizedIntegrated,
       description = "test band normalized integrated".some,
       resolve     = _ =>
 
@@ -145,7 +145,7 @@ trait TargetQuery {
 
     Field(
       name        = "testEmissionLinesIntegrated",
-      fieldType   = EmissionLinesIntegrated[OdbRepo[F]],
+      fieldType   = EmissionLinesIntegrated,
       description = "test emission lines integrated".some,
       resolve     = _ =>
 
@@ -177,7 +177,7 @@ trait TargetQuery {
 
     Field(
       name        = "testEmissionLineIntegrated",
-      fieldType   = EmissionLineIntegrated[OdbRepo[F]],
+      fieldType   = EmissionLineIntegrated,
       description = "test emission line integrated".some,
       resolve     = _ =>
 
@@ -200,7 +200,7 @@ trait TargetQuery {
 
     Field(
       name        = "testLineFluxIntegrated",
-      fieldType   = LineFluxIntegratedType[OdbRepo[F]],
+      fieldType   = LineFluxIntegratedType,
       description = "test line flux integrated".some,
       resolve     = _ => GroupedUnitQty(one, LineFlux.Integrated.all.head)
     )
@@ -225,7 +225,7 @@ trait TargetQuery {
 
     Field(
       name        = "testSpectralDefinitionIntegrated",
-      fieldType   = SpectralDefinitionIntegrated[OdbRepo[F]],
+      fieldType   = SpectralDefinitionIntegrated,
       description = "test spectral definition integrated".some,
       resolve     = _ =>
 
@@ -249,7 +249,7 @@ trait TargetQuery {
 
     Field(
       name        = "testPointSource",
-      fieldType   = PointType[OdbRepo[F]],
+      fieldType   = PointType,
       description = "test point source".some,
       resolve     = _ =>
 
@@ -288,7 +288,7 @@ trait TargetQuery {
 
     Field(
       name        = "testSourceProfile",
-      fieldType   = SourceProfileType[OdbRepo[F]],
+      fieldType   = SourceProfileType,
       description = "test source profile".some,
       resolve     = _ =>
 
@@ -320,11 +320,11 @@ trait TargetQuery {
       testPosBigDecimal[F],
       testEmissionLineIntegrated[F],
 //      testLineFluxIntegrated[F],
-//      testGroupedUnitQty[F],
-//      testEmissionLinesIntegrated[F]
-//      testSpectralDefinitionIntegrated[F]
-//      testPointSource[F]
-//      testSourceProfile[F]
+      testGroupedUnitQty[F],
+      testEmissionLinesIntegrated[F],
+      testSpectralDefinitionIntegrated[F],
+      testPointSource[F],
+      testSourceProfile[F]
     )
 }
 
