@@ -228,10 +228,13 @@ object SourceProfileSchema {
 
   // We are limited in the characters we can use for enum names.  These mappings
   // define how to map illegal characters into something valid for GraphQL.
-  private val replacements: List[(Char, Char)] =
+  private val replacements: List[(String, String)] =
     List(
-      ' ' -> '_',
-      '²' -> '2'
+      " " -> "_",
+      "²" -> "2",
+      "/" -> "_PER_",
+      "Å" -> "A",
+      "µ" -> "U"
     )
 
   private def defineUnitsEnum[UG](
@@ -243,10 +246,10 @@ object SourceProfileSchema {
       name        = name,
       description = description.some,
       values      = values.toList.map { gut =>
-        println(gut.name)
+//        println(gut.name + " -> " + replacements.foldLeft(gut.name) { case (n, (a, b)) => n.replaceAll(a, b)}.toScreamingSnakeCase)
         EnumValue(
           name        = replacements
-                          .foldLeft(gut.name) { case (n, (a, b)) => n.replace(a, b) }
+                          .foldLeft(gut.name.toUpperCase) { case (n, (a, b)) => n.replaceAll(a, b) }
                           .toScreamingSnakeCase,
           description = gut.abbv.some,
           value       = gut
@@ -318,11 +321,11 @@ object SourceProfileSchema {
           resolve   = _.value.value
         ),
 
-//        Field(
-//          name      = "units",
-//          fieldType = unitsType,
-//          resolve   = c => shapeless.tag[UG](c.value.unit): UnitType @@ UG
-//        )
+        Field(
+          name      = "units",
+          fieldType = unitsType,
+          resolve   = c => shapeless.tag[UG](c.value.unit): UnitType @@ UG
+        )
       )
     )
 
