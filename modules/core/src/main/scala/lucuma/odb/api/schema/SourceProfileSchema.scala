@@ -226,16 +226,35 @@ object SourceProfileSchema {
       )
     )
 
+//  def untaggedEnumType[T](taggedEnumType: EnumType[UnitType @@ T]): EnumType[UnitType] =
+//    EnumType(
+//      name        = taggedEnumType.name,
+//      description = taggedEnumType.description,
+//      values      = taggedEnumType.values.map { taggedValue =>
+//        EnumValue(
+//          name        = taggedValue.name,
+//          description = taggedValue.description,
+//          value       = taggedValue.value.unitType: UnitType
+//        )
+//      }
+//    )
+
+
   // We are limited in the characters we can use for enum names.  These mappings
   // define how to map illegal characters into something valid for GraphQL.
   private val replacements: List[(String, String)] =
     List(
       " " -> "_",
-      "²" -> "2",
+      "²" -> "_SQUARED",
       "/" -> "_PER_",
       "Å" -> "A",
       "µ" -> "U"
     )
+
+  def toGraphQLName(n: String): String =
+    replacements
+      .foldLeft(n) { case (n, (a, b)) => n.replaceAll(a, b) }
+      .toScreamingSnakeCase
 
   private def defineUnitsEnum[UG](
     name:        String,
@@ -246,11 +265,10 @@ object SourceProfileSchema {
       name        = name,
       description = description.some,
       values      = values.toList.map { gut =>
-//        println(gut.name + " -> " + replacements.foldLeft(gut.name) { case (n, (a, b)) => n.replaceAll(a, b)}.toScreamingSnakeCase)
+        val gql = toGraphQLName(gut.name)
+        println(gut.name + " -> " + gql + " -> " + gql.forall(c => (c == '_') || ((c >= 'A') && (c <= 'Z'))))
         EnumValue(
-          name        = replacements
-                          .foldLeft(gut.name.toUpperCase) { case (n, (a, b)) => n.replaceAll(a, b) }
-                          .toScreamingSnakeCase,
+          name        = toGraphQLName(gut.name),
           description = gut.abbv.some,
           value       = gut
         )
@@ -322,10 +340,16 @@ object SourceProfileSchema {
         ),
 
         Field(
-          name      = "units",
-          fieldType = unitsType,
-          resolve   = c => shapeless.tag[UG](c.value.unit): UnitType @@ UG
-        )
+          name      = "unitsString",
+          fieldType = StringType,
+          resolve   = c => toGraphQLName(c.value.unit.name)
+        ),
+
+//        Field(
+//          name      = "units",
+//          fieldType = unitsType,
+//          resolve   = c => shapeless.tag[UG](c.value.unit): UnitType @@ UG
+//        )
       )
     )
 

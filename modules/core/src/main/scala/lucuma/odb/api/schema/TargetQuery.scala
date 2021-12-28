@@ -10,6 +10,7 @@ import eu.timepit.refined.types.numeric.PosBigDecimal
 import lucuma.core.`enum`.{Band, PlanetSpectrum}
 import lucuma.core.math.BrightnessUnits.{Brightness, FluxDensityContinuum, Integrated, LineFlux}
 import lucuma.core.math.BrightnessValue
+import lucuma.core.math.dimensional.UnitType
 import lucuma.core.math.units.VegaMagnitude
 import lucuma.core.model.{BandBrightness, EmissionLine, SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.odb.api.repo.{OdbRepo, ResultPage}
@@ -199,9 +200,9 @@ trait TargetQuery {
     println("XXXXXXX" + shapeless.tag[LineFlux[Integrated]](Qty(one, LineFlux.Integrated.all.head)))
 
     Field(
-      name        = "testLineFluxIntegrated",
+      name        = "testGroupedUnitQty",
       fieldType   = LineFluxIntegratedType,
-      description = "test line flux integrated".some,
+      description = "test grouped unit qty".some,
       resolve     = _ => {
         shapeless.tag[LineFlux[Integrated]](Qty(one, LineFlux.Integrated.all.head)): Qty[PosBigDecimal] @@ LineFlux[Integrated]
       }
@@ -284,6 +285,60 @@ trait TargetQuery {
     )
 
   }
+  def testLineFluxSurface[F[_]]: Field[OdbRepo[F], Unit] = {
+
+    import SourceProfileSchema._
+
+    Field(
+      name        = "testLineFluxSurface",
+      fieldType   = EnumTypeLineFluxSurface,
+      description = "line flux surface enum".some,
+      resolve     = _ => LineFlux.Surface.all.head
+    )
+
+  }
+
+  def testBrightnessIntegrated[F[_]]: Field[OdbRepo[F], Unit] = {
+
+    import SourceProfileSchema._
+
+    Field(
+      name        = "testBrightnessIntegrated",
+      fieldType   = EnumTypeBrightnessIntegrated,
+      description = "brightness integrated enum".some,
+      resolve     = _ => Brightness.Integrated.all.head
+    )
+
+  }
+
+  def testBrightnessSurface[F[_]]: Field[OdbRepo[F], Unit] = {
+
+    import SourceProfileSchema._
+
+    Field(
+      name        = "testBrightnessSurface",
+      fieldType   = EnumTypeBrightnessSurface,
+      description = "brightness surface enum".some,
+      resolve     = _ => Brightness.Surface.all.head
+    )
+
+  }
+
+
+  def testFluxDensityContinuumIntegrated[F[_]]: Field[OdbRepo[F], Unit] = {
+
+    import SourceProfileSchema._
+
+    Field(
+      name        = "testFluxDensityContinuumIntegrated",
+      fieldType   = EnumTypeFluxDensityContinuumIntegrated,
+      description = "flux density continuum integrated enum".some,
+      resolve     = _ => FluxDensityContinuum.Integrated.all.head
+    )
+
+  }
+
+
 
   def testSourceProfile[F[_]]: Field[OdbRepo[F], Unit] = {
     import SourceProfileSchema._
@@ -321,7 +376,11 @@ trait TargetQuery {
       testBandNormalizedIntegrated[F],
       testPosBigDecimal[F],
       testEmissionLineIntegrated[F],
-//      testLineFluxIntegrated[F],
+//      testBrightnessIntegrated[F],
+//      testBrightnessSurface[F],
+      testLineFluxIntegrated[F],
+//      testLineFluxSurface[F],
+//      testFluxDensityContinuumIntegrated[F],
       testGroupedUnitQty[F],
       testEmissionLinesIntegrated[F],
       testSpectralDefinitionIntegrated[F],
