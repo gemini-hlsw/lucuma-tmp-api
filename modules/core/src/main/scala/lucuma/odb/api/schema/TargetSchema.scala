@@ -20,7 +20,7 @@ object TargetSchema extends TargetScalars {
 
   import GeneralSchema.{ArgumentIncludeDeleted, NonEmptyStringType}
   import ProgramSchema.ProgramType
-//  import SourceProfileSchema._
+  import SourceProfileSchema._
 
   import context._
 
@@ -396,12 +396,12 @@ object TargetSchema extends TargetScalars {
           }
         ),
 
-//        Field(
-//          name        = "sourceProfile",
-//          fieldType   = SourceProfileType[OdbRepo[F]],
-//          description = "source profile".some ,
-//          resolve     = c => c.value.target.sourceProfile
-//        )
+        Field(
+          name        = "sourceProfile",
+          fieldType   = SourceProfileType,
+          description = "source profile".some ,
+          resolve     = _.value.target.sourceProfile
+        )
 
       )
     )

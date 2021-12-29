@@ -6,18 +6,15 @@ package lucuma.odb.api.schema
 import cats.MonadError
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
-import eu.timepit.refined.types.numeric.PosBigDecimal
 import lucuma.core.`enum`.{Band, PlanetSpectrum}
-import lucuma.core.math.BrightnessUnits.{Brightness, FluxDensityContinuum, Integrated, LineFlux}
+import lucuma.core.math.BrightnessUnits.Integrated
 import lucuma.core.math.BrightnessValue
-import lucuma.core.math.dimensional.UnitType
 import lucuma.core.math.units.VegaMagnitude
-import lucuma.core.model.{BandBrightness, EmissionLine, SourceProfile, SpectralDefinition, UnnormalizedSED}
+import lucuma.core.model.{BandBrightness, SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.odb.api.repo.{OdbRepo, ResultPage}
 import lucuma.odb.api.model.targetModel.TargetModel
 import lucuma.odb.api.schema.TargetSchema.ArgumentTargetId
 import sangria.schema._
-import shapeless.tag.@@
 
 import scala.collection.immutable.SortedMap
 
@@ -109,239 +106,10 @@ trait TargetQuery {
       resolve     = c => c.target(_.selectObservationTargetEnvironment(c.observationId))
     )
 
-  def testBandNormalizedIntegrated[F[_]]: Field[OdbRepo[F], Unit] = {
-    import SourceProfileSchema._
-
-    Field(
-      name        = "testBandNormalizedIntegrated",
-      fieldType   = BandNormalizedIntegrated,
-      description = "test band normalized integrated".some,
-      resolve     = _ =>
-
-          SpectralDefinition.BandNormalized(
-            UnnormalizedSED.Planet(PlanetSpectrum.Mars),
-            SortedMap.from[Band, BandBrightness[Integrated]](
-              List(
-                (Band.R: Band) ->
-                  BandBrightness[Integrated, VegaMagnitude](
-                    BrightnessValue.fromDouble(10.0),
-                    Band.R: Band
-                  )
-              )
-            )
-          )
-    )
-  }
-
-  def testEmissionLinesIntegrated[F[_]]: Field[OdbRepo[F], Unit] = {
-    import SourceProfileSchema._
-
-    import cats.Order.catsKernelOrderingForOrder
-    import coulomb._
-    import lucuma.core.math.Wavelength
-    import lucuma.core.math.dimensional._
-    import lucuma.core.math.units.KilometersPerSecond
-
-    val one: PosBigDecimal = PosBigDecimal.from(BigDecimal("1.0")).toOption.get
-
-    Field(
-      name        = "testEmissionLinesIntegrated",
-      fieldType   = EmissionLinesIntegrated,
-      description = "test emission lines integrated".some,
-      resolve     = _ =>
-
-          SpectralDefinition.EmissionLines(
-            SortedMap.from(
-              List(
-                Wavelength.Min ->
-                  EmissionLine[Integrated](
-                    Wavelength.Min,
-                    Quantity[PosBigDecimal, KilometersPerSecond](one),
-                    shapeless.tag[LineFlux[Integrated]](Qty(one, LineFlux.Integrated.all.head))
-                  )
-              )
-            ),
-            shapeless.tag[FluxDensityContinuum[Integrated]](Qty(one, FluxDensityContinuum.Integrated.all.head))
-          )
-    )
-  }
-
-  def testEmissionLineIntegrated[F[_]]: Field[OdbRepo[F], Unit] = {
-    import SourceProfileSchema._
-
-    import coulomb._
-    import lucuma.core.math.Wavelength
-    import lucuma.core.math.dimensional._
-    import lucuma.core.math.units.KilometersPerSecond
-
-    val one: PosBigDecimal = PosBigDecimal.from(BigDecimal("1.0")).toOption.get
-
-    Field(
-      name        = "testEmissionLineIntegrated",
-      fieldType   = EmissionLineIntegrated,
-      description = "test emission line integrated".some,
-      resolve     = _ =>
-
-                  EmissionLine[Integrated](
-                    Wavelength.Min,
-                    Quantity[PosBigDecimal, KilometersPerSecond](one),
-                    shapeless.tag[LineFlux[Integrated]](Qty(one, LineFlux.Integrated.all.head))
-                  )
-    )
-  }
-
-  def testGroupedUnitQty[F[_]]: Field[OdbRepo[F], Unit] = {
-    import SourceProfileSchema._
-
-    import lucuma.core.math.dimensional._
-
-    val one: PosBigDecimal = PosBigDecimal.from(BigDecimal("1.0")).toOption.get
-
-    println("XXXXXXX" + shapeless.tag[LineFlux[Integrated]](Qty(one, LineFlux.Integrated.all.head)))
-
-    Field(
-      name        = "testGroupedUnitQty",
-      fieldType   = LineFluxIntegratedType,
-      description = "test grouped unit qty".some,
-      resolve     = _ => {
-        shapeless.tag[LineFlux[Integrated]](Qty(one, LineFlux.Integrated.all.head)): Qty[PosBigDecimal] @@ LineFlux[Integrated]
-      }
-    )
-  }
-
-  def testPosBigDecimal[F[_]]: Field[OdbRepo[F], Unit] = {
-
-    import GeneralSchema.PosBigDecimalType
-
-    Field(
-      name        = "testPosBigDecimal",
-      fieldType   = PosBigDecimalType,
-      description = "test pos big decimal".some,
-      resolve     = _ => PosBigDecimal.from(BigDecimal("3.0")).toOption.get
-    )
-  }
-
-
-
-  def testSpectralDefinitionIntegrated[F[_]]: Field[OdbRepo[F], Unit] = {
-    import SourceProfileSchema._
-
-    Field(
-      name        = "testSpectralDefinitionIntegrated",
-      fieldType   = SpectralDefinitionIntegrated,
-      description = "test spectral definition integrated".some,
-      resolve     = _ =>
-
-          SpectralDefinition.BandNormalized(
-            UnnormalizedSED.Planet(PlanetSpectrum.Mars),
-            SortedMap.from[Band, BandBrightness[Integrated]](
-              List(
-                (Band.R: Band) ->
-                  BandBrightness[Integrated, VegaMagnitude](
-                    BrightnessValue.fromDouble(10.0),
-                    Band.R: Band
-                  )
-              )
-            )
-          )
-    )
-  }
-
-  def testPointSource[F[_]]: Field[OdbRepo[F], Unit] = {
-    import SourceProfileSchema._
-
-    Field(
-      name        = "testPointSource",
-      fieldType   = PointType,
-      description = "test point source".some,
-      resolve     = _ =>
-
-        SourceProfile.Point(
-          SpectralDefinition.BandNormalized(
-            UnnormalizedSED.Planet(PlanetSpectrum.Mars),
-            SortedMap.from[Band, BandBrightness[Integrated]](
-              List(
-                (Band.R: Band) ->
-                  BandBrightness[Integrated, VegaMagnitude](
-                    BrightnessValue.fromDouble(10.0),
-                    Band.R: Band
-                  )
-              )
-            )
-          )
-        )
-    )
-  }
-
-  def testLineFluxIntegrated[F[_]]: Field[OdbRepo[F], Unit] = {
-
-    import SourceProfileSchema._
-
-    Field(
-      name        = "testLineFluxIntegrated",
-      fieldType   = EnumTypeLineFluxIntegrated,
-      description = "line flux integrated enum".some,
-      resolve     = _ => LineFlux.Integrated.all.head
-    )
-
-  }
-  def testLineFluxSurface[F[_]]: Field[OdbRepo[F], Unit] = {
-
-    import SourceProfileSchema._
-
-    Field(
-      name        = "testLineFluxSurface",
-      fieldType   = EnumTypeLineFluxSurface,
-      description = "line flux surface enum".some,
-      resolve     = _ => LineFlux.Surface.all.head
-    )
-
-  }
-
-  def testBrightnessIntegrated[F[_]]: Field[OdbRepo[F], Unit] = {
-
-    import SourceProfileSchema._
-
-    Field(
-      name        = "testBrightnessIntegrated",
-      fieldType   = EnumTypeBrightnessIntegrated,
-      description = "brightness integrated enum".some,
-      resolve     = _ => Brightness.Integrated.all.head
-    )
-
-  }
-
-  def testBrightnessSurface[F[_]]: Field[OdbRepo[F], Unit] = {
-
-    import SourceProfileSchema._
-
-    Field(
-      name        = "testBrightnessSurface",
-      fieldType   = EnumTypeBrightnessSurface,
-      description = "brightness surface enum".some,
-      resolve     = _ => Brightness.Surface.all.head
-    )
-
-  }
-
-
-  def testFluxDensityContinuumIntegrated[F[_]]: Field[OdbRepo[F], Unit] = {
-
-    import SourceProfileSchema._
-
-    Field(
-      name        = "testFluxDensityContinuumIntegrated",
-      fieldType   = EnumTypeFluxDensityContinuumIntegrated,
-      description = "flux density continuum integrated enum".some,
-      resolve     = _ => FluxDensityContinuum.Integrated.all.head
-    )
-
-  }
-
-
-
   def testSourceProfile[F[_]]: Field[OdbRepo[F], Unit] = {
     import SourceProfileSchema._
+
+    // temporary
 
     Field(
       name        = "testSourceProfile",
@@ -373,18 +141,6 @@ trait TargetQuery {
       firstScienceTarget[F],
       asterism[F],
       targetEnvironment[F],
-      testBandNormalizedIntegrated[F],
-      testPosBigDecimal[F],
-      testEmissionLineIntegrated[F],
-//      testBrightnessIntegrated[F],
-//      testBrightnessSurface[F],
-      testLineFluxIntegrated[F],
-//      testLineFluxSurface[F],
-//      testFluxDensityContinuumIntegrated[F],
-      testGroupedUnitQty[F],
-      testEmissionLinesIntegrated[F],
-      testSpectralDefinitionIntegrated[F],
-      testPointSource[F],
       testSourceProfile[F]
     )
 }

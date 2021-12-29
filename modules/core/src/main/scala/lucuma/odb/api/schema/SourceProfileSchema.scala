@@ -226,20 +226,6 @@ object SourceProfileSchema {
       )
     )
 
-//  def untaggedEnumType[T](taggedEnumType: EnumType[UnitType @@ T]): EnumType[UnitType] =
-//    EnumType(
-//      name        = taggedEnumType.name,
-//      description = taggedEnumType.description,
-//      values      = taggedEnumType.values.map { taggedValue =>
-//        EnumValue(
-//          name        = taggedValue.name,
-//          description = taggedValue.description,
-//          value       = taggedValue.value.unitType: UnitType
-//        )
-//      }
-//    )
-
-
   // We are limited in the characters we can use for enum names.  These mappings
   // define how to map illegal characters into something valid for GraphQL.
   private val replacements: List[(String, String)] =
@@ -265,8 +251,6 @@ object SourceProfileSchema {
       name        = name,
       description = description.some,
       values      = values.toList.map { gut =>
-        val gql = toGraphQLName(gut.name)
-        println(gut.name + " -> " + gql + " -> " + gql.forall(c => (c == '_') || ((c >= 'A') && (c <= 'Z'))))
         EnumValue(
           name        = toGraphQLName(gut.name),
           description = gut.abbv.some,
@@ -277,42 +261,42 @@ object SourceProfileSchema {
 
   val EnumTypeBrightnessIntegrated: EnumType[UnitType @@ Brightness[Integrated]] =
     defineUnitsEnum(
-      "BrightnessIntegrated",
+      "BrightnessIntegratedUnits",
       "Brightness integrated units",
       BrightnessUnits.Brightness.Integrated.all
     )
 
   val EnumTypeBrightnessSurface: EnumType[UnitType @@ Brightness[Surface]] =
     defineUnitsEnum(
-      "BrightnessSurface",
+      "BrightnessSurfaceUnits",
       "Brightness surface units",
       BrightnessUnits.Brightness.Surface.all
     )
 
   val EnumTypeLineFluxIntegrated: EnumType[UnitType @@ LineFlux[Integrated]] =
     defineUnitsEnum(
-      "LineFluxIntegrated",
+      "LineFluxIntegratedUnits",
       "Line flux integrated units",
       BrightnessUnits.LineFlux.Integrated.all
     )
 
   val EnumTypeLineFluxSurface: EnumType[UnitType @@ LineFlux[Surface]] =
     defineUnitsEnum(
-      "LineFluxSurface",
+      "LineFluxSurfaceUnits",
       "Line flux surface units",
       BrightnessUnits.LineFlux.Surface.all
     )
 
   val EnumTypeFluxDensityContinuumIntegrated: EnumType[UnitType @@ FluxDensityContinuum[Integrated]] =
     defineUnitsEnum(
-      "FluxDensityContinuumIntegrated",
+      "FluxDensityContinuumIntegratedUnits",
       "Flux density continuum integrated units",
       BrightnessUnits.FluxDensityContinuum.Integrated.all
     )
 
   val EnumTypeFluxDensityContinuumSurface: EnumType[UnitType @@ FluxDensityContinuum[Surface]] =
     defineUnitsEnum(
-      "FluxDensityContinuumSurface",
+      "FluxDensityContinuumSurfaceUnits",
       "Flux density continuum surface units",
       BrightnessUnits.FluxDensityContinuum.Surface.all
     )
@@ -340,22 +324,16 @@ object SourceProfileSchema {
         ),
 
         Field(
-          name      = "unitsString",
-          fieldType = StringType,
-          resolve   = c => toGraphQLName(c.value.unit.name)
-        ),
-
-//        Field(
-//          name      = "units",
-//          fieldType = unitsType,
-//          resolve   = c => shapeless.tag[UG](c.value.unit): UnitType @@ UG
-//        )
+          name      = "units",
+          fieldType = unitsType,
+          resolve   = c => shapeless.tag[UG](c.value.unit): UnitType @@ UG
+        )
       )
     )
 
   private def BandBrightnessType[T](
     unitCategoryName: String,
-    unitsType:        EnumType[UnitType @@ Brightness[T]]
+    qtyType:          ObjectType[Any, Qty[BrightnessValue] @@ Brightness[T]]
   ): ObjectType[Any, BandBrightness[T]] =
     ObjectType(
       name     = s"BandBrightness$unitCategoryName",
@@ -363,11 +341,7 @@ object SourceProfileSchema {
 
         Field(
           name        = "magnitude",
-          fieldType   = GroupedUnitQtyType[BrightnessValue, Brightness[T]](
-                   s"Magnitude$unitCategoryName",
-                          BrightnessValueType,
-                          unitsType
-                        ),
+          fieldType   = qtyType,
           resolve     = _.value.quantity
         ),
 
@@ -388,16 +362,30 @@ object SourceProfileSchema {
       )
     )
 
+  val BrightnessIntegrated: ObjectType[Any, Qty[BrightnessValue] @@ Brightness[Integrated]] =
+    GroupedUnitQtyType[BrightnessValue, Brightness[Integrated]](
+      "BrightnessIntegrated",
+      BrightnessValueType,
+      EnumTypeBrightnessIntegrated
+    )
+
+  val BrightnessSurface: ObjectType[Any, Qty[BrightnessValue] @@ Brightness[Surface]] =
+    GroupedUnitQtyType[BrightnessValue, Brightness[Surface]](
+      "BrightnessSurface",
+      BrightnessValueType,
+      EnumTypeBrightnessSurface
+    )
+
   val BandBrightnessIntegrated: ObjectType[Any, BandBrightness[Integrated]] =
     BandBrightnessType[Integrated](
       "Integrated",
-      EnumTypeBrightnessIntegrated
+      BrightnessIntegrated
     )
 
   val BandBrightnessSurface: ObjectType[Any, BandBrightness[Surface]] =
     BandBrightnessType[Surface](
       "Surface",
-      EnumTypeBrightnessSurface
+      BrightnessSurface
     )
 
   private def BandNormalizedType[T](
@@ -437,7 +425,7 @@ object SourceProfileSchema {
 
   private def EmissionLineType[T](
     unitCategoryName: String,
-    lineFluxType: ObjectType[Any, Qty[PosBigDecimal] @@ LineFlux[T]]
+    lineFluxType:     ObjectType[Any, Qty[PosBigDecimal] @@ LineFlux[T]]
   ): ObjectType[Any, EmissionLine[T]] =
     ObjectType(
       name     = s"EmissionLine$unitCategoryName",
