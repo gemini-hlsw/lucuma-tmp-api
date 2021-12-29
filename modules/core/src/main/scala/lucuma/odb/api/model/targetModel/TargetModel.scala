@@ -84,9 +84,7 @@ object TargetModel extends TargetModelOptics {
         tm = (i, p, t).mapN { (iʹ, _, tʹ) =>
 
           // TEMP: Add the source profile if there is one
-          val withSourceProfile: Target => Target =
-            temp.fold((t: Target) => t) { p => Target.sourceProfile.replace(p) }
-
+          val withSourceProfile = temp.fold((t: Target) => t)(Target.sourceProfile.replace)
           TargetModel(iʹ, Existence.Present, programId, withSourceProfile(tʹ), observed = false)
         }
         _ <- db.target.saveNewIfValid(tm)(_.id)

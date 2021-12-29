@@ -91,7 +91,7 @@ object Init {
     SourceProfile.Point(
       SpectralDefinition.BandNormalized(
         UnnormalizedSED.Galaxy(GalaxySpectrum.Spiral),
-          SortedMap.from[Band, BandBrightness[Integrated]](brightnesses.map { b => b.band -> b })
+          SortedMap.from[Band, BandBrightness[Integrated]](brightnesses.fproductLeft(_.band))
       )
     )
 
@@ -128,9 +128,9 @@ object Init {
     )
 
   val targets: Either[Exception, List[(CreateSiderealInput, SourceProfile)]] =
-    targetsJson.traverse(decode[CreateSiderealInput]).map { csis =>
-      csis.zip(List(ngc5949Profile, ngc3369Profile, ngc3312Profile))
-    }
+    targetsJson.traverse(decode[CreateSiderealInput]).map(
+      _.zip(List(ngc5949Profile, ngc3369Profile, ngc3312Profile))
+    )
 
   import GmosModel.{CreateCcdReadout, CreateSouthDynamic}
   import StepConfig.CreateStepConfig
