@@ -5,7 +5,6 @@ package lucuma.odb.api.schema
 
 import lucuma.core.math.Wavelength
 import lucuma.odb.api.model.WavelengthModel
-import lucuma.odb.api.repo.OdbRepo
 import sangria.macros.derive._
 import sangria.schema._
 
@@ -15,7 +14,7 @@ object WavelengthSchema {
   import NumericUnitsSchema._
   import syntax.enum._
 
-  def WavelengthType[F[_]]: ObjectType[OdbRepo[F], Wavelength] =
+  val WavelengthType: ObjectType[Any, Wavelength] =
     ObjectType(
       name     = "Wavelength",
       fieldsFn = () => fields(

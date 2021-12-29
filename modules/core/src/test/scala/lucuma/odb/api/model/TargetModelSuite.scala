@@ -10,23 +10,18 @@ import munit.DisciplineSuite
 
 final class TargetModelSuite extends DisciplineSuite {
 
-  import ArbCatalogIdModel._
+  import ArbCatalogInfoModel._
   import ArbCoordinatesModel._
   import ArbDeclinationModel._
-  import ArbMagnitudeModel._
   import ArbParallaxModel._
   import ArbProperMotionModel._
   import ArbRadialVelocityModel._
   import ArbRightAscensionModel._
   import ArbTargetModel._
 
-  checkAll("CatalogIdModel.Input", EqTests[CatalogIdModel.Input].eqv)
+  checkAll("CatalogIdModel.Input", EqTests[CatalogInfoModel.Input].eqv)
   checkAll("CoordinatesModel.Input", EqTests[CoordinatesModel.Input].eqv)
   checkAll("DeclinationModel.Input", EqTests[DeclinationModel.Input].eqv)
-  checkAll("MagnitudeModel.Create", EqTests[MagnitudeModel.Create].eqv)
-  checkAll("MagnitudeModel.Edit", EqTests[MagnitudeModel.Edit].eqv)
-  checkAll("MagnitudeModel.EditAction", EqTests[MagnitudeModel.EditAction].eqv)
-  checkAll("MagnitudeModel.EditList", EqTests[MagnitudeModel.EditList].eqv)
   checkAll("ParallaxModel.Input", EqTests[ParallaxModel.Input].eqv)
   checkAll("ProperMotionModel.Input", EqTests[ProperMotionModel.Input].eqv)
   checkAll("RadialVelocityModel.Input", EqTests[RadialVelocityModel.Input].eqv)

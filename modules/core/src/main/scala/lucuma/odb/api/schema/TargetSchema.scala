@@ -8,9 +8,9 @@ import lucuma.odb.api.schema.syntax.all._
 import lucuma.odb.api.model.{DeclinationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
 import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
-import lucuma.core.`enum`.{CatalogName, MagnitudeBand, MagnitudeSystem, EphemerisKeyType => EphemerisKeyTypeEnum}
-import lucuma.core.math.{Coordinates, Declination, MagnitudeValue, Parallax, ProperMotion, RadialVelocity, RightAscension, VelocityAxis}
-import lucuma.core.model.{CatalogId, EphemerisKey, Magnitude, NonsiderealTarget, SiderealTarget, SiderealTracking, Target}
+import lucuma.core.`enum`.{CatalogName, EphemerisKeyType => EphemerisKeyTypeEnum}
+import lucuma.core.math.{Coordinates, Declination, Parallax, ProperMotion, RadialVelocity, RightAscension, VelocityAxis}
+import lucuma.core.model.{CatalogInfo, EphemerisKey, SiderealTracking, Target}
 import cats.syntax.all._
 import cats.effect.std.Dispatcher
 import lucuma.odb.api.schema.GeneralSchema.EnumTypeExistence
@@ -20,6 +20,7 @@ object TargetSchema extends TargetScalars {
 
   import GeneralSchema.{ArgumentIncludeDeleted, NonEmptyStringType}
   import ProgramSchema.ProgramType
+  import SourceProfileSchema._
 
   import context._
 
@@ -44,18 +45,6 @@ object TargetSchema extends TargetScalars {
     EnumType.fromEnumerated(
       "CatalogName",
       "Catalog name values"
-    )
-
-  implicit val EnumTypeMagnitudeBand: EnumType[MagnitudeBand] =
-    EnumType.fromEnumerated(
-      "MagnitudeBand",
-      "Magnitude band"
-    )
-
-  implicit val EnumTypeMagnitudeSystem: EnumType[MagnitudeSystem] =
-    EnumType.fromEnumerated(
-      "MagnitudeSystem",
-      "Magnitude system"
     )
 
   implicit val EphemerisKeyTypeEnumType: EnumType[EphemerisKeyTypeEnum] =
@@ -85,7 +74,7 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-  def CatalogIdType[F[_]]: ObjectType[OdbRepo[F], CatalogId] =
+  def CatalogInfoType[F[_]]: ObjectType[OdbRepo[F], CatalogInfo] =
     ObjectType(
       name = "CatalogId",
       fieldsFn = () => fields(
@@ -93,50 +82,23 @@ object TargetSchema extends TargetScalars {
         Field(
           name        = "name",
           fieldType   = EnumTypeCatalogName,
-          description = Some("Catalog name option"),
+          description = "Catalog name option".some,
           resolve     = _.value.catalog
         ),
 
         Field(
           name        = "id",
           fieldType   = StringType,
-          description = Some("Catalog id string"),
+          description = "Catalog id string".some,
           resolve     = _.value.id.value
-        )
-      )
-    )
-
-  def MagnitudeType[F[_]]: ObjectType[OdbRepo[F], Magnitude] =
-    ObjectType(
-      name = "Magnitude",
-      fieldsFn = () => fields(
-
-        Field(
-          name        = "value",
-          fieldType   = BigDecimalType,
-          description = Some("Magnitude value (unitless)"),
-          resolve     = m => MagnitudeValue.fromBigDecimal.reverseGet(m.value.value)
         ),
 
         Field(
-          name        = "band",
-          fieldType   = EnumTypeMagnitudeBand,
-          description = Some("Magnitude band"),
-          resolve     = _.value.band
-        ),
+          name        = "objectType",
+          fieldType   = OptionType(StringType),
+          description = "Catalog description of object morphology".some,
+          resolve     = _.value.objectType.map(_.value)
 
-        Field(
-          name        = "system",
-          fieldType   = EnumTypeMagnitudeSystem,
-          description = Some("Magnitude System"),
-          resolve     = _.value.system
-        ),
-
-        Field(
-          name        = "error",
-          fieldType   = OptionType(BigDecimalType),
-          description = Some("Magnitude error (unitless)"),
-          resolve     = _.value.error.map(MagnitudeValue.fromBigDecimal.reverseGet)
         )
       )
     )
@@ -329,13 +291,6 @@ object TargetSchema extends TargetScalars {
       fieldsFn = () => fields(
 
         Field(
-          name        = "catalogId",
-          fieldType   = OptionType(CatalogIdType[F]),
-          description = Some("Catalog id, if any, describing from where the information in this target was obtained"),
-          resolve     = _.value.catalogId
-        ),
-
-        Field(
           name        = "coordinates",
           fieldType   = CoordinateType[F],
           description = Some("Coordinates at epoch"),
@@ -422,21 +377,30 @@ object TargetSchema extends TargetScalars {
         ),
 
         Field(
+          name        = "catalogInfo",
+          fieldType   = OptionType(CatalogInfoType[F]),
+          description = Some("Catalog id, if any, describing from where the information in this target was obtained"),
+          resolve     = c => c.value.target match {
+            case Target.Sidereal(_, _, _, catalogInfo, _) => catalogInfo
+            case _                                        => None
+          }
+        ),
+
+        Field(
           name        = "tracking",
           fieldType   = TrackingType[F],
           description = Some("Information required to find a target in the sky."),
           resolve     = c => c.value.target match {
-            case SiderealTarget(_, siderealTracking, _, _) => siderealTracking.asRight[EphemerisKey]
-            case NonsiderealTarget(_, ephemerisKey, _, _)  => ephemerisKey.asLeft[SiderealTracking]
+            case Target.Sidereal(_, siderealTracking, _, _, _) => siderealTracking.asRight[EphemerisKey]
+            case Target.Nonsidereal(_, ephemerisKey, _, _)     => ephemerisKey.asLeft[SiderealTracking]
           }
         ),
 
-        // TODO: move to ITC target source description
         Field(
-          name        = "magnitudes",
-          fieldType   = ListType(MagnitudeType[F]),
-          description = Some("Target magnitudes"),
-          resolve     = _.value.target.magnitudes.values.toList
+          name        = "sourceProfile",
+          fieldType   = SourceProfileType,
+          description = "source profile".some ,
+          resolve     = _.value.target.sourceProfile
         )
 
       )
