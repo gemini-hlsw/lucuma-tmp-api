@@ -6,10 +6,17 @@ package lucuma.odb.api.schema
 import cats.MonadError
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
+import lucuma.core.`enum`.{Band, PlanetSpectrum}
+import lucuma.core.math.BrightnessUnits.Integrated
+import lucuma.core.math.BrightnessValue
+import lucuma.core.math.units.VegaMagnitude
+import lucuma.core.model.{BandBrightness, SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.odb.api.repo.{OdbRepo, ResultPage}
 import lucuma.odb.api.model.targetModel.TargetModel
 import lucuma.odb.api.schema.TargetSchema.ArgumentTargetId
 import sangria.schema._
+
+import scala.collection.immutable.SortedMap
 
 
 trait TargetQuery {
@@ -99,13 +106,42 @@ trait TargetQuery {
       resolve     = c => c.target(_.selectObservationTargetEnvironment(c.observationId))
     )
 
+  def testSourceProfile[F[_]]: Field[OdbRepo[F], Unit] = {
+    import SourceProfileSchema._
+
+    // temporary
+
+    Field(
+      name        = "testSourceProfile",
+      fieldType   = SourceProfileType,
+      description = "test source profile".some,
+      resolve     = _ =>
+
+        SourceProfile.Point(
+          SpectralDefinition.BandNormalized(
+            UnnormalizedSED.Planet(PlanetSpectrum.Mars),
+            SortedMap.from[Band, BandBrightness[Integrated]](
+              List(
+                (Band.R: Band) ->
+                  BandBrightness[Integrated, VegaMagnitude](
+                    BrightnessValue.fromDouble(10.0),
+                    Band.R: Band
+                  )
+              )
+            )
+          )
+        )
+    )
+  }
+
   def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
     List(
       target[F],
       referencedScienceTargets[F],
       firstScienceTarget[F],
       asterism[F],
-      targetEnvironment[F]
+      targetEnvironment[F],
+      testSourceProfile[F]
     )
 }
 

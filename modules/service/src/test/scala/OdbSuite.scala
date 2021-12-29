@@ -14,10 +14,12 @@ import io.circe.Json
 import clue.http4sjdk.Http4sJDKBackend
 import clue.http4sjdk.Http4sJDKWSBackend
 import io.circe.literal._
-import lucuma.core.model.User
+// TODO: SSO
+//import lucuma.core.model.User
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.service.Main
-import lucuma.sso.client.SsoClient
+// TODO: SSO
+//import lucuma.sso.client.SsoClient
 import munit.CatsEffectSuite
 import org.http4s.{Uri => Http4sUri, _}
 import org.http4s.blaze.server.BlazeServerBuilder
@@ -38,19 +40,20 @@ trait OdbSuite extends CatsEffectSuite {
   private implicit val log: Logger[IO] =
     Slf4jLogger.getLoggerFromClass(getClass)
 
-  private val ssoClient: SsoClient[IO, User] =
-    new SsoClient[IO, User] {
-      def find(req: Request[IO]): IO[Option[User]] = IO.pure(None)
-      def get(authorization: Authorization): IO[Option[User]] = IO.pure(None)
-      def require(req: Request[IO])(f: User => IO[Response[IO]]): IO[Response[IO]] = ???
-      def map[B](f: User => B): SsoClient[IO,B] = ???
-      def filter(f: User => Boolean): SsoClient[IO,User] = ???
-      def collect[B](f: PartialFunction[User,B]): SsoClient[IO,B] = ???
-    }
+  // TODO: SSO
+//  private val ssoClient: SsoClient[IO, User] =
+//    new SsoClient[IO, User] {
+//      def find(req: Request[IO]): IO[Option[User]] = IO.pure(None)
+//      def get(authorization: Authorization): IO[Option[User]] = IO.pure(None)
+//      def require(req: Request[IO])(f: User => IO[Response[IO]]): IO[Response[IO]] = ???
+//      def map[B](f: User => B): SsoClient[IO,B] = ???
+//      def filter(f: User => Boolean): SsoClient[IO,User] = ???
+//      def collect[B](f: PartialFunction[User,B]): SsoClient[IO,B] = ???
+//    }
 
   private val httpApp: Resource[IO, WebSocketBuilder2[IO] => HttpApp[IO]] =
     Resource.eval(OdbRepo.create[IO].flatTap(TestInit.initialize(_)))
-      .flatMap(Main.httpApp(_, ssoClient))
+      .flatMap(Main.httpApp(_))//, ssoClient))  // TODO: SSO
 
   private val server: Resource[IO, Server] =
     // Resource.make(IO.println("  • Server starting..."))(_ => IO.println("  • Server stopped.")) *>

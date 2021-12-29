@@ -4,7 +4,7 @@
 package lucuma.odb.api.model
 
 import lucuma.core.`enum`.CatalogName
-import lucuma.core.model.CatalogId
+import lucuma.core.model.CatalogInfo
 
 import cats.Eq
 import cats.syntax.either._
@@ -12,19 +12,19 @@ import eu.timepit.refined.types.all.NonEmptyString
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 
-object CatalogIdModel {
+object CatalogInfoModel {
 
   final case class Input(
     name: CatalogName,
     id:   String
   ) {
 
-    def toCatalogId: ValidatedInput[CatalogId] =
+    def toCatalogInfo: ValidatedInput[CatalogInfo] =
       NonEmptyString
         .from(id)
         .leftMap(er => InputError.invalidField("id", id, s"Catalog id must be non-empty: $er"))
         .toValidatedNec
-        .map(id => CatalogId(name, id))
+        .map(id => CatalogInfo(name, id, None))
 
   }
 
