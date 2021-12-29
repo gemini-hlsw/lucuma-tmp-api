@@ -34,11 +34,12 @@ object Main extends IOApp {
 // TODO: SSO
 //    userClient: SsoClient[F, User],
   ): Resource[F, WebSocketBuilder2[F] => HttpApp[F]] =
-    Dispatcher[F].map { implicit d => wsb =>
-      Logger.httpApp(logHeaders = true, logBody = false) {
+    Dispatcher[F].map { implicit d =>
 
-          // Our schema is constant for now
-          val schema = OdbSchema[F]
+      // Our schema is constant for now
+      val schema = OdbSchema[F]
+
+      wsb => Logger.httpApp(logHeaders = true, logBody = false) {
 
           // Our GraphQL service, computed per-request.
           // For now we check log the user, if any, but it's not required.
