@@ -388,21 +388,29 @@ object SourceProfileSchema {
       BrightnessSurface
     )
 
-  private def BandNormalizedType[T](
-    unitCategoryName:   String,
-    bandBrightnessType: ObjectType[Any, BandBrightness[T]]
-  ): ObjectType[Any, BandNormalized[T]] =
-    ObjectType(
-      name     = s"BandNormalized$unitCategoryName",
-      fieldsFn = () => fields(
+  val BandNormalizedType: InterfaceType[Any, BandNormalized[_]] =
+    InterfaceType[Any, BandNormalized[_]](
+      name        = "BandNormalized",
+      description = "Band normalized common interface",
+      fields[Any, BandNormalized[_]](
 
         Field(
           name        = "sed",
           fieldType   = UnnormalizedSedType,
           description = "Un-normalized spectral energy distribution".some,
           resolve     = _.value.sed
-        ),
+        )
+      )
+    )
 
+  private def BandNormalizedType[T](
+    unitCategoryName:   String,
+    bandBrightnessType: ObjectType[Any, BandBrightness[T]]
+  ): ObjectType[Any, BandNormalized[T]] =
+    ObjectType(
+      name       = s"BandNormalized$unitCategoryName",
+      interfaces = List(PossibleInterface.apply[Any, BandNormalized[T]](BandNormalizedType)),
+      fieldsFn   = () => fields(
         Field(
           name        = "brightnesses",
           fieldType   = ListType(bandBrightnessType),

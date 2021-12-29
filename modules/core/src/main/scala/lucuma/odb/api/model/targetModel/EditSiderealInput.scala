@@ -10,12 +10,11 @@ import clue.data.Input
 import eu.timepit.refined.cats._
 import io.circe.Decoder
 import lucuma.core.math.Epoch
-import lucuma.core.model.{CatalogInfo, Target}
+import lucuma.core.model.Target
 import lucuma.core.optics.syntax.optional._
 import lucuma.odb.api.model.{CatalogInfoModel, DeclinationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel, ValidatedInput}
 import lucuma.odb.api.model.json.target._
 import lucuma.odb.api.model.syntax.input._
-import monocle.Optional
 
 
 final case class EditSiderealInput(
@@ -28,10 +27,6 @@ final case class EditSiderealInput(
   parallax:         Input[ParallaxModel.Input]       = Input.ignore
 ) {
 
-  // The Target.catalogInfo doesn't (at the time of writing) permit removal
-  val catalogInfoOptic: Optional[Target, Option[CatalogInfo]] =
-    Target.sidereal.andThen(Target.Sidereal.catalogInfo)
-
   val editor: ValidatedInput[State[Target, Unit]] =
     (catalogInfo   .validateNullable(_.toCatalogInfo),
      ra            .validateNotNullable("ra")(_.toRightAscension),
@@ -42,7 +37,7 @@ final case class EditSiderealInput(
      parallax      .validateNullable(_.toParallax)
     ).mapN { (catalogInfo, ra, dec, epoch, pm, rv, px) =>
       for {
-        _ <- catalogInfoOptic         := catalogInfo
+        _ <- Target.catalogInfo       := catalogInfo
         _ <- Target.baseRA            := ra
         _ <- Target.baseDec           := dec
         _ <- Target.epoch             := epoch
