@@ -5,20 +5,17 @@ package lucuma.odb.api.schema
 
 import cats.data.NonEmptyList
 import cats.syntax.option._
-import coulomb.Quantity
-import coulomb.si.Kelvin
 import eu.timepit.refined.types.all.PosBigDecimal
-import lucuma.core.`enum`.{Band, GalaxySpectrum, HIIRegionSpectrum, PlanetSpectrum, PlanetaryNebulaSpectrum, QuasarSpectrum, StellarLibrarySpectrum}
+import lucuma.core.`enum`.{Band, CoolStarTemperature, GalaxySpectrum, HIIRegionSpectrum, PlanetSpectrum, PlanetaryNebulaSpectrum, QuasarSpectrum, StellarLibrarySpectrum}
 import lucuma.core.math.{BrightnessUnits, BrightnessValue, Wavelength}
 import lucuma.core.math.BrightnessUnits.{Brightness, FluxDensityContinuum, Integrated, LineFlux, Surface}
-import lucuma.core.math.dimensional.{Qty, UnitType}
+import lucuma.core.math.dimensional.{Measure, Of, Units}
 import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
 import lucuma.core.model.UnnormalizedSED.{BlackBody, CoolStarModel, Galaxy, HIIRegion, Planet, PlanetaryNebula, PowerLaw, Quasar, StellarLibrary, UserDefined}
 import lucuma.core.model.{BandBrightness, EmissionLine, SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.core.syntax.string._
 import sangria.schema.{Field, _}
 import sangria.validation.FloatCoercionViolation
-import shapeless.tag.@@
 
 import scala.reflect.ClassTag
 
@@ -39,6 +36,14 @@ object SourceProfileSchema {
     EnumType.fromEnumerated(
       "StellarLibrarySpectrum",
       "Stellar library spectrum"
+    )
+
+  implicit val EnumTypeCoolStarTemperature: EnumType[CoolStarTemperature] =
+    EnumType.fromEnumeratedMapping(
+      "CoolStarTemperature",
+      "Cool star temperature options",
+      cst => s"T${cst.name}",
+      cst => s"${cst.temperature.show}"
     )
 
   implicit val EnumTypeGalaxySpectrum: EnumType[GalaxySpectrum] =
@@ -106,25 +111,6 @@ object SourceProfileSchema {
       )
     )
 
-  private def KelvinBasedSed[T: ClassTag](
-    name:          String,
-    description:   String,
-    extractKelvin: T => Quantity[PosBigDecimal, Kelvin]
-  ): ObjectType[Any, T] =
-    ObjectType(
-      name        = name,
-      description = description,
-      fieldsFn    = () => fields(
-        Field(
-          name        = "temperature",
-          description = "Kelvin".some,
-          fieldType   = PosBigDecimalType,
-          resolve     = c => extractKelvin(c.value).value
-        )
-      )
-    )
-
-
   val StellarLibraryType: ObjectType[Any, StellarLibrary]  =
     SpectrumEnumBasedSed[StellarLibrary, StellarLibrarySpectrum](
       "StellarLibrary",
@@ -133,10 +119,17 @@ object SourceProfileSchema {
     )
 
   val CoolStarModelType: ObjectType[Any, CoolStarModel] =
-    KelvinBasedSed[CoolStarModel](
+    ObjectType(
       name        = "CoolStarModel",
-      description = "Cool star model SED",
-      _.temperature
+      fieldsFn    = () => fields(
+
+        Field(
+          name      = "temperature",
+          fieldType = EnumTypeCoolStarTemperature,
+          resolve   = _.value.temperature
+        )
+
+      )
     )
 
   val GalaxyType: ObjectType[Any, Galaxy]  =
@@ -188,10 +181,17 @@ object SourceProfileSchema {
     )
 
   val BlackBodyType: ObjectType[Any, BlackBody] =
-    KelvinBasedSed[BlackBody](
+    ObjectType(
       name        = "BlackBody",
       description = "Black body SED",
-      _.temperature
+      fieldsFn    = () => fields(
+        Field(
+          name        = "temperature",
+          description = "Kelvin".some,
+          fieldType   = PosBigDecimalType,
+          resolve     = _.value.temperature.value
+        )
+      )
     )
 
   val FluxDensityEntryType: ObjectType[Any, (Wavelength, PosBigDecimal)] =
@@ -245,8 +245,8 @@ object SourceProfileSchema {
   private def defineUnitsEnum[UG](
     name:        String,
     description: String,
-    values:      NonEmptyList[UnitType @@ UG]
-  ): EnumType[UnitType @@ UG] =
+    values:      NonEmptyList[Units Of UG]
+  ): EnumType[Units Of UG] =
     EnumType(
       name        = name,
       description = description.some,
@@ -259,42 +259,42 @@ object SourceProfileSchema {
       }
     )
 
-  val EnumTypeBrightnessIntegrated: EnumType[UnitType @@ Brightness[Integrated]] =
+  val EnumTypeBrightnessIntegrated: EnumType[Units Of Brightness[Integrated]] =
     defineUnitsEnum(
       "BrightnessIntegratedUnits",
       "Brightness integrated units",
       BrightnessUnits.Brightness.Integrated.all
     )
 
-  val EnumTypeBrightnessSurface: EnumType[UnitType @@ Brightness[Surface]] =
+  val EnumTypeBrightnessSurface: EnumType[Units Of Brightness[Surface]] =
     defineUnitsEnum(
       "BrightnessSurfaceUnits",
       "Brightness surface units",
       BrightnessUnits.Brightness.Surface.all
     )
 
-  val EnumTypeLineFluxIntegrated: EnumType[UnitType @@ LineFlux[Integrated]] =
+  val EnumTypeLineFluxIntegrated: EnumType[Units Of LineFlux[Integrated]] =
     defineUnitsEnum(
       "LineFluxIntegratedUnits",
       "Line flux integrated units",
       BrightnessUnits.LineFlux.Integrated.all
     )
 
-  val EnumTypeLineFluxSurface: EnumType[UnitType @@ LineFlux[Surface]] =
+  val EnumTypeLineFluxSurface: EnumType[Units Of LineFlux[Surface]] =
     defineUnitsEnum(
       "LineFluxSurfaceUnits",
       "Line flux surface units",
       BrightnessUnits.LineFlux.Surface.all
     )
 
-  val EnumTypeFluxDensityContinuumIntegrated: EnumType[UnitType @@ FluxDensityContinuum[Integrated]] =
+  val EnumTypeFluxDensityContinuumIntegrated: EnumType[Units Of FluxDensityContinuum[Integrated]] =
     defineUnitsEnum(
       "FluxDensityContinuumIntegratedUnits",
       "Flux density continuum integrated units",
       BrightnessUnits.FluxDensityContinuum.Integrated.all
     )
 
-  val EnumTypeFluxDensityContinuumSurface: EnumType[UnitType @@ FluxDensityContinuum[Surface]] =
+  val EnumTypeFluxDensityContinuumSurface: EnumType[Units Of FluxDensityContinuum[Surface]] =
     defineUnitsEnum(
       "FluxDensityContinuumSurfaceUnits",
       "Flux density continuum surface units",
@@ -311,8 +311,8 @@ object SourceProfileSchema {
   private def GroupedUnitQtyType[N, UG](
     name:      String,
     valueType: OutputType[N],
-    unitsType: EnumType[UnitType @@ UG]
-  ): ObjectType[Any, Qty[N] @@ UG] =
+    unitsType: EnumType[Units Of UG]
+  ): ObjectType[Any, Measure[N] Of UG] =
     ObjectType(
       name      = name,
       fieldsFn  = () => fields(
@@ -326,14 +326,14 @@ object SourceProfileSchema {
         Field(
           name      = "units",
           fieldType = unitsType,
-          resolve   = c => shapeless.tag[UG](c.value.unit): UnitType @@ UG
+          resolve   = c => Measure.unitsTagged[N, UG].get(c.value)
         )
       )
     )
 
   private def BandBrightnessType[T](
     unitCategoryName: String,
-    qtyType:          ObjectType[Any, Qty[BrightnessValue] @@ Brightness[T]]
+    qtyType:          ObjectType[Any, Measure[BrightnessValue] Of Brightness[T]]
   ): ObjectType[Any, BandBrightness[T]] =
     ObjectType(
       name     = s"BandBrightness$unitCategoryName",
@@ -362,14 +362,14 @@ object SourceProfileSchema {
       )
     )
 
-  val BrightnessIntegrated: ObjectType[Any, Qty[BrightnessValue] @@ Brightness[Integrated]] =
+  val BrightnessIntegrated: ObjectType[Any, Measure[BrightnessValue] Of Brightness[Integrated]] =
     GroupedUnitQtyType[BrightnessValue, Brightness[Integrated]](
       "BrightnessIntegrated",
       BrightnessValueType,
       EnumTypeBrightnessIntegrated
     )
 
-  val BrightnessSurface: ObjectType[Any, Qty[BrightnessValue] @@ Brightness[Surface]] =
+  val BrightnessSurface: ObjectType[Any, Measure[BrightnessValue] Of Brightness[Surface]] =
     GroupedUnitQtyType[BrightnessValue, Brightness[Surface]](
       "BrightnessSurface",
       BrightnessValueType,
@@ -433,7 +433,7 @@ object SourceProfileSchema {
 
   private def EmissionLineType[T](
     unitCategoryName: String,
-    lineFluxType:     ObjectType[Any, Qty[PosBigDecimal] @@ LineFlux[T]]
+    lineFluxType:     ObjectType[Any, Measure[PosBigDecimal] Of LineFlux[T]]
   ): ObjectType[Any, EmissionLine[T]] =
     ObjectType(
       name     = s"EmissionLine$unitCategoryName",
@@ -461,14 +461,14 @@ object SourceProfileSchema {
       )
     )
 
-  val LineFluxIntegratedType: ObjectType[Any, Qty[PosBigDecimal] @@ LineFlux[Integrated]] =
+  val LineFluxIntegratedType: ObjectType[Any, Measure[PosBigDecimal] Of LineFlux[Integrated]] =
     GroupedUnitQtyType[PosBigDecimal, LineFlux[Integrated]](
       "LineFluxIntegrated",
       PosBigDecimalType,
       EnumTypeLineFluxIntegrated
     )
 
-  val LineFluxSurfaceType: ObjectType[Any, Qty[PosBigDecimal] @@ LineFlux[Surface]] =
+  val LineFluxSurfaceType: ObjectType[Any, Measure[PosBigDecimal] Of LineFlux[Surface]] =
     GroupedUnitQtyType[PosBigDecimal, LineFlux[Surface]](
       "LineFluxSurface",
       PosBigDecimalType,
@@ -490,7 +490,7 @@ object SourceProfileSchema {
   private def EmissionLinesType[T](
     unitCategoryName: String,
     lineType:         ObjectType[Any, EmissionLine[T]],
-    fdcType:          ObjectType[Any, Qty[PosBigDecimal] @@ FluxDensityContinuum[T]]
+    fdcType:          ObjectType[Any, Measure[PosBigDecimal] Of FluxDensityContinuum[T]]
   ): ObjectType[Any, EmissionLines[T]] =
     ObjectType(
       name     = s"EmissionLines$unitCategoryName",
@@ -510,14 +510,14 @@ object SourceProfileSchema {
       )
     )
 
-  val FluxDensityContinuumIntegratedType: ObjectType[Any, Qty[PosBigDecimal] @@ FluxDensityContinuum[Integrated]] =
+  val FluxDensityContinuumIntegratedType: ObjectType[Any, Measure[PosBigDecimal] Of FluxDensityContinuum[Integrated]] =
     GroupedUnitQtyType[PosBigDecimal, FluxDensityContinuum[Integrated]](
       "FluxDensityContinuumIntegrated",
       PosBigDecimalType,
       EnumTypeFluxDensityContinuumIntegrated
     )
 
-  val FluxDensityContinuumSurfaceType: ObjectType[Any, Qty[PosBigDecimal] @@ FluxDensityContinuum[Surface]] =
+  val FluxDensityContinuumSurfaceType: ObjectType[Any, Measure[PosBigDecimal] Of FluxDensityContinuum[Surface]] =
     GroupedUnitQtyType[PosBigDecimal, FluxDensityContinuum[Surface]](
       "FluxDensityContinuumSurface",
       PosBigDecimalType,
@@ -601,7 +601,7 @@ object SourceProfileSchema {
           name         = "fwhm",
           description  = "full width at half maximum".some,
           fieldType    = AngleType,
-          resolve      = _.value.source.fwhm
+          resolve      = _.value.fwhm
         ),
 
         Field(

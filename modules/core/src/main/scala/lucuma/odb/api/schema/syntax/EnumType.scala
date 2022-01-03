@@ -11,37 +11,39 @@ import sangria.schema.{EnumType, EnumValue, InputType, OptionInputType}
 
 final class EnumTypeCompanionOps(val self: EnumType.type) {
 
-  private def enumType[A: Enumerated](
-    name:        String,
-    description: String,
-    valueDescription: A => String
-  ): EnumType[A] =
-
-    EnumType(
-      name        = name,
-      description = Some(description),
-      values      = Enumerated[A].all.map { e =>
-        EnumValue(
-          name        = e.tag.toScreamingSnakeCase,
-          description = Some(valueDescription(e)),
-          value       = e
-        )
-      }
-    )
-
   def fromEnumeratedWithDisplay[A: Enumerated: Display](
     name:        String,
     description: String
   ): EnumType[A] =
 
-    enumType[A](name, description, a => s"$name ${a.longName}")
+    fromEnumeratedMapping[A](name, description, _.tag, a => s"$name ${a.longName}")
 
   def fromEnumerated[A: Enumerated](
     name:        String,
     description: String
   ): EnumType[A] =
 
-    enumType[A](name, description, a => s"$name ${a.tag}")
+    fromEnumeratedMapping[A](name, description, _.tag, a => s"$name ${a.tag}")
+
+  def fromEnumeratedMapping[A: Enumerated](
+    name:        String,
+    description: String,
+    valueName:        A => String,
+    valueDescription: A => String
+  ): EnumType[A] =
+
+    EnumType(
+      name        = name,
+      description = Some(description),
+      values      = Enumerated[A].all.map { a =>
+        EnumValue(
+          name        = valueName(a).toScreamingSnakeCase,
+          description = Some(valueDescription(a)),
+          value       = a
+        )
+      }
+    )
+
 
 }
 
