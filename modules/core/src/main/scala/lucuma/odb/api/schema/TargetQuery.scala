@@ -6,10 +6,10 @@ package lucuma.odb.api.schema
 import cats.MonadError
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
-import lucuma.core.`enum`.{Band, PlanetSpectrum}
+import lucuma.core.`enum`.Band
 import lucuma.core.math.BrightnessUnits.{Brightness, Integrated}
 import lucuma.core.math.BrightnessValue
-import lucuma.core.model.{BandBrightness, SourceProfile, SpectralDefinition, UnnormalizedSED}
+import lucuma.core.model.{BandBrightness, SourceProfile, SpectralDefinition}
 import lucuma.odb.api.repo.{OdbRepo, ResultPage}
 import lucuma.odb.api.model.targetModel.TargetModel
 import lucuma.odb.api.schema.TargetSchema.ArgumentTargetId
@@ -114,11 +114,12 @@ trait TargetQuery {
       name        = "testSourceProfile",
       fieldType   = SourceProfileType,
       description = "test source profile".some,
-      resolve     = _ =>
-
+      arguments   = List(ArgumentUnnormalizedSed),
+      resolve     = c => {
+        val sed = c.arg(ArgumentUnnormalizedSed).toUnnormalizedSed.toOption.get
         SourceProfile.Point(
           SpectralDefinition.BandNormalized(
-            UnnormalizedSED.Planet(PlanetSpectrum.Mars),
+            sed,
             SortedMap.from[Band, BandBrightness[Integrated]](
               List(
                 (Band.R: Band) ->
@@ -130,6 +131,7 @@ trait TargetQuery {
             )
           )
         )
+      }
     )
   }
 

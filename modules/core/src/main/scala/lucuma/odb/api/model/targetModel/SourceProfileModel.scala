@@ -16,11 +16,11 @@ import eu.timepit.refined.types.all.PosBigDecimal
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import io.circe.refined._
-import lucuma.core.`enum`.{CoolStarTemperature, GalaxySpectrum, HIIRegionSpectrum, PlanetSpectrum, PlanetaryNebulaSpectrum, QuasarSpectrum, StellarLibrarySpectrum}
-import lucuma.core.math.BrightnessUnits.{Brightness, Integrated}
+import lucuma.core.`enum`.{Band, CoolStarTemperature, GalaxySpectrum, HIIRegionSpectrum, PlanetSpectrum, PlanetaryNebulaSpectrum, QuasarSpectrum, StellarLibrarySpectrum}
+import lucuma.core.math.BrightnessUnits.Brightness
 import lucuma.core.math.dimensional.{Measure, Of, Units}
 import lucuma.core.math.{BrightnessValue, Wavelength}
-import lucuma.core.model.UnnormalizedSED
+import lucuma.core.model.{BandBrightness, UnnormalizedSED}
 import lucuma.odb.api.model.{InputError, ValidatedInput, WavelengthModel}
 
 import scala.collection.immutable.SortedMap
@@ -140,13 +140,56 @@ object SourceProfileModel {
   }
 
   // TODO: WIP Here
-  final case class BrightnessIntegratedInput(
+  final case class BrightnessInput[T](
     magnitude: BigDecimal,
-    units:     Units Of Brightness[Integrated]
+    units:     Units Of Brightness[T]
   ) {
 
-    val toMeasure: Measure[BrightnessValue] Of Brightness[Integrated] =
+    val toMeasure: Measure[BrightnessValue] Of Brightness[T] =
       units.withValueTagged(BrightnessValue.fromBigDecimal.get(magnitude))
 
   }
+
+  object BrightnessInput {
+
+    implicit def DecoderBrightnessInput[T](
+      implicit ev: Decoder[Units Of Brightness[T]]
+    ): Decoder[BrightnessInput[T]] =
+      deriveDecoder[BrightnessInput[T]]
+
+    implicit def EqBrightnessInput[T]: Eq[BrightnessInput[T]] =
+      Eq.by { a => (
+        a.magnitude,
+        a.units
+      )}
+
+  }
+
+  final case class BandBrightnessInput[T](
+    brightness: BrightnessInput[T],
+    band:       Band,
+    error:      Option[BigDecimal]
+  ) {
+
+    val toBandBrightness: BandBrightness[T] =
+      BandBrightness(
+        brightness.toMeasure,
+        band,
+        error.map(e => BrightnessValue.fromBigDecimal.get(e))
+      )
+
+  }
+
+  object BandBrightnessInput {
+
+    implicit def DecoderBandBrightnessInput[T](
+      implicit ev: Decoder[Units Of Brightness[T]]
+    ): Decoder[BandBrightnessInput[T]] =
+      deriveDecoder[BandBrightnessInput[T]]
+
+    implicit def EqBandBrightnessInput[T]: Eq[BandBrightnessInput[T]] =
+      Eq.by { a => (a.brightness, a.band, a.error) }
+
+  }
+
 }

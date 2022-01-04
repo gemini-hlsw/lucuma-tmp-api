@@ -4,8 +4,10 @@
 package lucuma.odb.api.schema
 
 import cats.syntax.either._
+import cats.syntax.eq._
 import cats.syntax.option._
 import eu.timepit.refined.types.all.PosBigDecimal
+import io.circe.{Decoder, DecodingFailure, HCursor}
 import lucuma.core.`enum`.{Band, CoolStarTemperature, GalaxySpectrum, HIIRegionSpectrum, PlanetSpectrum, PlanetaryNebulaSpectrum, QuasarSpectrum, StellarLibrarySpectrum}
 import lucuma.core.math.{BrightnessValue, Wavelength}
 import lucuma.core.math.BrightnessUnits.{Brightness, FluxDensityContinuum, Integrated, LineFlux, Surface}
@@ -13,8 +15,12 @@ import lucuma.core.math.dimensional.{Measure, Of, Units}
 import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
 import lucuma.core.model.UnnormalizedSED.{BlackBody, CoolStarModel, Galaxy, HIIRegion, Planet, PlanetaryNebula, PowerLaw, Quasar, StellarLibrary, UserDefined}
 import lucuma.core.model.{BandBrightness, EmissionLine, SourceProfile, SpectralDefinition, UnnormalizedSED}
+import lucuma.core.syntax.string._
 import lucuma.core.util.Enumerated
+import lucuma.odb.api.model.targetModel.SourceProfileModel.{FluxDensityInput, UnnormalizedSedInput}
 import sangria.schema.{Field, _}
+import sangria.macros.derive._
+import sangria.marshalling.circe._
 
 import scala.reflect.ClassTag
 
@@ -23,7 +29,8 @@ object SourceProfileSchema {
   import AngleSchema.AngleType
   import GeneralSchema.PosBigDecimalType
   import syntax.`enum`._
-  import WavelengthSchema.WavelengthType
+  import syntax.inputobjecttype._
+  import WavelengthSchema._
 
   implicit val EnumTypeBand: EnumType[Band] =
     EnumType.fromEnumerated(
@@ -224,6 +231,30 @@ object SourceProfileSchema {
         )
       )
     )
+
+  implicit val InputObjectFluxDensity: InputObjectType[FluxDensityInput] =
+    deriveInputObjectType[FluxDensityInput](
+      InputObjectTypeName("FluxDensity"),
+      InputObjectTypeDescription("Flux density entry")
+    )
+
+  implicit val InputObjectUnnormalizedSed: InputObjectType[UnnormalizedSedInput] =
+    deriveInputObjectType[UnnormalizedSedInput](
+      InputObjectTypeName("UnnormalizedSedInput"),
+      InputObjectTypeDescription("Un-normalized SED input parameters.  Define one value only.")
+    )
+
+  // TODO: Remove
+  val ArgumentUnnormalizedSed: Argument[UnnormalizedSedInput] =
+    InputObjectUnnormalizedSed.argument("sed", "Un-normalized spectral energy distribution")
+
+  implicit def DecoderUnitsOfUG[UG](implicit ev: Enumerated[Units Of UG]): Decoder[Units Of UG] =
+    (c: HCursor) =>
+      c.as[String].flatMap { s =>
+        ev.all
+          .find(e => e.serialized.toScreamingSnakeCase === s)
+          .toRight(DecodingFailure(s"Could not parse enumerated type value '$s", Nil))
+      }
 
   private def defineUnitsEnum[UG](
     name:        String,
