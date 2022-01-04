@@ -139,6 +139,7 @@ object SourceProfileModel {
       )}
   }
 
+  // TODO: WIP Here
   final case class BrightnessIntegratedInput(
     magnitude: BigDecimal,
     units:     Units Of Brightness[Integrated]
