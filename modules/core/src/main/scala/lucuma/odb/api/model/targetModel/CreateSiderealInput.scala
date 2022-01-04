@@ -12,8 +12,7 @@ import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
 import lucuma.core.`enum`.{Band, PlanetSpectrum}
-import lucuma.core.math.BrightnessUnits.Integrated
-import lucuma.core.math.units.VegaMagnitude
+import lucuma.core.math.BrightnessUnits.{Brightness, Integrated}
 import lucuma.core.math.{BrightnessValue, Coordinates, Epoch}
 import lucuma.core.model.{BandBrightness, SiderealTracking, SourceProfile, SpectralDefinition, Target, UnnormalizedSED}
 import lucuma.odb.api.model.{CatalogInfoModel, DeclinationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel, ValidatedInput}
@@ -63,6 +62,13 @@ final case class CreateSiderealInput(
     (catalogInfo.traverse(_.toCatalogInfo),
      toSiderealTracking
     ).mapN { (ci, pm) =>
+
+      // Temporary pending proper Input types
+      val r: Band = Band.R
+      val bv = BrightnessValue.fromDouble(10.0)
+      val ms = Brightness.Integrated.all.head.withValueTagged(bv)
+      val bb = BandBrightness[Integrated](ms, r)
+
       Target.Sidereal(
         name,
         pm,
@@ -70,18 +76,7 @@ final case class CreateSiderealInput(
         SourceProfile.Point(
           SpectralDefinition.BandNormalized(
             UnnormalizedSED.Planet(PlanetSpectrum.Mars),
-            SortedMap.from[Band, BandBrightness[Integrated]](
-              List(
-                (
-                  Band.R: Band,
-                  BandBrightness[Integrated, VegaMagnitude](
-                    BrightnessValue.fromDouble(10.0),
-                    Band.R: Band
-                  )
-                )
-              )
-            )
-          )
+            SortedMap.from[Band, BandBrightness[Integrated]](List(r -> bb)))
         ),
         ci,
         None

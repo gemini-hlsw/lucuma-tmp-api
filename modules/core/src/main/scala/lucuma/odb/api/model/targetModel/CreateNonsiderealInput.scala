@@ -5,7 +5,6 @@ package lucuma.odb.api.model.targetModel
 
 import cats.Eq
 import cats.syntax.option._
-import lucuma.core.math.units.VegaMagnitude
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
@@ -38,6 +37,13 @@ final case class CreateNonsiderealInput(
 
   val toGemTarget: ValidatedInput[Target] =
     toEphemerisKey.map { k =>
+
+      // Temporary pending proper Input types
+      val r: Band = Band.R
+      val bv = BrightnessValue.fromDouble(10.0)
+      val ms = Brightness.Integrated.all.head.withValueTagged(bv)
+      val bb = BandBrightness[Integrated](ms, r)
+
       Target.Nonsidereal(
         name,
         k,
@@ -45,17 +51,7 @@ final case class CreateNonsiderealInput(
         SourceProfile.Point(
           SpectralDefinition.BandNormalized(
             UnnormalizedSED.Planet(PlanetSpectrum.Mars),
-            SortedMap.from[Band, BandBrightness[Integrated]](
-              List(
-                (
-                  Band.R: Band,
-                  BandBrightness[Integrated, VegaMagnitude](
-                    BrightnessValue.fromDouble(10.0),
-                    Band.R: Band,
-                  )
-                )
-              )
-            )
+            SortedMap.from[Band, BandBrightness[Integrated]](List(r -> bb))
           )
         ),
         None

@@ -146,8 +146,7 @@ object SourceProfileModel {
   ) {
 
     val toMeasure: Measure[BrightnessValue] Of Brightness[Integrated] =
-      // TODO: switch to SplitEpi
-      units.withValueTagged(BrightnessValue.fromBigDecimal.getOption(magnitude).get)
+      units.withValueTagged(BrightnessValue.fromBigDecimal.get(magnitude))
 
   }
 }

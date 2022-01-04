@@ -4,6 +4,7 @@
 package lucuma.odb.api.schema
 
 import cats.data.NonEmptyList
+import cats.syntax.either._
 import cats.syntax.option._
 import eu.timepit.refined.types.all.PosBigDecimal
 import lucuma.core.`enum`.{Band, CoolStarTemperature, GalaxySpectrum, HIIRegionSpectrum, PlanetSpectrum, PlanetaryNebulaSpectrum, QuasarSpectrum, StellarLibrarySpectrum}
@@ -15,7 +16,6 @@ import lucuma.core.model.UnnormalizedSED.{BlackBody, CoolStarModel, Galaxy, HIIR
 import lucuma.core.model.{BandBrightness, EmissionLine, SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.core.syntax.string._
 import sangria.schema.{Field, _}
-import sangria.validation.FloatCoercionViolation
 
 import scala.reflect.ClassTag
 
@@ -305,7 +305,7 @@ object SourceProfileSchema {
     ScalarAlias(
       BigDecimalType,
       BrightnessValue.fromBigDecimal.reverseGet,
-      bd => BrightnessValue.fromBigDecimal.getOption(bd).toRight(FloatCoercionViolation)
+      bd => BrightnessValue.fromBigDecimal.get(bd).asRight
     )
 
   private def GroupedUnitQtyType[N, UG](
