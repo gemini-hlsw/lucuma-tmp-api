@@ -29,7 +29,7 @@ object SourceProfileSchema {
   implicit val EnumTypeBand: EnumType[Band] =
     EnumType.fromEnumerated(
       "Band",
-      "Magnitude bands"
+      "Brightness bands"
     )
 
   implicit val EnumTypeStellarLibrarySpectrum: EnumType[StellarLibrarySpectrum] =
