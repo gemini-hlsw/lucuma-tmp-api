@@ -6,8 +6,8 @@ package lucuma.odb.api.model.targetModel
 import cats.Eq
 import cats.data.{Nested, NonEmptyList, NonEmptyMap}
 import cats.Order.catsKernelOrderingForOrder
-import cats.syntax.either._
 import cats.syntax.functor._
+import cats.syntax.option._
 import cats.syntax.validated._
 import coulomb.Quantity
 import coulomb.si.Kelvin
@@ -17,16 +17,18 @@ import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import io.circe.refined._
 import lucuma.core.`enum`.{CoolStarTemperature, GalaxySpectrum, HIIRegionSpectrum, PlanetSpectrum, PlanetaryNebulaSpectrum, QuasarSpectrum, StellarLibrarySpectrum}
-import lucuma.core.math.Wavelength
+import lucuma.core.math.BrightnessUnits.{Brightness, Integrated}
+import lucuma.core.math.dimensional.{Measure, Of, Units}
+import lucuma.core.math.{BrightnessValue, Wavelength}
 import lucuma.core.model.UnnormalizedSED
 import lucuma.odb.api.model.{InputError, ValidatedInput, WavelengthModel}
 
 import scala.collection.immutable.SortedMap
 
 /**
- *
+ * SourceProfile GraphQL schema support model.
  */
-object SourceProfileSchemaModel {
+object SourceProfileModel {
 
   final case class FluxDensityEntry(
     wavelength: Wavelength,
@@ -85,8 +87,7 @@ object SourceProfileSchemaModel {
       fluxDensities.map { fluxDensityInputs =>
         NonEmptyList
           .fromList(fluxDensityInputs)
-          .toRight(InputError.fromMessage("One or more flux densities must be provided for a user defined SED"))
-          .toValidatedNec
+          .toValidNec(InputError.fromMessage("One or more flux densities must be provided for a user defined SED"))
           .andThen(_.traverse(_.toFluxDensityEntry))
           .map { nel =>
             UnnormalizedSED.UserDefined(
@@ -136,5 +137,16 @@ object SourceProfileSchemaModel {
         a.blackBodyTempK,
         a.fluxDensities
       )}
+  }
+
+  final case class BrightnessIntegratedInput(
+    magnitude: BigDecimal,
+    units:     Units Of Brightness[Integrated]
+  ) {
+
+    val toMeasure: Measure[BrightnessValue] Of Brightness[Integrated] =
+      // TODO: switch to SplitEpi
+      units.withValueTagged(BrightnessValue.fromBigDecimal.getOption(magnitude).get)
+
   }
 }
