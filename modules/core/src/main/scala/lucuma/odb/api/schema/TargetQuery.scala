@@ -7,9 +7,8 @@ import cats.MonadError
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import lucuma.core.`enum`.{Band, PlanetSpectrum}
-import lucuma.core.math.BrightnessUnits.Integrated
+import lucuma.core.math.BrightnessUnits.{Brightness, Integrated}
 import lucuma.core.math.BrightnessValue
-import lucuma.core.math.units.VegaMagnitude
 import lucuma.core.model.{BandBrightness, SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.odb.api.repo.{OdbRepo, ResultPage}
 import lucuma.odb.api.model.targetModel.TargetModel
@@ -123,8 +122,8 @@ trait TargetQuery {
             SortedMap.from[Band, BandBrightness[Integrated]](
               List(
                 (Band.R: Band) ->
-                  BandBrightness[Integrated, VegaMagnitude](
-                    BrightnessValue.fromDouble(10.0),
+                  BandBrightness[Integrated](
+                    Brightness.Integrated.all.head.withValueTagged(BrightnessValue.fromDouble(10.0)),
                     Band.R: Band
                   )
               )

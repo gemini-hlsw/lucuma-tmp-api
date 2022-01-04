@@ -15,9 +15,8 @@ import cats.syntax.all._
 import eu.timepit.refined.auto._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.parser.decode
-import lucuma.core.math.BrightnessUnits.{Brightness, Integrated}
+import lucuma.core.math.BrightnessUnits.Integrated
 import lucuma.core.math.BrightnessValue
-import lucuma.core.math.dimensional.TaggedUnit
 import lucuma.core.math.units.{ABMagnitude, VegaMagnitude}
 import lucuma.core.model.{BandBrightness, Program, SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.odb.api.model.OffsetModel.ComponentInput
@@ -77,9 +76,9 @@ object Init {
   )
 
   private def bandBrightness[U](bv: Double, b: Band, e: Option[Double])(
-    implicit ev: TaggedUnit[U, Brightness[Integrated]]
+    implicit ev: Band.DefaultUnit[b.type, Integrated]
   ): BandBrightness[Integrated] =
-    BandBrightness[Integrated, U](
+    BandBrightness.withDefaultUnits[Integrated](
       BrightnessValue.fromDouble(bv),
       b,
       e.map(BrightnessValue.fromDouble)

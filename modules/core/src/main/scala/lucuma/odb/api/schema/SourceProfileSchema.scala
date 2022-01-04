@@ -3,19 +3,18 @@
 
 package lucuma.odb.api.schema
 
-import cats.data.NonEmptyList
+import cats.syntax.either._
 import cats.syntax.option._
 import eu.timepit.refined.types.all.PosBigDecimal
 import lucuma.core.`enum`.{Band, CoolStarTemperature, GalaxySpectrum, HIIRegionSpectrum, PlanetSpectrum, PlanetaryNebulaSpectrum, QuasarSpectrum, StellarLibrarySpectrum}
-import lucuma.core.math.{BrightnessUnits, BrightnessValue, Wavelength}
+import lucuma.core.math.{BrightnessValue, Wavelength}
 import lucuma.core.math.BrightnessUnits.{Brightness, FluxDensityContinuum, Integrated, LineFlux, Surface}
 import lucuma.core.math.dimensional.{Measure, Of, Units}
 import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
 import lucuma.core.model.UnnormalizedSED.{BlackBody, CoolStarModel, Galaxy, HIIRegion, Planet, PlanetaryNebula, PowerLaw, Quasar, StellarLibrary, UserDefined}
 import lucuma.core.model.{BandBrightness, EmissionLine, SourceProfile, SpectralDefinition, UnnormalizedSED}
-import lucuma.core.syntax.string._
+import lucuma.core.util.Enumerated
 import sangria.schema.{Field, _}
-import sangria.validation.FloatCoercionViolation
 
 import scala.reflect.ClassTag
 
@@ -226,86 +225,58 @@ object SourceProfileSchema {
       )
     )
 
-  // We are limited in the characters we can use for enum names.  These mappings
-  // define how to map illegal characters into something valid for GraphQL.
-  private val replacements: List[(String, String)] =
-    List(
-      " " -> "_",
-      "²" -> "_SQUARED",
-      "/" -> "_PER_",
-      "Å" -> "A",
-      "µ" -> "U"
-    )
-
-  def toGraphQLName(n: String): String =
-    replacements
-      .foldLeft(n) { case (n, (a, b)) => n.replaceAll(a, b) }
-      .toScreamingSnakeCase
-
   private def defineUnitsEnum[UG](
     name:        String,
     description: String,
-    values:      NonEmptyList[Units Of UG]
-  ): EnumType[Units Of UG] =
-    EnumType(
-      name        = name,
-      description = description.some,
-      values      = values.toList.map { gut =>
-        EnumValue(
-          name        = toGraphQLName(gut.name),
-          description = gut.abbv.some,
-          value       = gut
-        )
-      }
+  )(implicit ev: Enumerated[Units Of UG]): EnumType[Units Of UG] =
+    EnumType.fromEnumeratedMapping[Units Of UG](
+      name,
+      description,
+      _.serialized,
+      _.abbv
     )
 
   val EnumTypeBrightnessIntegrated: EnumType[Units Of Brightness[Integrated]] =
     defineUnitsEnum(
       "BrightnessIntegratedUnits",
-      "Brightness integrated units",
-      BrightnessUnits.Brightness.Integrated.all
+      "Brightness integrated units"
     )
 
   val EnumTypeBrightnessSurface: EnumType[Units Of Brightness[Surface]] =
     defineUnitsEnum(
       "BrightnessSurfaceUnits",
-      "Brightness surface units",
-      BrightnessUnits.Brightness.Surface.all
+      "Brightness surface units"
     )
 
   val EnumTypeLineFluxIntegrated: EnumType[Units Of LineFlux[Integrated]] =
     defineUnitsEnum(
       "LineFluxIntegratedUnits",
-      "Line flux integrated units",
-      BrightnessUnits.LineFlux.Integrated.all
+      "Line flux integrated units"
     )
 
   val EnumTypeLineFluxSurface: EnumType[Units Of LineFlux[Surface]] =
     defineUnitsEnum(
       "LineFluxSurfaceUnits",
-      "Line flux surface units",
-      BrightnessUnits.LineFlux.Surface.all
+      "Line flux surface units"
     )
 
   val EnumTypeFluxDensityContinuumIntegrated: EnumType[Units Of FluxDensityContinuum[Integrated]] =
     defineUnitsEnum(
       "FluxDensityContinuumIntegratedUnits",
-      "Flux density continuum integrated units",
-      BrightnessUnits.FluxDensityContinuum.Integrated.all
+      "Flux density continuum integrated units"
     )
 
   val EnumTypeFluxDensityContinuumSurface: EnumType[Units Of FluxDensityContinuum[Surface]] =
     defineUnitsEnum(
       "FluxDensityContinuumSurfaceUnits",
-      "Flux density continuum surface units",
-      BrightnessUnits.FluxDensityContinuum.Surface.all
+      "Flux density continuum surface units"
     )
 
   val BrightnessValueType: ScalarAlias[BrightnessValue, BigDecimal] =
     ScalarAlias(
       BigDecimalType,
       BrightnessValue.fromBigDecimal.reverseGet,
-      bd => BrightnessValue.fromBigDecimal.getOption(bd).toRight(FloatCoercionViolation)
+      bd => BrightnessValue.fromBigDecimal.get(bd).asRight
     )
 
   private def GroupedUnitQtyType[N, UG](
