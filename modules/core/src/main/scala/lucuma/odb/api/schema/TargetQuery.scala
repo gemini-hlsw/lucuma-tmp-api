@@ -6,17 +6,11 @@ package lucuma.odb.api.schema
 import cats.MonadError
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
-import lucuma.core.`enum`.Band
-import lucuma.core.math.BrightnessUnits.{Brightness, Integrated}
-import lucuma.core.math.BrightnessValue
-import lucuma.core.model.{BandBrightness, SourceProfile, SpectralDefinition}
+import lucuma.core.model.SourceProfile
 import lucuma.odb.api.repo.{OdbRepo, ResultPage}
 import lucuma.odb.api.model.targetModel.TargetModel
 import lucuma.odb.api.schema.TargetSchema.ArgumentTargetId
 import sangria.schema._
-
-import scala.collection.immutable.SortedMap
-
 
 trait TargetQuery {
   import context._
@@ -114,23 +108,10 @@ trait TargetQuery {
       name        = "testSourceProfile",
       fieldType   = SourceProfileType,
       description = "test source profile".some,
-      arguments   = List(ArgumentUnnormalizedSed),
+      arguments   = List(ArgumentCreateBandNormalizedIntegrated),
       resolve     = c => {
-        val sed = c.arg(ArgumentUnnormalizedSed).toUnnormalizedSed.toOption.get
-        SourceProfile.Point(
-          SpectralDefinition.BandNormalized(
-            sed,
-            SortedMap.from[Band, BandBrightness[Integrated]](
-              List(
-                (Band.R: Band) ->
-                  BandBrightness[Integrated](
-                    Brightness.Integrated.all.head.withValueTagged(BrightnessValue.fromDouble(10.0)),
-                    Band.R: Band
-                  )
-              )
-            )
-          )
-        )
+        val big = c.arg(ArgumentCreateBandNormalizedIntegrated).toBandNormalized.toOption.get
+        SourceProfile.Point(big)
       }
     )
   }

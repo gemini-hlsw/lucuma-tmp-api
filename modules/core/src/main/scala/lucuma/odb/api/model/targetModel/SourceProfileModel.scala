@@ -20,6 +20,7 @@ import lucuma.core.`enum`.{Band, CoolStarTemperature, GalaxySpectrum, HIIRegionS
 import lucuma.core.math.BrightnessUnits.Brightness
 import lucuma.core.math.dimensional.{Measure, Of, Units}
 import lucuma.core.math.{BrightnessValue, Wavelength}
+import lucuma.core.model.SpectralDefinition.BandNormalized
 import lucuma.core.model.{BandBrightness, UnnormalizedSED}
 import lucuma.odb.api.model.{InputError, ValidatedInput, WavelengthModel}
 
@@ -139,34 +140,33 @@ object SourceProfileModel {
       )}
   }
 
-  // TODO: WIP Here
-  final case class BrightnessInput[T](
-    magnitude: BigDecimal,
-    units:     Units Of Brightness[T]
+  final case class CreateBrightnessInput[T](
+    value: BigDecimal,
+    units: Units Of Brightness[T]
   ) {
 
     val toMeasure: Measure[BrightnessValue] Of Brightness[T] =
-      units.withValueTagged(BrightnessValue.fromBigDecimal.get(magnitude))
+      units.withValueTagged(BrightnessValue.fromBigDecimal.get(value))
 
   }
 
-  object BrightnessInput {
+  object CreateBrightnessInput {
 
-    implicit def DecoderBrightnessInput[T](
+    implicit def DecoderCreateBrightnessInput[T](
       implicit ev: Decoder[Units Of Brightness[T]]
-    ): Decoder[BrightnessInput[T]] =
-      deriveDecoder[BrightnessInput[T]]
+    ): Decoder[CreateBrightnessInput[T]] =
+      deriveDecoder[CreateBrightnessInput[T]]
 
-    implicit def EqBrightnessInput[T]: Eq[BrightnessInput[T]] =
+    implicit def EqCreateBrightnessInput[T]: Eq[CreateBrightnessInput[T]] =
       Eq.by { a => (
-        a.magnitude,
+        a.value,
         a.units
       )}
 
   }
 
-  final case class BandBrightnessInput[T](
-    brightness: BrightnessInput[T],
+  final case class CreateBandBrightnessInput[T](
+    brightness: CreateBrightnessInput[T],
     band:       Band,
     error:      Option[BigDecimal]
   ) {
@@ -180,15 +180,42 @@ object SourceProfileModel {
 
   }
 
-  object BandBrightnessInput {
+  object CreateBandBrightnessInput {
 
-    implicit def DecoderBandBrightnessInput[T](
+    implicit def DecoderCreateBandBrightnessInput[T](
       implicit ev: Decoder[Units Of Brightness[T]]
-    ): Decoder[BandBrightnessInput[T]] =
-      deriveDecoder[BandBrightnessInput[T]]
+    ): Decoder[CreateBandBrightnessInput[T]] =
+      deriveDecoder[CreateBandBrightnessInput[T]]
 
-    implicit def EqBandBrightnessInput[T]: Eq[BandBrightnessInput[T]] =
+    implicit def EqCreateBandBrightnessInput[T]: Eq[CreateBandBrightnessInput[T]] =
       Eq.by { a => (a.brightness, a.band, a.error) }
+
+  }
+
+  final case class CreateBandNormalizedInput[T](
+    sed:          UnnormalizedSedInput,
+    brightnesses: List[CreateBandBrightnessInput[T]]
+  ) {
+
+    def toBandNormalized: ValidatedInput[BandNormalized[T]] =
+      sed.toUnnormalizedSed.map { sed =>
+        BandNormalized(
+          sed,
+          SortedMap.from(brightnesses.map(_.toBandBrightness).fproductLeft(_.band))
+        )
+      }
+
+  }
+
+  object CreateBandNormalizedInput {
+
+    implicit def DecoderCreateBandNormalizedInput[T](
+      implicit ev: Decoder[Units Of Brightness[T]]
+    ): Decoder[CreateBandNormalizedInput[T]] =
+      deriveDecoder[CreateBandNormalizedInput[T]]
+
+    implicit def EqCreateBandNormalizedInput[T]: Eq[CreateBandNormalizedInput[T]] =
+      Eq.by { a => (a.sed, a.brightnesses) }
 
   }
 
