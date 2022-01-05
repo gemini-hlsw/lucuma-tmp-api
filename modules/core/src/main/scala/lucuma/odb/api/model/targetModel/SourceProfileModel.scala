@@ -17,11 +17,12 @@ import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import io.circe.refined._
 import lucuma.core.`enum`.{Band, CoolStarTemperature, GalaxySpectrum, HIIRegionSpectrum, PlanetSpectrum, PlanetaryNebulaSpectrum, QuasarSpectrum, StellarLibrarySpectrum}
-import lucuma.core.math.BrightnessUnits.Brightness
+import lucuma.core.math.BrightnessUnits.{Brightness, LineFlux}
 import lucuma.core.math.dimensional.{Measure, Of, Units}
+import lucuma.core.math.units.KilometersPerSecond
 import lucuma.core.math.{BrightnessValue, Wavelength}
 import lucuma.core.model.SpectralDefinition.BandNormalized
-import lucuma.core.model.{BandBrightness, UnnormalizedSED}
+import lucuma.core.model.{BandBrightness, EmissionLine, UnnormalizedSED}
 import lucuma.odb.api.model.{InputError, ValidatedInput, WavelengthModel}
 
 import scala.collection.immutable.SortedMap
@@ -140,24 +141,29 @@ object SourceProfileModel {
       )}
   }
 
-  final case class CreateBrightnessInput[T](
-    value: BigDecimal,
-    units: Units Of Brightness[T]
+  final case class CreateMeasureInput[V, U](
+    value: V,
+    units: Units Of U
   ) {
 
-    val toMeasure: Measure[BrightnessValue] Of Brightness[T] =
-      units.withValueTagged(BrightnessValue.fromBigDecimal.get(value))
+    def toMeasure: Measure[V] Of U =
+      toMappedMeasure[V](identity)
+
+    def toMappedMeasure[N](f: V => N): Measure[N] Of U =
+      units.withValueTagged(f(value))
 
   }
 
-  object CreateBrightnessInput {
+  object CreateMeasureInput {
 
-    implicit def DecoderCreateBrightnessInput[T](
-      implicit ev: Decoder[Units Of Brightness[T]]
-    ): Decoder[CreateBrightnessInput[T]] =
-      deriveDecoder[CreateBrightnessInput[T]]
+    implicit def DecoderCreateMeasureInput[V: Decoder, U](
+      implicit ev: Decoder[Units Of U]
+    ): Decoder[CreateMeasureInput[V, U]] =
+      deriveDecoder[CreateMeasureInput[V, U]]
 
-    implicit def EqCreateBrightnessInput[T]: Eq[CreateBrightnessInput[T]] =
+    implicit def EqMeasureInput[V: Eq, U](
+      implicit ev: Eq[Units Of U]
+    ): Eq[CreateMeasureInput[V, U]] =
       Eq.by { a => (
         a.value,
         a.units
@@ -166,14 +172,14 @@ object SourceProfileModel {
   }
 
   final case class CreateBandBrightnessInput[T](
-    brightness: CreateBrightnessInput[T],
+    brightness: CreateMeasureInput[BigDecimal, Brightness[T]],
     band:       Band,
     error:      Option[BigDecimal]
   ) {
 
     val toBandBrightness: BandBrightness[T] =
       BandBrightness(
-        brightness.toMeasure,
+        brightness.toMappedMeasure(BrightnessValue.fromBigDecimal.get),
         band,
         error.map(e => BrightnessValue.fromBigDecimal.get(e))
       )
@@ -218,5 +224,43 @@ object SourceProfileModel {
       Eq.by { a => (a.sed, a.brightnesses) }
 
   }
+
+  // TODO: should lineWidth offer other units?  m/s etc?
+  final case class CreateEmissionLineInput[T](
+    wavelength: WavelengthModel.Input,
+    lineWidth:  PosBigDecimal,
+    lineFlux:   CreateMeasureInput[PosBigDecimal, LineFlux[T]]
+  ) {
+
+    def toEmissionLine: ValidatedInput[EmissionLine[T]] =
+      wavelength.toWavelength("wavelength").map { w =>
+        EmissionLine(
+          w,
+          Quantity[PosBigDecimal, KilometersPerSecond](lineWidth),
+          lineFlux.toMeasure
+        )
+      }
+
+  }
+
+  object CreateEmissionLineInput {
+
+    implicit def DecoderCreateEmissionLine[T](
+      implicit ev: Decoder[Units Of LineFlux[T]]
+    ): Decoder[CreateEmissionLineInput[T]] =
+      deriveDecoder[CreateEmissionLineInput[T]]
+
+    implicit def EqCreateEmissionLine[T]: Eq[CreateEmissionLineInput[T]] =
+      Eq.by { a => (
+        a.wavelength,
+        a.lineWidth,
+        a.lineFlux
+      )}
+
+  }
+
+//  final case class CreateEmissionLinesInput[T](
+//    lines: List[CreateEmissionLineInput[T]],
+//  )
 
 }
