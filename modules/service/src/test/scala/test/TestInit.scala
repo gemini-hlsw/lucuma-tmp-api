@@ -26,41 +26,6 @@ object TestInit {
   // 4) NGC 3312
   // 5) NGC 4749
 
-  /*
-    private def bandBrightness[U](bv: Double, b: Band, e: Option[Double])(
-    implicit ev: Band.DefaultUnit[b.type, Integrated]
-  ): BandBrightness[Integrated] =
-    BandBrightness.withDefaultUnits[Integrated](
-      BrightnessValue.fromDouble(bv),
-      b,
-      e.map(BrightnessValue.fromDouble)
-    )
-
-  private def pointSpiral(
-    brightnesses: BandBrightness[Integrated]*
-  ): SourceProfile =
-    SourceProfile.Point(
-      SpectralDefinition.BandNormalized(
-        UnnormalizedSED.Galaxy(GalaxySpectrum.Spiral),
-          SortedMap.from[Band, BandBrightness[Integrated]](brightnesses.fproductLeft(_.band))
-      )
-    )
-
-  val ngc5949Profile: SourceProfile =
-    pointSpiral(
-      bandBrightness[VegaMagnitude](12.700, Band.B,      None       ),
-      bandBrightness[VegaMagnitude](10.279, Band.J,      0.0009.some),
-      bandBrightness[VegaMagnitude]( 9.649, Band.H,      0.0120.some),
-      bandBrightness[VegaMagnitude]( 9.425, Band.K,      0.0170.some),
-      bandBrightness[ABMagnitude](  14.147, Band.SloanU, 0.0050.some),
-      bandBrightness[ABMagnitude](  12.924, Band.SloanG, 0.0020.some),
-      bandBrightness[ABMagnitude](  12.252, Band.SloanR, 0.0020.some),
-      bandBrightness[ABMagnitude](  11.888, Band.SloanI, 0.0020.some),
-      bandBrightness[ABMagnitude](  11.636, Band.SloanZ, 0.0020.some)
-    )
-
-   */
-
   val targetsJson = List(
 """
 {

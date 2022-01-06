@@ -229,14 +229,6 @@ object SourceProfileSchema {
       )
     )
 
-//  implicit def DecoderUnitsOfUG[UG](implicit ev: Enumerated[Units Of UG]): Decoder[Units Of UG] =
-//    (c: HCursor) =>
-//      c.as[String].flatMap { s =>
-//        ev.all
-//          .find(e => e.serialized.toScreamingSnakeCase === s)
-//          .toRight(DecodingFailure(s"Could not parse enumerated type value '$s", Nil))
-//      }
-
   private def defineUnitsEnum[UG](
     name:        String,
     description: String,
