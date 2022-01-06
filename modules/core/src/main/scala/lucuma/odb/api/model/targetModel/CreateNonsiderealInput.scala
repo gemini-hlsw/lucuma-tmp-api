@@ -4,20 +4,17 @@
 package lucuma.odb.api.model.targetModel
 
 import cats.Eq
+import cats.syntax.apply._
 import cats.syntax.option._
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
-import lucuma.core.`enum`.{Band, EphemerisKeyType, PlanetSpectrum}
-import lucuma.core.`enum`.Band._
-import lucuma.core.math.BrightnessUnits._
-import lucuma.core.math.BrightnessValue
-import lucuma.core.model.{BandBrightness, EphemerisKey, SourceProfile, SpectralDefinition, Target, UnnormalizedSED}
+import lucuma.core.`enum`.EphemerisKeyType
+import lucuma.core.model.{EphemerisKey, Target}
+import lucuma.odb.api.model.targetModel.SourceProfileModel.CreateSourceProfileInput
 import lucuma.odb.api.model.{InputError, ValidatedInput}
-
-import scala.collection.immutable.SortedMap
 
 /**
  * Describes input used to create a nonsidereal target.
@@ -27,33 +24,22 @@ import scala.collection.immutable.SortedMap
  * @param des     semi-permanent horizons identifier (relative to key type)
  */
 final case class CreateNonsiderealInput(
-  name:       NonEmptyString,
-  keyType:    EphemerisKeyType,
-  des:        String
+  name:          NonEmptyString,
+  keyType:       EphemerisKeyType,
+  des:           String,
+  sourceProfile: CreateSourceProfileInput
 ) {
 
   val toEphemerisKey: ValidatedInput[EphemerisKey] =
     CreateNonsiderealInput.parse.ephemerisKey("des", keyType, des)
 
   val toGemTarget: ValidatedInput[Target] =
-    toEphemerisKey.map { k =>
-
-      // Temporary pending proper Input types
-      val r: Band = Band.R
-      val bv = BrightnessValue.fromDouble(10.0)
-      val ms = Brightness.Integrated.all.head.withValueTagged(bv)
-      val bb = BandBrightness[Integrated](ms, r)
+    (toEphemerisKey, sourceProfile.toSourceProfile).mapN { (k, s) =>
 
       Target.Nonsidereal(
         name,
         k,
-        // Nonsense value to satisfy the compiler for now.
-        SourceProfile.Point(
-          SpectralDefinition.BandNormalized(
-            UnnormalizedSED.Planet(PlanetSpectrum.Mars),
-            SortedMap.from[Band, BandBrightness[Integrated]](List(r -> bb))
-          )
-        ),
+        s,
         None
       )
     }
@@ -66,25 +52,26 @@ object CreateNonsiderealInput {
     deriveDecoder[CreateNonsiderealInput]
 
   implicit val EqCreateNonsiderealInput: Eq[CreateNonsiderealInput] =
-    Eq.by(cn => (
-      cn.name,
-      cn.keyType,
-      cn.des
-    ))
+    Eq.by { a => (
+      a.name,
+      a.keyType,
+      a.des,
+      a.sourceProfile
+    )}
 
     object parse {
 
-    def ephemerisKey(
-      fieldName: String,
-      key:       EphemerisKeyType,
-      input:     String
-    ): ValidatedInput[EphemerisKey] =
-      EphemerisKey
-        .fromTypeAndDes
-        .getOption((key, input))
-        .toValidNec(
-          InputError.invalidField(fieldName, input, s"Invalid description for ephemeris key type `${key.shortName}`")
-        )
+      def ephemerisKey(
+        fieldName: String,
+        key:       EphemerisKeyType,
+        input:     String
+      ): ValidatedInput[EphemerisKey] =
+        EphemerisKey
+          .fromTypeAndDes
+          .getOption((key, input))
+          .toValidNec(
+            InputError.invalidField(fieldName, input, s"Invalid description for ephemeris key type `${key.shortName}`")
+          )
 
   }
 

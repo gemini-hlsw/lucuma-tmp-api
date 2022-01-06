@@ -141,6 +141,37 @@ object SourceProfileModel {
         a.blackBodyTempK,
         a.fluxDensities
       )}
+
+    val Empty: UnnormalizedSedInput =
+      UnnormalizedSedInput(None, None, None, None, None, None, None, None, None, None)
+
+    def stellarLibrary(e: StellarLibrarySpectrum): UnnormalizedSedInput =
+      Empty.copy(stellarLibrary = e.some)
+
+    def coolStar(e: CoolStarTemperature): UnnormalizedSedInput =
+      Empty.copy(coolStar = e.some)
+
+    def galaxy(e: GalaxySpectrum): UnnormalizedSedInput =
+      Empty.copy(galaxy = e.some)
+
+    def planet(e: PlanetSpectrum): UnnormalizedSedInput =
+      Empty.copy(planet = e.some)
+
+    def hiiRegionSpectrum(e: HIIRegionSpectrum): UnnormalizedSedInput =
+      Empty.copy(hiiRegion = e.some)
+
+    def planetaryNebula(e: PlanetaryNebulaSpectrum): UnnormalizedSedInput =
+      Empty.copy(planetaryNebula = e.some)
+
+    def powerLaw(d: BigDecimal): UnnormalizedSedInput =
+      Empty.copy(powerLaw = d.some)
+
+    def blackBody(t: PosBigDecimal): UnnormalizedSedInput =
+      Empty.copy(blackBodyTempK = t.some)
+
+    def userDefined(lst: List[FluxDensityInput]): UnnormalizedSedInput =
+      Empty.copy(fluxDensities = lst.some)
+
   }
 
   final case class CreateMeasureInput[V, U](

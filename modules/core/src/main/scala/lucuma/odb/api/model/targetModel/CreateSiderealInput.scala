@@ -11,25 +11,14 @@ import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
-import lucuma.core.`enum`.{Band, PlanetSpectrum}
-import lucuma.core.math.BrightnessUnits.{Brightness, Integrated}
-import lucuma.core.math.{BrightnessValue, Coordinates, Epoch}
-import lucuma.core.model.{BandBrightness, SiderealTracking, SourceProfile, SpectralDefinition, Target, UnnormalizedSED}
+import lucuma.core.math.{Coordinates, Epoch}
+import lucuma.core.model.{SiderealTracking, Target}
 import lucuma.odb.api.model.{CatalogInfoModel, DeclinationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel, ValidatedInput}
 import lucuma.odb.api.model.json.target._
-
-import scala.collection.immutable.SortedMap
+import lucuma.odb.api.model.targetModel.SourceProfileModel.CreateSourceProfileInput
 
 /**
  * Describes input used to create a sidereal target.
- *
- * @param name target name
- * @param ra right ascension coordinate at epoch
- * @param dec declination coordinate at epoch
- * @param epoch time of the base observation
- * @param properMotion proper motion per year in right ascension and declination
- * @param radialVelocity radial velocity
- * @param parallax parallax
  */
 final case class CreateSiderealInput(
   name:           NonEmptyString,
@@ -39,7 +28,8 @@ final case class CreateSiderealInput(
   epoch:          Option[Epoch],
   properMotion:   Option[ProperMotionModel.Input],
   radialVelocity: Option[RadialVelocityModel.Input],
-  parallax:       Option[ParallaxModel.Input]
+  parallax:       Option[ParallaxModel.Input],
+  sourceProfile:  CreateSourceProfileInput
 ) {
 
   val toSiderealTracking: ValidatedInput[SiderealTracking] =
@@ -60,24 +50,13 @@ final case class CreateSiderealInput(
 
   val toGemTarget: ValidatedInput[Target] =
     (catalogInfo.traverse(_.toCatalogInfo),
-     toSiderealTracking
-    ).mapN { (ci, pm) =>
-
-      // Temporary pending proper Input types
-      val r: Band = Band.R
-      val bv = BrightnessValue.fromDouble(10.0)
-      val ms = Brightness.Integrated.all.head.withValueTagged(bv)
-      val bb = BandBrightness[Integrated](ms, r)
-
+     toSiderealTracking,
+     sourceProfile.toSourceProfile
+    ).mapN { (ci, pm, sp) =>
       Target.Sidereal(
         name,
         pm,
-        // Nonsense value to satisfy the compiler for now.
-        SourceProfile.Point(
-          SpectralDefinition.BandNormalized(
-            UnnormalizedSED.Planet(PlanetSpectrum.Mars),
-            SortedMap.from[Band, BandBrightness[Integrated]](List(r -> bb)))
-        ),
+        sp,
         ci,
         None
       )
@@ -88,9 +67,10 @@ final case class CreateSiderealInput(
 object CreateSiderealInput {
 
   def fromRaDec(
-    name: NonEmptyString,
-    ra:   RightAscensionModel.Input,
-    dec:  DeclinationModel.Input
+    name:   NonEmptyString,
+    ra:     RightAscensionModel.Input,
+    dec:    DeclinationModel.Input,
+    source: CreateSourceProfileInput
   ): CreateSiderealInput =
     CreateSiderealInput(
       name           = name,
@@ -100,23 +80,25 @@ object CreateSiderealInput {
       epoch          = None,
       properMotion   = None,
       radialVelocity = None,
-      parallax       = None
+      parallax       = None,
+      sourceProfile  = source
     )
 
   implicit val DecoderCreateSiderealInput: Decoder[CreateSiderealInput] =
     deriveDecoder[CreateSiderealInput]
 
   implicit val EqCreateSidereal: Eq[CreateSiderealInput] =
-    Eq.by(cs => (
-      cs.name,
-      cs.catalogInfo,
-      cs.ra,
-      cs.dec,
-      cs.epoch,
-      cs.properMotion,
-      cs.radialVelocity,
-      cs.parallax
-    ))
+    Eq.by { a => (
+      a.name,
+      a.catalogInfo,
+      a.ra,
+      a.dec,
+      a.epoch,
+      a.properMotion,
+      a.radialVelocity,
+      a.parallax,
+      a.sourceProfile
+    )}
 
 }
 

@@ -24,6 +24,7 @@ trait TargetMutation extends TargetScalars {
   import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
   import NumericUnitsSchema._
   import ProgramSchema.ProgramIdType
+  import SourceProfileSchema.InputObjectCreateSourceProfile
   import TargetSchema.{EnumTypeCatalogName, EphemerisKeyTypeEnumType, ArgumentTargetId, TargetIdType, TargetType}
 
   import syntax.inputtype._
