@@ -4,7 +4,7 @@
 package lucuma.odb.api.repo
 
 import cats.data.{EitherT, State}
-import lucuma.core.model.{Observation, Program, SourceProfile, Target}
+import lucuma.core.model.{Observation, Program, Target}
 import lucuma.core.optics.state.all._
 import lucuma.core.util.Gid
 import lucuma.odb.api.model.targetModel._
@@ -113,8 +113,7 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
     oid: Observation.Id
   ): F[TargetEnvironmentModel]
 
-  // TEMP: to remove SourceProfile when folded into the GQL Input
-  def insert(newTarget: TargetModel.Create, prof: Option[SourceProfile] = None): F[TargetModel]
+  def insert(newTarget: TargetModel.Create): F[TargetModel]
 
   def edit(edit: TargetModel.Edit): F[TargetModel]
 
@@ -261,14 +260,13 @@ object TargetRepo {
         unsafeSelect(id)(selectObservationTargetEnvironment)
 
       override def insert(
-        newTarget: TargetModel.Create,
-        prof:      Option[SourceProfile]
+        newTarget: TargetModel.Create
       ): F[TargetModel] = {
 
         val create: F[TargetModel] =
           EitherT(
             tablesRef.modify { tables =>
-              val (tablesʹ, t) = newTarget.create[State[Tables, *], Tables](TableState, prof).run(tables).value
+              val (tablesʹ, t) = newTarget.create[State[Tables, *], Tables](TableState).run(tables).value
               t.fold(
                 err => (tables, InputError.Exception(err).asLeft),
                 t   => (tablesʹ, t.asRight)

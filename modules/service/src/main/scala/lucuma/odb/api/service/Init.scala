@@ -15,13 +15,9 @@ import cats.syntax.all._
 import eu.timepit.refined.auto._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.parser.decode
-import lucuma.core.math.BrightnessUnits.Integrated
-import lucuma.core.math.BrightnessValue
-import lucuma.core.math.units.{ABMagnitude, VegaMagnitude}
-import lucuma.core.model.{BandBrightness, Program, SourceProfile, SpectralDefinition, UnnormalizedSED}
+import lucuma.core.model.Program
 import lucuma.odb.api.model.OffsetModel.ComponentInput
 
-import scala.collection.immutable.SortedMap
 import scala.concurrent.duration._
 
 object Init {
@@ -42,7 +38,89 @@ object Init {
     "dec": { "milliarcsecondsPerYear": 0.0 }
   },
   "radialVelocity": { "metersPerSecond": 423607 },
-  "parallax":       { "milliarcseconds":  0.00 }
+  "parallax":       { "milliarcseconds":  0.00 },
+  "sourceProfile": {
+    "point": {
+      "bandNormalized": {
+        "sed": {
+          "galaxy": "SPIRAL"
+        },
+        "brightnesses": [
+          {
+            "brightness": {
+              "value": 12.7,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "B"
+          },
+          {
+            "brightness": {
+              "value": 10.279,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "J",
+            "error": 0.0009
+          },
+          {
+            "brightness": {
+              "value": 9.649,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "H",
+            "error": 0.0120
+          },
+          {
+            "brightness": {
+              "value": 9.425,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "K",
+            "error": 0.0170
+          },
+          {
+            "brightness": {
+              "value": 14.147,
+              "units": "AB_MAGNITUDE"
+            },
+            "band": "SLOAN_U",
+            "error": 0.0050
+          },
+          {
+            "brightness": {
+              "value": 12.924,
+              "units": "AB_MAGNITUDE"
+            },
+            "band": "SLOAN_G",
+            "error": 0.0020
+          },
+          {
+            "brightness": {
+              "value": 12.252,
+              "units": "AB_MAGNITUDE"
+            },
+            "band": "SLOAN_R",
+            "error": 0.0020
+          },
+          {
+            "brightness": {
+              "value": 11.888,
+              "units": "AB_MAGNITUDE"
+            },
+            "band": "SLOAN_I",
+            "error": 0.0020
+          },
+          {
+            "brightness": {
+              "value": 11.636,
+              "units": "AB_MAGNITUDE"
+            },
+            "band": "SLOAN_Z",
+            "error": 0.0020
+          }
+        ]
+      }
+    }
+  }
 }
 """,
 """
@@ -56,7 +134,63 @@ object Init {
     "dec": { "milliarcsecondsPerYear": 0.0 }
   },
   "radialVelocity": { "metersPerSecond": 3753885 },
-  "parallax":       { "milliarcseconds":  0.00 }
+  "parallax":       { "milliarcseconds":  0.00 },
+  "sourceProfile": {
+    "point": {
+      "bandNormalized": {
+        "sed": {
+          "galaxy": "SPIRAL"
+        },
+        "brightnesses": [
+          {
+            "brightness": {
+              "value": 13.240,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "B"
+          },
+          {
+            "brightness": {
+              "value": 13.510,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "V"
+          },
+          {
+            "brightness": {
+              "value": 11.730,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "R"
+          },
+          {
+            "brightness": {
+              "value": 9.958,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "J",
+            "error": 0.018
+          },
+          {
+            "brightness": {
+              "value": 9.387,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "H",
+            "error": 0.024
+          },
+          {
+            "brightness": {
+              "value": 9.055,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "K",
+            "error": 0.031
+          }
+        ]
+      }
+    }
+  }
 }
 """,
 """
@@ -70,66 +204,63 @@ object Init {
     "dec": { "milliarcsecondsPerYear":  0.0 }
   },
   "radialVelocity": { "metersPerSecond": 2826483 },
-  "parallax":       { "milliarcseconds":  0.0 }
+  "parallax":       { "milliarcseconds":  0.0 },
+  "sourceProfile": {
+    "point": {
+      "bandNormalized": {
+        "sed": {
+          "galaxy": "SPIRAL"
+        },
+        "brightnesses": [
+          {
+            "brightness": {
+              "value": 12.630,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "B"
+          },
+          {
+            "brightness": {
+              "value": 13.960,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "V"
+          },
+          {
+            "brightness": {
+              "value": 9.552,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "J",
+            "error": 0.016
+          },
+          {
+            "brightness": {
+              "value": 8.907,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "H",
+            "error": 0.017
+          },
+          {
+            "brightness": {
+              "value": 8.665,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "K",
+            "error": 0.028
+          }
+        ]
+      }
+    }
+  }
 }
 """
   )
 
-  private def bandBrightness[U](bv: Double, b: Band, e: Option[Double])(
-    implicit ev: Band.DefaultUnit[b.type, Integrated]
-  ): BandBrightness[Integrated] =
-    BandBrightness.withDefaultUnits[Integrated](
-      BrightnessValue.fromDouble(bv),
-      b,
-      e.map(BrightnessValue.fromDouble)
-    )
 
-  private def pointSpiral(
-    brightnesses: BandBrightness[Integrated]*
-  ): SourceProfile =
-    SourceProfile.Point(
-      SpectralDefinition.BandNormalized(
-        UnnormalizedSED.Galaxy(GalaxySpectrum.Spiral),
-          SortedMap.from[Band, BandBrightness[Integrated]](brightnesses.fproductLeft(_.band))
-      )
-    )
-
-  val ngc5949Profile: SourceProfile =
-    pointSpiral(
-      bandBrightness[VegaMagnitude](12.700, Band.B,      None       ),
-      bandBrightness[VegaMagnitude](10.279, Band.J,      0.0009.some),
-      bandBrightness[VegaMagnitude]( 9.649, Band.H,      0.0120.some),
-      bandBrightness[VegaMagnitude]( 9.425, Band.K,      0.0170.some),
-      bandBrightness[ABMagnitude](  14.147, Band.SloanU, 0.0050.some),
-      bandBrightness[ABMagnitude](  12.924, Band.SloanG, 0.0020.some),
-      bandBrightness[ABMagnitude](  12.252, Band.SloanR, 0.0020.some),
-      bandBrightness[ABMagnitude](  11.888, Band.SloanI, 0.0020.some),
-      bandBrightness[ABMagnitude](  11.636, Band.SloanZ, 0.0020.some)
-    )
-
-  val ngc3369Profile: SourceProfile =
-    pointSpiral(
-      bandBrightness[VegaMagnitude](13.240, Band.B,      None       ),
-      bandBrightness[VegaMagnitude](13.510, Band.V,      None       ),
-      bandBrightness[VegaMagnitude](11.730, Band.R,      None       ),
-      bandBrightness[VegaMagnitude]( 9.958, Band.J,      0.018.some),
-      bandBrightness[VegaMagnitude]( 9.387, Band.H,      0.024.some),
-      bandBrightness[VegaMagnitude]( 9.055, Band.K,      0.031.some)
-    )
-
-  val ngc3312Profile: SourceProfile =
-    pointSpiral(
-      bandBrightness[VegaMagnitude](12.630, Band.B,      None       ),
-      bandBrightness[VegaMagnitude](13.960, Band.V,      None       ),
-      bandBrightness[VegaMagnitude]( 9.552, Band.J,      0.016.some),
-      bandBrightness[VegaMagnitude]( 8.907, Band.H,      0.017.some),
-      bandBrightness[VegaMagnitude]( 8.665, Band.K,      0.028.some)
-    )
-
-  val targets: Either[Exception, List[(CreateSiderealInput, SourceProfile)]] =
-    targetsJson.traverse(decode[CreateSiderealInput]).map(
-      _.zip(List(ngc5949Profile, ngc3369Profile, ngc3312Profile))
-    )
+  val targets: Either[Exception, List[CreateSiderealInput]] =
+    targetsJson.traverse(decode[CreateSiderealInput])
 
   import GmosModel.{CreateCcdReadout, CreateSouthDynamic}
   import StepConfig.CreateStepConfig
@@ -295,8 +426,8 @@ object Init {
               )
             )
       cs <- targets.liftTo[F]
-      ts <- cs.traverse { case (c, prof) =>
-        repo.target.insert(TargetModel.Create(None, p.id, Some(c), None), prof.some)
+      ts <- cs.traverse { c =>
+        repo.target.insert(TargetModel.Create(None, p.id, Some(c), None))
       }
       _  <- repo.observation.insert(obs(p.id, ts.headOption))
       _  <- repo.observation.insert(obs(p.id, ts.lastOption))
