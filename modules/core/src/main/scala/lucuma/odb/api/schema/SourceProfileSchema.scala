@@ -17,7 +17,7 @@ import lucuma.core.model.UnnormalizedSED.{BlackBody, CoolStarModel, Galaxy, HIIR
 import lucuma.core.model.{BandBrightness, EmissionLine, SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.core.syntax.string._
 import lucuma.core.util.Enumerated
-import lucuma.odb.api.model.targetModel.SourceProfileModel.{CreateBandBrightnessInput, CreateBandNormalizedInput, CreateEmissionLineInput, CreateEmissionLinesInput, CreateMeasureInput, FluxDensityInput, UnnormalizedSedInput}
+import lucuma.odb.api.model.targetModel.SourceProfileModel.{CreateBandBrightnessInput, CreateBandNormalizedInput, CreateEmissionLineInput, CreateEmissionLinesInput, CreateMeasureInput, CreateSpectralDefinitionInput, FluxDensityInput, UnnormalizedSedInput}
 import sangria.schema.{Field, _}
 import sangria.macros.derive._
 import sangria.marshalling.circe._
@@ -736,6 +736,23 @@ object SourceProfileSchema {
 
   implicit val InputObjectCreateEmissionLinesSurface: InputObjectType[CreateEmissionLinesInput[Surface]] =
     createEmissionLinesInputObjectType("surface")
+
+  private def createSpectralDefinitionInputObjectType[T](
+    groupName: String
+  )(
+    implicit ev0: InputType[CreateBandNormalizedInput[T]],
+             ev1: InputType[CreateEmissionLinesInput[T]]
+  ): InputObjectType[CreateSpectralDefinitionInput[T]] =
+    deriveInputObjectType(
+      InputObjectTypeName(s"CreateSpectralDefinition${groupName.capitalize}"),
+      InputObjectTypeDescription(s"Create a spectral definition with $groupName units")
+    )
+
+  implicit val InputObjectCreateSpectralDefinitionIntegrated: InputObjectType[CreateSpectralDefinitionInput[Integrated]] =
+    createSpectralDefinitionInputObjectType("integrated")
+
+  implicit val InputObjectCreateSpectralDefinitionSurface: InputObjectType[CreateSpectralDefinitionInput[Surface]] =
+    createSpectralDefinitionInputObjectType("surface")
 
   // Arguments
 

@@ -23,7 +23,7 @@ import lucuma.core.math.dimensional.{Measure, Of, Units}
 import lucuma.core.math.units.KilometersPerSecond
 import lucuma.core.math.{BrightnessValue, Wavelength}
 import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
-import lucuma.core.model.{BandBrightness, EmissionLine, UnnormalizedSED}
+import lucuma.core.model.{BandBrightness, EmissionLine, SpectralDefinition, UnnormalizedSED}
 import lucuma.odb.api.model.{InputError, ValidatedInput, WavelengthModel}
 
 import scala.collection.immutable.SortedMap
@@ -289,6 +289,36 @@ object SourceProfileModel {
         a.lines,
         a.fluxDensityContinuum
       )}
+  }
+
+  final case class CreateSpectralDefinitionInput[T](
+    bandNormalized: Option[CreateBandNormalizedInput[T]],
+    emissionLines:  Option[CreateEmissionLinesInput[T]]
+  ) {
+
+    def toSpectralDefinition: ValidatedInput[SpectralDefinition[T]] =
+      ValidatedInput.requireOne("spectralDefinition",
+        bandNormalized.map(_.toBandNormalized),
+        emissionLines.map(_.toEmissionLines)
+      )
+
+  }
+
+  object CreateSpectralDefinitionInput {
+
+    implicit def DecoderCreateSpectralDefinitionInput[T](
+      implicit ev0: Decoder[Units Of Brightness[T]],
+               ev1: Decoder[Units Of LineFlux[T]],
+               ev2: Decoder[Units Of FluxDensityContinuum[T]]
+    ): Decoder[CreateSpectralDefinitionInput[T]] =
+      deriveDecoder[CreateSpectralDefinitionInput[T]]
+
+    implicit def EqCreateSpectralDefinitionInput[T]: Eq[CreateSpectralDefinitionInput[T]] =
+      Eq.by { a => (
+        a.bandNormalized,
+        a.emissionLines
+      )}
+
   }
 
 }
