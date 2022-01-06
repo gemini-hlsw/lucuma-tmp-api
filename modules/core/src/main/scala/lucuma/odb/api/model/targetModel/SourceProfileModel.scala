@@ -351,6 +351,14 @@ object SourceProfileModel {
         a.emissionLines
       )}
 
+    def Empty[T]: CreateSpectralDefinitionInput[T] =
+      CreateSpectralDefinitionInput[T](None, None)
+
+    def bandNormalized[T](bn: CreateBandNormalizedInput[T]): CreateSpectralDefinitionInput[T] =
+      Empty[T].copy(bandNormalized = bn.some)
+
+    def emissionLines[T](el: CreateEmissionLinesInput[T]): CreateSpectralDefinitionInput[T] =
+      Empty[T].copy(emissionLines = el.some)
   }
 
   final case class CreateGaussianInput(
@@ -404,6 +412,18 @@ object SourceProfileModel {
         a.uniform,
         a.gaussian
       )}
+
+    val Empty: CreateSourceProfileInput =
+      CreateSourceProfileInput(None, None, None)
+
+    def point(sd: CreateSpectralDefinitionInput[Integrated]): CreateSourceProfileInput =
+      Empty.copy(point = sd.some)
+
+    def uniform(sd: CreateSpectralDefinitionInput[Surface]): CreateSourceProfileInput =
+      Empty.copy(uniform = sd.some)
+
+    def gaussian(g: CreateGaussianInput): CreateSourceProfileInput =
+      Empty.copy(gaussian = g.some)
 
   }
 
