@@ -346,4 +346,34 @@ object SourceProfileModel {
       )}
 
   }
+
+  final case class CreateSourceProfileInput(
+    point:    Option[CreateSpectralDefinitionInput[Integrated]],
+    uniform:  Option[CreateSpectralDefinitionInput[Surface]],
+    gaussian: Option[CreateGaussianInput]
+  ) {
+
+    def toSourceProfile: ValidatedInput[SourceProfile] =
+      ValidatedInput.requireOne("sourceProfile",
+        point.map(_.toSpectralDefinition.map(SourceProfile.Point(_))),
+        uniform.map(_.toSpectralDefinition.map(SourceProfile.Uniform(_))),
+        gaussian.map(_.toGaussian)
+      )
+
+  }
+
+  object CreateSourceProfileInput {
+
+    implicit val DecoderCreateSourceProfileInput: Decoder[CreateSourceProfileInput] =
+      deriveDecoder[CreateSourceProfileInput]
+
+    implicit val EqCreateSourceProfileInput: Eq[CreateSourceProfileInput] =
+      Eq.by { a => (
+        a.point,
+        a.uniform,
+        a.gaussian
+      )}
+
+  }
+
 }

@@ -14,7 +14,7 @@ import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
 import lucuma.core.model.UnnormalizedSED.{BlackBody, CoolStarModel, Galaxy, HIIRegion, Planet, PlanetaryNebula, PowerLaw, Quasar, StellarLibrary, UserDefined}
 import lucuma.core.model.{BandBrightness, EmissionLine, SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.core.util.Enumerated
-import lucuma.odb.api.model.targetModel.SourceProfileModel.{CreateBandBrightnessInput, CreateBandNormalizedInput, CreateEmissionLineInput, CreateEmissionLinesInput, CreateGaussianInput, CreateMeasureInput, CreateSpectralDefinitionInput, FluxDensityInput, UnnormalizedSedInput}
+import lucuma.odb.api.model.targetModel.SourceProfileModel.{CreateBandBrightnessInput, CreateBandNormalizedInput, CreateEmissionLineInput, CreateEmissionLinesInput, CreateGaussianInput, CreateMeasureInput, CreateSourceProfileInput, CreateSpectralDefinitionInput, FluxDensityInput, UnnormalizedSedInput}
 import sangria.schema.{Field, _}
 import sangria.macros.derive._
 import sangria.marshalling.circe._
@@ -751,10 +751,16 @@ object SourceProfileSchema {
   implicit val InputObjectCreateSpectralDefinitionSurface: InputObjectType[CreateSpectralDefinitionInput[Surface]] =
     createSpectralDefinitionInputObjectType("surface")
 
-  implicit val InputObjectCreateGaussianInput: InputObjectType[CreateGaussianInput] =
+  implicit val InputObjectCreateGaussian: InputObjectType[CreateGaussianInput] =
     deriveInputObjectType(
       InputObjectTypeName("CreateGaussian"),
-      InputObjectTypeDescription("Create a gaussian source definition")
+      InputObjectTypeDescription("Create a gaussian source")
+    )
+
+  implicit val InputObjectCreateSourceProfile: InputObjectType[CreateSourceProfileInput] =
+    deriveInputObjectType(
+      InputObjectTypeName("CreateSourceProfile"),
+      InputObjectTypeDescription("Create a source profile")
     )
 
   // Arguments
