@@ -6,6 +6,7 @@ package lucuma.odb.api.model.targetModel
 import cats.Eq
 import cats.data.{Nested, NonEmptyList, NonEmptyMap}
 import cats.Order.catsKernelOrderingForOrder
+import cats.syntax.apply._
 import cats.syntax.functor._
 import cats.syntax.option._
 import cats.syntax.traverse._
@@ -18,13 +19,13 @@ import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import io.circe.refined._
 import lucuma.core.`enum`.{Band, CoolStarTemperature, GalaxySpectrum, HIIRegionSpectrum, PlanetSpectrum, PlanetaryNebulaSpectrum, QuasarSpectrum, StellarLibrarySpectrum}
-import lucuma.core.math.BrightnessUnits.{Brightness, FluxDensityContinuum, LineFlux}
+import lucuma.core.math.BrightnessUnits._
 import lucuma.core.math.dimensional.{Measure, Of, Units}
 import lucuma.core.math.units.KilometersPerSecond
 import lucuma.core.math.{BrightnessValue, Wavelength}
 import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
-import lucuma.core.model.{BandBrightness, EmissionLine, SpectralDefinition, UnnormalizedSED}
-import lucuma.odb.api.model.{InputError, ValidatedInput, WavelengthModel}
+import lucuma.core.model.{BandBrightness, EmissionLine, SourceProfile, SpectralDefinition, UnnormalizedSED}
+import lucuma.odb.api.model.{AngleModel, InputError, ValidatedInput, WavelengthModel}
 
 import scala.collection.immutable.SortedMap
 
@@ -321,4 +322,28 @@ object SourceProfileModel {
 
   }
 
+  final case class CreateGaussianInput(
+    fwhm:               AngleModel.AngleInput,
+    spectralDefinition: CreateSpectralDefinitionInput[Integrated]
+  ) {
+
+    def toGaussian: ValidatedInput[SourceProfile.Gaussian] =
+      (fwhm.toAngle, spectralDefinition.toSpectralDefinition).mapN { (a, s) =>
+        SourceProfile.Gaussian(a, s)
+      }
+
+  }
+
+  object CreateGaussianInput {
+
+    implicit val DecoderCreateGaussianInput: Decoder[CreateGaussianInput] =
+      deriveDecoder[CreateGaussianInput]
+
+    implicit val EqCreateGaussianInput: Eq[CreateGaussianInput] =
+      Eq.by { a => (
+        a.fwhm,
+        a.spectralDefinition
+      )}
+
+  }
 }

@@ -49,15 +49,15 @@ object WavelengthSchema {
       )
     )
 
-  implicit val EnumWavelengthModelUnits: EnumType[WavelengthModel.Units]=
+  implicit val EnumWavelengthUnits: EnumType[WavelengthModel.Units] =
     EnumType.fromEnumerated(
       "WavelengthUnits",
       "Wavelength units"
     )
 
-  implicit val InputWavelengthModelInput: InputObjectType[WavelengthModel.Input] =
+  implicit val InputWavelength: InputObjectType[WavelengthModel.Input] =
     deriveInputObjectType[WavelengthModel.Input](
-      InputObjectTypeName("WavelengthModelInput"),
+      InputObjectTypeName("WavelengthInput"),
       InputObjectTypeDescription("Wavelength, choose one of the available units")
     )
 

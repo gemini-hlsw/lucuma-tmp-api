@@ -3,11 +3,16 @@
 
 package lucuma.odb.api.model
 
-import lucuma.core.math.Angle
+import cats.Eq
+import cats.syntax.option._
+import cats.syntax.validated._
+
+import io.circe.Decoder
+import io.circe.generic.semiauto.deriveDecoder
+
+import lucuma.core.math.{Angle, RightAscension}
 import lucuma.core.optics.SplitMono
 import lucuma.core.util.{Display, Enumerated}
-
-import cats.syntax.validated._
 
 import scala.math.BigDecimal.RoundingMode.HALF_UP
 
@@ -101,7 +106,6 @@ object AngleModel {
 
   }
 
-  /*
   def readHms(s: String): ValidatedInput[RightAscension] =
     RightAscension.fromStringHMS
       .getOption(s)
@@ -126,6 +130,16 @@ object AngleModel {
 
   }
 
+  object LongAngleInput {
+
+    implicit val DecoderLongAngleInput: Decoder[LongAngleInput] =
+      deriveDecoder[LongAngleInput]
+
+    implicit val EqLongAngleInput: Eq[LongAngleInput] =
+      Eq.by { a => (a.value, a.units) }
+
+  }
+
   case class DecimalAngleInput(
     value: BigDecimal,
     units: Units
@@ -136,7 +150,18 @@ object AngleModel {
 
   }
 
-  case class SignedAngleInput(
+  object DecimalAngleInput {
+
+    implicit val DecoderDecimalAngleInput: Decoder[DecimalAngleInput] =
+      deriveDecoder[DecimalAngleInput]
+
+    implicit val EqDecimalAngleInput: Eq[DecimalAngleInput] =
+      Eq.by { a => (a.value, a.units) }
+
+  }
+
+
+  case class AngleInput(
     microarcseconds: Option[Long],
     microseconds:    Option[BigDecimal],
     milliarcseconds: Option[BigDecimal],
@@ -178,6 +203,29 @@ object AngleModel {
       )
 
   }
-*/
 
+  object AngleInput {
+
+    implicit val DecoderAngleInput: Decoder[AngleInput] =
+      deriveDecoder[AngleInput]
+
+    implicit val EqAngleInput: Eq[AngleInput] =
+      Eq.by { a => (
+        a.microarcseconds,
+        a.microseconds,
+        a.milliarcseconds,
+        a.milliseconds,
+        a.arcseconds,
+        a.seconds,
+        a.arcminutes,
+        a.minutes,
+        a.degrees,
+        a.hours,
+        a.dms,
+        a.hms,
+        a.fromLong,
+        a.fromDecimal
+      )}
+
+  }
 }
