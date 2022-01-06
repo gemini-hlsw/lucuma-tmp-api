@@ -17,7 +17,7 @@ import lucuma.core.model.UnnormalizedSED.{BlackBody, CoolStarModel, Galaxy, HIIR
 import lucuma.core.model.{BandBrightness, EmissionLine, SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.core.syntax.string._
 import lucuma.core.util.Enumerated
-import lucuma.odb.api.model.targetModel.SourceProfileModel.{CreateBandBrightnessInput, CreateBandNormalizedInput, CreateEmissionLineInput, CreateMeasureInput, FluxDensityInput, UnnormalizedSedInput}
+import lucuma.odb.api.model.targetModel.SourceProfileModel.{CreateBandBrightnessInput, CreateBandNormalizedInput, CreateEmissionLineInput, CreateEmissionLinesInput, CreateMeasureInput, FluxDensityInput, UnnormalizedSedInput}
 import sangria.schema.{Field, _}
 import sangria.macros.derive._
 import sangria.marshalling.circe._
@@ -723,6 +723,19 @@ object SourceProfileSchema {
   implicit val InputObjectCreateFluxDensityContinuumSurface: InputObjectType[CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[Surface]]] =
     createFluxDensityContinuumInputObjectType("surface", EnumTypeFluxDensityContinuumSurface)
 
+  private def createEmissionLinesInputObjectType[T](
+    groupName: String
+  )(implicit ev0: InputType[CreateEmissionLineInput[T]], ev1: InputType[CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[T]]]): InputObjectType[CreateEmissionLinesInput[T]] =
+    deriveInputObjectType(
+      InputObjectTypeName(s"CreateEmissionLines${groupName.capitalize}"),
+      InputObjectTypeDescription(s"Create an emission lines with $groupName line flux and flux density continuum units")
+    )
+
+  implicit val InputObjectCreateEmissionLinesIntegrated: InputObjectType[CreateEmissionLinesInput[Integrated]] =
+    createEmissionLinesInputObjectType("integrated")
+
+  implicit val InputObjectCreateEmissionLinesSurface: InputObjectType[CreateEmissionLinesInput[Surface]] =
+    createEmissionLinesInputObjectType("surface")
 
   // Arguments
 

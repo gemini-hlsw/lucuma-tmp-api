@@ -8,6 +8,7 @@ import cats.data.{Nested, NonEmptyList, NonEmptyMap}
 import cats.Order.catsKernelOrderingForOrder
 import cats.syntax.functor._
 import cats.syntax.option._
+import cats.syntax.traverse._
 import cats.syntax.validated._
 import coulomb.Quantity
 import coulomb.si.Kelvin
@@ -17,11 +18,11 @@ import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import io.circe.refined._
 import lucuma.core.`enum`.{Band, CoolStarTemperature, GalaxySpectrum, HIIRegionSpectrum, PlanetSpectrum, PlanetaryNebulaSpectrum, QuasarSpectrum, StellarLibrarySpectrum}
-import lucuma.core.math.BrightnessUnits.{Brightness, LineFlux}
+import lucuma.core.math.BrightnessUnits.{Brightness, FluxDensityContinuum, LineFlux}
 import lucuma.core.math.dimensional.{Measure, Of, Units}
 import lucuma.core.math.units.KilometersPerSecond
 import lucuma.core.math.{BrightnessValue, Wavelength}
-import lucuma.core.model.SpectralDefinition.BandNormalized
+import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
 import lucuma.core.model.{BandBrightness, EmissionLine, UnnormalizedSED}
 import lucuma.odb.api.model.{InputError, ValidatedInput, WavelengthModel}
 
@@ -259,8 +260,35 @@ object SourceProfileModel {
 
   }
 
-//  final case class CreateEmissionLinesInput[T](
-//    lines: List[CreateEmissionLineInput[T]],
-//  )
+  final case class CreateEmissionLinesInput[T](
+    lines:                List[CreateEmissionLineInput[T]],
+    fluxDensityContinuum: CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[T]]
+  ) {
+
+    def toEmissionLines: ValidatedInput[EmissionLines[T]] =
+      lines
+        .traverse(_.toEmissionLine)
+        .map { lst =>
+          EmissionLines(
+            SortedMap.from(lst.fproductLeft(_.wavelength)),
+            fluxDensityContinuum.toMeasure
+          )
+        }
+
+  }
+
+  object CreateEmissionLinesInput {
+
+    implicit def DecoderCreateEmissionsLineInput[T](
+      implicit ev0: Decoder[Units Of LineFlux[T]], ev1: Decoder[Units Of FluxDensityContinuum[T]]
+    ): Decoder[CreateEmissionLinesInput[T]] =
+      deriveDecoder[CreateEmissionLinesInput[T]]
+
+    implicit def EqCreateEmissionLinesInput[T]: Eq[CreateEmissionLinesInput[T]] =
+      Eq.by { a => (
+        a.lines,
+        a.fluxDensityContinuum
+      )}
+  }
 
 }
