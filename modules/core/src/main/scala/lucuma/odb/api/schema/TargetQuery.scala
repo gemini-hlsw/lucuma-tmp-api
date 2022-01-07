@@ -18,7 +18,7 @@ trait TargetQuery {
   import GeneralSchema.ArgumentIncludeDeleted
   import ObservationSchema.{ ObservationIdArgument, OptionalListObservationIdArgument }
   import Paging._
-  import ProgramSchema.{ OptionalProgramIdArgument, ProgramIdArgument }
+  import ProgramSchema.OptionalProgramIdArgument
   import TargetSchema.{TargetEnvironmentType, TargetConnectionType, TargetType}
 
   def target[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
@@ -33,28 +33,11 @@ trait TargetQuery {
       resolve     = c => c.target(_.select(c.targetId, c.includeDeleted))
     )
 
-  def referencedScienceTargets[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def scienceTargets[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
     Field(
-      name        = "referencedScienceTargets",
+      name        = "scienceTargets",
       fieldType   = TargetConnectionType[F],
-      description = "All the science targets that are used by one or more observations in the given program".some,
-      arguments   = List(
-        ProgramIdArgument,
-        ArgumentPagingFirst,
-        ArgumentPagingCursor,
-        ArgumentIncludeDeleted
-      ),
-      resolve = c =>
-        unsafeSelectTopLevelPageFuture(c.pagingTargetId) { gid =>
-          c.ctx.target.selectReferencedPageForProgram(c.programId, c.pagingFirst, gid, c.includeDeleted)
-        }
-    )
-
-  def allScienceTargets[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
-    Field(
-      name        = "allScienceTargets",
-      fieldType   = TargetConnectionType[F],
-      description = "All the science targets (used or not) associated with a given program or specific observations".some,
+      description = "All the science targets associated with a given program or specific observations".some,
       arguments   = List(
         OptionalProgramIdArgument,
         OptionalListObservationIdArgument,
@@ -119,7 +102,7 @@ trait TargetQuery {
   def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
     List(
       target[F],
-      referencedScienceTargets[F],
+      scienceTargets[F],
       firstScienceTarget[F],
       asterism[F],
       targetEnvironment[F],
