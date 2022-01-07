@@ -106,19 +106,21 @@ trait ArbSourceProfileModel {
         br <- arbitrary[CreateMeasureInput[BigDecimal, Brightness[T]]]
         bd <- arbitrary[Band]
         e  <- arbitrary[Option[BigDecimal]]
-      } yield CreateBandBrightnessInput(br, bd, e)
+      } yield CreateBandBrightnessInput(bd, br.value, br.units, e)
     }
 
   implicit def cogCreateBandBrightnessInput[T](
     implicit ev: Enumerated[Units Of Brightness[T]]
   ): Cogen[CreateBandBrightnessInput[T]] =
     Cogen[(
-      CreateMeasureInput[BigDecimal, Brightness[T]],
       Band,
+      BigDecimal,
+      Units Of Brightness[T],
       Option[BigDecimal]
     )].contramap { in => (
-      in.magnitude,
       in.band,
+      in.value,
+      in.units,
       in.error
     )}
 

@@ -12,9 +12,9 @@ import lucuma.core.math.BrightnessUnits.{Brightness, FluxDensityContinuum, Integ
 import lucuma.core.math.dimensional.{Measure, Of, Units}
 import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
 import lucuma.core.model.UnnormalizedSED.{BlackBody, CoolStarModel, Galaxy, HIIRegion, Planet, PlanetaryNebula, PowerLaw, Quasar, StellarLibrary, UserDefined}
-import lucuma.core.model.{BandBrightness, EmissionLine, SourceProfile, SpectralDefinition, UnnormalizedSED}
+import lucuma.core.model.{SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.core.util.Enumerated
-import lucuma.odb.api.model.targetModel.SourceProfileModel.{CreateBandBrightnessInput, CreateBandNormalizedInput, CreateEmissionLineInput, CreateEmissionLinesInput, CreateGaussianInput, CreateMeasureInput, CreateSourceProfileInput, CreateSpectralDefinitionInput, FluxDensityInput, UnnormalizedSedInput}
+import lucuma.odb.api.model.targetModel.SourceProfileModel.{BandBrightnessPair, CreateBandBrightnessInput, CreateBandNormalizedInput, CreateEmissionLineInput, CreateEmissionLinesInput, CreateGaussianInput, CreateMeasureInput, CreateSourceProfileInput, CreateSpectralDefinitionInput, FluxDensityInput, UnnormalizedSedInput, WavelengthEmissionLinePair}
 import sangria.schema.{Field, _}
 import sangria.macros.derive._
 import sangria.marshalling.circe._
@@ -240,13 +240,13 @@ object SourceProfileSchema {
       _.abbv
     )
 
-  val EnumTypeBrightnessIntegrated: EnumType[Units Of Brightness[Integrated]] =
+  implicit val EnumTypeBrightnessIntegrated: EnumType[Units Of Brightness[Integrated]] =
     defineUnitsEnum(
       "BrightnessIntegratedUnits",
       "Brightness integrated units"
     )
 
-  val EnumTypeBrightnessSurface: EnumType[Units Of Brightness[Surface]] =
+  implicit val EnumTypeBrightnessSurface: EnumType[Units Of Brightness[Surface]] =
     defineUnitsEnum(
       "BrightnessSurfaceUnits",
       "Brightness surface units"
@@ -308,17 +308,11 @@ object SourceProfileSchema {
 
   private def BandBrightnessType[T](
     unitCategoryName: String,
-    qtyType:          ObjectType[Any, Measure[BrightnessValue] Of Brightness[T]]
-  ): ObjectType[Any, BandBrightness[T]] =
+    unitsType:        EnumType[Units Of Brightness[T]]
+  ): ObjectType[Any, BandBrightnessPair[T]] =
     ObjectType(
       name     = s"BandBrightness$unitCategoryName",
       fieldsFn = () => fields(
-
-        Field(
-          name        = "magnitude",
-          fieldType   = qtyType,
-          resolve     = _.value.quantity
-        ),
 
         Field(
           name        = "band",
@@ -328,39 +322,37 @@ object SourceProfileSchema {
         ),
 
         Field(
+          name        = "value",
+          fieldType   = BigDecimalType,
+          resolve     = c => BrightnessValue.fromBigDecimal.reverseGet(c.value.measure.value)
+        ),
+
+        Field(
+          name        = "units",
+          fieldType   = unitsType,
+          resolve     = c => Measure.unitsTagged[BrightnessValue, Brightness[T]].get(c.value.measure)
+        ),
+
+        Field(
           name        = "error",
           fieldType   = OptionType(BigDecimalType),
           description = "Error, if any".some,
-          resolve     = _.value.error.map(BrightnessValue.fromBigDecimal.reverseGet)
+          resolve     = _.value.measure.error.map(BrightnessValue.fromBigDecimal.reverseGet)
         )
 
       )
     )
 
-  val BrightnessIntegrated: ObjectType[Any, Measure[BrightnessValue] Of Brightness[Integrated]] =
-    GroupedUnitQtyType[BrightnessValue, Brightness[Integrated]](
-      "BrightnessIntegrated",
-      BrightnessValueType,
+  val BandBrightnessIntegrated: ObjectType[Any, BandBrightnessPair[Integrated]] =
+    BandBrightnessType[Integrated](
+      "Integrated",
       EnumTypeBrightnessIntegrated
     )
 
-  val BrightnessSurface: ObjectType[Any, Measure[BrightnessValue] Of Brightness[Surface]] =
-    GroupedUnitQtyType[BrightnessValue, Brightness[Surface]](
-      "BrightnessSurface",
-      BrightnessValueType,
-      EnumTypeBrightnessSurface
-    )
-
-  val BandBrightnessIntegrated: ObjectType[Any, BandBrightness[Integrated]] =
-    BandBrightnessType[Integrated](
-      "Integrated",
-      BrightnessIntegrated
-    )
-
-  val BandBrightnessSurface: ObjectType[Any, BandBrightness[Surface]] =
+  val BandBrightnessSurface: ObjectType[Any, BandBrightnessPair[Surface]] =
     BandBrightnessType[Surface](
       "Surface",
-      BrightnessSurface
+      EnumTypeBrightnessSurface
     )
 
   val BandNormalizedType: InterfaceType[Any, BandNormalized[_]] =
@@ -380,7 +372,7 @@ object SourceProfileSchema {
 
   private def BandNormalizedType[T](
     unitCategoryName:   String,
-    bandBrightnessType: ObjectType[Any, BandBrightness[T]]
+    bandBrightnessType: ObjectType[Any, BandBrightnessPair[T]]
   ): ObjectType[Any, BandNormalized[T]] =
     ObjectType(
       name       = s"BandNormalized$unitCategoryName",
@@ -389,7 +381,7 @@ object SourceProfileSchema {
         Field(
           name        = "brightnesses",
           fieldType   = ListType(bandBrightnessType),
-          resolve     = _.value.brightnesses.toList.map(_._2)
+          resolve     = _.value.brightnesses.toList.map { case (band, measure) => BandBrightnessPair[T](band, measure) }
         )
       )
     )
@@ -406,10 +398,10 @@ object SourceProfileSchema {
       BandBrightnessSurface
     )
 
-  private def EmissionLineType[T](
+  private def WavelengthEmissionLineType[T](
     unitCategoryName: String,
     lineFluxType:     ObjectType[Any, Measure[PosBigDecimal] Of LineFlux[T]]
-  ): ObjectType[Any, EmissionLine[T]] =
+  ): ObjectType[Any, WavelengthEmissionLinePair[T]] =
     ObjectType(
       name     = s"EmissionLine$unitCategoryName",
       fieldsFn = () => fields(
@@ -425,13 +417,13 @@ object SourceProfileSchema {
           name        = "lineWidth",
           fieldType   = PosBigDecimalType,
           description = "km/s".some,
-          resolve     = _.value.lineWidth.value
+          resolve     = _.value.line.lineWidth.value
         ),
 
         Field(
           name        = "lineFlux",
           fieldType   = lineFluxType,
-          resolve     = _.value.lineFlux
+          resolve     = _.value.line.lineFlux
         )
       )
     )
@@ -450,21 +442,21 @@ object SourceProfileSchema {
       EnumTypeLineFluxSurface
     )
 
-  val EmissionLineIntegrated: ObjectType[Any, EmissionLine[Integrated]] =
-    EmissionLineType[Integrated](
+  val WavelengthEmissionLinePairIntegrated: ObjectType[Any, WavelengthEmissionLinePair[Integrated]] =
+    WavelengthEmissionLineType[Integrated](
       "Integrated",
       LineFluxIntegratedType
     )
 
-  val EmissionLineSurface: ObjectType[Any, EmissionLine[Surface]] =
-    EmissionLineType[Surface](
+  val WavelengthEmissionLinePairSurface: ObjectType[Any, WavelengthEmissionLinePair[Surface]] =
+    WavelengthEmissionLineType[Surface](
       "Surface",
       LineFluxSurfaceType
     )
 
   private def EmissionLinesType[T](
     unitCategoryName: String,
-    lineType:         ObjectType[Any, EmissionLine[T]],
+    lineType:         ObjectType[Any, WavelengthEmissionLinePair[T]],
     fdcType:          ObjectType[Any, Measure[PosBigDecimal] Of FluxDensityContinuum[T]]
   ): ObjectType[Any, EmissionLines[T]] =
     ObjectType(
@@ -474,7 +466,7 @@ object SourceProfileSchema {
         Field(
           name      = "lines",
           fieldType = ListType(lineType),
-          resolve   = _.value.lines.values.toList
+          resolve   = _.value.lines.map { case (wave, line) => WavelengthEmissionLinePair(wave, line) }.toList
         ),
 
         Field(
@@ -502,14 +494,14 @@ object SourceProfileSchema {
   val EmissionLinesIntegrated: ObjectType[Any, EmissionLines[Integrated]] =
     EmissionLinesType[Integrated](
       "Integrated",
-      EmissionLineIntegrated,
+      WavelengthEmissionLinePairIntegrated,
       FluxDensityContinuumIntegratedType
     )
 
   val EmissionLinesSurface: ObjectType[Any, EmissionLines[Surface]] =
     EmissionLinesType[Surface](
       "Surface",
-      EmissionLineSurface,
+      WavelengthEmissionLinePairSurface,
       FluxDensityContinuumSurfaceType
     )
 
@@ -616,27 +608,9 @@ object SourceProfileSchema {
       InputObjectTypeDescription("Un-normalized SED input parameters.  Define one value only.")
     )
 
-  private def createBrightnessInputObjectType[T](
-    groupName: String,
-    e: EnumType[Units Of Brightness[T]]
-  ): InputObjectType[CreateMeasureInput[BigDecimal, Brightness[T]]] = {
-    implicit val unitsInput: InputType[Units Of Brightness[T]] = e
-
-    deriveInputObjectType[CreateMeasureInput[BigDecimal, Brightness[T]]](
-      InputObjectTypeName(s"CreateBrightness${groupName.capitalize}"),
-      InputObjectTypeDescription(s"Create a brightness value with $groupName units")
-    )
-  }
-
-  implicit val InputObjectCreateBrightnessIntegrated: InputObjectType[CreateMeasureInput[BigDecimal, Brightness[Integrated]]] =
-    createBrightnessInputObjectType("integrated", EnumTypeBrightnessIntegrated)
-
-  implicit val InputObjectCreateBrightnessSurface: InputObjectType[CreateMeasureInput[BigDecimal, Brightness[Surface]]] =
-    createBrightnessInputObjectType("surface", EnumTypeBrightnessSurface)
-
   private def createBandBrightnessInputObjectType[T](
     groupName: String
-  )(implicit ev: InputType[CreateMeasureInput[BigDecimal, Brightness[T]]]): InputObjectType[CreateBandBrightnessInput[T]] =
+  )(implicit ev: InputType[Units Of Brightness[T]]): InputObjectType[CreateBandBrightnessInput[T]] =
     deriveInputObjectType[CreateBandBrightnessInput[T]](
       InputObjectTypeName(s"CreateBandBrightness${groupName.capitalize}"),
       InputObjectTypeDescription(s"Create a band brightness value with $groupName magnitude units")
