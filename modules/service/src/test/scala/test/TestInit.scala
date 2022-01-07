@@ -39,33 +39,88 @@ object TestInit {
   },
   "radialVelocity": { "metersPerSecond": 423607 },
   "parallax":       { "milliarcseconds":  0.00 },
-  "magnitudes": [
-    {
-      "band": "B",
-      "value": 12.7,
-      "system": "VEGA"
-    },
-    {
-      "band": "R",
-      "value": 12.252,
-      "system": "VEGA"
-    },
-    {
-      "band": "J",
-      "value": 10.279,
-      "system": "VEGA"
-    },
-    {
-      "band": "H",
-      "value": 9.649,
-      "system": "VEGA"
-    },
-    {
-      "band": "K",
-      "value": 9.425,
-      "system": "VEGA"
+  "sourceProfile": {
+    "point": {
+      "bandNormalized": {
+        "sed": {
+          "galaxy": "SPIRAL"
+        },
+        "brightnesses": [
+          {
+            "magnitude": {
+              "value": 12.7,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "B"
+          },
+          {
+            "magnitude": {
+              "value": 10.279,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "J",
+            "error": 0.0009
+          },
+          {
+            "magnitude": {
+              "value": 9.649,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "H",
+            "error": 0.0120
+          },
+          {
+            "magnitude": {
+              "value": 9.425,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "K",
+            "error": 0.0170
+          },
+          {
+            "magnitude": {
+              "value": 14.147,
+              "units": "AB_MAGNITUDE"
+            },
+            "band": "SLOAN_U",
+            "error": 0.0050
+          },
+          {
+            "magnitude": {
+              "value": 12.924,
+              "units": "AB_MAGNITUDE"
+            },
+            "band": "SLOAN_G",
+            "error": 0.0020
+          },
+          {
+            "magnitude": {
+              "value": 12.252,
+              "units": "AB_MAGNITUDE"
+            },
+            "band": "SLOAN_R",
+            "error": 0.0020
+          },
+          {
+            "magnitude": {
+              "value": 11.888,
+              "units": "AB_MAGNITUDE"
+            },
+            "band": "SLOAN_I",
+            "error": 0.0020
+          },
+          {
+            "magnitude": {
+              "value": 11.636,
+              "units": "AB_MAGNITUDE"
+            },
+            "band": "SLOAN_Z",
+            "error": 0.0020
+          }
+        ]
+      }
     }
-  ]
+  }
 }
 """,
 """
@@ -80,38 +135,62 @@ object TestInit {
   },
   "radialVelocity": { "metersPerSecond": 3753885 },
   "parallax":       { "milliarcseconds":  0.00 },
-  "magnitudes": [
-    {
-      "band": "B",
-      "value": 13.24,
-      "system": "VEGA"
-    },
-    {
-      "band": "V",
-      "value": 13.51,
-      "system": "VEGA"
-    },
-    {
-      "band": "R",
-      "value": 11.73,
-      "system": "VEGA"
-    },
-    {
-      "band": "J",
-      "value": 9.958,
-      "system": "VEGA"
-    },
-    {
-      "band": "H",
-      "value": 9.387,
-      "system": "VEGA"
-    },
-    {
-      "band": "K",
-      "value": 9.055,
-      "system": "VEGA"
+  "sourceProfile": {
+    "point": {
+      "bandNormalized": {
+        "sed": {
+          "galaxy": "SPIRAL"
+        },
+        "brightnesses": [
+          {
+            "magnitude": {
+              "value": 13.240,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "B"
+          },
+          {
+            "magnitude": {
+              "value": 13.510,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "V"
+          },
+          {
+            "magnitude": {
+              "value": 11.730,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "R"
+          },
+          {
+            "magnitude": {
+              "value": 9.958,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "J",
+            "error": 0.018
+          },
+          {
+            "magnitude": {
+              "value": 9.387,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "H",
+            "error": 0.024
+          },
+          {
+            "magnitude": {
+              "value": 9.055,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "K",
+            "error": 0.031
+          }
+        ]
+      }
     }
-  ]
+  }
 }
 """,
 """
@@ -126,33 +205,55 @@ object TestInit {
   },
   "radialVelocity": { "metersPerSecond": 2826483 },
   "parallax":       { "milliarcseconds":  0.0 },
-  "magnitudes": [
-    {
-      "band": "B",
-      "value": 12.63,
-      "system": "VEGA"
-    },
-    {
-      "band": "V",
-      "value": 13.96,
-      "system": "VEGA"
-    },
-    {
-      "band": "J",
-      "value": 9.552,
-      "system": "VEGA"
-    },
-    {
-      "band": "H",
-      "value": 8.907,
-      "system": "VEGA"
-    },
-    {
-      "band": "K",
-      "value": 8.665,
-      "system": "VEGA"
+  "sourceProfile": {
+    "point": {
+      "bandNormalized": {
+        "sed": {
+          "galaxy": "SPIRAL"
+        },
+        "brightnesses": [
+          {
+            "magnitude": {
+              "value": 12.630,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "B"
+          },
+          {
+            "magnitude": {
+              "value": 13.960,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "V"
+          },
+          {
+            "magnitude": {
+              "value": 9.552,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "J",
+            "error": 0.016
+          },
+          {
+            "magnitude": {
+              "value": 8.907,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "H",
+            "error": 0.017
+          },
+          {
+            "magnitude": {
+              "value": 8.665,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "K",
+            "error": 0.028
+          }
+        ]
+      }
     }
-  ]
+  }
 }
 """,
 """
@@ -167,28 +268,45 @@ object TestInit {
   },
   "radialVelocity": { "metersPerSecond": 1728985 },
   "parallax":       { "milliarcseconds":  0.00 },
-  "magnitudes": [
-    {
-      "band": "B",
-      "value": 14.2,
-      "system": "VEGA"
-    },
-    {
-      "band": "J",
-      "value": 10.752,
-      "system": "VEGA"
-    },
-    {
-      "band": "H",
-      "value": 9.891,
-      "system": "VEGA"
-    },
-    {
-      "band": "K",
-      "value": 9.467,
-      "system": "VEGA"
+  "sourceProfile": {
+    "point": {
+      "bandNormalized": {
+        "sed": {
+          "galaxy": "SPIRAL"
+        },
+        "brightnesses": [
+          {
+            "magnitude": {
+              "value": 14.2,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "B"
+          },
+          {
+            "magnitude": {
+              "value": 10.752,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "J"
+          },
+          {
+            "magnitude": {
+              "value": 9.891,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "H"
+          },
+          {
+            "magnitude": {
+              "value": 9.467,
+              "units": "VEGA_MAGNITUDE"
+            },
+            "band": "K"
+          }
+        ]
+      }
     }
-  ]
+  }
 }
 """
   )

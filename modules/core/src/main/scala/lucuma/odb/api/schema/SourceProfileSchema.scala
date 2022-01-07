@@ -14,16 +14,20 @@ import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
 import lucuma.core.model.UnnormalizedSED.{BlackBody, CoolStarModel, Galaxy, HIIRegion, Planet, PlanetaryNebula, PowerLaw, Quasar, StellarLibrary, UserDefined}
 import lucuma.core.model.{BandBrightness, EmissionLine, SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.core.util.Enumerated
+import lucuma.odb.api.model.targetModel.SourceProfileModel.{CreateBandBrightnessInput, CreateBandNormalizedInput, CreateEmissionLineInput, CreateEmissionLinesInput, CreateGaussianInput, CreateMeasureInput, CreateSourceProfileInput, CreateSpectralDefinitionInput, FluxDensityInput, UnnormalizedSedInput}
 import sangria.schema.{Field, _}
+import sangria.macros.derive._
+import sangria.marshalling.circe._
 
 import scala.reflect.ClassTag
 
 object SourceProfileSchema {
 
-  import AngleSchema.AngleType
+  import AngleSchema.{AngleType, InputObjectAngle}
   import GeneralSchema.PosBigDecimalType
   import syntax.`enum`._
-  import WavelengthSchema.WavelengthType
+  import syntax.inputobjecttype._
+  import WavelengthSchema._
 
   implicit val EnumTypeBand: EnumType[Band] =
     EnumType.fromEnumerated(
@@ -539,11 +543,12 @@ object SourceProfileSchema {
 
   val PointType: ObjectType[Any, SourceProfile.Point] =
     ObjectType(
-      name     = "PointSource",
+      name        = "PointSource",
+      description = "Point source",
       fieldsFn = () => fields(
          Field(
            name        = "spectralDefinition",
-           description = "Point source".some,
+           description = "Integrated units".some,
            fieldType   = SpectralDefinitionIntegrated,
            resolve     = _.value.spectralDefinition
          )
@@ -552,11 +557,12 @@ object SourceProfileSchema {
 
   val UniformType: ObjectType[Any, SourceProfile.Uniform] =
     ObjectType(
-      name     = "UniformSource",
+      name        = "UniformSource",
+      description = "Uniform source",
       fieldsFn = () => fields(
         Field(
           name         = "spectralDefinition",
-          description  = "Uniform source".some,
+          description  = "Surface units".some,
           fieldType    = SpectralDefinitionSurface,
           resolve      = _.value.spectralDefinition
         )
@@ -565,7 +571,8 @@ object SourceProfileSchema {
 
   val GaussianType: ObjectType[Any, SourceProfile.Gaussian] =
     ObjectType(
-      name     = "GaussianSource",
+      name        = "GaussianSource",
+      description = "Gaussian source",
       fieldsFn = () => fields(
 
         Field(
@@ -577,7 +584,7 @@ object SourceProfileSchema {
 
         Field(
           name         = "spectralDefinition",
-          description  = "Gaussian source".some,
+          description  = "Integrated units".some,
           fieldType    = SpectralDefinitionIntegrated,
           resolve      = _.value.spectralDefinition
         )
@@ -595,4 +602,163 @@ object SourceProfileSchema {
       )
     ).mapValue[SourceProfile](identity)
 
+  // Inputs
+
+  implicit val InputObjectFluxDensity: InputObjectType[FluxDensityInput] =
+    deriveInputObjectType[FluxDensityInput](
+      InputObjectTypeName("FluxDensity"),
+      InputObjectTypeDescription("Flux density entry")
+    )
+
+  implicit val InputObjectUnnormalizedSed: InputObjectType[UnnormalizedSedInput] =
+    deriveInputObjectType[UnnormalizedSedInput](
+      InputObjectTypeName("UnnormalizedSedInput"),
+      InputObjectTypeDescription("Un-normalized SED input parameters.  Define one value only.")
+    )
+
+  private def createBrightnessInputObjectType[T](
+    groupName: String,
+    e: EnumType[Units Of Brightness[T]]
+  ): InputObjectType[CreateMeasureInput[BigDecimal, Brightness[T]]] = {
+    implicit val unitsInput: InputType[Units Of Brightness[T]] = e
+
+    deriveInputObjectType[CreateMeasureInput[BigDecimal, Brightness[T]]](
+      InputObjectTypeName(s"CreateBrightness${groupName.capitalize}"),
+      InputObjectTypeDescription(s"Create a brightness value with $groupName units")
+    )
+  }
+
+  implicit val InputObjectCreateBrightnessIntegrated: InputObjectType[CreateMeasureInput[BigDecimal, Brightness[Integrated]]] =
+    createBrightnessInputObjectType("integrated", EnumTypeBrightnessIntegrated)
+
+  implicit val InputObjectCreateBrightnessSurface: InputObjectType[CreateMeasureInput[BigDecimal, Brightness[Surface]]] =
+    createBrightnessInputObjectType("surface", EnumTypeBrightnessSurface)
+
+  private def createBandBrightnessInputObjectType[T](
+    groupName: String
+  )(implicit ev: InputType[CreateMeasureInput[BigDecimal, Brightness[T]]]): InputObjectType[CreateBandBrightnessInput[T]] =
+    deriveInputObjectType[CreateBandBrightnessInput[T]](
+      InputObjectTypeName(s"CreateBandBrightness${groupName.capitalize}"),
+      InputObjectTypeDescription(s"Create a band brightness value with $groupName magnitude units")
+    )
+
+  implicit val InputObjectCreateBandBrightnessIntegrated: InputObjectType[CreateBandBrightnessInput[Integrated]] =
+    createBandBrightnessInputObjectType[Integrated]("integrated")
+
+  implicit val InputObjectCreateBandBrightnessSurface: InputObjectType[CreateBandBrightnessInput[Surface]] =
+    createBandBrightnessInputObjectType[Surface]("surface")
+
+  private def createBandNormalizedInputObjectType[T](
+    groupName: String
+  )(implicit ev: InputType[CreateBandBrightnessInput[T]]): InputObjectType[CreateBandNormalizedInput[T]] =
+    deriveInputObjectType(
+      InputObjectTypeName(s"CreateBandNormalized${groupName.capitalize}"),
+      InputObjectTypeDescription(s"Create a band normalized value with $groupName magnitude units")
+    )
+
+  implicit val InputObjectCreateBandNormalizedIntegrated: InputObjectType[CreateBandNormalizedInput[Integrated]] =
+    createBandNormalizedInputObjectType[Integrated]("integrated")
+
+  implicit val InputObjectCreateBandNormalizedSurface: InputObjectType[CreateBandNormalizedInput[Surface]] =
+    createBandNormalizedInputObjectType[Surface]("surface")
+
+  private def createLineFluxInputObjectType[T](
+    groupName: String,
+    e: EnumType[Units Of LineFlux[T]]
+  ): InputObjectType[CreateMeasureInput[PosBigDecimal, LineFlux[T]]] = {
+    implicit val unitsInput: InputType[Units Of LineFlux[T]] = e
+
+    deriveInputObjectType[CreateMeasureInput[PosBigDecimal, LineFlux[T]]](
+      InputObjectTypeName(s"CreateLineFlux${groupName.capitalize}"),
+      InputObjectTypeDescription(s"Create a line flux value with $groupName units")
+    )
+  }
+
+  implicit val InputObjectCreateLineFluxIntegrated: InputObjectType[CreateMeasureInput[PosBigDecimal, LineFlux[Integrated]]] =
+    createLineFluxInputObjectType("integrated", EnumTypeLineFluxIntegrated)
+
+  implicit val InputObjectCreateLineFluxSurface: InputObjectType[CreateMeasureInput[PosBigDecimal, LineFlux[Surface]]] =
+    createLineFluxInputObjectType("surface", EnumTypeLineFluxSurface)
+
+  private def createEmissionLineInputObjectType[T](
+    groupName: String
+  )(implicit ev: InputType[CreateMeasureInput[PosBigDecimal, LineFlux[T]]]): InputObjectType[CreateEmissionLineInput[T]] =
+    deriveInputObjectType(
+      InputObjectTypeName(s"CreateEmissionLine${groupName.capitalize}"),
+      InputObjectTypeDescription(s"Create an emission line with $groupName line flux units")
+    )
+
+  implicit val InputObjectEmissionLineIntegrated: InputObjectType[CreateEmissionLineInput[Integrated]] =
+    createEmissionLineInputObjectType[Integrated]("integrated")
+
+  implicit val InputObjectEmissionLineSurface: InputObjectType[CreateEmissionLineInput[Surface]] =
+    createEmissionLineInputObjectType[Surface]("surface")
+
+  private def createFluxDensityContinuumInputObjectType[T](
+    groupName: String,
+    e: EnumType[Units Of FluxDensityContinuum[T]]
+  ): InputObjectType[CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[T]]] = {
+    implicit val unitsInput: InputType[Units Of FluxDensityContinuum[T]] = e
+
+    deriveInputObjectType[CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[T]]](
+      InputObjectTypeName(s"CreateFluxDensityContinuum${groupName.capitalize}"),
+      InputObjectTypeDescription(s"Create a flux density continuum value with $groupName units")
+    )
+  }
+
+  implicit val InputObjectCreateFluxDensityContinuumIntegrated: InputObjectType[CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[Integrated]]] =
+    createFluxDensityContinuumInputObjectType("integrated", EnumTypeFluxDensityContinuumIntegrated)
+
+  implicit val InputObjectCreateFluxDensityContinuumSurface: InputObjectType[CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[Surface]]] =
+    createFluxDensityContinuumInputObjectType("surface", EnumTypeFluxDensityContinuumSurface)
+
+  private def createEmissionLinesInputObjectType[T](
+    groupName: String
+  )(implicit ev0: InputType[CreateEmissionLineInput[T]], ev1: InputType[CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[T]]]): InputObjectType[CreateEmissionLinesInput[T]] =
+    deriveInputObjectType(
+      InputObjectTypeName(s"CreateEmissionLines${groupName.capitalize}"),
+      InputObjectTypeDescription(s"Create an emission lines with $groupName line flux and flux density continuum units")
+    )
+
+  implicit val InputObjectCreateEmissionLinesIntegrated: InputObjectType[CreateEmissionLinesInput[Integrated]] =
+    createEmissionLinesInputObjectType("integrated")
+
+  implicit val InputObjectCreateEmissionLinesSurface: InputObjectType[CreateEmissionLinesInput[Surface]] =
+    createEmissionLinesInputObjectType("surface")
+
+  private def createSpectralDefinitionInputObjectType[T](
+    groupName: String
+  )(
+    implicit ev0: InputType[CreateBandNormalizedInput[T]],
+             ev1: InputType[CreateEmissionLinesInput[T]]
+  ): InputObjectType[CreateSpectralDefinitionInput[T]] =
+    deriveInputObjectType(
+      InputObjectTypeName(s"CreateSpectralDefinition${groupName.capitalize}"),
+      InputObjectTypeDescription(s"Create a spectral definition with $groupName units")
+    )
+
+  implicit val InputObjectCreateSpectralDefinitionIntegrated: InputObjectType[CreateSpectralDefinitionInput[Integrated]] =
+    createSpectralDefinitionInputObjectType("integrated")
+
+  implicit val InputObjectCreateSpectralDefinitionSurface: InputObjectType[CreateSpectralDefinitionInput[Surface]] =
+    createSpectralDefinitionInputObjectType("surface")
+
+  implicit val InputObjectCreateGaussian: InputObjectType[CreateGaussianInput] =
+    deriveInputObjectType(
+      InputObjectTypeName("CreateGaussian"),
+      InputObjectTypeDescription("Create a gaussian source")
+    )
+
+  implicit val InputObjectCreateSourceProfile: InputObjectType[CreateSourceProfileInput] =
+    deriveInputObjectType(
+      InputObjectTypeName("CreateSourceProfile"),
+      InputObjectTypeDescription("Create a source profile")
+    )
+
+  // Arguments
+
+  // TODO: Remove
+
+  val ArgumentCreateBandNormalizedIntegrated: Argument[CreateBandNormalizedInput[Integrated]] =
+    InputObjectCreateBandNormalizedIntegrated.argument("mag", "magnitude")
 }

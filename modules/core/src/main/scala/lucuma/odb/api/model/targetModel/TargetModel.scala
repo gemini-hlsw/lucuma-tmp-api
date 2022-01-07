@@ -17,7 +17,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.refined._
 import io.circe.generic.semiauto._
-import lucuma.core.model.{Program, SourceProfile, Target}
+import lucuma.core.model.{Program, Target}
 import lucuma.core.optics.state.all._
 import lucuma.core.optics.syntax.lens._
 import lucuma.odb.api.model.{DatabaseState, Event, Existence, TopLevelModel, ValidatedInput}
@@ -70,8 +70,7 @@ object TargetModel extends TargetModelOptics {
   ) {
 
     def create[F[_]: Monad, T](
-      db:   DatabaseState[T],
-      temp: Option[SourceProfile]  // To be removed when the parameters appear in the GQL input
+      db:   DatabaseState[T]
     )(implicit S: Stateful[F, T]): F[ValidatedInput[TargetModel]] =
 
       for {
@@ -82,10 +81,7 @@ object TargetModel extends TargetModelOptics {
           nonsidereal.map(_.toGemTarget)
         )
         tm = (i, p, t).mapN { (iʹ, _, tʹ) =>
-
-          // TEMP: Add the source profile if there is one
-          val withSourceProfile = temp.fold((t: Target) => t)(Target.sourceProfile.replace)
-          TargetModel(iʹ, Existence.Present, programId, withSourceProfile(tʹ), observed = false)
+          TargetModel(iʹ, Existence.Present, programId, tʹ, observed = false)
         }
         _ <- db.target.saveNewIfValid(tm)(_.id)
       } yield tm

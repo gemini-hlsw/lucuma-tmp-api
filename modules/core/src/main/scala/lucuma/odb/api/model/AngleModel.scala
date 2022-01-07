@@ -3,11 +3,14 @@
 
 package lucuma.odb.api.model
 
-import lucuma.core.math.Angle
+import cats.Eq
+import cats.syntax.option._
+import cats.syntax.validated._
+import io.circe.Decoder
+import io.circe.generic.semiauto.deriveDecoder
+import lucuma.core.math.{Angle, RightAscension}
 import lucuma.core.optics.SplitMono
 import lucuma.core.util.{Display, Enumerated}
-
-import cats.syntax.validated._
 
 import scala.math.BigDecimal.RoundingMode.HALF_UP
 
@@ -101,7 +104,6 @@ object AngleModel {
 
   }
 
-  /*
   def readHms(s: String): ValidatedInput[RightAscension] =
     RightAscension.fromStringHMS
       .getOption(s)
@@ -116,7 +118,7 @@ object AngleModel {
         InputError.fromMessage(s"Could not parse $s as a signed DMS string.")
       )
 
-  case class LongAngleInput(
+  final case class LongAngleInput(
     value: Long,
     units: Units
   ) {
@@ -126,7 +128,17 @@ object AngleModel {
 
   }
 
-  case class DecimalAngleInput(
+  object LongAngleInput {
+
+    implicit val DecoderLongAngleInput: Decoder[LongAngleInput] =
+      deriveDecoder[LongAngleInput]
+
+    implicit val EqLongAngleInput: Eq[LongAngleInput] =
+      Eq.by { a => (a.value, a.units) }
+
+  }
+
+  final case class DecimalAngleInput(
     value: BigDecimal,
     units: Units
   ) {
@@ -136,7 +148,18 @@ object AngleModel {
 
   }
 
-  case class SignedAngleInput(
+  object DecimalAngleInput {
+
+    implicit val DecoderDecimalAngleInput: Decoder[DecimalAngleInput] =
+      deriveDecoder[DecimalAngleInput]
+
+    implicit val EqDecimalAngleInput: Eq[DecimalAngleInput] =
+      Eq.by { a => (a.value, a.units) }
+
+  }
+
+
+  case class AngleInput(
     microarcseconds: Option[Long],
     microseconds:    Option[BigDecimal],
     milliarcseconds: Option[BigDecimal],
@@ -178,6 +201,74 @@ object AngleModel {
       )
 
   }
-*/
 
+  object AngleInput {
+
+    implicit val DecoderAngleInput: Decoder[AngleInput] =
+      deriveDecoder[AngleInput]
+
+    implicit val EqAngleInput: Eq[AngleInput] =
+      Eq.by { a => (
+        a.microarcseconds,
+        a.microseconds,
+        a.milliarcseconds,
+        a.milliseconds,
+        a.arcseconds,
+        a.seconds,
+        a.arcminutes,
+        a.minutes,
+        a.degrees,
+        a.hours,
+        a.dms,
+        a.hms,
+        a.fromLong,
+        a.fromDecimal
+      )}
+
+    val Empty: AngleInput =
+      AngleInput(None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+
+    def fromMicroarcseconds(value: Long): AngleInput =
+      Empty.copy(microarcseconds = value.some)
+
+    def fromMicroseconds(value: BigDecimal): AngleInput =
+      Empty.copy(microseconds = value.some)
+
+    def fromMilliarcseconds(value: BigDecimal): AngleInput =
+      Empty.copy(milliarcseconds = value.some)
+
+    def fromMilliseconds(value: BigDecimal): AngleInput =
+      Empty.copy(milliseconds = value.some)
+
+    def fromArcseconds(value: BigDecimal): AngleInput =
+      Empty.copy(arcseconds = value.some)
+
+    def fromSeconds(value: BigDecimal): AngleInput =
+      Empty.copy(seconds = value.some)
+
+    def fromArcminutes(value: BigDecimal): AngleInput =
+      Empty.copy(arcminutes = value.some)
+
+    def fromMinutes(value: BigDecimal): AngleInput =
+      Empty.copy(minutes = value.some)
+
+    def fromDegrees(value: BigDecimal): AngleInput =
+      Empty.copy(degrees = value.some)
+
+    def fromHours(value: BigDecimal): AngleInput =
+      Empty.copy(hours = value.some)
+
+    def fromDms(value: String): AngleInput =
+      Empty.copy(dms = value.some)
+
+    def fromHms(value: String): AngleInput =
+      Empty.copy(hms = value.some)
+
+    def fromLong(value: LongAngleInput): AngleInput =
+      Empty.copy(fromLong = value.some)
+
+    def fromDecimal(value: DecimalAngleInput): AngleInput =
+      Empty.copy(fromDecimal = value.some)
+
+  }
 }

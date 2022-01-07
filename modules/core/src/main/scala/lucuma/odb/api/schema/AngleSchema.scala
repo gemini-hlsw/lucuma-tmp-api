@@ -7,9 +7,13 @@ import cats.syntax.option._
 import lucuma.core.math.Angle
 import lucuma.core.util.Enumerated
 import lucuma.odb.api.model.AngleModel
+
+import sangria.macros.derive._
 import sangria.schema._
 
 object AngleSchema {
+
+  import syntax.enum._
 
   val unitFields: List[Field[Any, Angle]] =
     Field[Any, Angle, Long, Long](
@@ -26,10 +30,34 @@ object AngleSchema {
       )
     }
 
-  def AngleType: ObjectType[Any, Angle] =
+  val AngleType: ObjectType[Any, Angle] =
     ObjectType[Any, Angle](
       name        = "Angle",
       fields      = unitFields
+    )
+
+  implicit val EnumAngleUnits: EnumType[AngleModel.Units] =
+    EnumType.fromEnumerated(
+      "AngleUnits",
+      "Angle units"
+    )
+
+  implicit val InputObjectLongAngle: InputObjectType[AngleModel.LongAngleInput] =
+    deriveInputObjectType(
+      InputObjectTypeName("LongAngleInput"),
+      InputObjectTypeDescription("Create an angle from a signed integral value and its units.")
+    )
+
+  implicit val InputObjectDecimalAngle: InputObjectType[AngleModel.DecimalAngleInput] =
+    deriveInputObjectType(
+      InputObjectTypeName("DecimalAngleInput"),
+      InputObjectTypeDescription("Create an angle from a signed decimal value and its units.")
+    )
+
+  implicit val InputObjectAngle: InputObjectType[AngleModel.AngleInput] =
+    deriveInputObjectType(
+      InputObjectTypeName("AngleInput"),
+      InputObjectTypeDescription("Create an angle from a signed value.  Choose exactly one of the available units.")
     )
 
 }

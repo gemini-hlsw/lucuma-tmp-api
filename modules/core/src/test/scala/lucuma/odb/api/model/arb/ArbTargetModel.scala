@@ -15,6 +15,7 @@ import lucuma.core.model.arb.ArbEphemerisKey
 import lucuma.core.model.{EphemerisKey, Program, Target}
 import lucuma.core.model.arb.ArbTarget
 import lucuma.core.util.arb.{ArbEnumerated, ArbGid}
+import lucuma.odb.api.model.targetModel.SourceProfileModel.CreateSourceProfileInput
 import lucuma.odb.api.model.targetModel._
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck._
@@ -37,6 +38,7 @@ trait ArbTargetModel {
   import ArbProperMotionModel._
   import ArbRadialVelocityModel._
   import ArbRightAscensionModel._
+  import ArbSourceProfileModel._
   import ArbTarget._
 
   implicit val arbTargetModel: Arbitrary[TargetModel] =
@@ -93,6 +95,7 @@ trait ArbTargetModel {
         pm    <- arbitrary[Option[ProperMotionModel.Input]]
         rv    <- arbitrary[Option[RadialVelocityModel.Input]]
         px    <- arbitrary[Option[ParallaxModel.Input]]
+        sp    <- arbitrary[CreateSourceProfileInput]
       } yield CreateSiderealInput(
         name,
         cat,
@@ -101,7 +104,8 @@ trait ArbTargetModel {
         epoch,
         pm,
         rv,
-        px
+        px,
+        sp
       )
     }
 
@@ -115,6 +119,7 @@ trait ArbTargetModel {
       Option[ProperMotionModel.Input],
       Option[RadialVelocityModel.Input],
       Option[ParallaxModel.Input],
+      CreateSourceProfileInput
     )].contramap { in => (
       in.name.value,
       in.catalogInfo,
@@ -123,7 +128,8 @@ trait ArbTargetModel {
       in.epoch,
       in.properMotion,
       in.radialVelocity,
-      in.parallax
+      in.parallax,
+      in.sourceProfile
     )}
 
   implicit val arbCreateNonSidereal: Arbitrary[CreateNonsiderealInput] =
@@ -132,10 +138,12 @@ trait ArbTargetModel {
         name <- arbitrary[NonEmptyString]
         key  <- arbitrary[EphemerisKeyType]
         des  <- arbitrary[NonEmptyString]
+        sp   <- arbitrary[CreateSourceProfileInput]
       } yield CreateNonsiderealInput(
         name,
         key,
-        des.value
+        des.value,
+        sp
       )
     }
 
@@ -144,8 +152,9 @@ trait ArbTargetModel {
       String,
       EphemerisKeyType,
       String,
+      CreateSourceProfileInput
     )].contramap { in => (
-      in.name.value, in.keyType, in.des
+      in.name.value, in.keyType, in.des, in.sourceProfile
     )}
 
   implicit val arbCreateTarget: Arbitrary[TargetModel.Create] =
