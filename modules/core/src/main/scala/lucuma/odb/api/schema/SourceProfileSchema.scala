@@ -240,13 +240,13 @@ object SourceProfileSchema {
       _.abbv
     )
 
-  val EnumTypeBrightnessIntegrated: EnumType[Units Of Brightness[Integrated]] =
+  implicit val EnumTypeBrightnessIntegrated: EnumType[Units Of Brightness[Integrated]] =
     defineUnitsEnum(
       "BrightnessIntegratedUnits",
       "Brightness integrated units"
     )
 
-  val EnumTypeBrightnessSurface: EnumType[Units Of Brightness[Surface]] =
+  implicit val EnumTypeBrightnessSurface: EnumType[Units Of Brightness[Surface]] =
     defineUnitsEnum(
       "BrightnessSurfaceUnits",
       "Brightness surface units"
@@ -622,27 +622,27 @@ object SourceProfileSchema {
       InputObjectTypeDescription("Un-normalized SED input parameters.  Define one value only.")
     )
 
-  private def createBrightnessInputObjectType[T](
-    groupName: String,
-    e: EnumType[Units Of Brightness[T]]
-  ): InputObjectType[CreateMeasureInput[BigDecimal, Brightness[T]]] = {
-    implicit val unitsInput: InputType[Units Of Brightness[T]] = e
-
-    deriveInputObjectType[CreateMeasureInput[BigDecimal, Brightness[T]]](
-      InputObjectTypeName(s"CreateBrightness${groupName.capitalize}"),
-      InputObjectTypeDescription(s"Create a brightness value with $groupName units")
-    )
-  }
-
-  implicit val InputObjectCreateBrightnessIntegrated: InputObjectType[CreateMeasureInput[BigDecimal, Brightness[Integrated]]] =
-    createBrightnessInputObjectType("integrated", EnumTypeBrightnessIntegrated)
-
-  implicit val InputObjectCreateBrightnessSurface: InputObjectType[CreateMeasureInput[BigDecimal, Brightness[Surface]]] =
-    createBrightnessInputObjectType("surface", EnumTypeBrightnessSurface)
+//  private def createBrightnessInputObjectType[T](
+//    groupName: String,
+//    e: EnumType[Units Of Brightness[T]]
+//  ): InputObjectType[CreateMeasureInput[BigDecimal, Brightness[T]]] = {
+//    implicit val unitsInput: InputType[Units Of Brightness[T]] = e
+//
+//    deriveInputObjectType[CreateMeasureInput[BigDecimal, Brightness[T]]](
+//      InputObjectTypeName(s"CreateBrightness${groupName.capitalize}"),
+//      InputObjectTypeDescription(s"Create a brightness value with $groupName units")
+//    )
+//  }
+//
+//  implicit val InputObjectCreateBrightnessIntegrated: InputObjectType[CreateMeasureInput[BigDecimal, Brightness[Integrated]]] =
+//    createBrightnessInputObjectType("integrated", EnumTypeBrightnessIntegrated)
+//
+//  implicit val InputObjectCreateBrightnessSurface: InputObjectType[CreateMeasureInput[BigDecimal, Brightness[Surface]]] =
+//    createBrightnessInputObjectType("surface", EnumTypeBrightnessSurface)
 
   private def createBandBrightnessInputObjectType[T](
     groupName: String
-  )(implicit ev: InputType[CreateMeasureInput[BigDecimal, Brightness[T]]]): InputObjectType[CreateBandBrightnessInput[T]] =
+  )(implicit ev: InputType[Units Of Brightness[T]]): InputObjectType[CreateBandBrightnessInput[T]] =
     deriveInputObjectType[CreateBandBrightnessInput[T]](
       InputObjectTypeName(s"CreateBandBrightness${groupName.capitalize}"),
       InputObjectTypeDescription(s"Create a band brightness value with $groupName magnitude units")

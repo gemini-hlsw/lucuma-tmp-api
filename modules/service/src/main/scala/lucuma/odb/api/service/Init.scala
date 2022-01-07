@@ -47,74 +47,56 @@ object Init {
         },
         "brightnesses": [
           {
-            "magnitude": {
-              "value": 12.7,
-              "units": "VEGA_MAGNITUDE"
-            },
-            "band": "B"
+            "band": "B",
+            "value": 12.7,
+            "units": "VEGA_MAGNITUDE"
           },
           {
-            "magnitude": {
-              "value": 10.279,
-              "units": "VEGA_MAGNITUDE"
-            },
             "band": "J",
+            "value": 10.279,
+            "units": "VEGA_MAGNITUDE",
             "error": 0.0009
           },
           {
-            "magnitude": {
-              "value": 9.649,
-              "units": "VEGA_MAGNITUDE"
-            },
             "band": "H",
+            "value": 9.649,
+            "units": "VEGA_MAGNITUDE",
             "error": 0.0120
           },
           {
-            "magnitude": {
-              "value": 9.425,
-              "units": "VEGA_MAGNITUDE"
-            },
             "band": "K",
+            "value": 9.425,
+            "units": "VEGA_MAGNITUDE",
             "error": 0.0170
           },
           {
-            "magnitude": {
-              "value": 14.147,
-              "units": "AB_MAGNITUDE"
-            },
             "band": "SLOAN_U",
+            "value": 14.147,
+            "units": "AB_MAGNITUDE",
             "error": 0.0050
           },
           {
-            "magnitude": {
-              "value": 12.924,
-              "units": "AB_MAGNITUDE"
-            },
             "band": "SLOAN_G",
+            "value": 12.924,
+            "units": "AB_MAGNITUDE",
             "error": 0.0020
           },
           {
-            "magnitude": {
-              "value": 12.252,
-              "units": "AB_MAGNITUDE"
-            },
             "band": "SLOAN_R",
+            "value": 12.252,
+            "units": "AB_MAGNITUDE",
             "error": 0.0020
           },
           {
-            "magnitude": {
-              "value": 11.888,
-              "units": "AB_MAGNITUDE"
-            },
             "band": "SLOAN_I",
+            "value": 11.888,
+            "units": "AB_MAGNITUDE",
             "error": 0.0020
           },
           {
-            "magnitude": {
-              "value": 11.636,
-              "units": "AB_MAGNITUDE"
-            },
             "band": "SLOAN_Z",
+            "value": 11.636,
+            "units": "AB_MAGNITUDE",
             "error": 0.0020
           }
         ]
@@ -143,48 +125,36 @@ object Init {
         },
         "brightnesses": [
           {
-            "magnitude": {
-              "value": 13.240,
-              "units": "VEGA_MAGNITUDE"
-            },
-            "band": "B"
+            "band": "B",
+            "value": 13.240,
+            "units": "VEGA_MAGNITUDE"
           },
           {
-            "magnitude": {
-              "value": 13.510,
-              "units": "VEGA_MAGNITUDE"
-            },
-            "band": "V"
+            "band": "V",
+            "value": 13.510,
+            "units": "VEGA_MAGNITUDE"
           },
           {
-            "magnitude": {
-              "value": 11.730,
-              "units": "VEGA_MAGNITUDE"
-            },
-            "band": "R"
+            "band": "R",
+            "value": 11.730,
+            "units": "VEGA_MAGNITUDE"
           },
           {
-            "magnitude": {
-              "value": 9.958,
-              "units": "VEGA_MAGNITUDE"
-            },
             "band": "J",
+            "value": 9.958,
+            "units": "VEGA_MAGNITUDE",
             "error": 0.018
           },
           {
-            "magnitude": {
-              "value": 9.387,
-              "units": "VEGA_MAGNITUDE"
-            },
             "band": "H",
+            "value": 9.387,
+            "units": "VEGA_MAGNITUDE",
             "error": 0.024
           },
           {
-            "magnitude": {
-              "value": 9.055,
-              "units": "VEGA_MAGNITUDE"
-            },
             "band": "K",
+            "value": 9.055,
+            "units": "VEGA_MAGNITUDE",
             "error": 0.031
           }
         ]
@@ -213,41 +183,31 @@ object Init {
         },
         "brightnesses": [
           {
-            "magnitude": {
-              "value": 12.630,
-              "units": "VEGA_MAGNITUDE"
-            },
-            "band": "B"
+            "band": "B",
+            "value": 12.630,
+            "units": "VEGA_MAGNITUDE"
           },
           {
-            "magnitude": {
-              "value": 13.960,
-              "units": "VEGA_MAGNITUDE"
-            },
-            "band": "V"
+            "band": "V",
+            "value": 13.960,
+            "units": "VEGA_MAGNITUDE"
           },
           {
-            "magnitude": {
-              "value": 9.552,
-              "units": "VEGA_MAGNITUDE"
-            },
             "band": "J",
+            "value": 9.552,
+            "units": "VEGA_MAGNITUDE",
             "error": 0.016
           },
           {
-            "magnitude": {
-              "value": 8.907,
-              "units": "VEGA_MAGNITUDE"
-            },
             "band": "H",
+            "value": 8.907,
+            "units": "VEGA_MAGNITUDE",
             "error": 0.017
           },
           {
-            "magnitude": {
-              "value": 8.665,
-              "units": "VEGA_MAGNITUDE"
-            },
             "band": "K",
+            "value": 8.665,
+            "units": "VEGA_MAGNITUDE",
             "error": 0.028
           }
         ]

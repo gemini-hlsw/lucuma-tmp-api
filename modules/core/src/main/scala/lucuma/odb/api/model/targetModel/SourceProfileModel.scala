@@ -180,10 +180,7 @@ object SourceProfileModel {
   ) {
 
     def toMeasure: Measure[V] Of U =
-      toMappedMeasure[V](identity)
-
-    def toMappedMeasure[N](f: V => N): Measure[N] Of U =
-      units.withValueTagged(f(value))
+      units.withValueTagged(value)
 
   }
 
@@ -225,13 +222,14 @@ object SourceProfileModel {
   }
 
   final case class CreateBandBrightnessInput[T](
-    magnitude: CreateMeasureInput[BigDecimal, Brightness[T]],
     band:      Band,
+    value:     BigDecimal,
+    units:     Units Of Brightness[T],
     error:     Option[BigDecimal]
   ) {
 
     val toBandBrightnessPair: BandBrightnessPair[T] = {
-      val m = magnitude.toMappedMeasure(BrightnessValue.fromBigDecimal.get)
+      val m = units.withValueTagged(BrightnessValue.fromBigDecimal.get(value))
       BandBrightnessPair[T](
         band,
         error.fold(m) { e => m.withError(BrightnessValue.fromBigDecimal.get(e)) }
@@ -248,7 +246,7 @@ object SourceProfileModel {
       deriveDecoder[CreateBandBrightnessInput[T]]
 
     implicit def EqCreateBandBrightnessInput[T]: Eq[CreateBandBrightnessInput[T]] =
-      Eq.by { a => (a.magnitude, a.band, a.error) }
+      Eq.by { a => (a.band, a.value, a.units, a.error) }
 
   }
 
