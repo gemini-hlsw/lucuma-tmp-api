@@ -47,14 +47,14 @@ object Init {
         },
         "brightnesses": [
           {
-            "brightness": {
+            "magnitude": {
               "value": 12.7,
               "units": "VEGA_MAGNITUDE"
             },
             "band": "B"
           },
           {
-            "brightness": {
+            "magnitude": {
               "value": 10.279,
               "units": "VEGA_MAGNITUDE"
             },
@@ -62,7 +62,7 @@ object Init {
             "error": 0.0009
           },
           {
-            "brightness": {
+            "magnitude": {
               "value": 9.649,
               "units": "VEGA_MAGNITUDE"
             },
@@ -70,7 +70,7 @@ object Init {
             "error": 0.0120
           },
           {
-            "brightness": {
+            "magnitude": {
               "value": 9.425,
               "units": "VEGA_MAGNITUDE"
             },
@@ -78,7 +78,7 @@ object Init {
             "error": 0.0170
           },
           {
-            "brightness": {
+            "magnitude": {
               "value": 14.147,
               "units": "AB_MAGNITUDE"
             },
@@ -86,7 +86,7 @@ object Init {
             "error": 0.0050
           },
           {
-            "brightness": {
+            "magnitude": {
               "value": 12.924,
               "units": "AB_MAGNITUDE"
             },
@@ -94,7 +94,7 @@ object Init {
             "error": 0.0020
           },
           {
-            "brightness": {
+            "magnitude": {
               "value": 12.252,
               "units": "AB_MAGNITUDE"
             },
@@ -102,7 +102,7 @@ object Init {
             "error": 0.0020
           },
           {
-            "brightness": {
+            "magnitude": {
               "value": 11.888,
               "units": "AB_MAGNITUDE"
             },
@@ -110,7 +110,7 @@ object Init {
             "error": 0.0020
           },
           {
-            "brightness": {
+            "magnitude": {
               "value": 11.636,
               "units": "AB_MAGNITUDE"
             },
@@ -143,28 +143,28 @@ object Init {
         },
         "brightnesses": [
           {
-            "brightness": {
+            "magnitude": {
               "value": 13.240,
               "units": "VEGA_MAGNITUDE"
             },
             "band": "B"
           },
           {
-            "brightness": {
+            "magnitude": {
               "value": 13.510,
               "units": "VEGA_MAGNITUDE"
             },
             "band": "V"
           },
           {
-            "brightness": {
+            "magnitude": {
               "value": 11.730,
               "units": "VEGA_MAGNITUDE"
             },
             "band": "R"
           },
           {
-            "brightness": {
+            "magnitude": {
               "value": 9.958,
               "units": "VEGA_MAGNITUDE"
             },
@@ -172,7 +172,7 @@ object Init {
             "error": 0.018
           },
           {
-            "brightness": {
+            "magnitude": {
               "value": 9.387,
               "units": "VEGA_MAGNITUDE"
             },
@@ -180,7 +180,7 @@ object Init {
             "error": 0.024
           },
           {
-            "brightness": {
+            "magnitude": {
               "value": 9.055,
               "units": "VEGA_MAGNITUDE"
             },
@@ -213,21 +213,21 @@ object Init {
         },
         "brightnesses": [
           {
-            "brightness": {
+            "magnitude": {
               "value": 12.630,
               "units": "VEGA_MAGNITUDE"
             },
             "band": "B"
           },
           {
-            "brightness": {
+            "magnitude": {
               "value": 13.960,
               "units": "VEGA_MAGNITUDE"
             },
             "band": "V"
           },
           {
-            "brightness": {
+            "magnitude": {
               "value": 9.552,
               "units": "VEGA_MAGNITUDE"
             },
@@ -235,7 +235,7 @@ object Init {
             "error": 0.016
           },
           {
-            "brightness": {
+            "magnitude": {
               "value": 8.907,
               "units": "VEGA_MAGNITUDE"
             },
@@ -243,7 +243,7 @@ object Init {
             "error": 0.017
           },
           {
-            "brightness": {
+            "magnitude": {
               "value": 8.665,
               "units": "VEGA_MAGNITUDE"
             },

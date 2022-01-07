@@ -117,7 +117,7 @@ trait ArbSourceProfileModel {
       Band,
       Option[BigDecimal]
     )].contramap { in => (
-      in.brightness,
+      in.magnitude,
       in.band,
       in.error
     )}
