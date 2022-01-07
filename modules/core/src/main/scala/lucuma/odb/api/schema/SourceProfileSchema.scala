@@ -505,94 +505,99 @@ object SourceProfileSchema {
       FluxDensityContinuumSurfaceType
     )
 
+  private def spectralDefinitionFields[A, T](
+    get:                A => SpectralDefinition[T],
+    bandNormalizedType: OutputType[BandNormalized[T]],
+    emissionLinesType:  OutputType[EmissionLines[T]]
+  ): List[Field[Any, A]] =
+    List(
+      Field(
+        name        = "bandNormalized",
+        description = "Band normalized spectral definition".some,
+        fieldType   = OptionType(bandNormalizedType),
+        resolve     = c => SpectralDefinition.bandNormalized.getOption(get(c.value))
+      ),
+
+      Field(
+        name        = "emissionLines",
+        description = "Emission lines spectral definition".some,
+        fieldType   = OptionType(emissionLinesType),
+        resolve     = c => SpectralDefinition.emissionLines.getOption(get(c.value))
+      )
+    )
+
   def SpectralDefinitionType[T](
     unitCategoryName: String,
-    bandNormalizedType: ObjectType[Any, BandNormalized[T]],
-    emissionLinesType:  ObjectType[Any, EmissionLines[T]]
-  ): OutputType[SpectralDefinition[T]] =
-    UnionType.apply(
-      name         = s"SpectralDefinition$unitCategoryName",
-      description  = s"Spectral definition ${unitCategoryName.toLowerCase}".some,
-      types        = List(
-        bandNormalizedType,
-        emissionLinesType,
-      )
-    ).mapValue[SpectralDefinition[T]](identity)
+    bandNormalizedType: OutputType[BandNormalized[T]],
+    emissionLinesType:  OutputType[EmissionLines[T]]
+  ): ObjectType[Any, SpectralDefinition[T]] =
+    ObjectType(
+      name         = s"SpectralDefinition${unitCategoryName.capitalize}",
+      description  = s"Spectral definition ${unitCategoryName.toLowerCase}",
+      fieldsFn     = () => spectralDefinitionFields[SpectralDefinition[T], T](identity, bandNormalizedType, emissionLinesType)
+    )
 
   val SpectralDefinitionIntegrated: OutputType[SpectralDefinition[Integrated]] =
     SpectralDefinitionType[Integrated](
-      "Integrated",
+      "integrated",
       BandNormalizedIntegrated,
       EmissionLinesIntegrated
     )
 
   val SpectralDefinitionSurface: OutputType[SpectralDefinition[Surface]] =
     SpectralDefinitionType[Surface](
-      "Surface",
+      "surface",
       BandNormalizedSurface,
       EmissionLinesSurface
     )
 
-  val PointType: ObjectType[Any, SourceProfile.Point] =
-    ObjectType(
-      name        = "PointSource",
-      description = "Point source",
-      fieldsFn = () => fields(
-         Field(
-           name        = "spectralDefinition",
-           description = "Integrated units".some,
-           fieldType   = SpectralDefinitionIntegrated,
-           resolve     = _.value.spectralDefinition
-         )
-      )
-    )
-
-  val UniformType: ObjectType[Any, SourceProfile.Uniform] =
-    ObjectType(
-      name        = "UniformSource",
-      description = "Uniform source",
-      fieldsFn = () => fields(
-        Field(
-          name         = "spectralDefinition",
-          description  = "Surface units".some,
-          fieldType    = SpectralDefinitionSurface,
-          resolve      = _.value.spectralDefinition
-        )
-      )
-    )
-
   val GaussianType: ObjectType[Any, SourceProfile.Gaussian] =
-    ObjectType(
+    ObjectType[Any, SourceProfile.Gaussian](
       name        = "GaussianSource",
       description = "Gaussian source",
-      fieldsFn = () => fields(
+      fieldsFn    = () =>
 
         Field(
           name         = "fwhm",
           description  = "full width at half maximum".some,
           fieldType    = AngleType,
-          resolve      = _.value.fwhm
+          resolve      = (c: Context[Any, SourceProfile.Gaussian]) => c.value.fwhm
+        ) :: spectralDefinitionFields[SourceProfile.Gaussian, Integrated](
+               _.spectralDefinition,
+               BandNormalizedIntegrated,
+               EmissionLinesIntegrated
+             )
+    )
+
+  val SourceProfileType: ObjectType[Any, SourceProfile] =
+    ObjectType(
+      name        = "SourceProfile",
+      description = "source profile",
+      fieldsFn    = () => fields(
+
+        Field(
+          name        = "point",
+          description = "point source, integrated units".some,
+          fieldType   = OptionType(SpectralDefinitionIntegrated),
+          resolve     = c => SourceProfile.point.getOption(c.value).map(_.spectralDefinition)
         ),
 
         Field(
-          name         = "spectralDefinition",
-          description  = "Integrated units".some,
-          fieldType    = SpectralDefinitionIntegrated,
-          resolve      = _.value.spectralDefinition
+          name        = "uniform",
+          description = "uniform source, surface units".some,
+          fieldType   = OptionType(SpectralDefinitionSurface),
+          resolve     = c => SourceProfile.uniform.getOption(c.value).map(_.spectralDefinition)
+        ),
+
+        Field(
+          name        = "gaussian",
+          description = "gaussian source, integrated units".some,
+          fieldType   = OptionType(GaussianType),
+          resolve     = c => SourceProfile.gaussian.getOption(c.value)
         )
+
       )
     )
-
-  val SourceProfileType: OutputType[SourceProfile] =
-    UnionType(
-      name        = "SourceProfile",
-      description = "source profile".some,
-      types       = List(
-        PointType,
-        UniformType,
-        GaussianType
-      )
-    ).mapValue[SourceProfile](identity)
 
   // Inputs
 
