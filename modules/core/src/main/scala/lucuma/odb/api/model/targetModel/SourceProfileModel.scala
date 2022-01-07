@@ -24,7 +24,7 @@ import lucuma.core.math.dimensional.{Measure, Of, Units}
 import lucuma.core.math.units.KilometersPerSecond
 import lucuma.core.math.{BrightnessValue, Wavelength}
 import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
-import lucuma.core.model.{BandBrightness, EmissionLine, SourceProfile, SpectralDefinition, UnnormalizedSED}
+import lucuma.core.model.{EmissionLine, SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.odb.api.model.{AngleModel, InputError, ValidatedInput, WavelengthModel}
 
 import scala.collection.immutable.SortedMap
@@ -204,18 +204,39 @@ object SourceProfileModel {
 
   }
 
+  final case class BandBrightnessPair[T](
+    band:    Band,
+    measure: Measure[BrightnessValue] Of Brightness[T]
+  ) {
+
+    def toTuple: (Band, Measure[BrightnessValue] Of Brightness[T]) =
+      (band, measure)
+
+  }
+
+  object BandBrightnessPair {
+
+    implicit def EqBandBrightness[T]: Eq[BandBrightnessPair[T]] =
+      Eq.by { a => (
+        a.band,
+        a.measure
+      )}
+
+  }
+
   final case class CreateBandBrightnessInput[T](
     magnitude: CreateMeasureInput[BigDecimal, Brightness[T]],
     band:      Band,
     error:     Option[BigDecimal]
   ) {
 
-    val toBandBrightness: BandBrightness[T] =
-      BandBrightness(
-        magnitude.toMappedMeasure(BrightnessValue.fromBigDecimal.get),
+    val toBandBrightnessPair: BandBrightnessPair[T] = {
+      val m = magnitude.toMappedMeasure(BrightnessValue.fromBigDecimal.get)
+      BandBrightnessPair[T](
         band,
-        error.map(e => BrightnessValue.fromBigDecimal.get(e))
+        error.fold(m) { e => m.withError(BrightnessValue.fromBigDecimal.get(e)) }
       )
+    }
 
   }
 
@@ -240,7 +261,7 @@ object SourceProfileModel {
       sed.toUnnormalizedSed.map { sed =>
         BandNormalized(
           sed,
-          SortedMap.from(brightnesses.map(_.toBandBrightness).fproductLeft(_.band))
+          SortedMap.from(brightnesses.map(_.toBandBrightnessPair.toTuple))
         )
       }
 
@@ -258,6 +279,26 @@ object SourceProfileModel {
 
   }
 
+  final case class WavelengthEmissionLinePair[T](
+    wavelength: Wavelength,
+    line:       EmissionLine[T]
+  ) {
+
+    def toTuple: (Wavelength, EmissionLine[T]) =
+      (wavelength, line)
+  }
+
+  object WavelengthEmissionLinePair {
+
+    implicit def EqWavelengthEmissionLinePair[T]: Eq[WavelengthEmissionLinePair[T]] =
+      Eq.by { a => (
+        a.wavelength,
+        a.line
+      )}
+
+  }
+
+
   // TODO: should lineWidth offer other units?  m/s etc?
   final case class CreateEmissionLineInput[T](
     wavelength: WavelengthModel.Input,
@@ -265,12 +306,14 @@ object SourceProfileModel {
     lineFlux:   CreateMeasureInput[PosBigDecimal, LineFlux[T]]
   ) {
 
-    def toEmissionLine: ValidatedInput[EmissionLine[T]] =
+    def toWavelengthEmissionLinePair: ValidatedInput[WavelengthEmissionLinePair[T]] =
       wavelength.toWavelength("wavelength").map { w =>
-        EmissionLine(
+        WavelengthEmissionLinePair(
           w,
-          Quantity[PosBigDecimal, KilometersPerSecond](lineWidth),
-          lineFlux.toMeasure
+          EmissionLine(
+            Quantity[PosBigDecimal, KilometersPerSecond](lineWidth),
+            lineFlux.toMeasure
+          )
         )
       }
 
@@ -299,12 +342,9 @@ object SourceProfileModel {
 
     def toEmissionLines: ValidatedInput[EmissionLines[T]] =
       lines
-        .traverse(_.toEmissionLine)
+        .traverse(_.toWavelengthEmissionLinePair)
         .map { lst =>
-          EmissionLines(
-            SortedMap.from(lst.fproductLeft(_.wavelength)),
-            fluxDensityContinuum.toMeasure
-          )
+          EmissionLines(SortedMap.from(lst.map(_.toTuple)), fluxDensityContinuum.toMeasure)
         }
 
   }
