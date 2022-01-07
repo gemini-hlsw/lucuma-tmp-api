@@ -119,6 +119,7 @@ trait TargetQuery {
   def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
     List(
       target[F],
+      allScienceTargets[F],
       referencedScienceTargets[F],
       firstScienceTarget[F],
       asterism[F],
