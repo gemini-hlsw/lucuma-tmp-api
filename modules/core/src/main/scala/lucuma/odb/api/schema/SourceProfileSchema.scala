@@ -95,7 +95,7 @@ object SourceProfileSchema {
 
     ObjectType(
       name        = "UnnormalizedSed",
-      description = "Un-normalized spectral energy distribution",
+      description = "Un-normalized spectral energy distribution.  Exactly one of the definitions will be non-null.",
       fieldsFn    = () => fields(
 
         enumField[StellarLibrary, StellarLibrarySpectrum](
@@ -484,7 +484,7 @@ object SourceProfileSchema {
   ): ObjectType[Any, SpectralDefinition[T]] =
     ObjectType(
       name         = s"SpectralDefinition${unitCategoryName.capitalize}",
-      description  = s"Spectral definition ${unitCategoryName.toLowerCase}",
+      description  = s"Spectral definition ${unitCategoryName.toLowerCase}.  Exactly one of the fields will be defined.",
       fieldsFn     = () => spectralDefinitionFields[SpectralDefinition[T], T](identity, bandNormalizedType, emissionLinesType)
     )
 
@@ -505,7 +505,7 @@ object SourceProfileSchema {
   val GaussianType: ObjectType[Any, SourceProfile.Gaussian] =
     ObjectType[Any, SourceProfile.Gaussian](
       name        = "GaussianSource",
-      description = "Gaussian source",
+      description = "Gaussian source, one of bandNormalized and emissionLines will be defined.",
       fieldsFn    = () =>
 
         Field(
@@ -523,7 +523,7 @@ object SourceProfileSchema {
   val SourceProfileType: ObjectType[Any, SourceProfile] =
     ObjectType(
       name        = "SourceProfile",
-      description = "source profile",
+      description = "Source profile, exactly one of the fields will be defined",
       fieldsFn    = () => fields(
 
         Field(
