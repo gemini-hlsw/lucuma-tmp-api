@@ -11,15 +11,14 @@ import lucuma.core.math.{BrightnessValue, Wavelength}
 import lucuma.core.math.BrightnessUnits.{Brightness, FluxDensityContinuum, Integrated, LineFlux, Surface}
 import lucuma.core.math.dimensional.{Measure, Of, Units}
 import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
-import lucuma.core.model.UnnormalizedSED.{BlackBody, CoolStarModel, Galaxy, HIIRegion, Planet, PlanetaryNebula, PowerLaw, Quasar, StellarLibrary, UserDefined}
 import lucuma.core.model.{SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.core.util.Enumerated
 import lucuma.odb.api.model.targetModel.SourceProfileModel.{BandBrightnessPair, CreateBandBrightnessInput, CreateBandNormalizedInput, CreateEmissionLineInput, CreateEmissionLinesInput, CreateGaussianInput, CreateMeasureInput, CreateSourceProfileInput, CreateSpectralDefinitionInput, FluxDensityInput, UnnormalizedSedInput, WavelengthEmissionLinePair}
+import monocle.Prism
 import sangria.schema.{Field, _}
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 
-import scala.reflect.ClassTag
 
 object SourceProfileSchema {
 
@@ -79,123 +78,88 @@ object SourceProfileSchema {
       "Planetary nebula spectrum"
     )
 
-  def UnnormalizedSedType: OutputType[UnnormalizedSED] =
-    UnionType(
+  def UnnormalizedSedType: ObjectType[Any, UnnormalizedSED] = {
+
+    def enumField[A, E](
+      n: String,
+      f: A => E,
+      p: Prism[UnnormalizedSED, A]
+    )(implicit ev: OutputType[E]): Field[Any, UnnormalizedSED] =
+      Field(
+        name       = n,
+        fieldType  = OptionType(ev),
+        resolve    = c => p.getOption(c.value).map(f)
+      )
+
+    import UnnormalizedSED._
+
+    ObjectType(
       name        = "UnnormalizedSed",
-      description = "Un-normalized spectral energy distribution".some,
-      types       = List(
-        StellarLibraryType,
-        CoolStarModelType,
-        GalaxyType,
-        PlanetType,
-        QuasarType,
-        HiiRegionType,
-        PlanetaryNebulaType,
-        PowerLawType,
-        BlackBodyType,
-        UserDefinedType
-      )
-    ).mapValue[UnnormalizedSED](identity)
-
-  private def SpectrumEnumBasedSed[T: ClassTag, E](
-    name:        String,
-    enumType:    EnumType[E],
-    extractEnum: T => E
-  ): ObjectType[Any, T] =
-    ObjectType(
-      name        = name,
+      description = "Un-normalized spectral energy distribution.  Exactly one of the definitions will be non-null.",
       fieldsFn    = () => fields(
 
+        enumField[StellarLibrary, StellarLibrarySpectrum](
+          "stellarLibrary",
+          _.librarySpectrum,
+          stellarLibrary
+        ),
+
+        enumField[CoolStarModel, CoolStarTemperature](
+          "coolStar",
+          _.temperature,
+          coolStarModel
+        ),
+
+        enumField[Galaxy, GalaxySpectrum](
+          "galaxy",
+          _.galaxySpectrum,
+          galaxy
+        ),
+
+        enumField[Planet, PlanetSpectrum](
+          "planet",
+          _.planetSpectrum,
+          planet
+        ),
+
+        enumField[Quasar, QuasarSpectrum](
+          "quasar",
+          _.quasarSpectrum,
+          quasar
+        ),
+
+        enumField[HIIRegion, HIIRegionSpectrum](
+          "hiiRegion",
+          _.hiiRegionSpectrum,
+          hiiRegion
+        ),
+
+        enumField[PlanetaryNebula, PlanetaryNebulaSpectrum](
+          "planetaryNebula",
+          _.planetaryNebulaSpectrum,
+          planetaryNebula
+        ),
+
         Field(
-          name        = "spectrum",
-          fieldType   = enumType,
-          resolve     = c => extractEnum(c.value)
+          name      = "powerLaw",
+          fieldType = OptionType(BigDecimalType),
+          resolve   = c => powerLaw.getOption(c.value).map(_.index)
+        ),
+
+        Field(
+          name      = "blackBodyTempK",
+          fieldType = OptionType(PosBigDecimalType),
+          resolve   = c => blackBody.getOption(c.value).map(_.temperature.value)
+        ),
+
+        Field(
+          name      = "fluxDensities",
+          fieldType = OptionType(ListType(FluxDensityEntryType)),
+          resolve   = c => userDefined.getOption(c.value).map(_.fluxDensities.toNel.toList)
         )
       )
     )
-
-  val StellarLibraryType: ObjectType[Any, StellarLibrary]  =
-    SpectrumEnumBasedSed[StellarLibrary, StellarLibrarySpectrum](
-      "StellarLibrary",
-      EnumTypeStellarLibrarySpectrum,
-      _.librarySpectrum
-    )
-
-  val CoolStarModelType: ObjectType[Any, CoolStarModel] =
-    ObjectType(
-      name        = "CoolStarModel",
-      fieldsFn    = () => fields(
-
-        Field(
-          name      = "temperature",
-          fieldType = EnumTypeCoolStarTemperature,
-          resolve   = _.value.temperature
-        )
-
-      )
-    )
-
-  val GalaxyType: ObjectType[Any, Galaxy]  =
-    SpectrumEnumBasedSed[Galaxy, GalaxySpectrum](
-      "Galaxy",
-      EnumTypeGalaxySpectrum,
-      _.galaxySpectrum
-    )
-
-  val PlanetType: ObjectType[Any, Planet]  =
-    SpectrumEnumBasedSed[Planet, PlanetSpectrum](
-      "Planet",
-      EnumTypePlanetSpectrum,
-      _.planetSpectrum
-    )
-
-  val QuasarType: ObjectType[Any, Quasar]  =
-    SpectrumEnumBasedSed[Quasar, QuasarSpectrum](
-      "Quasar",
-      EnumTypeQuasarSpectrum,
-      _.quasarSpectrum
-    )
-
-  val HiiRegionType: ObjectType[Any, HIIRegion]  =
-    SpectrumEnumBasedSed[HIIRegion, HIIRegionSpectrum](
-      "HiiRegion",
-      EnumTypeHiiRegionSpectrum,
-      _.hiiRegionSpectrum
-    )
-
-  val PlanetaryNebulaType: ObjectType[Any, PlanetaryNebula] =
-    SpectrumEnumBasedSed[PlanetaryNebula, PlanetaryNebulaSpectrum](
-      "PlanetaryNebula",
-      EnumTypePlanetaryNebulaSpectrum,
-      _.planetaryNebulaSpectrum
-    )
-
-  val PowerLawType: ObjectType[Any, PowerLaw] =
-    ObjectType(
-      name        = "PowerLaw",
-      description = "Power law SED",
-      fieldsFn    = () => fields(
-        Field(
-          name        = "index",
-          fieldType   = BigDecimalType,
-          resolve     = _.value.index
-        )
-      )
-    )
-
-  val BlackBodyType: ObjectType[Any, BlackBody] =
-    ObjectType(
-      name        = "BlackBody",
-      description = "Black body SED",
-      fieldsFn    = () => fields(
-        Field(
-          name        = "temperature",
-          description = "Kelvin".some,
-          fieldType   = PosBigDecimalType,
-          resolve     = _.value.temperature.value
-        )
-      )
-    )
+  }
 
   val FluxDensityEntryType: ObjectType[Any, (Wavelength, PosBigDecimal)] =
     ObjectType(
@@ -209,22 +173,9 @@ object SourceProfileSchema {
         ),
 
         Field(
-          name      = "value",
+          name      = "density",
           fieldType = PosBigDecimalType,
           resolve   = _.value._2
-        )
-      )
-    )
-
-  val UserDefinedType: ObjectType[Any, UserDefined] =
-    ObjectType(
-      name        = "UserDefined",
-      description = "User defined SED",
-      fieldsFn    = () => fields(
-        Field(
-          name        = "fluxDensities",
-          fieldType   = ListType(FluxDensityEntryType),
-          resolve     = _.value.fluxDensities.toNel.toList
         )
       )
     )
@@ -505,94 +456,99 @@ object SourceProfileSchema {
       FluxDensityContinuumSurfaceType
     )
 
+  private def spectralDefinitionFields[A, T](
+    get:                A => SpectralDefinition[T],
+    bandNormalizedType: OutputType[BandNormalized[T]],
+    emissionLinesType:  OutputType[EmissionLines[T]]
+  ): List[Field[Any, A]] =
+    List(
+      Field(
+        name        = "bandNormalized",
+        description = "Band normalized spectral definition".some,
+        fieldType   = OptionType(bandNormalizedType),
+        resolve     = c => SpectralDefinition.bandNormalized.getOption(get(c.value))
+      ),
+
+      Field(
+        name        = "emissionLines",
+        description = "Emission lines spectral definition".some,
+        fieldType   = OptionType(emissionLinesType),
+        resolve     = c => SpectralDefinition.emissionLines.getOption(get(c.value))
+      )
+    )
+
   def SpectralDefinitionType[T](
     unitCategoryName: String,
-    bandNormalizedType: ObjectType[Any, BandNormalized[T]],
-    emissionLinesType:  ObjectType[Any, EmissionLines[T]]
-  ): OutputType[SpectralDefinition[T]] =
-    UnionType.apply(
-      name         = s"SpectralDefinition$unitCategoryName",
-      description  = s"Spectral definition ${unitCategoryName.toLowerCase}".some,
-      types        = List(
-        bandNormalizedType,
-        emissionLinesType,
-      )
-    ).mapValue[SpectralDefinition[T]](identity)
+    bandNormalizedType: OutputType[BandNormalized[T]],
+    emissionLinesType:  OutputType[EmissionLines[T]]
+  ): ObjectType[Any, SpectralDefinition[T]] =
+    ObjectType(
+      name         = s"SpectralDefinition${unitCategoryName.capitalize}",
+      description  = s"Spectral definition ${unitCategoryName.toLowerCase}.  Exactly one of the fields will be defined.",
+      fieldsFn     = () => spectralDefinitionFields[SpectralDefinition[T], T](identity, bandNormalizedType, emissionLinesType)
+    )
 
   val SpectralDefinitionIntegrated: OutputType[SpectralDefinition[Integrated]] =
     SpectralDefinitionType[Integrated](
-      "Integrated",
+      "integrated",
       BandNormalizedIntegrated,
       EmissionLinesIntegrated
     )
 
   val SpectralDefinitionSurface: OutputType[SpectralDefinition[Surface]] =
     SpectralDefinitionType[Surface](
-      "Surface",
+      "surface",
       BandNormalizedSurface,
       EmissionLinesSurface
     )
 
-  val PointType: ObjectType[Any, SourceProfile.Point] =
-    ObjectType(
-      name        = "PointSource",
-      description = "Point source",
-      fieldsFn = () => fields(
-         Field(
-           name        = "spectralDefinition",
-           description = "Integrated units".some,
-           fieldType   = SpectralDefinitionIntegrated,
-           resolve     = _.value.spectralDefinition
-         )
-      )
-    )
-
-  val UniformType: ObjectType[Any, SourceProfile.Uniform] =
-    ObjectType(
-      name        = "UniformSource",
-      description = "Uniform source",
-      fieldsFn = () => fields(
-        Field(
-          name         = "spectralDefinition",
-          description  = "Surface units".some,
-          fieldType    = SpectralDefinitionSurface,
-          resolve      = _.value.spectralDefinition
-        )
-      )
-    )
-
   val GaussianType: ObjectType[Any, SourceProfile.Gaussian] =
-    ObjectType(
+    ObjectType[Any, SourceProfile.Gaussian](
       name        = "GaussianSource",
-      description = "Gaussian source",
-      fieldsFn = () => fields(
+      description = "Gaussian source, one of bandNormalized and emissionLines will be defined.",
+      fieldsFn    = () =>
 
         Field(
           name         = "fwhm",
           description  = "full width at half maximum".some,
           fieldType    = AngleType,
-          resolve      = _.value.fwhm
+          resolve      = (c: Context[Any, SourceProfile.Gaussian]) => c.value.fwhm
+        ) :: spectralDefinitionFields[SourceProfile.Gaussian, Integrated](
+               _.spectralDefinition,
+               BandNormalizedIntegrated,
+               EmissionLinesIntegrated
+             )
+    )
+
+  val SourceProfileType: ObjectType[Any, SourceProfile] =
+    ObjectType(
+      name        = "SourceProfile",
+      description = "Source profile, exactly one of the fields will be defined",
+      fieldsFn    = () => fields(
+
+        Field(
+          name        = "point",
+          description = "point source, integrated units".some,
+          fieldType   = OptionType(SpectralDefinitionIntegrated),
+          resolve     = c => SourceProfile.point.getOption(c.value).map(_.spectralDefinition)
         ),
 
         Field(
-          name         = "spectralDefinition",
-          description  = "Integrated units".some,
-          fieldType    = SpectralDefinitionIntegrated,
-          resolve      = _.value.spectralDefinition
+          name        = "uniform",
+          description = "uniform source, surface units".some,
+          fieldType   = OptionType(SpectralDefinitionSurface),
+          resolve     = c => SourceProfile.uniform.getOption(c.value).map(_.spectralDefinition)
+        ),
+
+        Field(
+          name        = "gaussian",
+          description = "gaussian source, integrated units".some,
+          fieldType   = OptionType(GaussianType),
+          resolve     = c => SourceProfile.gaussian.getOption(c.value)
         )
+
       )
     )
-
-  val SourceProfileType: OutputType[SourceProfile] =
-    UnionType(
-      name        = "SourceProfile",
-      description = "source profile".some,
-      types       = List(
-        PointType,
-        UniformType,
-        GaussianType
-      )
-    ).mapValue[SourceProfile](identity)
 
   // Inputs
 
@@ -735,4 +691,8 @@ object SourceProfileSchema {
 
   val ArgumentCreateBandNormalizedIntegrated: Argument[CreateBandNormalizedInput[Integrated]] =
     InputObjectCreateBandNormalizedIntegrated.argument("mag", "magnitude")
+
+  val ArgumentCreateSourceProfile: Argument[CreateSourceProfileInput] =
+    InputObjectCreateSourceProfile.argument("sourceProfile", "source profile description")
+
 }
