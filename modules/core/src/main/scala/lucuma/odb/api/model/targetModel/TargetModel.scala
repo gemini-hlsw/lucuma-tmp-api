@@ -4,13 +4,12 @@
 package lucuma.odb.api.model.targetModel
 
 import cats.{Eq, Monad, Order}
-import cats.data.State
+import cats.data.{EitherNec, StateT}
 import cats.mtl.Stateful
 import cats.syntax.apply._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
-import cats.syntax.traverse._
 import clue.data.Input
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string.NonEmptyString
@@ -18,10 +17,9 @@ import io.circe.Decoder
 import io.circe.refined._
 import io.circe.generic.semiauto._
 import lucuma.core.model.{Program, Target}
-import lucuma.core.optics.state.all._
-import lucuma.core.optics.syntax.lens._
-import lucuma.odb.api.model.{DatabaseState, Event, Existence, TopLevelModel, ValidatedInput}
+import lucuma.odb.api.model.{DatabaseState, Event, Existence, InputError, TopLevelModel, ValidatedInput}
 import lucuma.odb.api.model.syntax.input._
+import lucuma.odb.api.model.syntax.lens._
 import monocle.{Focus, Lens}
 
 
@@ -124,26 +122,26 @@ object TargetModel extends TargetModelOptics {
     nonSidereal: Option[EditNonsiderealInput] = None
   ) {
 
-    def edit(t: TargetModel): ValidatedInput[TargetModel] =
-      editor.map(_.runS(t).value)
+    val editor: StateT[EitherNec[InputError, *], TargetModel, Unit] = {
+      val validArgs =
+        (
+          existence.validateIsNotNull("existence"),
+          name     .validateIsNotNull("name")
+        ).tupled.toEither
 
-    private val editor: ValidatedInput[State[TargetModel, Unit]] =
-      (existence.validateIsNotNull("existence"),
-       name     .validateIsNotNull("name"),
-       sidereal.traverse(_.editor),
-       nonSidereal.traverse(_.editor)
-      ).mapN { (e, n, s, ns) =>
-        for {
-          _ <- TargetModel.existence := e
-          _ <- TargetModel.name      := n
-          _ <- s.fold(State.get[TargetModel].void) { ed =>
-            TargetModel.target.mod_(ed.runS(_).value)
-          }
-          _ <- ns.fold(State.get[TargetModel].void) { ed =>
-            TargetModel.target.mod_(ed.runS(_).value)
-          }
-        } yield ()
-      }
+      def editTarget(s: Option[StateT[EitherNec[InputError, *], Target, Unit]]): StateT[EitherNec[InputError, *], TargetModel, Unit] =
+        s.getOrElse(StateT.empty[EitherNec[InputError, *], Target, Unit])
+         .transformS(_.target, (m, t) => TargetModel.target.replace(t)(m))
+
+      for {
+        args <- StateT.liftF(validArgs)
+        (e, n) = args
+        _ <- TargetModel.existence := e
+        _ <- TargetModel.name      := n
+        _ <- editTarget(sidereal.map(_.editor))
+        _ <- editTarget(nonSidereal.map(_.editor))
+      } yield ()
+    }
 
   }
 

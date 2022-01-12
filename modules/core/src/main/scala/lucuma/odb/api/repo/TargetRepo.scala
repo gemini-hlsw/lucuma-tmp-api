@@ -281,13 +281,15 @@ object TargetRepo {
       }
 
       override def edit(
-        edit: TargetModel.Edit
+        targetEditor: TargetModel.Edit
       ): F[TargetModel] = {
 
         val update: State[Tables, ValidatedInput[TargetModel]] =
           for {
-            initial <- TableState.target.lookupValidated[State[Tables, *]](edit.targetId)
-            edited   = initial.andThen(t => edit.edit(t))
+            initial <- TableState.target.lookupValidated[State[Tables, *]](targetEditor.targetId)
+            edited   = initial.andThen { t =>
+              targetEditor.editor.runS(t).toValidated
+            }
             _       <- edited.fold(
               _ => State.get[Tables].void,
               t => Tables.targets.mod_(m => m + (t.id -> t))
