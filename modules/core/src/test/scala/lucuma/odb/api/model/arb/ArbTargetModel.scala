@@ -25,7 +25,7 @@ import scala.collection.immutable.SortedSet
 
 trait ArbTargetModel {
 
-  import ArbCatalogInfoModel._
+  import ArbCatalogInfoInput._
   import ArbCoordinates._
   import ArbCoordinatesModel._
   import ArbDeclinationModel._
@@ -88,7 +88,7 @@ trait ArbTargetModel {
   implicit val arbCreateSidereal: Arbitrary[CreateSiderealInput] =
     Arbitrary {
       for {
-        cat   <- arbitrary[Option[CatalogInfoModel.EditInput]]
+        cat   <- arbitrary[Option[CatalogInfoInput]]
         ra    <- arbitrary[RightAscensionModel.Input]
         dec   <- arbitrary[DeclinationModel.Input]
         epoch <- arbitrary[Option[Epoch]]
@@ -109,7 +109,7 @@ trait ArbTargetModel {
 
   implicit val cogCreateSidereal: Cogen[CreateSiderealInput] =
     Cogen[(
-      Option[CatalogInfoModel.EditInput],
+      Option[CatalogInfoInput],
       RightAscensionModel.Input,
       DeclinationModel.Input,
       Option[Epoch],
@@ -175,7 +175,7 @@ trait ArbTargetModel {
   implicit val arbEditSidereal: Arbitrary[EditSiderealInput] =
     Arbitrary {
       for {
-        cat   <- arbitrary[Input[CatalogInfoModel.EditInput]]
+        cat   <- arbitrary[Input[CatalogInfoInput]]
         ra    <- arbNotNullableInput[RightAscensionModel.Input].arbitrary
         dec   <- arbNotNullableInput[DeclinationModel.Input].arbitrary
         epoch <- arbNotNullableInput[Epoch].arbitrary
@@ -195,7 +195,7 @@ trait ArbTargetModel {
 
   implicit val cogEditSidereal: Cogen[EditSiderealInput] =
     Cogen[(
-      Input[CatalogInfoModel.EditInput],
+      Input[CatalogInfoInput],
       Input[RightAscensionModel.Input],
       Input[DeclinationModel.Input],
       Input[Epoch],

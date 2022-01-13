@@ -9,26 +9,26 @@ import eu.timepit.refined.types.string.NonEmptyString
 import eu.timepit.refined.scalacheck.all._
 import lucuma.core.`enum`.CatalogName
 import lucuma.core.util.arb.ArbEnumerated
-import lucuma.odb.api.model.CatalogInfoModel.EditInput
+import lucuma.odb.api.model.CatalogInfoInput
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
 
-trait ArbCatalogInfoModel {
+trait ArbCatalogInfoInput {
 
   import ArbEnumerated._
   import ArbInput._
 
-  implicit val arbCatalogIdModelInput: Arbitrary[CatalogInfoModel.EditInput] =
+  implicit val arbCatalogIdModelInput: Arbitrary[CatalogInfoInput] =
     Arbitrary {
       for {
         n <- arbitrary[Input[CatalogName]]
         i <- arbitrary[Input[NonEmptyString]]
         t <- arbitrary[Input[NonEmptyString]]
-      } yield EditInput(n, i, t)
+      } yield CatalogInfoInput(n, i, t)
     }
 
-  implicit val cogCatalogIdModelInput: Cogen[CatalogInfoModel.EditInput] =
+  implicit val cogCatalogIdModelInput: Cogen[CatalogInfoInput] =
     Cogen[(
       Input[CatalogName],
       Input[NonEmptyString],
@@ -41,4 +41,4 @@ trait ArbCatalogInfoModel {
 
 }
 
-object ArbCatalogInfoModel extends ArbCatalogInfoModel
+object ArbCatalogInfoInput extends ArbCatalogInfoInput

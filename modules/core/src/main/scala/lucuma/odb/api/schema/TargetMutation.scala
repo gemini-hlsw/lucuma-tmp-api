@@ -8,7 +8,7 @@ import cats.effect.std.Dispatcher
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
-import lucuma.odb.api.model.{CatalogInfoModel, CoordinatesModel, DeclinationModel, ObservationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
+import lucuma.odb.api.model.{CatalogInfoInput, CoordinatesModel, DeclinationModel, ObservationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
 import lucuma.odb.api.model.targetModel.{CreateNonsiderealInput, CreateSiderealInput, EditAsterismInput, EditNonsiderealInput, EditSiderealInput, TargetEnvironmentModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
@@ -60,8 +60,8 @@ trait TargetMutation extends TargetScalars {
       "Unit options for parallax values"
     )
 
-  implicit val InputObjectCatalogInfo: InputObjectType[CatalogInfoModel.EditInput] =
-    deriveInputObjectType[CatalogInfoModel.EditInput](
+  implicit val InputObjectCatalogInfo: InputObjectType[CatalogInfoInput] =
+    deriveInputObjectType[CatalogInfoInput](
       InputObjectTypeName("CatalogInfoInput"),
       InputObjectTypeDescription("Catalog id consisting of catalog name, string identifier and an optional object type"),
       ReplaceInputField("name",       EnumTypeCatalogName.notNullableField("name")),

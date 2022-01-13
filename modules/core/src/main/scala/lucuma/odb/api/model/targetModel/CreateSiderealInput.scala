@@ -12,14 +12,14 @@ import io.circe.Decoder
 import io.circe.generic.semiauto._
 import lucuma.core.math.{Coordinates, Epoch}
 import lucuma.core.model.{SiderealTracking, SourceProfile, Target}
-import lucuma.odb.api.model.{CatalogInfoModel, DeclinationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel, ValidatedInput}
+import lucuma.odb.api.model.{CatalogInfoInput, DeclinationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel, ValidatedInput}
 import lucuma.odb.api.model.json.target._
 
 /**
  * Describes input used to create a sidereal target.
  */
 final case class CreateSiderealInput(
-  catalogInfo:    Option[CatalogInfoModel.EditInput],
+  catalogInfo:    Option[CatalogInfoInput],
   ra:             RightAscensionModel.Input,
   dec:            DeclinationModel.Input,
   epoch:          Option[Epoch],

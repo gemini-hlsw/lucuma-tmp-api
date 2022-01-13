@@ -11,14 +11,14 @@ import eu.timepit.refined.cats._
 import io.circe.Decoder
 import lucuma.core.math.Epoch
 import lucuma.core.model.Target
-import lucuma.odb.api.model.{CatalogInfoModel, DeclinationModel, InputError, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
+import lucuma.odb.api.model.{CatalogInfoInput, DeclinationModel, InputError, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
 import lucuma.odb.api.model.json.target._
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.optional._
 
 
 final case class EditSiderealInput(
-  catalogInfo:      Input[CatalogInfoModel.EditInput] = Input.ignore,
+  catalogInfo:      Input[CatalogInfoInput]           = Input.ignore,
   ra:               Input[RightAscensionModel.Input]  = Input.ignore,
   dec:              Input[DeclinationModel.Input]     = Input.ignore,
   epoch:            Input[Epoch]                      = Input.ignore,

@@ -11,7 +11,7 @@ import munit.DisciplineSuite
 
 final class TargetModelSuite extends DisciplineSuite {
 
-  import ArbCatalogInfoModel._
+  import ArbCatalogInfoInput._
   import ArbCoordinatesModel._
   import ArbDeclinationModel._
   import ArbEnumerated._
@@ -21,7 +21,7 @@ final class TargetModelSuite extends DisciplineSuite {
   import ArbRightAscensionModel._
   import ArbTargetModel._
 
-  checkAll("CatalogIdModel.Input", EqTests[CatalogInfoModel.EditInput].eqv)
+  checkAll("CatalogIdModel.Input", EqTests[CatalogInfoInput].eqv)
   checkAll("CoordinatesModel.Input", EqTests[CoordinatesModel.Input].eqv)
   checkAll("DeclinationModel.Input", EqTests[DeclinationModel.Input].eqv)
   checkAll("ParallaxModel.Input", EqTests[ParallaxModel.Input].eqv)
