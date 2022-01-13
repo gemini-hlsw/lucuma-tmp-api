@@ -11,7 +11,7 @@ import eu.timepit.refined.cats._
 import io.circe.Decoder
 import lucuma.core.math.Epoch
 import lucuma.core.model.Target
-import lucuma.odb.api.model.{CatalogInfoInput, DeclinationModel, InputError, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
+import lucuma.odb.api.model.{DeclinationModel, InputError, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
 import lucuma.odb.api.model.json.target._
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.optional._

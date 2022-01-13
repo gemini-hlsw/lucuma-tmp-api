@@ -1,7 +1,7 @@
 // Copyright (c) 2016-2022 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
-package lucuma.odb.api.model
+package lucuma.odb.api.model.targetModel
 
 import cats.Eq
 import cats.data.{EitherNec, StateT}
@@ -12,11 +12,11 @@ import eu.timepit.refined.cats._
 import eu.timepit.refined.types.all.NonEmptyString
 import io.circe.Decoder
 import io.circe.refined._
-import io.circe.generic.semiauto.deriveDecoder
 import lucuma.core.`enum`.CatalogName
 import lucuma.core.model.CatalogInfo
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
+import lucuma.odb.api.model.{InputError, ValidatedInput}
 
 final case class CatalogInfoInput(
   name:       Input[CatalogName]    = Input.ignore,
@@ -49,11 +49,8 @@ final case class CatalogInfoInput(
 
 object CatalogInfoInput {
 
-  implicit val DecoderCatalogInfo: Decoder[CatalogInfo] =
-    deriveDecoder[CatalogInfo]
-
-  import io.circe.generic.extras.semiauto._
   import io.circe.generic.extras.Configuration
+  import io.circe.generic.extras.semiauto._
   implicit val customConfig: Configuration = Configuration.default.withDefaults
 
   implicit val DecoderEdit: Decoder[CatalogInfoInput] =

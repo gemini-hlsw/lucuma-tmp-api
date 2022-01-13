@@ -9,7 +9,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import eu.timepit.refined.scalacheck.all._
 import lucuma.core.`enum`.CatalogName
 import lucuma.core.util.arb.ArbEnumerated
-import lucuma.odb.api.model.CatalogInfoInput
+import lucuma.odb.api.model.targetModel.CatalogInfoInput
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 

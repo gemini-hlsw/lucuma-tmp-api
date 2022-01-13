@@ -10,13 +10,14 @@ import cats.syntax.apply._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
-import clue.data.Input
+import cats.syntax.traverse._
+import clue.data.{Assign, Ignore, Input, Unassign}
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.refined._
 import io.circe.generic.semiauto._
-import lucuma.core.model.{Program, Target}
+import lucuma.core.model.{AngularSize, Program, Target}
 import lucuma.odb.api.model.{DatabaseState, Event, Existence, InputError, TopLevelModel, ValidatedInput}
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
@@ -67,7 +68,8 @@ object TargetModel extends TargetModelOptics {
     name:          NonEmptyString,
     sourceProfile: CreateSourceProfileInput,
     sidereal:      Option[CreateSiderealInput],
-    nonsidereal:   Option[CreateNonsiderealInput]
+    nonsidereal:   Option[CreateNonsiderealInput],
+    angularSize:   Option[AngularSizeInput]
   ) {
 
     def create[F[_]: Monad, T](
@@ -79,9 +81,10 @@ object TargetModel extends TargetModelOptics {
         i  <- db.target.getUnusedId(targetId)
         p  <- db.program.lookupValidated(programId)
         sp <- S.monad.pure(sourceProfile.toSourceProfile)
+        a  <- S.monad.pure(angularSize.traverse(_.create))
         t  = ValidatedInput.requireOne("target",
-          sidereal.map(_.toGemTarget(name, sp)),
-          nonsidereal.map(_.toGemTarget(name, sp))
+          sidereal.map(_.toGemTarget(name, sp, a)),
+          nonsidereal.map(_.toGemTarget(name, sp, a))
         )
         tm = (i, p, t).mapN { (iʹ, _, tʹ) =>
           TargetModel(iʹ, Existence.Present, programId, tʹ, observed = false)
@@ -99,7 +102,7 @@ object TargetModel extends TargetModelOptics {
       sourceProfile: CreateSourceProfileInput,
       input:         CreateSiderealInput
     ): Create =
-      Create(targetId, name, sourceProfile, input.some, None)
+      Create(targetId, name, sourceProfile, input.some, None, None)
 
     def nonsidereal(
       targetId:      Option[Target.Id],
@@ -107,7 +110,7 @@ object TargetModel extends TargetModelOptics {
       sourceProfile: CreateSourceProfileInput,
       input:         CreateNonsiderealInput
     ): Create =
-      Create(targetId, name, sourceProfile, None, input.some)
+      Create(targetId, name, sourceProfile, None, input.some, None)
 
     implicit val DecoderCreate: Decoder[Create] =
       deriveDecoder[Create]
@@ -118,7 +121,8 @@ object TargetModel extends TargetModelOptics {
         a.name,
         a.sourceProfile,
         a.sidereal,
-        a.nonsidereal
+        a.nonsidereal,
+        a.angularSize
       )}
   }
 
@@ -127,7 +131,8 @@ object TargetModel extends TargetModelOptics {
     existence:   Input[Existence]             = Input.ignore,
     name:        Input[NonEmptyString]        = Input.ignore,
     sidereal:    Option[EditSiderealInput]    = None,
-    nonSidereal: Option[EditNonsiderealInput] = None
+    nonSidereal: Option[EditNonsiderealInput] = None,
+    angularSize: Input[AngularSizeInput]      = Input.ignore
   ) {
 
     val editor: StateT[EitherNec[InputError, *], TargetModel, Unit] = {
@@ -141,6 +146,27 @@ object TargetModel extends TargetModelOptics {
         s.getOrElse(StateT.empty[EitherNec[InputError, *], Target, Unit])
          .transformS(_.target, (m, t) => TargetModel.target.replace(t)(m))
 
+      val stateAngularSize: StateT[EitherNec[InputError, *], Target, Unit] =
+        angularSize match {
+          // Do nothing
+          case Ignore         =>
+            StateT.empty[EitherNec[InputError, *], Target, Unit]
+
+          // Remove angular size
+          case Unassign       =>
+            (Target.angularSize := Option.empty[AngularSize]).void
+
+          // Create or edit, depending on whether it already exists
+          case Assign(editor) =>
+            StateT.modifyF[EitherNec[InputError, *], Target] { t =>
+              Target
+                .angularSize
+                .modifyF[EitherNec[InputError, *]](
+                  _.fold(editor.create.toEither)(as => editor.edit.runS(as)).map(_.some)
+                )(t)
+            }
+        }
+
       for {
         args <- StateT.liftF(validArgs)
         (e, n) = args
@@ -148,6 +174,7 @@ object TargetModel extends TargetModelOptics {
         _ <- TargetModel.name      := n
         _ <- editTarget(sidereal.map(_.editor))
         _ <- editTarget(nonSidereal.map(_.editor))
+        _ <- stateAngularSize.transformS[TargetModel](_.target, (m, t) => TargetModel.target.replace(t)(m))
       } yield ()
     }
 

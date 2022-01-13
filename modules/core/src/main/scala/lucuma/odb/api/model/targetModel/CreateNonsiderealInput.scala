@@ -11,7 +11,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import lucuma.core.`enum`.EphemerisKeyType
-import lucuma.core.model.{EphemerisKey, SourceProfile, Target}
+import lucuma.core.model.{AngularSize, EphemerisKey, SourceProfile, Target}
 import lucuma.odb.api.model.{InputError, ValidatedInput}
 
 /**
@@ -30,15 +30,16 @@ final case class CreateNonsiderealInput(
 
   def toGemTarget(
     name:          NonEmptyString,
-    sourceProfile: ValidatedInput[SourceProfile]
+    sourceProfile: ValidatedInput[SourceProfile],
+    angularSize:   ValidatedInput[Option[AngularSize]]
   ): ValidatedInput[Target] =
-    (toEphemerisKey, sourceProfile).mapN { (k, s) =>
+    (toEphemerisKey, sourceProfile, angularSize).mapN { (k, s, a) =>
 
       Target.Nonsidereal(
         name,
         k,
         s,
-        None
+        a
       )
     }
 

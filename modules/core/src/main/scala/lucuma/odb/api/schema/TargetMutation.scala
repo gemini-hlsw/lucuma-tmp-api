@@ -8,8 +8,8 @@ import cats.effect.std.Dispatcher
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
-import lucuma.odb.api.model.{CatalogInfoInput, CoordinatesModel, DeclinationModel, ObservationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
-import lucuma.odb.api.model.targetModel.{CreateNonsiderealInput, CreateSiderealInput, EditAsterismInput, EditNonsiderealInput, EditSiderealInput, TargetEnvironmentModel, TargetModel}
+import lucuma.odb.api.model.{CoordinatesModel, DeclinationModel, ObservationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
+import lucuma.odb.api.model.targetModel.{AngularSizeInput, CatalogInfoInput, CreateNonsiderealInput, CreateSiderealInput, EditAsterismInput, EditNonsiderealInput, EditSiderealInput, TargetEnvironmentModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
 import lucuma.core.model.Target
@@ -21,6 +21,7 @@ import sangria.schema._
 trait TargetMutation extends TargetScalars {
 
   import context._
+  import AngleSchema.InputObjectAngle
   import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
   import NumericUnitsSchema._
   import ProgramSchema.ProgramIdArgument
@@ -67,6 +68,12 @@ trait TargetMutation extends TargetScalars {
       ReplaceInputField("name",       EnumTypeCatalogName.notNullableField("name")),
       ReplaceInputField("id",         NonEmptyStringType.notNullableField("id")),
       ReplaceInputField("objectType", NonEmptyStringType.nullableField("objectType"))
+    )
+
+  implicit val InputObjectAngularSize: InputObjectType[AngularSizeInput] =
+    deriveInputObjectType[AngularSizeInput](
+      InputObjectTypeName("AngularSizeInput"),
+      InputObjectTypeDescription("Angular size inputs")
     )
 
   implicit val InputObjectTypeCoordinates: InputObjectType[CoordinatesModel.Input] =
@@ -175,7 +182,8 @@ trait TargetMutation extends TargetScalars {
         InputField("existence",   OptionInputType(EnumTypeExistence)),
         InputField("name",        OptionInputType(NonEmptyStringType)),
         InputField("sidereal",    OptionInputType(InputObjectTypeEditSidereal)),
-        InputField("nonSidereal", OptionInputType(InputObjectTypeEditNonsidereal))
+        InputField("nonSidereal", OptionInputType(InputObjectTypeEditNonsidereal)),
+        InputField("angularSize", OptionInputType(InputObjectAngularSize))
       )
     )
   }
