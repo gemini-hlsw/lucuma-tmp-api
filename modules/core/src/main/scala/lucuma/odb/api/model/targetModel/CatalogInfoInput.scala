@@ -16,20 +16,20 @@ import lucuma.core.`enum`.CatalogName
 import lucuma.core.model.CatalogInfo
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
-import lucuma.odb.api.model.{InputError, ValidatedInput}
+import lucuma.odb.api.model.{InputError, NullableInput, ValidatedInput}
 
 final case class CatalogInfoInput(
   name:       Input[CatalogName]    = Input.ignore,
   id:         Input[NonEmptyString] = Input.ignore,
   objectType: Input[NonEmptyString] = Input.ignore
-) {
+) extends NullableInput[CatalogInfo] {
 
-  val create: ValidatedInput[CatalogInfo] =
+  override val create: ValidatedInput[CatalogInfo] =
     (name.toOption.toValidNec(InputError.missingInput("catalog 'name'")),
      id.toOption.toValidNec(InputError.missingInput("catalog 'id'"))
     ).mapN { (n, i) => CatalogInfo(n, i, objectType.toOption) }
 
-  val edit: StateT[EitherNec[InputError, *], CatalogInfo, Unit] = {
+  override val edit: StateT[EitherNec[InputError, *], CatalogInfo, Unit] = {
     val validArgs =
       (
         name.validateIsNotNull("name"),

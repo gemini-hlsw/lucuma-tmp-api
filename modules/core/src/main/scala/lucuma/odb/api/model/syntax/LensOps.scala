@@ -9,6 +9,9 @@ import monocle.Lens
 
 final class LensOps[S, A](val self: Lens[S, A]) extends AnyVal {
 
+  def transform(st: StateT[EitherInput, A, Unit]): StateT[EitherInput, S, Unit] =
+    st.transformS[S](self.get, (s, a) => self.replace(a)(s))
+
   def toState: StateT[EitherInput, S, A] =
     StateT(s => Right((s, self.get(s))))
 

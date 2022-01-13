@@ -11,14 +11,14 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
 import cats.syntax.traverse._
-import clue.data.{Assign, Ignore, Input, Unassign}
+import clue.data.Input
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.refined._
 import io.circe.generic.semiauto._
-import lucuma.core.model.{AngularSize, Program, Target}
-import lucuma.odb.api.model.{DatabaseState, Event, Existence, InputError, TopLevelModel, ValidatedInput}
+import lucuma.core.model.{Program, Target}
+import lucuma.odb.api.model.{DatabaseState, Event, Existence, InputError, NullableInput, TopLevelModel, ValidatedInput}
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.targetModel.SourceProfileModel.CreateSourceProfileInput
@@ -143,29 +143,7 @@ object TargetModel extends TargetModelOptics {
         ).tupled.toEither
 
       def editTarget(s: Option[StateT[EitherNec[InputError, *], Target, Unit]]): StateT[EitherNec[InputError, *], TargetModel, Unit] =
-        s.getOrElse(StateT.empty[EitherNec[InputError, *], Target, Unit])
-         .transformS(_.target, (m, t) => TargetModel.target.replace(t)(m))
-
-      val stateAngularSize: StateT[EitherNec[InputError, *], Target, Unit] =
-        angularSize match {
-          // Do nothing
-          case Ignore         =>
-            StateT.empty[EitherNec[InputError, *], Target, Unit]
-
-          // Remove angular size
-          case Unassign       =>
-            (Target.angularSize := Option.empty[AngularSize]).void
-
-          // Create or edit, depending on whether it already exists
-          case Assign(editor) =>
-            StateT.modifyF[EitherNec[InputError, *], Target] { t =>
-              Target
-                .angularSize
-                .modifyF[EitherNec[InputError, *]](
-                  _.fold(editor.create.toEither)(as => editor.edit.runS(as)).map(_.some)
-                )(t)
-            }
-        }
+        TargetModel.target.transform(s.getOrElse(StateT.empty[EitherNec[InputError, *], Target, Unit]))
 
       for {
         args <- StateT.liftF(validArgs)
@@ -174,7 +152,9 @@ object TargetModel extends TargetModelOptics {
         _ <- TargetModel.name      := n
         _ <- editTarget(sidereal.map(_.editor))
         _ <- editTarget(nonSidereal.map(_.editor))
-        _ <- stateAngularSize.transformS[TargetModel](_.target, (m, t) => TargetModel.target.replace(t)(m))
+        _ <- TargetModel.target.transform(
+               NullableInput.update(Target.angularSize.asOptional, angularSize)
+             )
       } yield ()
     }
 

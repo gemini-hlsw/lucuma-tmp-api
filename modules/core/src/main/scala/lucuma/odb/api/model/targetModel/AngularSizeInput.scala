@@ -12,22 +12,22 @@ import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import lucuma.core.model.AngularSize
 import lucuma.odb.api.model.AngleModel.AngleInput
-import lucuma.odb.api.model.{InputError, ValidatedInput}
+import lucuma.odb.api.model.{InputError, NullableInput, ValidatedInput}
 import lucuma.odb.api.model.syntax.lens._
 
 final case class AngularSizeInput(
   majorAxis: Option[AngleInput],
   minorAxis: Option[AngleInput]
-) {
+) extends NullableInput[AngularSize] {
 
-  val create: ValidatedInput[AngularSize] =
+  override val create: ValidatedInput[AngularSize] =
     (majorAxis.toValidNec(InputError.missingInput("majorAxis")),
      minorAxis.toValidNec(InputError.missingInput("minorAxis"))
     ).tupled.andThen { case (j, n) =>
       (j.toAngle, n.toAngle).mapN((ja, na) => AngularSize(ja, na))
     }
 
-  val edit: StateT[EitherNec[InputError, *], AngularSize, Unit] =
+  override val edit: StateT[EitherNec[InputError, *], AngularSize, Unit] =
     for {
       args  <- StateT.liftF((majorAxis.traverse(_.toAngle), minorAxis.traverse(_.toAngle)).tupled.toEither)
       (j, n) = args

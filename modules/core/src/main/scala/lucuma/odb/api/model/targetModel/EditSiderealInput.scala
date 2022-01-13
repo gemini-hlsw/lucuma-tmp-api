@@ -6,12 +6,12 @@ package lucuma.odb.api.model.targetModel
 import cats.Eq
 import cats.data.{EitherNec, StateT}
 import cats.syntax.all._
-import clue.data.{Assign, Ignore, Input, Unassign}
+import clue.data.Input
 import eu.timepit.refined.cats._
 import io.circe.Decoder
 import lucuma.core.math.Epoch
 import lucuma.core.model.Target
-import lucuma.odb.api.model.{DeclinationModel, InputError, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
+import lucuma.odb.api.model.{DeclinationModel, InputError, NullableInput, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
 import lucuma.odb.api.model.json.target._
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.optional._
@@ -42,26 +42,7 @@ final case class EditSiderealInput(
       args <- StateT.liftF(validArgs)
       (r, d, e, pm, rv, px) = args
 
-      _ <- catalogInfo match {
-        // Don't change the catalog info
-        case Ignore         =>
-          StateT.empty[EitherNec[InputError, *], Target, Unit]
-
-        // Remove existing catalog info
-        case Unassign       =>
-          Target.catalogInfo := Some(None)
-
-        // Either create a new one (if there isn't one, or edit the existing one)
-        case Assign(editor) =>
-          StateT.modifyF[EitherNec[InputError, *], Target] { t =>
-            Target
-              .catalogInfo
-              .modifyA[EitherNec[InputError, *]] {
-                _.fold(editor.create.toEither)(ci => editor.edit.runS(ci)).map(_.some)
-              }(t)
-          }
-      }
-
+      _ <- NullableInput.update(Target.catalogInfo, catalogInfo)
       _ <- Target.baseRA         := r
       _ <- Target.baseDec        := d
       _ <- Target.epoch          := e
