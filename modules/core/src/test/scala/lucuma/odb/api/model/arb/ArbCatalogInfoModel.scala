@@ -4,22 +4,41 @@
 package lucuma.odb.api.model
 package arb
 
-import lucuma.core.model.CatalogInfo
-import lucuma.core.model.arb.ArbCatalogInfo._
-
+import clue.data.Input
+import eu.timepit.refined.types.string.NonEmptyString
+import eu.timepit.refined.scalacheck.all._
+import lucuma.core.`enum`.CatalogName
+import lucuma.core.util.arb.ArbEnumerated
+import lucuma.odb.api.model.CatalogInfoModel.EditInput
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
 
 trait ArbCatalogInfoModel {
 
-  implicit val arbCatalogIdModelInput: Arbitrary[CatalogInfoModel.Input] =
+  import ArbEnumerated._
+  import ArbInput._
+
+  implicit val arbCatalogIdModelInput: Arbitrary[CatalogInfoModel.EditInput] =
     Arbitrary {
-      arbitrary[CatalogInfo].map(id => CatalogInfoModel.Input(id.catalog, id.id.value))
+      for {
+        n <- arbitrary[Input[CatalogName]]
+        i <- arbitrary[Input[NonEmptyString]]
+        t <- arbitrary[Input[NonEmptyString]]
+      } yield EditInput(n, i, t)
     }
 
-  implicit val cogCatalogIdModelInput: Cogen[CatalogInfoModel.Input] =
-    Cogen[CatalogInfo].contramap(i => CatalogInfo(i.name, i.id).get)
+  implicit val cogCatalogIdModelInput: Cogen[CatalogInfoModel.EditInput] =
+    Cogen[(
+      Input[CatalogName],
+      Input[NonEmptyString],
+      Input[NonEmptyString]
+    )].contramap { a => (
+      a.name,
+      a.id,
+      a.objectType
+    )}
+
 }
 
 object ArbCatalogInfoModel extends ArbCatalogInfoModel

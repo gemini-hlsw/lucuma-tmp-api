@@ -3,8 +3,9 @@
 
 package lucuma.odb.api.model
 
-import lucuma.odb.api.model.arb._
 import cats.kernel.laws.discipline.EqTests
+import lucuma.core.util.arb.ArbEnumerated
+import lucuma.odb.api.model.arb._
 import lucuma.odb.api.model.targetModel._
 import munit.DisciplineSuite
 
@@ -13,13 +14,14 @@ final class TargetModelSuite extends DisciplineSuite {
   import ArbCatalogInfoModel._
   import ArbCoordinatesModel._
   import ArbDeclinationModel._
+  import ArbEnumerated._
   import ArbParallaxModel._
   import ArbProperMotionModel._
   import ArbRadialVelocityModel._
   import ArbRightAscensionModel._
   import ArbTargetModel._
 
-  checkAll("CatalogIdModel.Input", EqTests[CatalogInfoModel.Input].eqv)
+  checkAll("CatalogIdModel.Input", EqTests[CatalogInfoModel.EditInput].eqv)
   checkAll("CoordinatesModel.Input", EqTests[CoordinatesModel.Input].eqv)
   checkAll("DeclinationModel.Input", EqTests[DeclinationModel.Input].eqv)
   checkAll("ParallaxModel.Input", EqTests[ParallaxModel.Input].eqv)

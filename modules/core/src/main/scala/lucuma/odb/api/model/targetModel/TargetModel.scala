@@ -20,6 +20,7 @@ import lucuma.core.model.{Program, Target}
 import lucuma.odb.api.model.{DatabaseState, Event, Existence, InputError, TopLevelModel, ValidatedInput}
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
+import lucuma.odb.api.model.targetModel.SourceProfileModel.CreateSourceProfileInput
 import monocle.{Focus, Lens}
 
 
@@ -54,6 +55,7 @@ object TargetModel extends TargetModelOptics {
       (
         a.id,
         a.existence,
+        a.programId,
         a.target,
         a.observed
       )
@@ -61,22 +63,25 @@ object TargetModel extends TargetModelOptics {
   }
 
   final case class Create(
-    targetId:    Option[Target.Id],
-    programId:   Program.Id,
-    sidereal:    Option[CreateSiderealInput],
-    nonsidereal: Option[CreateNonsiderealInput]
+    targetId:      Option[Target.Id],
+    name:          NonEmptyString,
+    sourceProfile: CreateSourceProfileInput,
+    sidereal:      Option[CreateSiderealInput],
+    nonsidereal:   Option[CreateNonsiderealInput]
   ) {
 
     def create[F[_]: Monad, T](
-      db:   DatabaseState[T]
+      programId: Program.Id,
+      db:        DatabaseState[T]
     )(implicit S: Stateful[F, T]): F[ValidatedInput[TargetModel]] =
 
       for {
-        i <- db.target.getUnusedId(targetId)
-        p <- db.program.lookupValidated(programId)
+        i  <- db.target.getUnusedId(targetId)
+        p  <- db.program.lookupValidated(programId)
+        sp <- S.monad.pure(sourceProfile.toSourceProfile)
         t  = ValidatedInput.requireOne("target",
-          sidereal.map(_.toGemTarget),
-          nonsidereal.map(_.toGemTarget)
+          sidereal.map(_.toGemTarget(name, sp)),
+          nonsidereal.map(_.toGemTarget(name, sp))
         )
         tm = (i, p, t).mapN { (iʹ, _, tʹ) =>
           TargetModel(iʹ, Existence.Present, programId, tʹ, observed = false)
@@ -89,18 +94,20 @@ object TargetModel extends TargetModelOptics {
   object Create {
 
     def sidereal(
-      targetId:  Option[Target.Id],
-      programId: Program.Id,
-      input:     CreateSiderealInput
+      targetId:      Option[Target.Id],
+      name:          NonEmptyString,
+      sourceProfile: CreateSourceProfileInput,
+      input:         CreateSiderealInput
     ): Create =
-      Create(targetId, programId, input.some, None)
+      Create(targetId, name, sourceProfile, input.some, None)
 
     def nonsidereal(
-      targetId:  Option[Target.Id],
-      programId: Program.Id,
-      input:     CreateNonsiderealInput
+      targetId:      Option[Target.Id],
+      name:          NonEmptyString,
+      sourceProfile: CreateSourceProfileInput,
+      input:         CreateNonsiderealInput
     ): Create =
-      Create(targetId, programId, None, input.some)
+      Create(targetId, name, sourceProfile, None, input.some)
 
     implicit val DecoderCreate: Decoder[Create] =
       deriveDecoder[Create]
@@ -108,7 +115,8 @@ object TargetModel extends TargetModelOptics {
     implicit val EqCreate: Eq[Create] =
       Eq.by { a => (
         a.targetId,
-        a.programId,
+        a.name,
+        a.sourceProfile,
         a.sidereal,
         a.nonsidereal
       )}

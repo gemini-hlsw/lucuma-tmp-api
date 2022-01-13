@@ -23,7 +23,7 @@ trait TargetMutation extends TargetScalars {
   import context._
   import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
   import NumericUnitsSchema._
-  import ProgramSchema.ProgramIdType
+  import ProgramSchema.ProgramIdArgument
   import SourceProfileSchema.InputObjectCreateSourceProfile
   import TargetSchema.{EnumTypeCatalogName, EphemerisKeyTypeEnumType, ArgumentTargetId, TargetIdType, TargetType}
 
@@ -60,10 +60,13 @@ trait TargetMutation extends TargetScalars {
       "Unit options for parallax values"
     )
 
-  implicit val InputObjectCatalogId: InputObjectType[CatalogInfoModel.Input] =
-    deriveInputObjectType[CatalogInfoModel.Input](
-      InputObjectTypeName("CatalogIdInput"),
-      InputObjectTypeDescription("Catalog id consisting of catalog name and string identifier")
+  implicit val InputObjectCatalogInfo: InputObjectType[CatalogInfoModel.EditInput] =
+    deriveInputObjectType[CatalogInfoModel.EditInput](
+      InputObjectTypeName("CatalogInfoInput"),
+      InputObjectTypeDescription("Catalog id consisting of catalog name, string identifier and an optional object type"),
+      ReplaceInputField("name",       EnumTypeCatalogName.notNullableField("name")),
+      ReplaceInputField("id",         NonEmptyStringType.notNullableField("id")),
+      ReplaceInputField("objectType", NonEmptyStringType.nullableField("objectType"))
     )
 
   implicit val InputObjectTypeCoordinates: InputObjectType[CoordinatesModel.Input] =
@@ -146,7 +149,7 @@ trait TargetMutation extends TargetScalars {
       InputObjectTypeName("EditSiderealInput"),
       InputObjectTypeDescription("Sidereal target edit parameters"),
 
-      ReplaceInputField("catalogInfo",    InputObjectCatalogId     .nullableField("catalogId"     )),
+      ReplaceInputField("catalogInfo",    InputObjectCatalogInfo     .nullableField("catalogInfo"   )),
       ReplaceInputField("ra",             InputObjectRightAscension.notNullableField("ra"         )),
       ReplaceInputField("dec",            InputObjectDeclination   .notNullableField("dec"        )),
       ReplaceInputField("epoch",          EpochStringType          .notNullableField("epoch"      )),
@@ -225,8 +228,8 @@ trait TargetMutation extends TargetScalars {
       name        = "createTarget",
       fieldType   = TargetType[F],
       description = "Creates a new target according to the provided parameters.  Only one of sidereal or nonsidereal may be specified.".some,
-      arguments   = List(ArgumentTargetCreate),
-      resolve     = c => c.target(_.insert(c.arg(ArgumentTargetCreate)))
+      arguments   = List(ProgramIdArgument, ArgumentTargetCreate),
+      resolve     = c => c.target(_.insert(c.programId, c.arg(ArgumentTargetCreate)))
     )
 
   def cloneTarget[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] = {

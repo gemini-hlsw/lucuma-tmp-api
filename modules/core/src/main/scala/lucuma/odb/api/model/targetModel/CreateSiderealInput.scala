@@ -10,26 +10,22 @@ import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.generic.semiauto._
-import io.circe.refined._
 import lucuma.core.math.{Coordinates, Epoch}
-import lucuma.core.model.{SiderealTracking, Target}
+import lucuma.core.model.{SiderealTracking, SourceProfile, Target}
 import lucuma.odb.api.model.{CatalogInfoModel, DeclinationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel, ValidatedInput}
 import lucuma.odb.api.model.json.target._
-import lucuma.odb.api.model.targetModel.SourceProfileModel.CreateSourceProfileInput
 
 /**
  * Describes input used to create a sidereal target.
  */
 final case class CreateSiderealInput(
-  name:           NonEmptyString,
-  catalogInfo:    Option[CatalogInfoModel.Input],
+  catalogInfo:    Option[CatalogInfoModel.EditInput],
   ra:             RightAscensionModel.Input,
   dec:            DeclinationModel.Input,
   epoch:          Option[Epoch],
   properMotion:   Option[ProperMotionModel.Input],
   radialVelocity: Option[RadialVelocityModel.Input],
-  parallax:       Option[ParallaxModel.Input],
-  sourceProfile:  CreateSourceProfileInput
+  parallax:       Option[ParallaxModel.Input]
 ) {
 
   val toSiderealTracking: ValidatedInput[SiderealTracking] =
@@ -48,10 +44,13 @@ final case class CreateSiderealInput(
       )
     }
 
-  val toGemTarget: ValidatedInput[Target] =
-    (catalogInfo.traverse(_.toCatalogInfo),
+  def toGemTarget(
+    name:          NonEmptyString,
+    sourceProfile: ValidatedInput[SourceProfile]
+  ): ValidatedInput[Target] =
+    (catalogInfo.traverse(_.create),
      toSiderealTracking,
-     sourceProfile.toSourceProfile
+     sourceProfile
     ).mapN { (ci, pm, sp) =>
       Target.Sidereal(
         name,
@@ -67,21 +66,17 @@ final case class CreateSiderealInput(
 object CreateSiderealInput {
 
   def fromRaDec(
-    name:   NonEmptyString,
-    ra:     RightAscensionModel.Input,
-    dec:    DeclinationModel.Input,
-    source: CreateSourceProfileInput
+    ra:  RightAscensionModel.Input,
+    dec: DeclinationModel.Input
   ): CreateSiderealInput =
     CreateSiderealInput(
-      name           = name,
       catalogInfo    = None,
       ra             = ra,
       dec            = dec,
       epoch          = None,
       properMotion   = None,
       radialVelocity = None,
-      parallax       = None,
-      sourceProfile  = source
+      parallax       = None
     )
 
   implicit val DecoderCreateSiderealInput: Decoder[CreateSiderealInput] =
@@ -89,15 +84,13 @@ object CreateSiderealInput {
 
   implicit val EqCreateSidereal: Eq[CreateSiderealInput] =
     Eq.by { a => (
-      a.name,
       a.catalogInfo,
       a.ra,
       a.dec,
       a.epoch,
       a.properMotion,
       a.radialVelocity,
-      a.parallax,
-      a.sourceProfile
+      a.parallax
     )}
 
 }

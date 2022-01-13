@@ -6,7 +6,7 @@ package lucuma.odb.api.model.targetModel
 import cats.Eq
 import cats.data.{EitherNec, StateT}
 import cats.syntax.all._
-import clue.data.Input
+import clue.data.{Assign, Ignore, Input, Unassign}
 import eu.timepit.refined.cats._
 import io.circe.Decoder
 import lucuma.core.math.Epoch
@@ -18,20 +18,19 @@ import lucuma.odb.api.model.syntax.optional._
 
 
 final case class EditSiderealInput(
-  catalogInfo:      Input[CatalogInfoModel.Input]    = Input.ignore,
-  ra:               Input[RightAscensionModel.Input] = Input.ignore,
-  dec:              Input[DeclinationModel.Input]    = Input.ignore,
-  epoch:            Input[Epoch]                     = Input.ignore,
-  properMotion:     Input[ProperMotionModel.Input]   = Input.ignore,
-  radialVelocity:   Input[RadialVelocityModel.Input] = Input.ignore,
-  parallax:         Input[ParallaxModel.Input]       = Input.ignore
+  catalogInfo:      Input[CatalogInfoModel.EditInput] = Input.ignore,
+  ra:               Input[RightAscensionModel.Input]  = Input.ignore,
+  dec:              Input[DeclinationModel.Input]     = Input.ignore,
+  epoch:            Input[Epoch]                      = Input.ignore,
+  properMotion:     Input[ProperMotionModel.Input]    = Input.ignore,
+  radialVelocity:   Input[RadialVelocityModel.Input]  = Input.ignore,
+  parallax:         Input[ParallaxModel.Input]        = Input.ignore
 ) {
 
   val editor: StateT[EitherNec[InputError, *], Target, Unit] = {
 
     val validArgs =
-      (catalogInfo.validateNullable(_.toCatalogInfo),
-       ra   .validateNotNullable("ra")(_.toRightAscension),
+      (ra   .validateNotNullable("ra")(_.toRightAscension),
        dec  .validateNotNullable("dec")(_.toDeclination),
        epoch.validateIsNotNull("epoch"),
        properMotion  .validateNullable(_.toProperMotion),
@@ -41,9 +40,28 @@ final case class EditSiderealInput(
 
     for {
       args <- StateT.liftF(validArgs)
-      (c, r, d, e, pm, rv, px) = args
+      (r, d, e, pm, rv, px) = args
 
-      _ <- Target.catalogInfo    := c
+      _ <- catalogInfo match {
+        // Don't change the catalog info
+        case Ignore         =>
+          StateT.empty[EitherNec[InputError, *], Target, Unit]
+
+        // Remove existing catalog info
+        case Unassign       =>
+          Target.catalogInfo := Some(None)
+
+        // Either create a new one (if there isn't one, or edit the existing one)
+        case Assign(editor) =>
+          StateT.modifyF[EitherNec[InputError, *], Target] { t =>
+            Target
+              .catalogInfo
+              .modifyA[EitherNec[InputError, *]] {
+                _.fold(editor.create.toEither)(ci => editor.edit.runS(ci)).map(_.some)
+              }(t)
+          }
+      }
+
       _ <- Target.baseRA         := r
       _ <- Target.baseDec        := d
       _ <- Target.epoch          := e
