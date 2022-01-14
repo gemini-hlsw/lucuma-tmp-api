@@ -6,7 +6,7 @@ package lucuma.odb.api.model.targetModel
 import lucuma.core.math.Coordinates
 import cats.{Eq, Monad}
 import cats.Order.catsKernelOrderingForOrder
-import cats.data.{NonEmptyChain, State}
+import cats.data.{EitherNec, NonEmptyChain, StateT}
 import cats.mtl.Stateful
 import cats.syntax.apply._
 import cats.syntax.eq._
@@ -17,10 +17,10 @@ import clue.data.Input
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import lucuma.core.model.{Program, Target}
-import lucuma.core.optics.syntax.all._
 import lucuma.core.util.Gid
 import lucuma.odb.api.model.{CoordinatesModel, DatabaseState, InputError, ValidatedInput}
 import lucuma.odb.api.model.syntax.input._
+import lucuma.odb.api.model.syntax.lens._
 import monocle.Lens
 
 import scala.collection.immutable.SortedSet
@@ -99,13 +99,13 @@ object TargetEnvironmentModel extends TargetEnvironmentModelOptics {
     asterism:     Option[List[Target.Id]]       = None
   ) {
 
-    val editor: ValidatedInput[State[TargetEnvironmentModel, Unit]] =
-      explicitBase.validateNullable(_.toCoordinates).map { b =>
-        for {
-          _ <- TargetEnvironmentModel.explicitBase := b
-          _ <- TargetEnvironmentModel.asterism     := asterism.map(ts => SortedSet.from(ts)(catsKernelOrderingForOrder))
-        } yield ()
-      }
+    val editor: StateT[EitherNec[InputError, *], TargetEnvironmentModel, Unit] =
+      for {
+        b <- StateT.liftF(explicitBase.validateNullable(_.toCoordinates).toEither)
+        _ <- TargetEnvironmentModel.explicitBase := b
+        _ <- TargetEnvironmentModel.asterism     := asterism.map(ts => SortedSet.from(ts)(catsKernelOrderingForOrder))
+      } yield ()
+
   }
 
   object Edit {

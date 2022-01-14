@@ -4,14 +4,14 @@
 package lucuma.odb.api.model
 
 import cats._
-import cats.data.State
+import cats.data.StateT
 import cats.syntax.all._
 import clue.data.Input
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import lucuma.core.enum._
-import lucuma.core.optics.syntax.lens._
 import lucuma.odb.api.model.syntax.input._
+import lucuma.odb.api.model.syntax.lens._
 import monocle.{Fold, Lens, Optional}
 import monocle.macros.GenLens
 
@@ -87,21 +87,25 @@ object ConstraintSetModel extends ConstraintSetModelOptics {
     elevationRange:  Input[ElevationRangeModel.Create] = Input.ignore
   ) {
 
-    def editor: ValidatedInput[State[ConstraintSetModel, Unit]] =
-      (imageQuality.validateIsNotNull("imageQuality"),
-       cloudExtinction.validateIsNotNull("cloudExtinction"),
-       skyBackground.validateIsNotNull("skyBackground"),
-       waterVapor.validateIsNotNull("waterVapor"),
-       elevationRange.validateNotNullable("elevationRange")(_.create)
-      ).mapN { (i, c, s, w, el) =>
-        for {
+    def editor: StateT[EitherInput, ConstraintSetModel, Unit] = {
+      val validArgs =
+        (imageQuality.validateIsNotNull("imageQuality"),
+         cloudExtinction.validateIsNotNull("cloudExtinction"),
+         skyBackground.validateIsNotNull("skyBackground"),
+         waterVapor.validateIsNotNull("waterVapor"),
+         elevationRange.validateNotNullable("elevationRange")(_.create)
+        ).tupled.toEither
+
+      for {
+        args <- StateT.liftF(validArgs)
+        (i, c, s, w, e) = args
           _ <- ConstraintSetModel.imageQuality    := i
           _ <- ConstraintSetModel.cloudExtinction := c
           _ <- ConstraintSetModel.skyBackground   := s
           _ <- ConstraintSetModel.waterVapor      := w
-          _ <- ConstraintSetModel.elevationRange  := el
-        } yield ()
-      }
+          _ <- ConstraintSetModel.elevationRange  := e
+      } yield ()
+    }
   }
 
   object Edit {

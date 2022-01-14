@@ -4,15 +4,13 @@
 package lucuma.odb.api.model
 
 import cats.Eq
-import cats.syntax.all._
-import cats.data.State
+import cats.data.StateT
 import clue.data.Input
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import lucuma.core.enum.ScienceMode
-import lucuma.core.optics.syntax.lens._
-import lucuma.core.optics.state.all._
 import lucuma.odb.api.model.syntax.input._
+import lucuma.odb.api.model.syntax.lens._
 import monocle.Lens
 import monocle.Focus
 
@@ -57,15 +55,14 @@ object ScienceRequirementsModel {
     spectroscopyRequirements: Option[SpectroscopyScienceRequirementsModel.Edit] = None
   ) {
 
-    def editor: ValidatedInput[State[ScienceRequirements, Unit]] =
-      (mode.validateIsNotNull("mode"), spectroscopyRequirements.traverse(_.edit)).mapN { (m, s) =>
-        for {
-          _ <- ScienceRequirements.mode := m
-          _ <- s.fold(State.get[ScienceRequirements].void) { ed =>
-              ScienceRequirements.spectroscopyRequirements.mod_(ed.runS(_).value)
-            }
-        } yield ()
-      }
+    def editor: StateT[EitherInput, ScienceRequirements, Unit] =
+      for {
+        m <- StateT.liftF(mode.validateIsNotNull("mode").toEither)
+        _ <- ScienceRequirements.mode := m
+        _ <- ScienceRequirements
+               .spectroscopyRequirements
+               .transform(spectroscopyRequirements.fold(StateT.empty[EitherInput, SpectroscopyScienceRequirements, Unit])(_.edit))
+      } yield ()
 
   }
 

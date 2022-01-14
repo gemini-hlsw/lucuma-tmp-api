@@ -3,17 +3,17 @@
 
 package lucuma.odb.api.model.targetModel
 
-import cats.data.State
 import cats.Eq
+import cats.data.StateT
+import cats.syntax.either._
 import cats.syntax.functor._
 import cats.syntax.option._
 import cats.syntax.traverse._
-import cats.syntax.validated._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import lucuma.core.model.Target
-import lucuma.core.optics.state.all._
-import lucuma.odb.api.model.{InputError, ValidatedInput}
+import lucuma.odb.api.model.{EitherInput, InputError}
+import lucuma.odb.api.model.syntax.lens._
 
 
 final case class EditAsterismInput(
@@ -21,12 +21,12 @@ final case class EditAsterismInput(
   delete: Option[Target.Id]
 ) {
 
-  val editor: ValidatedInput[State[TargetEnvironmentModel, Unit]] =
+  val editor: StateT[EitherInput, TargetEnvironmentModel, Unit] =
     (add, delete) match {
-      case (Some(a), None) => TargetEnvironmentModel.asterism.mod_(_ + a).validNec[InputError]
-      case (None, Some(d)) => TargetEnvironmentModel.asterism.mod_(_ - d).validNec[InputError]
-      case (None, None)    => InputError.fromMessage(s"One of `add` or `delete` must be specified for each operation").invalidNec[State[TargetEnvironmentModel, Unit]]
-      case _               => InputError.fromMessage(s"Select only one of `add` or `delete` for each operation").invalidNec[State[TargetEnvironmentModel, Unit]]
+      case (Some(a), None) => TargetEnvironmentModel.asterism.mod_(_ + a)
+      case (None, Some(d)) => TargetEnvironmentModel.asterism.mod_(_ - d)
+      case (None, None)    => StateT.setF(InputError.fromMessage(s"One of `add` or `delete` must be specified for each operation").leftNec)
+      case _               => StateT.setF(InputError.fromMessage(s"Select only one of `add` or `delete` for each operation").leftNec)
     }
 
 }
@@ -51,7 +51,7 @@ object EditAsterismInput {
   def delete(tid: Target.Id): EditAsterismInput =
     Empty.copy(delete = tid.some)
 
-  def multiEditor(inputs: List[EditAsterismInput]): ValidatedInput[State[TargetEnvironmentModel, Unit]] =
-    inputs.traverse(_.editor).map(_.sequence.void)
+  def multiEditor(inputs: List[EditAsterismInput]): StateT[EitherInput, TargetEnvironmentModel, Unit] =
+    inputs.traverse(_.editor).void
 
 }

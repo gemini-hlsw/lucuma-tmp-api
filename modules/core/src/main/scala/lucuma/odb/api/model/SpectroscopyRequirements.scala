@@ -5,7 +5,7 @@ package lucuma.odb.api.model
 
 import cats.Eq
 import cats.syntax.all._
-import cats.data.State
+import cats.data.StateT
 import clue.data.Input
 import eu.timepit.refined._
 import eu.timepit.refined.numeric.Positive
@@ -16,11 +16,11 @@ import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
 import lucuma.odb.api.model.syntax.input._
+import lucuma.odb.api.model.syntax.lens._
 import lucuma.core.enum.FocalPlane
 import lucuma.core.enum.SpectroscopyCapabilities
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
-import lucuma.core.optics.syntax.lens._
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import monocle.Focus
@@ -111,23 +111,27 @@ object SpectroscopyScienceRequirementsModel {
     focalPlaneAngle:    Input[FocalPlaneAngleInput]     = Input.ignore,
     capabilities:       Input[SpectroscopyCapabilities] = Input.ignore
   ) {
-    val edit: ValidatedInput[State[SpectroscopyScienceRequirements, Unit]] =
-      (wavelength.validateNullable(_.toWavelength("wavelength")),
-       signalToNoiseAt.validateNullable(_.toWavelength("signalToNoiseAt")),
-       wavelengthCoverage.validateNullable(_.toWavelength("wavelengthCoverage")),
-       focalPlaneAngle.validateNullable(_.toAngle)
-      ).mapN { (cw, signalToNoiseAt, wavelengthCoverage, focalPlaneAngle) =>
-        for {
-          _ <- SpectroscopyScienceRequirements.wavelength      := cw
-          _ <- SpectroscopyScienceRequirements.resolution      := resolution.toOptionOption
-          _ <- SpectroscopyScienceRequirements.signalToNoise   := signalToNoise.toOptionOption
-          _ <- SpectroscopyScienceRequirements.signalToNoiseAt := signalToNoiseAt
+    val edit: StateT[EitherInput, SpectroscopyScienceRequirements, Unit] = {
+      val validArgs =
+        (wavelength.validateNullable(_.toWavelength("wavelength")),
+         signalToNoiseAt.validateNullable(_.toWavelength("signalToNoiseAt")),
+         wavelengthCoverage.validateNullable(_.toWavelength("wavelengthCoverage")),
+         focalPlaneAngle.validateNullable(_.toAngle)
+        ).tupled.toEither
+
+      for {
+        args <- StateT.liftF(validArgs)
+        (cw, signalToNoiseAt, wavelengthCoverage, focalPlaneAngle) = args
+          _ <- SpectroscopyScienceRequirements.wavelength         := cw
+          _ <- SpectroscopyScienceRequirements.resolution         := resolution.toOptionOption
+          _ <- SpectroscopyScienceRequirements.signalToNoise      := signalToNoise.toOptionOption
+          _ <- SpectroscopyScienceRequirements.signalToNoiseAt    := signalToNoiseAt
           _ <- SpectroscopyScienceRequirements.wavelengthCoverage := wavelengthCoverage
-          _ <- SpectroscopyScienceRequirements.focalPlane      := focalPlane.toOptionOption
-          _ <- SpectroscopyScienceRequirements.focalPlaneAngle := focalPlaneAngle
-          _ <- SpectroscopyScienceRequirements.capabilities    := capabilities.toOptionOption
-        } yield ()
-      }
+          _ <- SpectroscopyScienceRequirements.focalPlane         := focalPlane.toOptionOption
+          _ <- SpectroscopyScienceRequirements.focalPlaneAngle    := focalPlaneAngle
+          _ <- SpectroscopyScienceRequirements.capabilities       := capabilities.toOptionOption
+      } yield ()
+    }
   }
 
   object Edit {
