@@ -30,15 +30,17 @@ object Init {
 """
 {
   "name":  "NGC 5949",
-  "ra":    { "hms":  "15:28:00.668" },
-  "dec":   { "dms": "64:45:47.4"  },
-  "epoch": "J2000.000",
-  "properMotion": {
-    "ra":  { "milliarcsecondsPerYear": 0.0 },
-    "dec": { "milliarcsecondsPerYear": 0.0 }
+  "sidereal": {
+    "ra":    { "hms":  "15:28:00.668" },
+    "dec":   { "dms": "64:45:47.4"  },
+    "epoch": "J2000.000",
+    "properMotion": {
+      "ra":  { "milliarcsecondsPerYear": 0.0 },
+      "dec": { "milliarcsecondsPerYear": 0.0 }
+    },
+    "radialVelocity": { "metersPerSecond": 423607 },
+    "parallax":       { "milliarcseconds":  0.00 }
   },
-  "radialVelocity": { "metersPerSecond": 423607 },
-  "parallax":       { "milliarcseconds":  0.00 },
   "sourceProfile": {
     "point": {
       "bandNormalized": {
@@ -108,15 +110,17 @@ object Init {
 """
 {
   "name":  "NGC 3269",
-  "ra":    { "hms":  "10:29:57.070" },
-  "dec":   { "dms": "-35:13:27.8"  },
-  "epoch": "J2000.000",
-  "properMotion": {
-    "ra":  { "milliarcsecondsPerYear": 0.0 },
-    "dec": { "milliarcsecondsPerYear": 0.0 }
+  "sidereal": {
+    "ra":    { "hms":  "10:29:57.070" },
+    "dec":   { "dms": "-35:13:27.8"  },
+    "epoch": "J2000.000",
+    "properMotion": {
+      "ra":  { "milliarcsecondsPerYear": 0.0 },
+      "dec": { "milliarcsecondsPerYear": 0.0 }
+    },
+    "radialVelocity": { "metersPerSecond": 3753885 },
+    "parallax":       { "milliarcseconds":  0.00 }
   },
-  "radialVelocity": { "metersPerSecond": 3753885 },
-  "parallax":       { "milliarcseconds":  0.00 },
   "sourceProfile": {
     "point": {
       "bandNormalized": {
@@ -166,15 +170,17 @@ object Init {
 """
 {
   "name":  "NGC 3312",
-  "ra":    { "hms": "10:37:02.549" },
-  "dec":   { "dms": "-27:33:54.17"  },
-  "epoch": "J2000.000",
-  "properMotion": {
-    "ra":  { "milliarcsecondsPerYear": 0.0 },
-    "dec": { "milliarcsecondsPerYear":  0.0 }
+  "sidereal": {
+    "ra":    { "hms": "10:37:02.549" },
+    "dec":   { "dms": "-27:33:54.17"  },
+    "epoch": "J2000.000",
+    "properMotion": {
+      "ra":  { "milliarcsecondsPerYear": 0.0 },
+      "dec": { "milliarcsecondsPerYear":  0.0 }
+    },
+    "radialVelocity": { "metersPerSecond": 2826483 },
+    "parallax":       { "milliarcseconds":  0.0 }
   },
-  "radialVelocity": { "metersPerSecond": 2826483 },
-  "parallax":       { "milliarcseconds":  0.0 },
   "sourceProfile": {
     "point": {
       "bandNormalized": {
@@ -219,8 +225,8 @@ object Init {
   )
 
 
-  val targets: Either[Exception, List[CreateSiderealInput]] =
-    targetsJson.traverse(decode[CreateSiderealInput])
+  val targets: Either[Exception, List[TargetModel.Create]] =
+    targetsJson.traverse(decode[TargetModel.Create])
 
   import GmosModel.{CreateCcdReadout, CreateSouthDynamic}
   import StepConfig.CreateStepConfig
@@ -386,9 +392,7 @@ object Init {
               )
             )
       cs <- targets.liftTo[F]
-      ts <- cs.traverse { c =>
-        repo.target.insert(TargetModel.Create(None, p.id, Some(c), None))
-      }
+      ts <- cs.traverse(repo.target.insert(p.id, _))
       _  <- repo.observation.insert(obs(p.id, ts.headOption))
       _  <- repo.observation.insert(obs(p.id, ts.lastOption))
       _  <- repo.observation.insert(obs(p.id, None))

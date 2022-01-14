@@ -10,14 +10,16 @@ import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.`enum`.{CatalogName, EphemerisKeyType => EphemerisKeyTypeEnum}
 import lucuma.core.math.{Coordinates, Declination, Parallax, ProperMotion, RadialVelocity, RightAscension, VelocityAxis}
-import lucuma.core.model.{CatalogInfo, EphemerisKey, SiderealTracking, Target}
+import lucuma.core.model.{AngularSize, CatalogInfo, Target}
 import cats.syntax.all._
 import cats.effect.std.Dispatcher
+import lucuma.core.model.Target.{Nonsidereal, Sidereal}
 import lucuma.odb.api.schema.GeneralSchema.EnumTypeExistence
 import sangria.schema.{Field, _}
 
 object TargetSchema extends TargetScalars {
 
+  import AngleSchema.AngleType
   import GeneralSchema.{ArgumentIncludeDeleted, NonEmptyStringType}
   import ProgramSchema.ProgramType
   import SourceProfileSchema._
@@ -53,7 +55,7 @@ object TargetSchema extends TargetScalars {
       "Ephemeris key type options"
     )
 
-  def NonsiderealType[F[_]]: ObjectType[OdbRepo[F], EphemerisKey] =
+  def NonsiderealType[F[_]]: ObjectType[OdbRepo[F], Nonsidereal] =
     ObjectType(
       name     = "Nonsidereal",
       fieldsFn = () => fields(
@@ -62,21 +64,21 @@ object TargetSchema extends TargetScalars {
           name        = "des",
           fieldType   = StringType,
           description = Some("Human readable designation that discriminates among ephemeris keys of the same type."),
-          resolve     = _.value.des
+          resolve     = _.value.ephemerisKey.des
         ),
 
         Field(
           name        = "keyType",
           fieldType   = EphemerisKeyTypeEnumType,
           description = Some("Nonsidereal target lookup type."),
-          resolve     = _.value.keyType
+          resolve     = _.value.ephemerisKey.keyType
         )
       )
     )
 
-  def CatalogInfoType[F[_]]: ObjectType[OdbRepo[F], CatalogInfo] =
+  val CatalogInfoType: ObjectType[Any, CatalogInfo] =
     ObjectType(
-      name = "CatalogId",
+      name = "CatalogInfo",
       fieldsFn = () => fields(
 
         Field(
@@ -99,6 +101,25 @@ object TargetSchema extends TargetScalars {
           description = "Catalog description of object morphology".some,
           resolve     = _.value.objectType.map(_.value)
 
+        )
+      )
+    )
+
+  val AngularSizeType: ObjectType[Any, AngularSize] =
+    ObjectType(
+      name = "AngularSize",
+      fieldsFn = () => fields(
+
+        Field(
+          name      = "majorAxis",
+          fieldType = AngleType,
+          resolve   = _.value.majorAxis
+        ),
+
+        Field(
+          name      = "minorAxis",
+          fieldType = AngleType,
+          resolve   = _.value.minorAxis
         )
       )
     )
@@ -285,65 +306,70 @@ object TargetSchema extends TargetScalars {
     )
 
 
-  def SiderealType[F[_]]: ObjectType[OdbRepo[F], SiderealTracking] =
+  def SiderealType[F[_]]: ObjectType[OdbRepo[F], Sidereal] =
     ObjectType(
       name     = "Sidereal",
       fieldsFn = () => fields(
 
         Field(
-          name        = "coordinates",
-          fieldType   = CoordinateType[F],
-          description = Some("Coordinates at epoch"),
-          resolve     = _.value.baseCoordinates
+          name        = "catalogInfo",
+          fieldType   = OptionType(CatalogInfoType),
+          description = Some("Catalog info, if any, describing from where the information in this target was obtained"),
+          resolve     = _.value.catalogInfo
+        ),
+
+        Field(
+          name        = "ra",
+          fieldType   = RightAscensionType[F],
+          description = "Right ascension at epoch".some,
+          resolve     = _.value.tracking.baseCoordinates.ra
+        ),
+
+        Field(
+          name        = "dec",
+          fieldType   = DeclinationType[F],
+          description = "Declination at epoch".some,
+          resolve     = _.value.tracking.baseCoordinates.dec
         ),
 
         Field(
           name        = "epoch",
           fieldType   = EpochStringType,
           description = Some("Epoch, time of base observation"),
-          resolve     = _.value.epoch
+          resolve     = _.value.tracking.epoch
         ),
 
         Field(
-          name              = "properMotion",
-          fieldType         = OptionType(ProperMotionType[F]("properMotion")),
-          description       = Some("Proper motion per year in right ascension and declination"),
-          resolve           = _.value.properMotion
+          name        = "properMotion",
+          fieldType   = OptionType(ProperMotionType[F]("properMotion")),
+          description = Some("Proper motion per year in right ascension and declination"),
+          resolve     = _.value.tracking.properMotion
         ),
 
         Field(
           name        = "radialVelocity",
           fieldType   = OptionType(RadialVelocityType[F]),
           description = Some("Radial velocity"),
-          resolve     = _.value.radialVelocity
+          resolve     = _.value.tracking.radialVelocity
         ),
 
         Field(
           name        = "parallax",
           fieldType   = OptionType(ParallaxType[F]),
           description = Some("Parallax"),
-          resolve     = _.value.parallax
+          resolve     = _.value.tracking.parallax
         )
       )
     )
 
+  def TargetType[F[_]: Dispatcher](
+    implicit ev: MonadError[F, Throwable]
+  ): ObjectType[OdbRepo[F], TargetModel] =
 
-  def TrackingType[F[_]]: OutputType[Either[EphemerisKey, SiderealTracking]] =
-    UnionType(
-      name        = "Tracking",
-      description = Some("Either Nonsidereal ephemeris lookup key or Sidereal proper motion."),
-      types       = List(NonsiderealType[F], SiderealType[F])
-    ).mapValue[Either[EphemerisKey, SiderealTracking]](
-      _.fold(
-        key => key: Any,
-        st  => st: Any
-      )
-    )
-
-  def TargetType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], TargetModel] =
-    ObjectType(
-      name     = "Target",
-      fieldsFn = () => fields(
+    ObjectType[OdbRepo[F], TargetModel](
+      name        = "Target",
+      description = "Target description",
+      fieldsFn    = () => fields[OdbRepo[F], TargetModel](
 
         Field(
           name        = "id",
@@ -377,34 +403,35 @@ object TargetSchema extends TargetScalars {
         ),
 
         Field(
-          name        = "catalogInfo",
-          fieldType   = OptionType(CatalogInfoType[F]),
-          description = Some("Catalog id, if any, describing from where the information in this target was obtained"),
-          resolve     = c => c.value.target match {
-            case Target.Sidereal(_, _, _, catalogInfo, _) => catalogInfo
-            case _                                        => None
-          }
-        ),
-
-        Field(
-          name        = "tracking",
-          fieldType   = TrackingType[F],
-          description = Some("Information required to find a target in the sky."),
-          resolve     = c => c.value.target match {
-            case Target.Sidereal(_, siderealTracking, _, _, _) => siderealTracking.asRight[EphemerisKey]
-            case Target.Nonsidereal(_, ephemerisKey, _, _)     => ephemerisKey.asLeft[SiderealTracking]
-          }
-        ),
-
-        Field(
           name        = "sourceProfile",
           fieldType   = SourceProfileType,
           description = "source profile".some ,
           resolve     = _.value.target.sourceProfile
+        ),
+
+        Field(
+          name        = "sidereal",
+          fieldType   = OptionType(SiderealType[F]),
+          description = "Sidereal tracking information, if this is a sidereal target".some,
+          resolve     = c => Target.sidereal.getOption(c.value.target)
+        ),
+
+        Field(
+          name        = "nonsidereal",
+          fieldType   = OptionType(NonsiderealType[F]),
+          description = "Nonsidereal tracking information, if this is a nonsidereal target".some,
+          resolve     = c => Target.nonsidereal.getOption(c.value.target)
+        ),
+
+        Field(
+          name        = "angularSize",
+          fieldType   = OptionType(AngularSizeType),
+          resolve     = c => Target.angularSize.get(c.value.target)
         )
 
       )
     )
+
 
   def TargetEdgeType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Edge[TargetModel]] =
     Paging.EdgeType(

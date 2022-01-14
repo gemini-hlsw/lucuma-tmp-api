@@ -25,7 +25,8 @@ import scala.collection.immutable.SortedSet
 
 trait ArbTargetModel {
 
-  import ArbCatalogInfoModel._
+  import ArbAngularSizeInput._
+  import ArbCatalogInfoInput._
   import ArbCoordinates._
   import ArbCoordinatesModel._
   import ArbDeclinationModel._
@@ -84,98 +85,88 @@ trait ArbTargetModel {
       in.explicitBase
     )}
 
+
   implicit val arbCreateSidereal: Arbitrary[CreateSiderealInput] =
     Arbitrary {
       for {
-        name  <- arbitrary[NonEmptyString]
-        cat   <- arbitrary[Option[CatalogInfoModel.Input]]
+        cat   <- arbitrary[Option[CatalogInfoInput]]
         ra    <- arbitrary[RightAscensionModel.Input]
         dec   <- arbitrary[DeclinationModel.Input]
         epoch <- arbitrary[Option[Epoch]]
         pm    <- arbitrary[Option[ProperMotionModel.Input]]
         rv    <- arbitrary[Option[RadialVelocityModel.Input]]
         px    <- arbitrary[Option[ParallaxModel.Input]]
-        sp    <- arbitrary[CreateSourceProfileInput]
       } yield CreateSiderealInput(
-        name,
         cat,
         ra,
         dec,
         epoch,
         pm,
         rv,
-        px,
-        sp
+        px
       )
     }
 
+
   implicit val cogCreateSidereal: Cogen[CreateSiderealInput] =
     Cogen[(
-      String,
-      Option[CatalogInfoModel.Input],
+      Option[CatalogInfoInput],
       RightAscensionModel.Input,
       DeclinationModel.Input,
       Option[Epoch],
       Option[ProperMotionModel.Input],
       Option[RadialVelocityModel.Input],
-      Option[ParallaxModel.Input],
-      CreateSourceProfileInput
+      Option[ParallaxModel.Input]
     )].contramap { in => (
-      in.name.value,
       in.catalogInfo,
       in.ra,
       in.dec,
       in.epoch,
       in.properMotion,
       in.radialVelocity,
-      in.parallax,
-      in.sourceProfile
+      in.parallax
     )}
 
   implicit val arbCreateNonSidereal: Arbitrary[CreateNonsiderealInput] =
     Arbitrary {
       for {
-        name <- arbitrary[NonEmptyString]
         key  <- arbitrary[EphemerisKeyType]
         des  <- arbitrary[NonEmptyString]
-        sp   <- arbitrary[CreateSourceProfileInput]
       } yield CreateNonsiderealInput(
-        name,
         key,
-        des.value,
-        sp
+        des.value
       )
     }
 
   implicit val cogCreateNonSidereal: Cogen[CreateNonsiderealInput] =
     Cogen[(
-      String,
       EphemerisKeyType,
-      String,
-      CreateSourceProfileInput
-    )].contramap { in => (
-      in.name.value, in.keyType, in.des, in.sourceProfile
-    )}
+      String
+    )].contramap { in => (in.keyType, in.des) }
 
   implicit val arbCreateTarget: Arbitrary[TargetModel.Create] =
     Arbitrary {
       for {
         t <- arbitrary[Option[Target.Id]]
-        p <- arbitrary[Program.Id]
+        m <- arbitrary[NonEmptyString]
+        p <- arbitrary[CreateSourceProfileInput]
         s <- arbitrary[Option[CreateSiderealInput]]
         n <- arbitrary[Option[CreateNonsiderealInput]]
-      } yield TargetModel.Create(t, p, s, n)
+        a <- arbitrary[Option[AngularSizeInput]]
+      } yield TargetModel.Create(t, m, p, s, n, a)
     }
 
   implicit val cogCreateTarget: Cogen[TargetModel.Create] =
     Cogen[(
       Option[Target.Id],
-      Program.Id,
+      String,
+      CreateSourceProfileInput,
       Option[CreateSiderealInput],
       Option[CreateNonsiderealInput]
     )].contramap { in => (
       in.targetId,
-      in.programId,
+      in.name.value,
+      in.sourceProfile,
       in.sidereal,
       in.nonsidereal
     )}
@@ -183,7 +174,7 @@ trait ArbTargetModel {
   implicit val arbEditSidereal: Arbitrary[EditSiderealInput] =
     Arbitrary {
       for {
-        cat   <- arbitrary[Input[CatalogInfoModel.Input]]
+        cat   <- arbitrary[Input[CatalogInfoInput]]
         ra    <- arbNotNullableInput[RightAscensionModel.Input].arbitrary
         dec   <- arbNotNullableInput[DeclinationModel.Input].arbitrary
         epoch <- arbNotNullableInput[Epoch].arbitrary
@@ -203,7 +194,7 @@ trait ArbTargetModel {
 
   implicit val cogEditSidereal: Cogen[EditSiderealInput] =
     Cogen[(
-      Input[CatalogInfoModel.Input],
+      Input[CatalogInfoInput],
       Input[RightAscensionModel.Input],
       Input[DeclinationModel.Input],
       Input[Epoch],

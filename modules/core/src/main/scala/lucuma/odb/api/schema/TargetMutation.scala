@@ -8,8 +8,8 @@ import cats.effect.std.Dispatcher
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
-import lucuma.odb.api.model.{CatalogInfoModel, CoordinatesModel, DeclinationModel, ObservationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
-import lucuma.odb.api.model.targetModel.{CreateNonsiderealInput, CreateSiderealInput, EditAsterismInput, EditNonsiderealInput, EditSiderealInput, TargetEnvironmentModel, TargetModel}
+import lucuma.odb.api.model.{CoordinatesModel, DeclinationModel, ObservationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
+import lucuma.odb.api.model.targetModel.{AngularSizeInput, CatalogInfoInput, CreateNonsiderealInput, CreateSiderealInput, EditAsterismInput, EditNonsiderealInput, EditSiderealInput, TargetEnvironmentModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
 import lucuma.core.model.Target
@@ -21,9 +21,10 @@ import sangria.schema._
 trait TargetMutation extends TargetScalars {
 
   import context._
+  import AngleSchema.InputObjectAngle
   import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
   import NumericUnitsSchema._
-  import ProgramSchema.ProgramIdType
+  import ProgramSchema.ProgramIdArgument
   import SourceProfileSchema.InputObjectCreateSourceProfile
   import TargetSchema.{EnumTypeCatalogName, EphemerisKeyTypeEnumType, ArgumentTargetId, TargetIdType, TargetType}
 
@@ -60,10 +61,19 @@ trait TargetMutation extends TargetScalars {
       "Unit options for parallax values"
     )
 
-  implicit val InputObjectCatalogId: InputObjectType[CatalogInfoModel.Input] =
-    deriveInputObjectType[CatalogInfoModel.Input](
-      InputObjectTypeName("CatalogIdInput"),
-      InputObjectTypeDescription("Catalog id consisting of catalog name and string identifier")
+  implicit val InputObjectCatalogInfo: InputObjectType[CatalogInfoInput] =
+    deriveInputObjectType[CatalogInfoInput](
+      InputObjectTypeName("CatalogInfoInput"),
+      InputObjectTypeDescription("Catalog id consisting of catalog name, string identifier and an optional object type"),
+      ReplaceInputField("name",       EnumTypeCatalogName.notNullableField("name")),
+      ReplaceInputField("id",         NonEmptyStringType.notNullableField("id")),
+      ReplaceInputField("objectType", NonEmptyStringType.nullableField("objectType"))
+    )
+
+  implicit val InputObjectAngularSize: InputObjectType[AngularSizeInput] =
+    deriveInputObjectType[AngularSizeInput](
+      InputObjectTypeName("AngularSizeInput"),
+      InputObjectTypeDescription("Angular size inputs")
     )
 
   implicit val InputObjectTypeCoordinates: InputObjectType[CoordinatesModel.Input] =
@@ -146,7 +156,7 @@ trait TargetMutation extends TargetScalars {
       InputObjectTypeName("EditSiderealInput"),
       InputObjectTypeDescription("Sidereal target edit parameters"),
 
-      ReplaceInputField("catalogInfo",    InputObjectCatalogId     .nullableField("catalogId"     )),
+      ReplaceInputField("catalogInfo",    InputObjectCatalogInfo     .nullableField("catalogInfo"   )),
       ReplaceInputField("ra",             InputObjectRightAscension.notNullableField("ra"         )),
       ReplaceInputField("dec",            InputObjectDeclination   .notNullableField("dec"        )),
       ReplaceInputField("epoch",          EpochStringType          .notNullableField("epoch"      )),
@@ -172,7 +182,8 @@ trait TargetMutation extends TargetScalars {
         InputField("existence",   OptionInputType(EnumTypeExistence)),
         InputField("name",        OptionInputType(NonEmptyStringType)),
         InputField("sidereal",    OptionInputType(InputObjectTypeEditSidereal)),
-        InputField("nonSidereal", OptionInputType(InputObjectTypeEditNonsidereal))
+        InputField("nonSidereal", OptionInputType(InputObjectTypeEditNonsidereal)),
+        InputField("angularSize", OptionInputType(InputObjectAngularSize))
       )
     )
   }
@@ -225,8 +236,8 @@ trait TargetMutation extends TargetScalars {
       name        = "createTarget",
       fieldType   = TargetType[F],
       description = "Creates a new target according to the provided parameters.  Only one of sidereal or nonsidereal may be specified.".some,
-      arguments   = List(ArgumentTargetCreate),
-      resolve     = c => c.target(_.insert(c.arg(ArgumentTargetCreate)))
+      arguments   = List(ProgramIdArgument, ArgumentTargetCreate),
+      resolve     = c => c.target(_.insert(c.programId, c.arg(ArgumentTargetCreate)))
     )
 
   def cloneTarget[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] = {

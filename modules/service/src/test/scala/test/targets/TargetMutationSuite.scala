@@ -16,10 +16,8 @@ class TargetMutationSuite extends OdbSuite {
         updateTarget(input: $targetEdit) {
           id
           name
-          tracking {
-            ... on Sidereal {
-              parallax { microarcseconds }
-            }
+          sidereal {
+            parallax { microarcseconds }
           }
         }
       }
@@ -29,7 +27,7 @@ class TargetMutationSuite extends OdbSuite {
         "updateTarget": {
           "id": "t-4",
           "name": "NGC 3312",
-          "tracking": {
+          "sidereal": {
             "parallax": null
           }
         }
