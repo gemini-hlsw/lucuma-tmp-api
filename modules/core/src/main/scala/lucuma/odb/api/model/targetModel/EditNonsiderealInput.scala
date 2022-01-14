@@ -4,14 +4,15 @@
 package lucuma.odb.api.model.targetModel
 
 import cats.Eq
-import cats.data.{EitherNec, StateT}
+import cats.data.State
 import clue.data.Input
+import cats.syntax.functor._
 import io.circe.Decoder
 import lucuma.core.model.{EphemerisKey, Target}
-import lucuma.odb.api.model.InputError
+import lucuma.core.optics.syntax.optional._
+import lucuma.odb.api.model.ValidatedInput
 import lucuma.odb.api.model.json.target._
 import lucuma.odb.api.model.syntax.input._
-import lucuma.odb.api.model.syntax.optional._
 
 
 
@@ -19,11 +20,10 @@ final case class EditNonsiderealInput(
   key:    Input[EphemerisKey]   = Input.ignore,
 ) {
 
-  val editor: StateT[EitherNec[InputError, *], Target, Unit] =
-    for {
-      k <- StateT.liftF(key.validateIsNotNull("key").toEither)
-      _ <- Target.ephemerisKey := k
-    } yield ()
+  val editor: ValidatedInput[State[Target, Unit]] =
+    key.validateIsNotNull("key").map { k =>
+      (Target.ephemerisKey := k).void
+    }
 
 }
 

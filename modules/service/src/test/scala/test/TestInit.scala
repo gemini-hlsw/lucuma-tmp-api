@@ -14,7 +14,7 @@ import lucuma.core.model.Program
 import lucuma.core.optics.syntax.all._
 import lucuma.odb.api.model.OffsetModel.ComponentInput
 import lucuma.odb.api.model._
-import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
+import lucuma.odb.api.model.targetModel.{CreateSiderealInput, TargetEnvironmentModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 
 import scala.concurrent.duration._
@@ -30,17 +30,15 @@ object TestInit {
 """
 {
   "name":  "NGC 5949",
-  "sidereal": {
-    "ra":    { "hms":  "15:28:00.668" },
-    "dec":   { "dms": "64:45:47.4"  },
-    "epoch": "J2000.000",
-    "properMotion": {
-      "ra":  { "milliarcsecondsPerYear": 0.0 },
-      "dec": { "milliarcsecondsPerYear": 0.0 }
-    },
-    "radialVelocity": { "metersPerSecond": 423607 },
-    "parallax":       { "milliarcseconds":  0.00 }
+  "ra":    { "hms":  "15:28:00.668" },
+  "dec":   { "dms": "64:45:47.4"  },
+  "epoch": "J2000.000",
+  "properMotion": {
+    "ra":  { "milliarcsecondsPerYear": 0.0 },
+    "dec": { "milliarcsecondsPerYear": 0.0 }
   },
+  "radialVelocity": { "metersPerSecond": 423607 },
+  "parallax":       { "milliarcseconds":  0.00 },
   "sourceProfile": {
     "point": {
       "bandNormalized": {
@@ -110,17 +108,15 @@ object TestInit {
 """
 {
   "name":  "NGC 3269",
-  "sidereal": {
-    "ra":    { "hms":  "10:29:57.070" },
-    "dec":   { "dms": "-35:13:27.8"  },
-    "epoch": "J2000.000",
-    "properMotion": {
-      "ra":  { "milliarcsecondsPerYear": 0.0 },
-      "dec": { "milliarcsecondsPerYear": 0.0 }
-    },
-    "radialVelocity": { "metersPerSecond": 3753885 },
-    "parallax":       { "milliarcseconds":  0.00 }
+  "ra":    { "hms":  "10:29:57.070" },
+  "dec":   { "dms": "-35:13:27.8"  },
+  "epoch": "J2000.000",
+  "properMotion": {
+    "ra":  { "milliarcsecondsPerYear": 0.0 },
+    "dec": { "milliarcsecondsPerYear": 0.0 }
   },
+  "radialVelocity": { "metersPerSecond": 3753885 },
+  "parallax":       { "milliarcseconds":  0.00 },
   "sourceProfile": {
     "point": {
       "bandNormalized": {
@@ -170,17 +166,15 @@ object TestInit {
 """
 {
   "name":  "NGC 3312",
-  "sidereal": {
-    "ra":    { "hms": "10:37:02.549" },
-    "dec":   { "dms": "-27:33:54.17"  },
-    "epoch": "J2000.000",
-    "properMotion": {
-      "ra":  { "milliarcsecondsPerYear": 0.0 },
-      "dec": { "milliarcsecondsPerYear":  0.0 }
-    },
-    "radialVelocity": { "metersPerSecond": 2826483 },
-    "parallax":       { "milliarcseconds":  0.0 }
+  "ra":    { "hms": "10:37:02.549" },
+  "dec":   { "dms": "-27:33:54.17"  },
+  "epoch": "J2000.000",
+  "properMotion": {
+    "ra":  { "milliarcsecondsPerYear": 0.0 },
+    "dec": { "milliarcsecondsPerYear":  0.0 }
   },
+  "radialVelocity": { "metersPerSecond": 2826483 },
+  "parallax":       { "milliarcseconds":  0.0 },
   "sourceProfile": {
     "point": {
       "bandNormalized": {
@@ -225,17 +219,15 @@ object TestInit {
 """
 {
   "name":  "NGC 4749",
-  "sidereal": {
-    "ra":    { "hms":  "12:51:12.001" },
-    "dec":   { "dms": "71:38:12.43"  },
-    "epoch": "J2000.000",
-    "properMotion": {
-      "ra":  { "milliarcsecondsPerYear": 0.0 },
-      "dec": { "milliarcsecondsPerYear": 0.0 }
-    },
-    "radialVelocity": { "metersPerSecond": 1728985 },
-    "parallax":       { "milliarcseconds":  0.00 }
+  "ra":    { "hms":  "12:51:12.001" },
+  "dec":   { "dms": "71:38:12.43"  },
+  "epoch": "J2000.000",
+  "properMotion": {
+    "ra":  { "milliarcsecondsPerYear": 0.0 },
+    "dec": { "milliarcsecondsPerYear": 0.0 }
   },
+  "radialVelocity": { "metersPerSecond": 1728985 },
+  "parallax":       { "milliarcseconds":  0.00 },
   "sourceProfile": {
     "point": {
       "bandNormalized": {
@@ -271,8 +263,8 @@ object TestInit {
 """
   )
 
-  val targets: Either[Exception, List[TargetModel.Create]] =
-    targetsJson.traverse(decode[TargetModel.Create])
+  val targets: Either[Exception, List[CreateSiderealInput]] =
+    targetsJson.traverse(decode[CreateSiderealInput])
 
   import GmosModel.{CreateCcdReadout, CreateSouthDynamic}
   import CreateCcdReadout.{ampRead, xBin, yBin}
@@ -436,7 +428,7 @@ object TestInit {
               )
             )
       cs <- targets.liftTo[F]
-      ts <- cs.init.traverse(repo.target.insert(p.id, _))
+      ts <- cs.init.traverse(c => repo.target.insert(TargetModel.Create.sidereal(None, p.id, c)))
       _  <- repo.observation.insert(obs(p.id, ts.headOption.toList)) // 2
       _  <- repo.observation.insert(obs(p.id, ts.lastOption.toList)) // 3
       _  <- repo.observation.insert(obs(p.id, ts.lastOption.toList)) // 4
@@ -456,13 +448,13 @@ object TestInit {
             )
 
       // Add an unused target (t-5 NGC 4749)
-      _  <- repo.target.insert(p.id, cs.last)
+      _  <- repo.target.insert(TargetModel.Create.sidereal(None, p.id, cs.last))
 
       _  <- repo.observation.insert(obs(p.id, ts))                   // 6
       _  <- repo.observation.insert(obs(p.id, Nil))                  // 7
 
       // Add an unused target for the otherwise empty program. (t-6)
-      _  <- repo.target.insert(p3.id, cs.last)
+      _  <- repo.target.insert(TargetModel.Create.sidereal(None, p3.id, cs.last))
 
     } yield ()
 

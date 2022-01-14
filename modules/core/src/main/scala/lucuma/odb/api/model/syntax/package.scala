@@ -7,8 +7,6 @@ package object syntax {
 
   object all extends ToInputOps
                 with ToInputValidatorOps
-                with ToLensOps
-                with ToOptionalOps
                 with ToTopLevelOps
                 with ToValidatedInputOps
 

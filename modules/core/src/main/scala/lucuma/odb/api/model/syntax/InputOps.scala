@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.model.syntax
 
-import clue.data.Input
+import clue.data.Input //{Input, Assign, Ignore, Unassign}
 import cats.syntax.all._
 import lucuma.odb.api.model.{InputError, ValidatedInput}
 

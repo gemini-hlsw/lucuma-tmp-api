@@ -10,36 +10,37 @@ import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.generic.semiauto._
+import io.circe.refined._
 import lucuma.core.`enum`.EphemerisKeyType
-import lucuma.core.model.{AngularSize, EphemerisKey, SourceProfile, Target}
+import lucuma.core.model.{EphemerisKey, Target}
+import lucuma.odb.api.model.targetModel.SourceProfileModel.CreateSourceProfileInput
 import lucuma.odb.api.model.{InputError, ValidatedInput}
 
 /**
  * Describes input used to create a nonsidereal target.
  *
+ * @param name    target name
  * @param keyType ephemeris key type
  * @param des     semi-permanent horizons identifier (relative to key type)
  */
 final case class CreateNonsiderealInput(
+  name:          NonEmptyString,
   keyType:       EphemerisKeyType,
   des:           String,
+  sourceProfile: CreateSourceProfileInput
 ) {
 
   val toEphemerisKey: ValidatedInput[EphemerisKey] =
     CreateNonsiderealInput.parse.ephemerisKey("des", keyType, des)
 
-  def toGemTarget(
-    name:          NonEmptyString,
-    sourceProfile: ValidatedInput[SourceProfile],
-    angularSize:   ValidatedInput[Option[AngularSize]]
-  ): ValidatedInput[Target] =
-    (toEphemerisKey, sourceProfile, angularSize).mapN { (k, s, a) =>
+  val toGemTarget: ValidatedInput[Target] =
+    (toEphemerisKey, sourceProfile.toSourceProfile).mapN { (k, s) =>
 
       Target.Nonsidereal(
         name,
         k,
         s,
-        a
+        None
       )
     }
 
@@ -52,8 +53,10 @@ object CreateNonsiderealInput {
 
   implicit val EqCreateNonsiderealInput: Eq[CreateNonsiderealInput] =
     Eq.by { a => (
+      a.name,
       a.keyType,
-      a.des
+      a.des,
+      a.sourceProfile
     )}
 
     object parse {

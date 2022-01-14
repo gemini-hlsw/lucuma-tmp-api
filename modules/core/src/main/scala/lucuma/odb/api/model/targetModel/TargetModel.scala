@@ -4,7 +4,7 @@
 package lucuma.odb.api.model.targetModel
 
 import cats.{Eq, Monad, Order}
-import cats.data.{EitherNec, StateT}
+import cats.data.State
 import cats.mtl.Stateful
 import cats.syntax.apply._
 import cats.syntax.flatMap._
@@ -18,10 +18,10 @@ import io.circe.Decoder
 import io.circe.refined._
 import io.circe.generic.semiauto._
 import lucuma.core.model.{Program, Target}
-import lucuma.odb.api.model.{DatabaseState, Event, Existence, InputError, NullableInput, TopLevelModel, ValidatedInput}
+import lucuma.core.optics.state.all._
+import lucuma.core.optics.syntax.lens._
+import lucuma.odb.api.model.{DatabaseState, Event, Existence, TopLevelModel, ValidatedInput}
 import lucuma.odb.api.model.syntax.input._
-import lucuma.odb.api.model.syntax.lens._
-import lucuma.odb.api.model.targetModel.SourceProfileModel.CreateSourceProfileInput
 import monocle.{Focus, Lens}
 
 
@@ -56,7 +56,6 @@ object TargetModel extends TargetModelOptics {
       (
         a.id,
         a.existence,
-        a.programId,
         a.target,
         a.observed
       )
@@ -64,27 +63,22 @@ object TargetModel extends TargetModelOptics {
   }
 
   final case class Create(
-    targetId:      Option[Target.Id],
-    name:          NonEmptyString,
-    sourceProfile: CreateSourceProfileInput,
-    sidereal:      Option[CreateSiderealInput],
-    nonsidereal:   Option[CreateNonsiderealInput],
-    angularSize:   Option[AngularSizeInput]
+    targetId:    Option[Target.Id],
+    programId:   Program.Id,
+    sidereal:    Option[CreateSiderealInput],
+    nonsidereal: Option[CreateNonsiderealInput]
   ) {
 
     def create[F[_]: Monad, T](
-      programId: Program.Id,
-      db:        DatabaseState[T]
+      db:   DatabaseState[T]
     )(implicit S: Stateful[F, T]): F[ValidatedInput[TargetModel]] =
 
       for {
-        i  <- db.target.getUnusedId(targetId)
-        p  <- db.program.lookupValidated(programId)
-        sp <- S.monad.pure(sourceProfile.toSourceProfile)
-        a  <- S.monad.pure(angularSize.traverse(_.create))
+        i <- db.target.getUnusedId(targetId)
+        p <- db.program.lookupValidated(programId)
         t  = ValidatedInput.requireOne("target",
-          sidereal.map(_.toGemTarget(name, sp, a)),
-          nonsidereal.map(_.toGemTarget(name, sp, a))
+          sidereal.map(_.toGemTarget),
+          nonsidereal.map(_.toGemTarget)
         )
         tm = (i, p, t).mapN { (iʹ, _, tʹ) =>
           TargetModel(iʹ, Existence.Present, programId, tʹ, observed = false)
@@ -97,20 +91,18 @@ object TargetModel extends TargetModelOptics {
   object Create {
 
     def sidereal(
-      targetId:      Option[Target.Id],
-      name:          NonEmptyString,
-      sourceProfile: CreateSourceProfileInput,
-      input:         CreateSiderealInput
+      targetId:  Option[Target.Id],
+      programId: Program.Id,
+      input:     CreateSiderealInput
     ): Create =
-      Create(targetId, name, sourceProfile, input.some, None, None)
+      Create(targetId, programId, input.some, None)
 
     def nonsidereal(
-      targetId:      Option[Target.Id],
-      name:          NonEmptyString,
-      sourceProfile: CreateSourceProfileInput,
-      input:         CreateNonsiderealInput
+      targetId:  Option[Target.Id],
+      programId: Program.Id,
+      input:     CreateNonsiderealInput
     ): Create =
-      Create(targetId, name, sourceProfile, None, input.some, None)
+      Create(targetId, programId, None, input.some)
 
     implicit val DecoderCreate: Decoder[Create] =
       deriveDecoder[Create]
@@ -118,11 +110,9 @@ object TargetModel extends TargetModelOptics {
     implicit val EqCreate: Eq[Create] =
       Eq.by { a => (
         a.targetId,
-        a.name,
-        a.sourceProfile,
+        a.programId,
         a.sidereal,
-        a.nonsidereal,
-        a.angularSize
+        a.nonsidereal
       )}
   }
 
@@ -131,32 +121,29 @@ object TargetModel extends TargetModelOptics {
     existence:   Input[Existence]             = Input.ignore,
     name:        Input[NonEmptyString]        = Input.ignore,
     sidereal:    Option[EditSiderealInput]    = None,
-    nonSidereal: Option[EditNonsiderealInput] = None,
-    angularSize: Input[AngularSizeInput]      = Input.ignore
+    nonSidereal: Option[EditNonsiderealInput] = None
   ) {
 
-    val editor: StateT[EitherNec[InputError, *], TargetModel, Unit] = {
-      val validArgs =
-        (
-          existence.validateIsNotNull("existence"),
-          name     .validateIsNotNull("name")
-        ).tupled.toEither
+    def edit(t: TargetModel): ValidatedInput[TargetModel] =
+      editor.map(_.runS(t).value)
 
-      def editTarget(s: Option[StateT[EitherNec[InputError, *], Target, Unit]]): StateT[EitherNec[InputError, *], TargetModel, Unit] =
-        TargetModel.target.transform(s.getOrElse(StateT.empty[EitherNec[InputError, *], Target, Unit]))
-
-      for {
-        args <- StateT.liftF(validArgs)
-        (e, n) = args
-        _ <- TargetModel.existence := e
-        _ <- TargetModel.name      := n
-        _ <- editTarget(sidereal.map(_.editor))
-        _ <- editTarget(nonSidereal.map(_.editor))
-        _ <- TargetModel.target.transform(
-               NullableInput.update(Target.angularSize.asOptional, angularSize)
-             )
-      } yield ()
-    }
+    private val editor: ValidatedInput[State[TargetModel, Unit]] =
+      (existence.validateIsNotNull("existence"),
+       name     .validateIsNotNull("name"),
+       sidereal.traverse(_.editor),
+       nonSidereal.traverse(_.editor)
+      ).mapN { (e, n, s, ns) =>
+        for {
+          _ <- TargetModel.existence := e
+          _ <- TargetModel.name      := n
+          _ <- s.fold(State.get[TargetModel].void) { ed =>
+            TargetModel.target.mod_(ed.runS(_).value)
+          }
+          _ <- ns.fold(State.get[TargetModel].void) { ed =>
+            TargetModel.target.mod_(ed.runS(_).value)
+          }
+        } yield ()
+      }
 
   }
 

@@ -113,7 +113,7 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
     oid: Observation.Id
   ): F[TargetEnvironmentModel]
 
-  def insert(programId: Program.Id, newTarget: TargetModel.Create): F[TargetModel]
+  def insert(newTarget: TargetModel.Create): F[TargetModel]
 
   def edit(edit: TargetModel.Edit): F[TargetModel]
 
@@ -260,14 +260,13 @@ object TargetRepo {
         unsafeSelect(id)(selectObservationTargetEnvironment)
 
       override def insert(
-        programId: Program.Id,
         newTarget: TargetModel.Create
       ): F[TargetModel] = {
 
         val create: F[TargetModel] =
           EitherT(
             tablesRef.modify { tables =>
-              val (tablesʹ, t) = newTarget.create[State[Tables, *], Tables](programId, TableState).run(tables).value
+              val (tablesʹ, t) = newTarget.create[State[Tables, *], Tables](TableState).run(tables).value
               t.fold(
                 err => (tables, InputError.Exception(err).asLeft),
                 t   => (tablesʹ, t.asRight)
@@ -282,15 +281,13 @@ object TargetRepo {
       }
 
       override def edit(
-        targetEditor: TargetModel.Edit
+        edit: TargetModel.Edit
       ): F[TargetModel] = {
 
         val update: State[Tables, ValidatedInput[TargetModel]] =
           for {
-            initial <- TableState.target.lookupValidated[State[Tables, *]](targetEditor.targetId)
-            edited   = initial.andThen { t =>
-              targetEditor.editor.runS(t).toValidated
-            }
+            initial <- TableState.target.lookupValidated[State[Tables, *]](edit.targetId)
+            edited   = initial.andThen(t => edit.edit(t))
             _       <- edited.fold(
               _ => State.get[Tables].void,
               t => Tables.targets.mod_(m => m + (t.id -> t))

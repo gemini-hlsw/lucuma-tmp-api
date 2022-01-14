@@ -3,11 +3,9 @@
 
 package lucuma.odb.api
 
-import cats.data.{EitherNec, ValidatedNec}
+import cats.data.ValidatedNec
 
 package object model {
-
-  type EitherInput[A] = EitherNec[InputError, A]
 
   type ValidatedInput[A] = ValidatedNec[InputError, A]
 
