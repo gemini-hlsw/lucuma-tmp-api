@@ -11,7 +11,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import lucuma.core.math.{Coordinates, Epoch}
-import lucuma.core.model.{AngularSize, SiderealTracking, SourceProfile, Target}
+import lucuma.core.model.{SiderealTracking, SourceProfile, Target}
 import lucuma.odb.api.model.{DeclinationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel, ValidatedInput}
 import lucuma.odb.api.model.json.target._
 
@@ -46,20 +46,17 @@ final case class CreateSiderealInput(
 
   def toGemTarget(
     name:          NonEmptyString,
-    sourceProfile: ValidatedInput[SourceProfile],
-    angularSize:   ValidatedInput[Option[AngularSize]]
+    sourceProfile: ValidatedInput[SourceProfile]
   ): ValidatedInput[Target] =
     (catalogInfo.traverse(_.create),
      toSiderealTracking,
-     sourceProfile,
-     angularSize
-    ).mapN { (ci, pm, sp, as) =>
+     sourceProfile
+    ).mapN { (ci, pm, sp) =>
       Target.Sidereal(
         name,
         pm,
         sp,
-        ci,
-        as
+        ci
       )
     }
 

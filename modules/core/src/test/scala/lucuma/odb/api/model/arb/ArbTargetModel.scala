@@ -25,7 +25,6 @@ import scala.collection.immutable.SortedSet
 
 trait ArbTargetModel {
 
-  import ArbAngularSizeInput._
   import ArbCatalogInfoInput._
   import ArbCoordinates._
   import ArbCoordinatesModel._
@@ -152,8 +151,7 @@ trait ArbTargetModel {
         p <- arbitrary[CreateSourceProfileInput]
         s <- arbitrary[Option[CreateSiderealInput]]
         n <- arbitrary[Option[CreateNonsiderealInput]]
-        a <- arbitrary[Option[AngularSizeInput]]
-      } yield TargetModel.Create(t, m, p, s, n, a)
+      } yield TargetModel.Create(t, m, p, s, n)
     }
 
   implicit val cogCreateTarget: Cogen[TargetModel.Create] =
