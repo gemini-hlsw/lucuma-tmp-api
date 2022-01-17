@@ -9,7 +9,7 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
 import lucuma.odb.api.model.{CoordinatesModel, DeclinationModel, ObservationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
-import lucuma.odb.api.model.targetModel.{CatalogInfoInput, CreateNonsiderealInput, CreateSiderealInput, EditAsterismInput, EditNonsiderealInput, EditSiderealInput, TargetEnvironmentModel, TargetModel}
+import lucuma.odb.api.model.targetModel.{CatalogInfoInput, CreateSiderealInput, EditAsterismInput, EditSiderealInput, NonsiderealInput, TargetEnvironmentModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
 import lucuma.core.model.Target
@@ -111,10 +111,10 @@ trait TargetMutation extends TargetScalars {
       InputObjectTypeDescription("Parallax, choose one of the available units")
     )
 
-  implicit val InputObjectTypeCreateNonsidereal: InputObjectType[CreateNonsiderealInput] =
-    deriveInputObjectType[CreateNonsiderealInput](
-      InputObjectTypeName("CreateNonsiderealInput"),
-      InputObjectTypeDescription("Nonsidereal target parameters")
+  implicit val InputObjectTypeNonsidereal: InputObjectType[NonsiderealInput] =
+    deriveInputObjectType[NonsiderealInput](
+      InputObjectTypeName("NonsiderealInput"),
+      InputObjectTypeDescription("Nonsidereal target parameters.  Supply `keyType` and `des` or `key`")
     )
 
   implicit val InputObjectTypeCreateSidereal: InputObjectType[CreateSiderealInput] =
@@ -134,15 +134,6 @@ trait TargetMutation extends TargetScalars {
       "input",
       "Target description.  One (and only one) of sidereal or nonsidereal must be specified."
     )
-
-  implicit val InputObjectTypeEditNonsidereal: InputObjectType[EditNonsiderealInput] =
-    deriveInputObjectType[EditNonsiderealInput](
-      InputObjectTypeName("EditNonsiderealInput"),
-      InputObjectTypeDescription("Nonsidereal target edit parameters"),
-
-      ReplaceInputField("key",  EphemerisKeyType  .notNullableField("key"))
-    )
-
 
   implicit val InputObjectTypeEditSidereal: InputObjectType[EditSiderealInput] =
     deriveInputObjectType[EditSiderealInput](
@@ -175,7 +166,7 @@ trait TargetMutation extends TargetScalars {
         InputField("existence",   OptionInputType(EnumTypeExistence)),
         InputField("name",        OptionInputType(NonEmptyStringType)),
         InputField("sidereal",    OptionInputType(InputObjectTypeEditSidereal)),
-        InputField("nonSidereal", OptionInputType(InputObjectTypeEditNonsidereal))
+        InputField("nonsidereal", OptionInputType(InputObjectTypeNonsidereal))
       )
     )
   }

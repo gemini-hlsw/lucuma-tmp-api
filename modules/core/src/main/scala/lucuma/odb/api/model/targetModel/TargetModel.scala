@@ -67,7 +67,7 @@ object TargetModel extends TargetModelOptics {
     name:          NonEmptyString,
     sourceProfile: CreateSourceProfileInput,
     sidereal:      Option[CreateSiderealInput],
-    nonsidereal:   Option[CreateNonsiderealInput]
+    nonsidereal:   Option[NonsiderealInput]
   ) {
 
     def create[F[_]: Monad, T](
@@ -81,7 +81,7 @@ object TargetModel extends TargetModelOptics {
         sp <- S.monad.pure(sourceProfile.toSourceProfile)
         t  = ValidatedInput.requireOne("target",
           sidereal.map(_.toGemTarget(name, sp)),
-          nonsidereal.map(_.toGemTarget(name, sp))
+          nonsidereal.map(_.createGemTarget(name, sp))
         )
         tm = (i, p, t).mapN { (iʹ, _, tʹ) =>
           TargetModel(iʹ, Existence.Present, programId, tʹ, observed = false)
@@ -105,7 +105,7 @@ object TargetModel extends TargetModelOptics {
       targetId:      Option[Target.Id],
       name:          NonEmptyString,
       sourceProfile: CreateSourceProfileInput,
-      input:         CreateNonsiderealInput
+      input:         NonsiderealInput
     ): Create =
       Create(targetId, name, sourceProfile, None, input.some)
 
@@ -124,10 +124,10 @@ object TargetModel extends TargetModelOptics {
 
   final case class Edit(
     targetId:    Target.Id,
-    existence:   Input[Existence]             = Input.ignore,
-    name:        Input[NonEmptyString]        = Input.ignore,
-    sidereal:    Option[EditSiderealInput]    = None,
-    nonSidereal: Option[EditNonsiderealInput] = None
+    existence:   Input[Existence]          = Input.ignore,
+    name:        Input[NonEmptyString]     = Input.ignore,
+    sidereal:    Option[EditSiderealInput] = None,
+    nonsidereal: Option[NonsiderealInput]  = None
   ) {
 
     val editor: StateT[EitherNec[InputError, *], TargetModel, Unit] = {
@@ -146,7 +146,7 @@ object TargetModel extends TargetModelOptics {
         _ <- TargetModel.existence := e
         _ <- TargetModel.name      := n
         _ <- editTarget(sidereal.map(_.editor))
-        _ <- editTarget(nonSidereal.map(_.editor))
+        _ <- editTarget(nonsidereal.map(_.editor))
       } yield ()
     }
 
@@ -166,7 +166,7 @@ object TargetModel extends TargetModelOptics {
         a.existence,
         a.name,
         a.sidereal,
-        a.nonSidereal
+        a.nonsidereal
       )}
 
   }
