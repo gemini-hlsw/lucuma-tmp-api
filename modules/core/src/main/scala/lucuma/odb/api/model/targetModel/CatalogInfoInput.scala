@@ -16,13 +16,13 @@ import lucuma.core.`enum`.CatalogName
 import lucuma.core.model.CatalogInfo
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
-import lucuma.odb.api.model.{InputError, NullableInput, ValidatedInput}
+import lucuma.odb.api.model.{InputError, EditorInput, ValidatedInput}
 
 final case class CatalogInfoInput(
   name:       Input[CatalogName]    = Input.ignore,
   id:         Input[NonEmptyString] = Input.ignore,
   objectType: Input[NonEmptyString] = Input.ignore
-) extends NullableInput[CatalogInfo] {
+) extends EditorInput[CatalogInfo] {
 
   override val create: ValidatedInput[CatalogInfo] =
     (name.toOption.toValidNec(InputError.missingInput("catalog 'name'")),

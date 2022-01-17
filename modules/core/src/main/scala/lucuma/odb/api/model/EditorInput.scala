@@ -16,7 +16,7 @@ import monocle.Optional
  *
  * @tparam A type of the editing target
  */
-trait NullableInput[A] {
+trait EditorInput[A] {
 
   def create: ValidatedInput[A]
 
@@ -24,13 +24,13 @@ trait NullableInput[A] {
 
 }
 
-object NullableInput {
+object EditorInput {
 
   /**
    * Using the provided optic, applies the update described by the given `Input`
    * in the resulting state computation.
    */
-  def update[S, A, N <: NullableInput[A]](
+  def nullable[S, A, N <: EditorInput[A]](
     optional: Optional[S, Option[A]],
     input:    Input[N]
   ): StateT[EitherInput, S, Unit] =

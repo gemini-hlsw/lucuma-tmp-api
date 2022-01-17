@@ -58,35 +58,35 @@ final case class NonsiderealInput(
       )
     }
 
+  def modType(keyType: EphemerisKeyType): StateT[EitherInput, EphemerisKey, Unit] =
+    StateT.modifyF { k =>
+      EphemerisKey.fromTypeAndDes.getOption((keyType, k.des)).toRightNec(
+        InputError.fromMessage(s"""supplied `keyType` $keyType and existing des "${k.des}" do not combine to form a valid ephemeris key""")
+      )
+    }
+
+  def modDes(des: NonEmptyString): StateT[EitherInput, EphemerisKey, Unit] =
+    StateT.modifyF { k =>
+      EphemerisKey.fromTypeAndDes.getOption((k.keyType, des.value)).toRightNec(
+        InputError.fromMessage(s"""supplied `des` "${des.value}" and existing key type ${k.keyType} do not combine to form a valid ephemeris key""")
+      )
+    }
+
+  def modTypeAndDes(keyType: EphemerisKeyType, des: NonEmptyString): StateT[EitherInput, EphemerisKey, Unit] =
+    StateT.setF {
+      EphemerisKey.fromTypeAndDes.getOption((keyType, des.value)).toRightNec(
+        InputError.fromMessage(s"""supplied `keyType` $keyType and `des` ${des.value} do not combine to form a valid ephemeris key""")
+      )
+    }
+
+  def modKey(key: NonEmptyString): StateT[EitherInput, EphemerisKey, Unit] =
+    StateT.setF {
+      EphemerisKey.fromString.getOption(key.value).toRightNec(
+        InputError.fromMessage(s"""cannot parse supplied `key` "${key.value}" as an ephemeris key""")
+      )
+    }
+
   val editor: StateT[EitherNec[InputError, *], Target, Unit] = {
-
-    def modType(keyType: EphemerisKeyType): StateT[EitherInput, EphemerisKey, Unit] =
-      StateT.modifyF { k =>
-        EphemerisKey.fromTypeAndDes.getOption((keyType, k.des)).toRightNec(
-          InputError.fromMessage(s"""supplied `keyType` $keyType and existing des "${k.des}" do not combine to form a valid ephemeris key""")
-        )
-      }
-
-    def modDes(des: NonEmptyString): StateT[EitherInput, EphemerisKey, Unit] =
-      StateT.modifyF { k =>
-        EphemerisKey.fromTypeAndDes.getOption((k.keyType, des.value)).toRightNec(
-          InputError.fromMessage(s"""supplied `des` "${des.value}" and existing key type ${k.keyType} do not combine to form a valid ephemeris key""")
-        )
-      }
-
-    def modTypeAndDes(keyType: EphemerisKeyType, des: NonEmptyString): StateT[EitherInput, EphemerisKey, Unit] =
-      StateT.setF {
-        EphemerisKey.fromTypeAndDes.getOption((keyType, des.value)).toRightNec(
-          InputError.fromMessage(s"""supplied `keyType` $keyType and `des` ${des.value} do not combine to form a valid ephemeris key""")
-        )
-      }
-
-    def modKey(key: NonEmptyString): StateT[EitherInput, EphemerisKey, Unit] =
-      StateT.setF {
-        EphemerisKey.fromString.getOption(key.value).toRightNec(
-          InputError.fromMessage(s"""cannot parse supplied `key` "${key.value}" as an ephemeris key""")
-        )
-      }
 
     val ed: StateT[EitherInput, EphemerisKey, Unit] =
       (keyType, des, key) match {

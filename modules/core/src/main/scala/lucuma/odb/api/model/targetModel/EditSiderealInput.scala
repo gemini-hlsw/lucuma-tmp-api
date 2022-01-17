@@ -11,7 +11,7 @@ import eu.timepit.refined.cats._
 import io.circe.Decoder
 import lucuma.core.math.Epoch
 import lucuma.core.model.Target
-import lucuma.odb.api.model.{DeclinationModel, InputError, NullableInput, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
+import lucuma.odb.api.model.{DeclinationModel, InputError, EditorInput, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
 import lucuma.odb.api.model.json.target._
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.optional._
@@ -42,7 +42,7 @@ final case class EditSiderealInput(
       args <- StateT.liftF(validArgs)
       (r, d, e, pm, rv, px) = args
 
-      _ <- NullableInput.update(Target.catalogInfo, catalogInfo)
+      _ <- EditorInput.nullable(Target.catalogInfo, catalogInfo)
       _ <- Target.baseRA         := r
       _ <- Target.baseDec        := d
       _ <- Target.epoch          := e
