@@ -146,7 +146,7 @@ object TargetModel extends TargetModelOptics {
         _ <- TargetModel.existence := e
         _ <- TargetModel.name      := n
         _ <- editTarget(sidereal.map(_.editor))
-        _ <- editTarget(nonsidereal.map(_.editor))
+        _ <- editTarget(nonsidereal.map(_.targetEditor))
       } yield ()
     }
 

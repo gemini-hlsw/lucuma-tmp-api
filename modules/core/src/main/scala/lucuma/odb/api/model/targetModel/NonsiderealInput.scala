@@ -16,7 +16,7 @@ import io.circe.refined._
 import lucuma.core.`enum`.EphemerisKeyType
 import lucuma.core.model.Target.Nonsidereal
 import lucuma.core.model.{EphemerisKey, SourceProfile, Target}
-import lucuma.odb.api.model.{EitherInput, InputError, ValidatedInput}
+import lucuma.odb.api.model.{EditorInput, EitherInput, InputError, ValidatedInput}
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.prism._
 
@@ -32,9 +32,9 @@ final case class NonsiderealInput(
   keyType: Option[EphemerisKeyType],
   des:     Option[NonEmptyString],
   key:     Option[NonEmptyString]
-) {
+) extends EditorInput[EphemerisKey] {
 
-  val toEphemerisKey: ValidatedInput[EphemerisKey] = {
+  override val create: ValidatedInput[EphemerisKey] = {
     (keyType, des, key) match {
       case (Some(t), Some(d), None  ) =>
         NonsiderealInput.key.fromTypeAndDes("des", t, d)
@@ -49,7 +49,7 @@ final case class NonsiderealInput(
     name:          NonEmptyString,
     sourceProfile: ValidatedInput[SourceProfile]
   ): ValidatedInput[Target] =
-    (toEphemerisKey, sourceProfile).mapN { (k, s) =>
+    (create, sourceProfile).mapN { (k, s) =>
 
       Target.Nonsidereal(
         name,
@@ -86,19 +86,47 @@ final case class NonsiderealInput(
       )
     }
 
-  val editor: StateT[EitherNec[InputError, *], Target, Unit] = {
-
-    val ed: StateT[EitherInput, EphemerisKey, Unit] =
-      (keyType, des, key) match {
-        case (Some(t), None,    None   ) => modType(t)
-        case (None,    Some(d), None   ) => modDes(d)
-        case (Some(t), Some(d), None   ) => modTypeAndDes(t, d)
-        case (None,    None,    Some(k)) => modKey(k)
-        case _                           => StateT.empty[EitherInput, EphemerisKey, Unit]
+  override val edit: StateT[EitherInput, EphemerisKey, Unit] = {
+    def modType(keyType: EphemerisKeyType): StateT[EitherInput, EphemerisKey, Unit] =
+      StateT.modifyF { k =>
+        EphemerisKey.fromTypeAndDes.getOption((keyType, k.des)).toRightNec(
+          InputError.fromMessage(s"""supplied `keyType` $keyType and existing des "${k.des}" do not combine to form a valid ephemeris key""")
+        )
       }
 
-    Target.nonsidereal.transformOrIgnore(Nonsidereal.ephemerisKey.transform(ed))
+    def modDes(des: NonEmptyString): StateT[EitherInput, EphemerisKey, Unit] =
+      StateT.modifyF { k =>
+        EphemerisKey.fromTypeAndDes.getOption((k.keyType, des.value)).toRightNec(
+          InputError.fromMessage(s"""supplied `des` "${des.value}" and existing key type ${k.keyType} do not combine to form a valid ephemeris key""")
+        )
+      }
+
+    def modTypeAndDes(keyType: EphemerisKeyType, des: NonEmptyString): StateT[EitherInput, EphemerisKey, Unit] =
+      StateT.setF {
+        EphemerisKey.fromTypeAndDes.getOption((keyType, des.value)).toRightNec(
+          InputError.fromMessage(s"""supplied `keyType` $keyType and `des` ${des.value} do not combine to form a valid ephemeris key""")
+        )
+      }
+
+    def modKey(key: NonEmptyString): StateT[EitherInput, EphemerisKey, Unit] =
+      StateT.setF {
+        EphemerisKey.fromString.getOption(key.value).toRightNec(
+          InputError.fromMessage(s"""cannot parse supplied `key` "${key.value}" as an ephemeris key""")
+        )
+      }
+
+    (keyType, des, key) match {
+      case (Some(t), None,    None   ) => modType(t)
+      case (None,    Some(d), None   ) => modDes(d)
+      case (Some(t), Some(d), None   ) => modTypeAndDes(t, d)
+      case (None,    None,    Some(k)) => modKey(k)
+      case _                           => StateT.empty[EitherInput, EphemerisKey, Unit]
+    }
   }
+
+
+  val targetEditor: StateT[EitherNec[InputError, *], Target, Unit] =
+    Target.nonsidereal.transformOrIgnore(Nonsidereal.ephemerisKey.transform(edit))
 
 }
 
