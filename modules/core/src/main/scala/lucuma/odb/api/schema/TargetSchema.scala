@@ -10,7 +10,7 @@ import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.`enum`.{CatalogName, EphemerisKeyType => EphemerisKeyTypeEnum}
 import lucuma.core.math.{Coordinates, Declination, Parallax, ProperMotion, RadialVelocity, RightAscension, VelocityAxis}
-import lucuma.core.model.{AngularSize, CatalogInfo, Target}
+import lucuma.core.model.{CatalogInfo, Target}
 import cats.syntax.all._
 import cats.effect.std.Dispatcher
 import lucuma.core.model.Target.{Nonsidereal, Sidereal}
@@ -19,7 +19,6 @@ import sangria.schema.{Field, _}
 
 object TargetSchema extends TargetScalars {
 
-  import AngleSchema.AngleType
   import GeneralSchema.{ArgumentIncludeDeleted, NonEmptyStringType}
   import ProgramSchema.ProgramType
   import SourceProfileSchema._
@@ -101,25 +100,6 @@ object TargetSchema extends TargetScalars {
           description = "Catalog description of object morphology".some,
           resolve     = _.value.objectType.map(_.value)
 
-        )
-      )
-    )
-
-  val AngularSizeType: ObjectType[Any, AngularSize] =
-    ObjectType(
-      name = "AngularSize",
-      fieldsFn = () => fields(
-
-        Field(
-          name      = "majorAxis",
-          fieldType = AngleType,
-          resolve   = _.value.majorAxis
-        ),
-
-        Field(
-          name      = "minorAxis",
-          fieldType = AngleType,
-          resolve   = _.value.minorAxis
         )
       )
     )
@@ -421,12 +401,6 @@ object TargetSchema extends TargetScalars {
           fieldType   = OptionType(NonsiderealType[F]),
           description = "Nonsidereal tracking information, if this is a nonsidereal target".some,
           resolve     = c => Target.nonsidereal.getOption(c.value.target)
-        ),
-
-        Field(
-          name        = "angularSize",
-          fieldType   = OptionType(AngularSizeType),
-          resolve     = c => Target.angularSize.get(c.value.target)
         )
 
       )
