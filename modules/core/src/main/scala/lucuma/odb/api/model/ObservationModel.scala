@@ -6,13 +6,12 @@ package lucuma.odb.api.model
 import lucuma.odb.api.model.Existence._
 import lucuma.odb.api.model.ScienceConfigurationModel.ScienceConfigurationModelEdit
 import lucuma.odb.api.model.syntax.input._
+import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.targetModel.TargetEnvironmentModel
 import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.{Observation, Program}
-import lucuma.core.optics.state.all._
-import lucuma.core.optics.syntax.lens._
 import cats.{Eq, Functor, Monad}
-import cats.data.State
+import cats.data.StateT
 import cats.implicits.catsKernelOrderingForOrder
 import cats.mtl.Stateful
 import cats.syntax.apply._
@@ -20,7 +19,7 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
 import cats.syntax.traverse._
-import clue.data.Input
+import clue.data.{Assign, Ignore, Input, Unassign}
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string._
 import io.circe.Decoder
@@ -171,45 +170,41 @@ object ObservationModel extends ObservationOptics {
     scienceConfiguration: Input[ScienceConfigurationModelEdit]  = Input.ignore
   ) {
 
-    def editOrCreateSciConfig(
-      ed: Option[Option[Either[ScienceConfigurationModel, State[ScienceConfigurationModel, Unit]]]]
-    )(
-      m: Option[ScienceConfigurationModel]
-    ): Option[ScienceConfigurationModel] =
-      ed.flatMap {
-        case Some(Left(s))  => s.some
-        case Some(Right(s)) => m.map(s.runS(_).value)
-        case _              => None
-      }
+    val editor: StateT[EitherInput, ObservationModel, Unit] = {
+      val validArgs =
+        (existence   .validateIsNotNull("existence"),
+         status      .validateIsNotNull("status"),
+         activeStatus.validateIsNotNull("active")
+        ).tupled.toEither
 
-    val editor: ValidatedInput[State[ObservationModel, Unit]] =
-      (existence   .validateIsNotNull("existence"),
-       status      .validateIsNotNull("status"),
-       activeStatus.validateIsNotNull("active"),
-       targets.traverse(_.editor),
-       constraintSet.traverse(_.editor),
-       scienceRequirements.traverse(_.editor),
-       scienceConfiguration.validateNullable(_.editor)
-      ).mapN { (e, s, a, tʹ, c, sr, sc) =>
-        for {
-          _ <- ObservationModel.existence    := e
-          _ <- ObservationModel.name         := name.toOptionOption
-          _ <- ObservationModel.status       := s
-          _ <- ObservationModel.activeStatus := a
-          _ <- tʹ.fold(State.get[ObservationModel].void) { ed =>
-            ObservationModel.targetEnvironment.mod_(ed.runS(_).value)
-          }
-          _ <- c.fold(State.get[ObservationModel].void) { ed =>
-            ObservationModel.constraintSet.mod_(ed.runS(_).value)
-          }
-          _ <- sr.fold(State.get[ObservationModel].void) { ed =>
-            ObservationModel.scienceRequirements.mod_(ed.runS(_).value)
-          }
-          _ <- sc.fold(State.get[ObservationModel].void) { ed =>
-            ObservationModel.scienceConfiguration.mod_(editOrCreateSciConfig(ed))
-          }
-        } yield ()
-      }
+      val sc: StateT[EitherInput, ObservationModel, Unit] =
+        scienceConfiguration match {
+          case Ignore     => StateT.empty[EitherInput, ObservationModel, Unit]
+          case Unassign   => StateT.modify(ObservationModel.scienceConfiguration.replace(None))
+          case Assign(ed) => ObservationModel.scienceConfiguration.transform(ed.editor)
+        }
+
+      def empty[T]: StateT[EitherInput, T, Unit] = StateT.empty
+
+      for {
+        args <- StateT.liftF(validArgs)
+        (e, s, a) = args
+        _    <- ObservationModel.existence    := e
+        _    <- ObservationModel.name         := name.toOptionOption
+        _    <- ObservationModel.status       := s
+        _    <- ObservationModel.activeStatus := a
+        _    <- ObservationModel.targetEnvironment.transform(
+                  targets.fold(empty[TargetEnvironmentModel])(_.editor)
+                )
+        _    <- ObservationModel.constraintSet.transform(
+                  constraintSet.fold(empty[ConstraintSetModel])(_.editor)
+                )
+        _    <- ObservationModel.scienceRequirements.transform(
+                  scienceRequirements.fold(empty[ScienceRequirements])(_.editor)
+                )
+        _    <- sc
+      } yield ()
+    }
   }
 
   object Edit {

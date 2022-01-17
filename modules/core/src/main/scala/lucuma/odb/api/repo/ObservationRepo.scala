@@ -3,16 +3,16 @@
 
 package lucuma.odb.api.repo
 
+import cats.data.{EitherT, Nested, State, StateT}
+import cats.effect.{Async, Ref}
+import cats.implicits._
 import lucuma.core.model.{Observation, Program, Target}
-import lucuma.core.optics.state.all._
 import lucuma.odb.api.model.ObservationModel.{BulkEdit, Create, Edit, Group, ObservationEvent}
-import lucuma.odb.api.model.{ConstraintSetModel, Event, InputError, InstrumentConfigModel, ObservationModel, PlannedTimeSummaryModel, ScienceRequirements, ScienceRequirementsModel, ValidatedInput}
+import lucuma.odb.api.model.{ConstraintSetModel, EitherInput, Event, InputError, InstrumentConfigModel, ObservationModel, PlannedTimeSummaryModel, ScienceRequirements, ScienceRequirementsModel, ValidatedInput}
+import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.odb.api.model.targetModel.{EditAsterismInput, TargetEnvironmentModel, TargetModel}
-import cats.data.{EitherT, Nested, State}
-import cats.effect.{Async, Ref}
-import cats.implicits._
 
 import scala.collection.immutable.SortedSet
 
@@ -168,13 +168,13 @@ object ObservationRepo {
         val update: State[Tables, ValidatedInput[ObservationModel]] =
           for {
             initial   <- TableState.observation.lookupValidated[State[Tables, *]](edit.observationId)
-            edited     = (edit.editor, initial).mapN { (e, i) => e.runS(i).value }
+            edited     = initial.andThen(o => edit.editor.runS(o).toValidated )
             validated <- edited
                            .traverse(_.validate[State[Tables, *], Tables](TableState))
                            .map(_.andThen(identity))
             _         <- validated.fold(
               _ => State.get[Tables].void,
-              o => Tables.observations.mod_(obsMap => obsMap + (o.id -> o))
+              o => State.modify[Tables](Tables.observations.modify(_ + (o.id -> o)))
             )
           } yield validated
 
@@ -287,7 +287,7 @@ object ObservationRepo {
       ): State[Tables, ValidatedInput[List[ObservationModel]]] =
         for {
           p   <- programId.traverse(pid => TableState.program.lookupValidated[State[Tables, *]](pid))
-          all <- p.traverse(_.traverse(p => Tables.observations.st.map(_.values.filter(_.programId === p.id).toList)))
+          all <- p.traverse(_.traverse(p => State.inspect[Tables, List[ObservationModel]](_.observations.values.filter(_.programId === p.id).toList)))
           sel <- observationIds.traverse(oids => TableState.observation.lookupAllValidated[State[Tables, *]](oids))
         } yield {
           val obsList = (all, sel) match {
@@ -307,19 +307,17 @@ object ObservationRepo {
       // A bulk edit for target environment with a post-observation validation
       private def doBulkEditTargets(
         be: BulkEdit[_],
-        ed: ValidatedInput[State[TargetEnvironmentModel, Unit]]
+        ed: StateT[EitherInput, TargetEnvironmentModel, Unit]
       ): F[List[ObservationModel]] = {
 
         val update =
           for {
             ini  <- selectObservations(be.selectProgram, be.selectObservations)
-            osʹ   = (ini, ed).mapN { (os, e) =>
-              os.map(ObservationModel.targetEnvironment.modify(env => e.runS(env).value))
-            }
+            osʹ   = ini.andThen(_.traverse(ObservationModel.targetEnvironment.modifyA(env => ed.runS(env).toValidated)))
             nos  <- Nested(osʹ).traverse(_.validate[State[Tables, *], Tables](TableState))
             vos   = nos.value.map(_.sequence).andThen(identity)
             _    <- vos.traverse { os =>
-              Tables.observations.mod_(_ ++ os.fproductLeft(_.id))
+              State.modify[Tables](Tables.observations.modify(_ ++ os.fproductLeft(_.id)))
             }
           } yield vos
 
@@ -342,15 +340,15 @@ object ObservationRepo {
 
       private def bulkEdit(
         initialObsList: State[Tables, ValidatedInput[List[ObservationModel]]],
-        editor:         ValidatedInput[ObservationModel => ObservationModel]
+        editor:         StateT[EitherInput, ObservationModel, Unit]
       ): F[List[ObservationModel]] = {
 
         val update: State[Tables, ValidatedInput[List[ObservationModel]]] =
           for {
             initial <- initialObsList
-            edited   = (initial, editor).mapN { case (os, ed) => os.map(ed) }
+            edited   = initial.andThen(_.traverse(editor.runS).toValidated)
             _       <- edited.traverse { os =>
-              Tables.observations.mod_(_ ++ os.fproductLeft(_.id))
+              State.modify[Tables](Tables.observations.modify(_ ++ os.fproductLeft(_.id)))
             }
           } yield edited
 
@@ -367,9 +365,7 @@ object ObservationRepo {
 
         bulkEdit(
           selectObservations(be.selectProgram, be.selectObservations),
-          be.edit.editor.map { ed =>
-            ObservationModel.constraintSet.modify(cs => ed.runS(cs).value)
-          }
+          ObservationModel.constraintSet.transform(be.edit.editor)
         )
 
       override def bulkEditScienceRequirements(
@@ -378,9 +374,7 @@ object ObservationRepo {
 
         bulkEdit(
           selectObservations(be.selectProgram, be.selectObservations),
-          be.edit.editor.map { ed =>
-            ObservationModel.scienceRequirements.modify(sr => ed.runS(sr).value)
-          }
+          ObservationModel.scienceRequirements.transform(be.edit.editor)
         )
 
     }

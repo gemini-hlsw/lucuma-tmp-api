@@ -6,7 +6,7 @@ package lucuma.odb.api.model
 import lucuma.core.`enum`.Instrument
 import cats.Eq
 import cats.syntax.all._
-import cats.data.State
+import cats.data.StateT
 import clue.data.Input
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
@@ -15,10 +15,11 @@ import lucuma.core.enum.GmosNorthDisperser
 import lucuma.core.enum.GmosSouthFilter
 import lucuma.core.enum.GmosSouthDisperser
 import lucuma.core.math.Angle
-import lucuma.core.optics.syntax.lens._
 import lucuma.core.util.Enumerated
 import lucuma.core.util.Display
 import lucuma.odb.api.model.syntax.input._
+import lucuma.odb.api.model.syntax.lens._
+import lucuma.odb.api.model.syntax.prism._
 import monocle.{Focus, Lens, Prism}
 import monocle.macros.GenPrism
 
@@ -92,16 +93,20 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
       slitWidth: Input[SlitWidthInput]     = Input.ignore
     ) {
 
-      def edit: ValidatedInput[State[GmosNorthLongSlit, Unit]] =
-        (disperser.validateIsNotNull("disperser"),
-         slitWidth.validateNotNullable("slitWidth")(_.toAngle)).mapN {
-          (disperser, slitWidth) =>
-            for {
-              _ <- GmosNorthLongSlit.filter    := filter.toOptionOption
-              _ <- GmosNorthLongSlit.disperser := disperser
-              _ <- GmosNorthLongSlit.slitWidth := slitWidth
-            } yield ()
-        }
+      def edit: StateT[EitherInput, GmosNorthLongSlit, Unit] = {
+        val validArgs =
+          (disperser.validateIsNotNull("disperser"),
+           slitWidth.validateNotNullable("slitWidth")(_.toAngle)
+          ).tupled.toEither
+
+        for {
+          args <- StateT.liftF(validArgs)
+          (disperser, slitWidth) = args
+          _    <- GmosNorthLongSlit.filter    := filter.toOptionOption
+          _    <- GmosNorthLongSlit.disperser := disperser
+          _    <- GmosNorthLongSlit.slitWidth := slitWidth
+        } yield ()
+      }
     }
 
     object EditGmosNorthLongSlit {
@@ -174,16 +179,21 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
       slitWidth: Input[SlitWidthInput]     = Input.ignore
     ) {
 
-      def edit: ValidatedInput[State[GmosSouthLongSlit, Unit]] =
-        (disperser.validateIsNotNull("disperser"),
-         slitWidth.validateNotNullable("slitWidth")(_.toAngle)).mapN {
-          (disperser, slitWidth) =>
-            for {
-              _ <- GmosSouthLongSlit.filter    := filter.toOptionOption
-              _ <- GmosSouthLongSlit.disperser := disperser
-              _ <- GmosSouthLongSlit.slitWidth := slitWidth
-            } yield ()
-        }
+      def edit: StateT[EitherInput, GmosSouthLongSlit, Unit] = {
+        val validArgs =
+          (disperser.validateIsNotNull("disperser"),
+           slitWidth.validateNotNullable("slitWidth")(_.toAngle)
+          ).tupled.toEither
+
+        for {
+          args <- StateT.liftF(validArgs)
+          (disperser, slitWidth) = args
+          _    <- GmosSouthLongSlit.filter    := filter.toOptionOption
+          _    <- GmosSouthLongSlit.disperser := disperser
+          _    <- GmosSouthLongSlit.slitWidth := slitWidth
+        } yield ()
+      }
+
     }
 
     object EditGmosSouthLongSlit {
@@ -299,23 +309,27 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
       )}
   }
 
+  // TODO: I'm keeping this class and its behavior for now, but probably should
+  // TODO: be reworked so that you can create or edit with the appropriate
+  // TODO: validation like we do for CatalogInfo
   final case class ScienceConfigurationModelEdit(
-    set: Option[Create] = None,
+    set:  Option[Create] = None,
     edit: Option[Edit] = None
   ) {
-    def setInput: ValidatedInput[Option[ScienceConfigurationModel]] =
-      set.traverse(_.create)
 
-    def editInput: ValidatedInput[Option[State[ScienceConfigurationModel, Unit]]] =
-      edit.traverse(_.editor)
+    val editor: StateT[EitherInput, Option[ScienceConfigurationModel], Unit] =
+      (set, edit) match {
+        case (Some(c), None) => StateT.setF(c.create.toEither.map(_.some))
+        case (None, Some(e)) =>
+          StateT.modifyF { os =>
+            os.fold(InputError.fromMessage("There is no science configuration to edit, use `set` instead").leftNec[Option[ScienceConfigurationModel]]) { s =>
+              e.editor.runS(s).map(_.some)
+            }
+          }
+        case (None, None)    => StateT.empty[EitherInput, Option[ScienceConfigurationModel], Unit]
+        case _               => StateT.setF(InputError.fromMessage(s"Either 'set' or 'edit' are permitted but not both").leftNec[Option[ScienceConfigurationModel]])
+      }
 
-    val editor: ValidatedInput[Option[Either[ScienceConfigurationModel, State[ScienceConfigurationModel, Unit]]]] =
-      ValidatedInput.optionEither(
-        "set",
-        "edit",
-        setInput,
-        editInput
-      )
   }
 
   object ScienceConfigurationModelEdit {
@@ -334,33 +348,18 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
     gmosSouthLongSlit: Option[EditGmosSouthLongSlit]
   ) {
 
-    val gsLongSlit: Option[ValidatedInput[State[ScienceConfigurationModel, Unit]]] =
-      gmosSouthLongSlit.map { ls =>
-        ls.edit.map { ed =>
-          State.modify[ScienceConfigurationModel] {
-            case m: GmosSouthLongSlit => ed.runS(m).value
-            case m                    => m
-          }
-        }
-      }
+    val gsLongSlit: Option[StateT[EitherInput, ScienceConfigurationModel, Unit]] =
+      gmosSouthLongSlit.map(e => ScienceConfigurationModel.gmosSouthLongSlit.transformOrIgnore(e.edit))
 
-    val gnLongSlit: Option[ValidatedInput[State[ScienceConfigurationModel, Unit]]] =
-      gmosNorthLongSlit.map { ls =>
-        ls.edit.map { ed =>
-          State.modify[ScienceConfigurationModel] {
-            case m: GmosNorthLongSlit => ed.runS(m).value
-            case m                    => m
-          }
-        }
-      }
+    val gnLongSlit: Option[StateT[EitherInput, ScienceConfigurationModel, Unit]] =
+      gmosNorthLongSlit.map(e => ScienceConfigurationModel.gmosNorthLongSlit.transformOrIgnore(e.edit))
 
-    def editor: ValidatedInput[State[ScienceConfigurationModel, Unit]] = {
-      ValidatedInput.requireOne(
-        "mode",
-        gnLongSlit,
-        gsLongSlit
-      )
-    }
+    val editor: StateT[EitherInput, ScienceConfigurationModel, Unit] =
+      (gnLongSlit, gsLongSlit) match {
+        case (Some(n), None) => n
+        case (None, Some(s)) => s
+        case _               => StateT.setF(InputError.fromMessage("Exactly one of 'gmosNorthLongSlit' or 'gmosSouthLongSlit' must be supplied").leftNec)
+      }
 
   }
 
@@ -385,4 +384,7 @@ trait ScienceConfigurationModelOptics {
 
   val gmosNorthLongSlit: Prism[ScienceConfigurationModel, Modes.GmosNorthLongSlit] =
     GenPrism[ScienceConfigurationModel, Modes.GmosNorthLongSlit]
+
+  val gmosSouthLongSlit: Prism[ScienceConfigurationModel, Modes.GmosSouthLongSlit] =
+    GenPrism[ScienceConfigurationModel, Modes.GmosSouthLongSlit]
 }
