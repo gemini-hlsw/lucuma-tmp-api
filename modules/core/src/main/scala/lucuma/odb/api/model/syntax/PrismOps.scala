@@ -22,14 +22,6 @@ final class PrismOps[S, A](val self: Prism[S, A]) extends AnyVal {
       }
     }
 
-//  def transformOrIgnore(st: StateT[EitherInput, A, Unit]): StateT[EitherInput, Option[S], Unit] =
-//    StateT[EitherInput, S, Unit] { s =>
-//      self.getOption(s).fold((s, ()).rightNec[InputError]) { a =>
-//        st.runS(a).map(aʹ => (self.replace(aʹ)(s), ()))
-//      }
-//    }
-
-
   /**
    * Takes an editor for A to an editor for S, where a Prism[S, A] exists.
    * Produces an error for the case where `getOption` returns None.
