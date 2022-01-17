@@ -9,7 +9,7 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
 import lucuma.odb.api.model.{CoordinatesModel, DeclinationModel, ObservationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
-import lucuma.odb.api.model.targetModel.{CatalogInfoInput, CreateSiderealInput, EditAsterismInput, EditSiderealInput, NonsiderealInput, TargetEnvironmentModel, TargetModel}
+import lucuma.odb.api.model.targetModel.{CatalogInfoInput, EditAsterismInput, NonsiderealInput, SiderealInput, TargetEnvironmentModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
 import lucuma.core.model.Target
@@ -21,7 +21,7 @@ import sangria.schema._
 trait TargetMutation extends TargetScalars {
 
   import context._
-  import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
+  import GeneralSchema.NonEmptyStringType
   import NumericUnitsSchema._
   import ProgramSchema.ProgramIdArgument
   import SourceProfileSchema.InputObjectCreateSourceProfile
@@ -114,13 +114,13 @@ trait TargetMutation extends TargetScalars {
   implicit val InputObjectTypeNonsidereal: InputObjectType[NonsiderealInput] =
     deriveInputObjectType[NonsiderealInput](
       InputObjectTypeName("NonsiderealInput"),
-      InputObjectTypeDescription("Nonsidereal target parameters.  Supply `keyType` and `des` or `key`")
-    )
+      InputObjectTypeDescription("Nonsidereal target parameters.  Supply `keyType` and `des` or `key`"),
 
-  implicit val InputObjectTypeCreateSidereal: InputObjectType[CreateSiderealInput] =
-    deriveInputObjectType[CreateSiderealInput](
-      InputObjectTypeName("CreateSiderealInput"),
-      InputObjectTypeDescription("Sidereal target parameters")
+      ReplaceInputField("name",          NonEmptyStringType            .notNullableField("name"         )),
+      ReplaceInputField("keyType",       EphemerisKeyTypeEnumType      .notNullableField("keyType"      )),
+      ReplaceInputField("des",           NonEmptyStringType            .notNullableField("des"          )),
+      ReplaceInputField("key",           NonEmptyStringType            .notNullableField("key"          )),
+      ReplaceInputField("sourceProfile", InputObjectCreateSourceProfile.notNullableField("sourceProfile"))
     )
 
   implicit val InputObjectTypeCreateTarget: InputObjectType[TargetModel.Create] =
@@ -135,18 +135,20 @@ trait TargetMutation extends TargetScalars {
       "Target description.  One (and only one) of sidereal or nonsidereal must be specified."
     )
 
-  implicit val InputObjectTypeEditSidereal: InputObjectType[EditSiderealInput] =
-    deriveInputObjectType[EditSiderealInput](
+  implicit val InputObjectTypeEditSidereal: InputObjectType[SiderealInput] =
+    deriveInputObjectType[SiderealInput](
       InputObjectTypeName("EditSiderealInput"),
       InputObjectTypeDescription("Sidereal target edit parameters"),
 
-      ReplaceInputField("catalogInfo",    InputObjectCatalogInfo     .nullableField("catalogInfo"   )),
+      ReplaceInputField("name",           NonEmptyStringType       .notNullableField("name"       )),
       ReplaceInputField("ra",             InputObjectRightAscension.notNullableField("ra"         )),
       ReplaceInputField("dec",            InputObjectDeclination   .notNullableField("dec"        )),
       ReplaceInputField("epoch",          EpochStringType          .notNullableField("epoch"      )),
       ReplaceInputField("properMotion",   InputObjectProperMotion  .nullableField("properMotion"  )),
       ReplaceInputField("radialVelocity", InputObjectRadialVelocity.nullableField("radialVelocity")),
-      ReplaceInputField("parallax",       InputObjectParallax      .nullableField("parallax"      ))
+      ReplaceInputField("parallax",       InputObjectParallax      .nullableField("parallax"      )),
+      ReplaceInputField("sourceProfile",  InputObjectCreateSourceProfile.notNullableField("sourceProfile")),
+      ReplaceInputField("catalogInfo",    InputObjectCatalogInfo   .nullableField("catalogInfo"   ))
     )
 
   implicit val InputObjectEditTargetInput: InputObjectType[TargetModel.Edit] = {
@@ -163,8 +165,6 @@ trait TargetMutation extends TargetScalars {
       "Single target edit options",
       List(
         InputField("targetId",    TargetIdType),
-        InputField("existence",   OptionInputType(EnumTypeExistence)),
-        InputField("name",        OptionInputType(NonEmptyStringType)),
         InputField("sidereal",    OptionInputType(InputObjectTypeEditSidereal)),
         InputField("nonsidereal", OptionInputType(InputObjectTypeNonsidereal))
       )

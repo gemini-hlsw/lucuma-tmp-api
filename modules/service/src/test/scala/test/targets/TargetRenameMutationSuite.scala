@@ -31,7 +31,9 @@ class TargetRenameMutationSuite extends OdbSuite {
       {
         "renameEdit": {
           "targetId": "t-4",
-          "name": "NGC 3312*"
+          "sidereal" : {
+            "name": "NGC 3312*"
+          }
         }
       }
     """.some,

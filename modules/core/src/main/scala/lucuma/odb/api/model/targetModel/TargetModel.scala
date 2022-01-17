@@ -14,13 +14,10 @@ import clue.data.Input
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
-import io.circe.refined._
 import io.circe.generic.semiauto._
 import lucuma.core.model.{Program, Target}
 import lucuma.odb.api.model.{DatabaseState, Event, Existence, InputError, TopLevelModel, ValidatedInput}
-import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
-import lucuma.odb.api.model.targetModel.SourceProfileModel.CreateSourceProfileInput
 import monocle.{Focus, Lens}
 
 
@@ -64,9 +61,7 @@ object TargetModel extends TargetModelOptics {
 
   final case class Create(
     targetId:      Option[Target.Id],
-    name:          NonEmptyString,
-    sourceProfile: CreateSourceProfileInput,
-    sidereal:      Option[CreateSiderealInput],
+    sidereal:      Option[SiderealInput],
     nonsidereal:   Option[NonsiderealInput]
   ) {
 
@@ -78,10 +73,9 @@ object TargetModel extends TargetModelOptics {
       for {
         i  <- db.target.getUnusedId(targetId)
         p  <- db.program.lookupValidated(programId)
-        sp <- S.monad.pure(sourceProfile.toSourceProfile)
         t  = ValidatedInput.requireOne("target",
-          sidereal.map(_.toGemTarget(name, sp)),
-          nonsidereal.map(_.createGemTarget(name, sp))
+          sidereal.map(_.create.widen[Target]),
+          nonsidereal.map(_.create.widen[Target])
         )
         tm = (i, p, t).mapN { (iʹ, _, tʹ) =>
           TargetModel(iʹ, Existence.Present, programId, tʹ, observed = false)
@@ -95,19 +89,15 @@ object TargetModel extends TargetModelOptics {
 
     def sidereal(
       targetId:      Option[Target.Id],
-      name:          NonEmptyString,
-      sourceProfile: CreateSourceProfileInput,
-      input:         CreateSiderealInput
+      input:         SiderealInput
     ): Create =
-      Create(targetId, name, sourceProfile, input.some, None)
+      Create(targetId, input.some, None)
 
     def nonsidereal(
       targetId:      Option[Target.Id],
-      name:          NonEmptyString,
-      sourceProfile: CreateSourceProfileInput,
       input:         NonsiderealInput
     ): Create =
-      Create(targetId, name, sourceProfile, None, input.some)
+      Create(targetId, None, input.some)
 
     implicit val DecoderCreate: Decoder[Create] =
       deriveDecoder[Create]
@@ -115,8 +105,6 @@ object TargetModel extends TargetModelOptics {
     implicit val EqCreate: Eq[Create] =
       Eq.by { a => (
         a.targetId,
-        a.name,
-        a.sourceProfile,
         a.sidereal,
         a.nonsidereal
       )}
@@ -124,28 +112,17 @@ object TargetModel extends TargetModelOptics {
 
   final case class Edit(
     targetId:    Target.Id,
-    existence:   Input[Existence]          = Input.ignore,
-    name:        Input[NonEmptyString]     = Input.ignore,
-    sidereal:    Option[EditSiderealInput] = None,
-    nonsidereal: Option[NonsiderealInput]  = None
+    existence:   Input[Existence]         = Input.ignore,
+    sidereal:    Option[SiderealInput]    = None,
+    nonsidereal: Option[NonsiderealInput] = None
   ) {
 
     val editor: StateT[EitherNec[InputError, *], TargetModel, Unit] = {
-      val validArgs =
-        (
-          existence.validateIsNotNull("existence"),
-          name     .validateIsNotNull("name")
-        ).tupled.toEither
-
       def editTarget(s: Option[StateT[EitherNec[InputError, *], Target, Unit]]): StateT[EitherNec[InputError, *], TargetModel, Unit] =
         TargetModel.target.transform(s.getOrElse(StateT.empty[EitherNec[InputError, *], Target, Unit]))
 
       for {
-        args <- StateT.liftF(validArgs)
-        (e, n) = args
-        _ <- TargetModel.existence := e
-        _ <- TargetModel.name      := n
-        _ <- editTarget(sidereal.map(_.editor))
+        _ <- editTarget(sidereal.map(_.targetEditor))
         _ <- editTarget(nonsidereal.map(_.targetEditor))
       } yield ()
     }
@@ -163,8 +140,6 @@ object TargetModel extends TargetModelOptics {
     implicit val EqEdit: Eq[Edit] =
       Eq.by { a => (
         a.targetId,
-        a.existence,
-        a.name,
         a.sidereal,
         a.nonsidereal
       )}

@@ -29,8 +29,8 @@ object TestInit {
   val targetsJson = List(
 """
 {
-  "name":  "NGC 5949",
   "sidereal": {
+    "name":  "NGC 5949",
     "ra":    { "hms":  "15:28:00.668" },
     "dec":   { "dms": "64:45:47.4"  },
     "epoch": "J2000.000",
@@ -39,69 +39,69 @@ object TestInit {
       "dec": { "milliarcsecondsPerYear": 0.0 }
     },
     "radialVelocity": { "metersPerSecond": 423607 },
-    "parallax":       { "milliarcseconds":  0.00 }
-  },
-  "sourceProfile": {
-    "point": {
-      "bandNormalized": {
-        "sed": {
-          "galaxy": "SPIRAL"
-        },
-        "brightnesses": [
-          {
-            "band": "B",
-            "value": 12.7,
-            "units": "VEGA_MAGNITUDE"
+    "parallax":       { "milliarcseconds":  0.00 },
+    "sourceProfile": {
+      "point": {
+        "bandNormalized": {
+          "sed": {
+            "galaxy": "SPIRAL"
           },
-          {
-            "band": "J",
-            "value": 10.279,
-            "units": "VEGA_MAGNITUDE",
-            "error": 0.0009
-          },
-          {
-            "band": "H",
-            "value": 9.649,
-            "units": "VEGA_MAGNITUDE",
-            "error": 0.0120
-          },
-          {
-            "band": "K",
-            "value": 9.425,
-            "units": "VEGA_MAGNITUDE",
-            "error": 0.0170
-          },
-          {
-            "band": "SLOAN_U",
-            "value": 14.147,
-            "units": "AB_MAGNITUDE",
-            "error": 0.0050
-          },
-          {
-            "band": "SLOAN_G",
-            "value": 12.924,
-            "units": "AB_MAGNITUDE",
-            "error": 0.0020
-          },
-          {
-            "band": "SLOAN_R",
-            "value": 12.252,
-            "units": "AB_MAGNITUDE",
-            "error": 0.0020
-          },
-          {
-            "band": "SLOAN_I",
-            "value": 11.888,
-            "units": "AB_MAGNITUDE",
-            "error": 0.0020
-          },
-          {
-            "band": "SLOAN_Z",
-            "value": 11.636,
-            "units": "AB_MAGNITUDE",
-            "error": 0.0020
-          }
-        ]
+          "brightnesses": [
+            {
+              "band": "B",
+              "value": 12.7,
+              "units": "VEGA_MAGNITUDE"
+            },
+            {
+              "band": "J",
+              "value": 10.279,
+              "units": "VEGA_MAGNITUDE",
+              "error": 0.0009
+            },
+            {
+              "band": "H",
+              "value": 9.649,
+              "units": "VEGA_MAGNITUDE",
+              "error": 0.0120
+            },
+            {
+              "band": "K",
+              "value": 9.425,
+              "units": "VEGA_MAGNITUDE",
+              "error": 0.0170
+            },
+            {
+              "band": "SLOAN_U",
+              "value": 14.147,
+              "units": "AB_MAGNITUDE",
+              "error": 0.0050
+            },
+            {
+              "band": "SLOAN_G",
+              "value": 12.924,
+              "units": "AB_MAGNITUDE",
+              "error": 0.0020
+            },
+            {
+              "band": "SLOAN_R",
+              "value": 12.252,
+              "units": "AB_MAGNITUDE",
+              "error": 0.0020
+            },
+            {
+              "band": "SLOAN_I",
+              "value": 11.888,
+              "units": "AB_MAGNITUDE",
+              "error": 0.0020
+            },
+            {
+              "band": "SLOAN_Z",
+              "value": 11.636,
+              "units": "AB_MAGNITUDE",
+              "error": 0.0020
+            }
+          ]
+        }
       }
     }
   }
@@ -109,8 +109,8 @@ object TestInit {
 """,
 """
 {
-  "name":  "NGC 3269",
   "sidereal": {
+    "name":  "NGC 3269",
     "ra":    { "hms":  "10:29:57.070" },
     "dec":   { "dms": "-35:13:27.8"  },
     "epoch": "J2000.000",
@@ -119,49 +119,49 @@ object TestInit {
       "dec": { "milliarcsecondsPerYear": 0.0 }
     },
     "radialVelocity": { "metersPerSecond": 3753885 },
-    "parallax":       { "milliarcseconds":  0.00 }
-  },
-  "sourceProfile": {
-    "point": {
-      "bandNormalized": {
-        "sed": {
-          "galaxy": "SPIRAL"
-        },
-        "brightnesses": [
-          {
-            "band": "B",
-            "value": 13.240,
-            "units": "VEGA_MAGNITUDE"
+    "parallax":       { "milliarcseconds":  0.00 },
+    "sourceProfile": {
+      "point": {
+        "bandNormalized": {
+          "sed": {
+            "galaxy": "SPIRAL"
           },
-          {
-            "band": "V",
-            "value": 13.510,
-            "units": "VEGA_MAGNITUDE"
-          },
-          {
-            "band": "R",
-            "value": 11.730,
-            "units": "VEGA_MAGNITUDE"
-          },
-          {
-            "band": "J",
-            "value": 9.958,
-            "units": "VEGA_MAGNITUDE",
-            "error": 0.018
-          },
-          {
-            "band": "H",
-            "value": 9.387,
-            "units": "VEGA_MAGNITUDE",
-            "error": 0.024
-          },
-          {
-            "band": "K",
-            "value": 9.055,
-            "units": "VEGA_MAGNITUDE",
-            "error": 0.031
-          }
-        ]
+          "brightnesses": [
+            {
+              "band": "B",
+              "value": 13.240,
+              "units": "VEGA_MAGNITUDE"
+            },
+            {
+              "band": "V",
+              "value": 13.510,
+              "units": "VEGA_MAGNITUDE"
+            },
+            {
+              "band": "R",
+              "value": 11.730,
+              "units": "VEGA_MAGNITUDE"
+            },
+            {
+              "band": "J",
+              "value": 9.958,
+              "units": "VEGA_MAGNITUDE",
+              "error": 0.018
+            },
+            {
+              "band": "H",
+              "value": 9.387,
+              "units": "VEGA_MAGNITUDE",
+              "error": 0.024
+            },
+            {
+              "band": "K",
+              "value": 9.055,
+              "units": "VEGA_MAGNITUDE",
+              "error": 0.031
+            }
+          ]
+        }
       }
     }
   }
@@ -169,8 +169,8 @@ object TestInit {
 """,
 """
 {
-  "name":  "NGC 3312",
   "sidereal": {
+    "name":  "NGC 3312",
     "ra":    { "hms": "10:37:02.549" },
     "dec":   { "dms": "-27:33:54.17"  },
     "epoch": "J2000.000",
@@ -179,44 +179,44 @@ object TestInit {
       "dec": { "milliarcsecondsPerYear":  0.0 }
     },
     "radialVelocity": { "metersPerSecond": 2826483 },
-    "parallax":       { "milliarcseconds":  0.0 }
-  },
-  "sourceProfile": {
-    "point": {
-      "bandNormalized": {
-        "sed": {
-          "galaxy": "SPIRAL"
-        },
-        "brightnesses": [
-          {
-            "band": "B",
-            "value": 12.630,
-            "units": "VEGA_MAGNITUDE"
+    "parallax":       { "milliarcseconds":  0.0 },
+    "sourceProfile": {
+      "point": {
+        "bandNormalized": {
+          "sed": {
+            "galaxy": "SPIRAL"
           },
-          {
-            "band": "V",
-            "value": 13.960,
-            "units": "VEGA_MAGNITUDE"
-          },
-          {
-            "band": "J",
-            "value": 9.552,
-            "units": "VEGA_MAGNITUDE",
-            "error": 0.016
-          },
-          {
-            "band": "H",
-            "value": 8.907,
-            "units": "VEGA_MAGNITUDE",
-            "error": 0.017
-          },
-          {
-            "band": "K",
-            "value": 8.665,
-            "units": "VEGA_MAGNITUDE",
-            "error": 0.028
-          }
-        ]
+          "brightnesses": [
+            {
+              "band": "B",
+              "value": 12.630,
+              "units": "VEGA_MAGNITUDE"
+            },
+            {
+              "band": "V",
+              "value": 13.960,
+              "units": "VEGA_MAGNITUDE"
+            },
+            {
+              "band": "J",
+              "value": 9.552,
+              "units": "VEGA_MAGNITUDE",
+              "error": 0.016
+            },
+            {
+              "band": "H",
+              "value": 8.907,
+              "units": "VEGA_MAGNITUDE",
+              "error": 0.017
+            },
+            {
+              "band": "K",
+              "value": 8.665,
+              "units": "VEGA_MAGNITUDE",
+              "error": 0.028
+            }
+          ]
+        }
       }
     }
   }
@@ -224,8 +224,8 @@ object TestInit {
 """,
 """
 {
-  "name":  "NGC 4749",
   "sidereal": {
+    "name":  "NGC 4749",
     "ra":    { "hms":  "12:51:12.001" },
     "dec":   { "dms": "71:38:12.43"  },
     "epoch": "J2000.000",
@@ -234,36 +234,36 @@ object TestInit {
       "dec": { "milliarcsecondsPerYear": 0.0 }
     },
     "radialVelocity": { "metersPerSecond": 1728985 },
-    "parallax":       { "milliarcseconds":  0.00 }
-  },
-  "sourceProfile": {
-    "point": {
-      "bandNormalized": {
-        "sed": {
-          "galaxy": "SPIRAL"
-        },
-        "brightnesses": [
-          {
-            "band": "B",
-            "value": 14.2,
-            "units": "VEGA_MAGNITUDE"
+    "parallax":       { "milliarcseconds":  0.00 },
+    "sourceProfile": {
+      "point": {
+        "bandNormalized": {
+          "sed": {
+            "galaxy": "SPIRAL"
           },
-          {
-            "band": "J",
-            "value": 10.752,
-            "units": "VEGA_MAGNITUDE"
-          },
-          {
-            "band": "H",
-            "value": 9.891,
-            "units": "VEGA_MAGNITUDE"
-          },
-          {
-            "band": "K",
-            "value": 9.467,
-            "units": "VEGA_MAGNITUDE"
-          }
-        ]
+          "brightnesses": [
+            {
+              "band": "B",
+              "value": 14.2,
+              "units": "VEGA_MAGNITUDE"
+            },
+            {
+              "band": "J",
+              "value": 10.752,
+              "units": "VEGA_MAGNITUDE"
+            },
+            {
+              "band": "H",
+              "value": 9.891,
+              "units": "VEGA_MAGNITUDE"
+            },
+            {
+              "band": "K",
+              "value": 9.467,
+              "units": "VEGA_MAGNITUDE"
+            }
+          ]
+        }
       }
     }
   }

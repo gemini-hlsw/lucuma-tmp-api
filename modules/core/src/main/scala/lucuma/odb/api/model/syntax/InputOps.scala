@@ -25,6 +25,12 @@ final class InputOps[A](val self: Input[A]) extends AnyVal {
   def validateIsNotNull(name: => String): ValidatedInput[Option[A]] =
     validateNotNullable(name)(_.validNec[InputError])
 
+  def notMissing(name: => String): ValidatedInput[A] =
+    self.toOption.toValidNec(InputError.missingInput(name))
+
+  def notMissingAndThen[B](name: => String)(f: A => ValidatedInput[B]): ValidatedInput[B] =
+    notMissing(name).andThen(f)
+
 }
 
 object InputOps {
