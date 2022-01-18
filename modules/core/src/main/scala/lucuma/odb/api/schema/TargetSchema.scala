@@ -10,7 +10,7 @@ import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.`enum`.{CatalogName, EphemerisKeyType => EphemerisKeyTypeEnum}
 import lucuma.core.math.{Coordinates, Declination, Parallax, ProperMotion, RadialVelocity, RightAscension, VelocityAxis}
-import lucuma.core.model.{CatalogInfo, Target}
+import lucuma.core.model.{CatalogInfo, EphemerisKey, Target}
 import cats.syntax.all._
 import cats.effect.std.Dispatcher
 import lucuma.core.model.Target.{Nonsidereal, Sidereal}
@@ -71,6 +71,13 @@ object TargetSchema extends TargetScalars {
           fieldType   = EphemerisKeyTypeEnumType,
           description = Some("Nonsidereal target lookup type."),
           resolve     = _.value.ephemerisKey.keyType
+        ),
+
+        Field(
+          name        = "key",
+          fieldType   = StringType,
+          description = "Synthesis of `keyType` and `des`".some,
+          resolve     = c => EphemerisKey.fromString.reverseGet(c.value.ephemerisKey)
         )
       )
     )
