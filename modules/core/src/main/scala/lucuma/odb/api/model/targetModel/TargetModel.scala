@@ -15,9 +15,12 @@ import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.generic.semiauto._
+import io.circe.refined._
 import lucuma.core.model.{Program, Target}
 import lucuma.odb.api.model.{DatabaseState, Event, Existence, InputError, TopLevelModel, ValidatedInput}
+import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
+import lucuma.odb.api.model.targetModel.SourceProfileModel.CreateSourceProfileInput
 import monocle.{Focus, Lens}
 
 
@@ -61,8 +64,10 @@ object TargetModel extends TargetModelOptics {
 
   final case class Create(
     targetId:      Option[Target.Id],
+    name:          NonEmptyString,
     sidereal:      Option[SiderealInput],
-    nonsidereal:   Option[NonsiderealInput]
+    nonsidereal:   Option[NonsiderealInput],
+    sourceProfile: CreateSourceProfileInput
   ) {
 
     def create[F[_]: Monad, T](
@@ -73,9 +78,18 @@ object TargetModel extends TargetModelOptics {
       for {
         i  <- db.target.getUnusedId(targetId)
         p  <- db.program.lookupValidated(programId)
+        sp <- S.monad.pure(sourceProfile.toSourceProfile)
         t  = ValidatedInput.requireOne("target",
-          sidereal.map(_.create.widen[Target]),
-          nonsidereal.map(_.create.widen[Target])
+          sidereal.map { si =>
+            (si.create, sp).mapN { case ((track, catInfo), profile) =>
+              Target.Sidereal(name, track, profile, catInfo): Target
+            }
+          },
+          nonsidereal.map { ni =>
+            (ni.create, sp).mapN { case (key, profile) =>
+              Target.Nonsidereal(name, key, profile): Target
+            }
+          }
         )
         tm = (i, p, t).mapN { (iʹ, _, tʹ) =>
           TargetModel(iʹ, Existence.Present, programId, tʹ, observed = false)
@@ -89,15 +103,19 @@ object TargetModel extends TargetModelOptics {
 
     def sidereal(
       targetId:      Option[Target.Id],
-      input:         SiderealInput
+      name:          NonEmptyString,
+      input:         SiderealInput,
+      sourceProfile: CreateSourceProfileInput
     ): Create =
-      Create(targetId, input.some, None)
+      Create(targetId, name, input.some, None, sourceProfile)
 
     def nonsidereal(
       targetId:      Option[Target.Id],
-      input:         NonsiderealInput
+      name:          NonEmptyString,
+      input:         NonsiderealInput,
+      sourceProfile: CreateSourceProfileInput
     ): Create =
-      Create(targetId, None, input.some)
+      Create(targetId, name, None, input.some, sourceProfile)
 
     implicit val DecoderCreate: Decoder[Create] =
       deriveDecoder[Create]
@@ -105,23 +123,37 @@ object TargetModel extends TargetModelOptics {
     implicit val EqCreate: Eq[Create] =
       Eq.by { a => (
         a.targetId,
+        a.name,
         a.sidereal,
-        a.nonsidereal
+        a.nonsidereal,
+        a.sourceProfile
       )}
   }
 
   final case class Edit(
     targetId:    Target.Id,
     existence:   Input[Existence]         = Input.ignore,
+    name:        Input[NonEmptyString]    = Input.ignore,
     sidereal:    Option[SiderealInput]    = None,
     nonsidereal: Option[NonsiderealInput] = None
   ) {
 
     val editor: StateT[EitherNec[InputError, *], TargetModel, Unit] = {
+
+      val validArgs =
+        (
+          existence.validateIsNotNull("existence"),
+          name     .validateIsNotNull("name")
+        ).tupled.toEither
+
       def editTarget(s: Option[StateT[EitherNec[InputError, *], Target, Unit]]): StateT[EitherNec[InputError, *], TargetModel, Unit] =
         TargetModel.target.transform(s.getOrElse(StateT.empty[EitherNec[InputError, *], Target, Unit]))
 
       for {
+        args <- StateT.liftF(validArgs)
+        (e, n) = args
+        _ <- TargetModel.existence := e
+        _ <- TargetModel.name      := n
         _ <- editTarget(sidereal.map(_.targetEditor))
         _ <- editTarget(nonsidereal.map(_.targetEditor))
       } yield ()
@@ -140,6 +172,8 @@ object TargetModel extends TargetModelOptics {
     implicit val EqEdit: Eq[Edit] =
       Eq.by { a => (
         a.targetId,
+        a.existence,
+        a.name,
         a.sidereal,
         a.nonsidereal
       )}

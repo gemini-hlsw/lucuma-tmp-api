@@ -60,13 +60,6 @@ object TargetSchema extends TargetScalars {
       fieldsFn = () => fields(
 
         Field(
-          name        = "name",
-          fieldType   = NonEmptyStringType,
-          description = "Nonsidereal target name".some,
-          resolve     = _.value.name
-        ),
-
-        Field(
           name        = "des",
           fieldType   = StringType,
           description = Some("Human readable designation that discriminates among ephemeris keys of the same type."),
@@ -78,13 +71,6 @@ object TargetSchema extends TargetScalars {
           fieldType   = EphemerisKeyTypeEnumType,
           description = Some("Nonsidereal target lookup type."),
           resolve     = _.value.ephemerisKey.keyType
-        ),
-
-        Field(
-          name        = "sourceProfile",
-          fieldType   = SourceProfileType,
-          description = "source profile".some ,
-          resolve     = _.value.sourceProfile
         )
       )
     )
@@ -306,13 +292,6 @@ object TargetSchema extends TargetScalars {
       fieldsFn = () => fields(
 
         Field(
-          name        = "name",
-          fieldType   = NonEmptyStringType,
-          description = "Sidereal target name".some,
-          resolve     = _.value.name
-        ),
-
-        Field(
           name        = "ra",
           fieldType   = RightAscensionType[F],
           description = "Right ascension at epoch".some,
@@ -352,13 +331,6 @@ object TargetSchema extends TargetScalars {
           fieldType   = OptionType(ParallaxType[F]),
           description = Some("Parallax"),
           resolve     = _.value.tracking.parallax
-        ),
-
-        Field(
-          name        = "sourceProfile",
-          fieldType   = SourceProfileType,
-          description = "source profile".some ,
-          resolve     = _.value.sourceProfile
         ),
 
         Field(

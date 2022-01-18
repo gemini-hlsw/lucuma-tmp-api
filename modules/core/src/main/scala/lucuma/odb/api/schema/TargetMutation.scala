@@ -21,7 +21,7 @@ import sangria.schema._
 trait TargetMutation extends TargetScalars {
 
   import context._
-  import GeneralSchema.NonEmptyStringType
+  import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
   import NumericUnitsSchema._
   import ProgramSchema.ProgramIdArgument
   import SourceProfileSchema.InputObjectCreateSourceProfile
@@ -116,12 +116,12 @@ trait TargetMutation extends TargetScalars {
       InputObjectTypeName("NonsiderealInput"),
       InputObjectTypeDescription("Nonsidereal target parameters.  Supply `keyType` and `des` or `key`"),
 
-      ReplaceInputField("name",          NonEmptyStringType            .notNullableField("name"         )),
       ReplaceInputField("keyType",       EphemerisKeyTypeEnumType      .notNullableField("keyType"      )),
       ReplaceInputField("des",           NonEmptyStringType            .notNullableField("des"          )),
       ReplaceInputField("key",           NonEmptyStringType            .notNullableField("key"          )),
-      ReplaceInputField("sourceProfile", InputObjectCreateSourceProfile.notNullableField("sourceProfile"))
     )
+//      ReplaceInputField("name",          NonEmptyStringType            .notNullableField("name"         )),
+//      ReplaceInputField("sourceProfile", InputObjectCreateSourceProfile.notNullableField("sourceProfile"))
 
   implicit val InputObjectTypeCreateTarget: InputObjectType[TargetModel.Create] =
     deriveInputObjectType[TargetModel.Create](
@@ -135,19 +135,20 @@ trait TargetMutation extends TargetScalars {
       "Target description.  One (and only one) of sidereal or nonsidereal must be specified."
     )
 
-  implicit val InputObjectTypeEditSidereal: InputObjectType[SiderealInput] =
+//      ReplaceInputField("name",           NonEmptyStringType       .notNullableField("name"       )),
+//      ReplaceInputField("sourceProfile",  InputObjectCreateSourceProfile.notNullableField("sourceProfile")),
+
+  implicit val InputObjectTypeSidereal: InputObjectType[SiderealInput] =
     deriveInputObjectType[SiderealInput](
-      InputObjectTypeName("EditSiderealInput"),
+      InputObjectTypeName("SiderealInput"),
       InputObjectTypeDescription("Sidereal target edit parameters"),
 
-      ReplaceInputField("name",           NonEmptyStringType       .notNullableField("name"       )),
       ReplaceInputField("ra",             InputObjectRightAscension.notNullableField("ra"         )),
       ReplaceInputField("dec",            InputObjectDeclination   .notNullableField("dec"        )),
       ReplaceInputField("epoch",          EpochStringType          .notNullableField("epoch"      )),
       ReplaceInputField("properMotion",   InputObjectProperMotion  .nullableField("properMotion"  )),
       ReplaceInputField("radialVelocity", InputObjectRadialVelocity.nullableField("radialVelocity")),
       ReplaceInputField("parallax",       InputObjectParallax      .nullableField("parallax"      )),
-      ReplaceInputField("sourceProfile",  InputObjectCreateSourceProfile.notNullableField("sourceProfile")),
       ReplaceInputField("catalogInfo",    InputObjectCatalogInfo   .nullableField("catalogInfo"   ))
     )
 
@@ -165,7 +166,9 @@ trait TargetMutation extends TargetScalars {
       "Single target edit options",
       List(
         InputField("targetId",    TargetIdType),
-        InputField("sidereal",    OptionInputType(InputObjectTypeEditSidereal)),
+        InputField("existence",   OptionInputType(EnumTypeExistence)),
+        InputField("name",        OptionInputType(NonEmptyStringType)),
+        InputField("sidereal",    OptionInputType(InputObjectTypeSidereal)),
         InputField("nonsidereal", OptionInputType(InputObjectTypeNonsidereal))
       )
     )

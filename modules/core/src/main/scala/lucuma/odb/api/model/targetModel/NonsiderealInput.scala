@@ -5,7 +5,6 @@ package lucuma.odb.api.model.targetModel
 
 import cats.Eq
 import cats.data.{EitherNec, StateT}
-import cats.syntax.apply._
 import cats.syntax.either._
 import cats.syntax.option._
 import cats.syntax.validated._
@@ -18,10 +17,8 @@ import lucuma.core.`enum`.EphemerisKeyType
 import lucuma.core.model.Target.Nonsidereal
 import lucuma.core.model.{EphemerisKey, Target}
 import lucuma.odb.api.model.{EditorInput, EitherInput, InputError, ValidatedInput}
-import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.prism._
-import lucuma.odb.api.model.targetModel.SourceProfileModel.CreateSourceProfileInput
 
 
 /**
@@ -32,14 +29,12 @@ import lucuma.odb.api.model.targetModel.SourceProfileModel.CreateSourceProfileIn
  * @param key     combination keyType and des in a single input
  */
 final case class NonsiderealInput(
-  name:          Input[NonEmptyString]           = Input.ignore,
-  keyType:       Input[EphemerisKeyType]         = Input.ignore,
-  des:           Input[NonEmptyString]           = Input.ignore,
-  key:           Input[NonEmptyString]           = Input.ignore,
-  sourceProfile: Input[CreateSourceProfileInput] = Input.ignore
-) extends EditorInput[Nonsidereal] {
+  keyType:       Input[EphemerisKeyType] = Input.ignore,
+  des:           Input[NonEmptyString]   = Input.ignore,
+  key:           Input[NonEmptyString]   = Input.ignore,
+) extends EditorInput[EphemerisKey] {
 
-  val toEphemerisKey: ValidatedInput[EphemerisKey] = {
+  override val create: ValidatedInput[EphemerisKey] =
     (keyType.toOption, des.toOption, key.toOption) match {
       case (Some(t), Some(d), None  ) =>
         NonsiderealInput.key.fromTypeAndDes("des", t, d)
@@ -48,18 +43,16 @@ final case class NonsiderealInput(
       case _                          =>
         NonsiderealInput.Error.invalidNec[EphemerisKey]
     }
-  }
 
-  override val create: ValidatedInput[Nonsidereal] = {
-    (name.notMissing("nonsidereal 'name'"),
-     toEphemerisKey,
-     sourceProfile.notMissingAndThen("nonsidereal 'sourceProfile'")(_.toSourceProfile)
-    ).mapN { (n, t, s) =>
-      Nonsidereal(n, t, s)
-    }
-  }
+//    (name.notMissing("nonsidereal 'name'"),
+//     toEphemerisKey,
+//     sourceProfile.notMissingAndThen("nonsidereal 'sourceProfile'")(_.toSourceProfile)
+//    ).mapN { (n, t, s) =>
+//      Nonsidereal(n, t, s)
+//    }
+//  }
 
-  val editKey: StateT[EitherInput, EphemerisKey, Unit] = {
+  override val edit: StateT[EitherInput, EphemerisKey, Unit] = {
     def modType(keyType: EphemerisKeyType): StateT[EitherInput, EphemerisKey, Unit] =
       StateT.modifyF { k =>
         EphemerisKey.fromTypeAndDes.getOption((keyType, k.des)).toRightNec(
@@ -98,17 +91,10 @@ final case class NonsiderealInput(
     }
   }
 
-  override val edit: StateT[EitherInput, Nonsidereal, Unit] =
-    for {
-      n <- StateT.liftF(name.validateIsNotNull("name").toEither)
-      _ <- Nonsidereal.name := n
-      _ <- Nonsidereal.ephemerisKey.transform(editKey)
-    } yield ()
-
-
-
   val targetEditor: StateT[EitherNec[InputError, *], Target, Unit] =
-    Target.nonsidereal.transformOrIgnore(edit)
+    Target.nonsidereal.transformOrIgnore(
+      Nonsidereal.ephemerisKey.transform(edit)
+    )
 
 }
 
@@ -126,11 +112,9 @@ object NonsiderealInput {
 
   implicit val EqNonsiderealInput: Eq[NonsiderealInput] =
     Eq.by { a => (
-      a.name,
       a.keyType,
       a.des,
-      a.key,
-      a.sourceProfile
+      a.key
     )}
 
   object key {

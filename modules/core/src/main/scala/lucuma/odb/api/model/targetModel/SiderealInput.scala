@@ -8,31 +8,31 @@ import cats.data.StateT
 import cats.syntax.all._
 import clue.data.Input
 import eu.timepit.refined.cats._
-import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
-import io.circe.refined._
-import lucuma.core.math.{Coordinates, Epoch}
-import lucuma.core.model.{SiderealTracking, Target}
+import lucuma.core.math.{Coordinates, Declination, Epoch, Parallax, ProperMotion, RadialVelocity, RightAscension}
+import lucuma.core.model.{CatalogInfo, SiderealTracking, Target}
 import lucuma.core.model.Target.Sidereal
 import lucuma.odb.api.model.{DeclinationModel, EditorInput, EitherInput, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel, ValidatedInput}
 import lucuma.odb.api.model.json.target._
 import lucuma.odb.api.model.syntax.input._
+import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.optional._
 import lucuma.odb.api.model.syntax.prism._
-import lucuma.odb.api.model.targetModel.SourceProfileModel.CreateSourceProfileInput
+import monocle.{Focus, Lens, Optional}
 
+
+//  name:             Input[NonEmptyString]             = Input.ignore,
+//  sourceProfile:    Input[CreateSourceProfileInput]   = Input.ignore,
 
 final case class SiderealInput(
-  name:             Input[NonEmptyString]             = Input.ignore,
   ra:               Input[RightAscensionModel.Input]  = Input.ignore,
   dec:              Input[DeclinationModel.Input]     = Input.ignore,
   epoch:            Input[Epoch]                      = Input.ignore,
   properMotion:     Input[ProperMotionModel.Input]    = Input.ignore,
   radialVelocity:   Input[RadialVelocityModel.Input]  = Input.ignore,
   parallax:         Input[ParallaxModel.Input]        = Input.ignore,
-  sourceProfile:    Input[CreateSourceProfileInput]   = Input.ignore,
   catalogInfo:      Input[CatalogInfoInput]           = Input.ignore
-) extends EditorInput[Sidereal] {
+) extends EditorInput[(SiderealTracking, Option[CatalogInfo])] {
 
   val toSiderealTracking: ValidatedInput[SiderealTracking] =
     (ra.notMissingAndThen("sidereal 'ra'")(_.toRightAscension),
@@ -49,20 +49,18 @@ final case class SiderealInput(
         px
       )
     }
+// name.notMissing("sidereal 'name'"),
+//     sourceProfile.notMissingAndThen("sidereal 'sourceProfile'")(_.toSourceProfile),
 
-  override val create: ValidatedInput[Sidereal] =
-    (name.notMissing("sidereal 'name'"),
-     toSiderealTracking,
-     sourceProfile.notMissingAndThen("sidereal 'sourceProfile'")(_.toSourceProfile),
-     catalogInfo.toOption.traverse(_.create)
-    ).mapN { (n, t, s, c) =>
-      Sidereal(n, t, s, c)
-    }
+  override val create: ValidatedInput[(SiderealTracking, Option[CatalogInfo])] =
+    (toSiderealTracking, catalogInfo.toOption.traverse(_.create)).tupled
 
-  override val edit: StateT[EitherInput, Sidereal, Unit] = {
+// name .validateIsNotNull("name"),
+//      _ <- Sidereal.name           := n
+
+  override val edit: StateT[EitherInput, (SiderealTracking, Option[CatalogInfo]), Unit] = {
     val validArgs =
-      (name .validateIsNotNull("name"),
-       ra   .validateNotNullable("ra")(_.toRightAscension),
+      (ra   .validateNotNullable("ra")(_.toRightAscension),
        dec  .validateNotNullable("dec")(_.toDeclination),
        epoch.validateIsNotNull("epoch"),
        properMotion  .validateNullable(_.toProperMotion),
@@ -70,29 +68,69 @@ final case class SiderealInput(
        parallax      .validateNullable(_.toParallax)
       ).tupled.toEither
 
+    import SiderealInput.optics
+
     for {
       args <- StateT.liftF(validArgs)
-      (n, r, d, e, pm, rv, px) = args
+      (r, d, e, pm, rv, px) = args
 
-      _ <- Sidereal.name           := n
-      _ <- Sidereal.baseRA         := r
-      _ <- Sidereal.baseDec        := d
-      _ <- Sidereal.epoch          := e
-      _ <- Sidereal.properMotion   := pm
-      _ <- Sidereal.radialVelocity := rv
-      _ <- Sidereal.parallax       := px
-//    _ <- EditorInput.notNullable(Sidereal.sourceProfile.asOptional, sourceProfile) TBD
-      _ <- EditorInput.nullable(Sidereal.catalogInfo.asOptional, catalogInfo)
+      _ <- optics.baseRa         := r
+      _ <- optics.baseDec        := d
+      _ <- optics.epoch          := e
+      _ <- optics.properMotion   := pm
+      _ <- optics.radialVelocity := rv
+      _ <- optics.parallax       := px
+      _ <- EditorInput.nullable(optics.catalogInfo.asOptional, catalogInfo)
     } yield ()
 
   }
 
   val targetEditor: StateT[EitherInput, Target, Unit] =
-    Target.sidereal.transformOrIgnore(edit)
+    Target.sidereal.transformOrIgnore(
+      SiderealInput.optics.siderealPair.transform(edit)
+    )
 
 }
 
 object SiderealInput {
+
+  object optics {
+    type SiderealPair = (SiderealTracking, Option[CatalogInfo])
+
+    val siderealPair: Lens[Sidereal, SiderealPair] =
+      Lens[Sidereal, SiderealPair](
+        s    => (s.tracking, s.catalogInfo)
+      )(
+        pair => _.copy(tracking = pair._1, catalogInfo = pair._2)
+      )
+
+    val target: Optional[Target, (SiderealTracking, Option[CatalogInfo])] = //: Prism[Target, (SiderealTracking, Option[CatalogInfo])] =
+      Target.sidereal.andThen(siderealPair)
+
+    val tracking: Lens[SiderealPair, SiderealTracking] =
+      Focus[SiderealPair](_._1)
+
+    val catalogInfo: Lens[SiderealPair, Option[CatalogInfo]] =
+      Focus[SiderealPair](_._2)
+
+    val baseRa: Lens[SiderealPair, RightAscension] =
+      tracking.andThen(SiderealTracking.baseCoordinates.andThen(Coordinates.rightAscension))
+
+    val baseDec: Lens[SiderealPair, Declination] =
+      tracking.andThen(SiderealTracking.baseCoordinates.andThen(Coordinates.declination))
+
+    val epoch: Lens[SiderealPair, Epoch] =
+      tracking.andThen(SiderealTracking.epoch)
+
+    val properMotion: Lens[SiderealPair, Option[ProperMotion]] =
+      tracking.andThen(SiderealTracking.properMotion)
+
+    val radialVelocity: Lens[SiderealPair, Option[RadialVelocity]] =
+      tracking.andThen(SiderealTracking.radialVelocity)
+
+    val parallax: Lens[SiderealPair, Option[Parallax]] =
+      tracking.andThen(SiderealTracking.parallax)
+  }
 
   import io.circe.generic.extras.semiauto._
   import io.circe.generic.extras.Configuration
@@ -103,15 +141,15 @@ object SiderealInput {
 
   implicit val EqEditSidereal: Eq[SiderealInput] =
     Eq.by { a => (
-      a.name,
+//      a.name,
       a.ra,
       a.dec,
       a.epoch,
       a.properMotion,
       a.radialVelocity,
       a.parallax,
-      a.sourceProfile,
-      a.catalogInfo,
+//      a.sourceProfile,
+      a.catalogInfo
     )}
 
 }
