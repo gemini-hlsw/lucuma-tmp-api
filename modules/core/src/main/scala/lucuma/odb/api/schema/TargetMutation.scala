@@ -120,8 +120,6 @@ trait TargetMutation extends TargetScalars {
       ReplaceInputField("des",           NonEmptyStringType            .notNullableField("des"          )),
       ReplaceInputField("key",           NonEmptyStringType            .notNullableField("key"          )),
     )
-//      ReplaceInputField("name",          NonEmptyStringType            .notNullableField("name"         )),
-//      ReplaceInputField("sourceProfile", InputObjectCreateSourceProfile.notNullableField("sourceProfile"))
 
   implicit val InputObjectTypeCreateTarget: InputObjectType[TargetModel.Create] =
     deriveInputObjectType[TargetModel.Create](
@@ -134,9 +132,6 @@ trait TargetMutation extends TargetScalars {
       "input",
       "Target description.  One (and only one) of sidereal or nonsidereal must be specified."
     )
-
-//      ReplaceInputField("name",           NonEmptyStringType       .notNullableField("name"       )),
-//      ReplaceInputField("sourceProfile",  InputObjectCreateSourceProfile.notNullableField("sourceProfile")),
 
   implicit val InputObjectTypeSidereal: InputObjectType[SiderealInput] =
     deriveInputObjectType[SiderealInput](
