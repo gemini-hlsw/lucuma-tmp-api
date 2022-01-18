@@ -113,7 +113,7 @@ supplied for each element of the `replaceList` list of `CreateTargetInput`.
 ```
 input CreateTargetInput {
   sidereal:    CreateSiderealInput    # See existing API
-  nonSidereal: CreateNonSiderealInput # See existing API
+  nonsidereal: CreateNonSiderealInput # See existing API
   # ToO
 }
 ```
@@ -130,7 +130,7 @@ input EditTargetActionInput {
 
 input EditTargetInput {
   sidereal:    EditSiderealInput    # See existing API
-  nonSidereal: EditNonSiderealInput # See existing API
+  nonsidereal: EditNonSiderealInput # See existing API
   # ToO
 }
 ```

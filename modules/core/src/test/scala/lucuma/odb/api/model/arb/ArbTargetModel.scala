@@ -11,8 +11,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.`enum`.EphemerisKeyType
 import lucuma.core.math.{Coordinates, Epoch}
 import lucuma.core.math.arb.{ArbCoordinates, ArbEpoch}
-import lucuma.core.model.arb.ArbEphemerisKey
-import lucuma.core.model.{EphemerisKey, Program, Target}
+import lucuma.core.model.{Program, Target}
 import lucuma.core.model.arb.ArbTarget
 import lucuma.core.util.arb.{ArbEnumerated, ArbGid}
 import lucuma.odb.api.model.targetModel.SourceProfileModel.CreateSourceProfileInput
@@ -30,7 +29,6 @@ trait ArbTargetModel {
   import ArbCoordinatesModel._
   import ArbDeclinationModel._
   import ArbEnumerated._
-  import ArbEphemerisKey._
   import ArbEpoch._
   import ArbGid._
   import ArbInput._
@@ -84,145 +82,94 @@ trait ArbTargetModel {
       in.explicitBase
     )}
 
-
-  implicit val arbCreateSidereal: Arbitrary[CreateSiderealInput] =
+  implicit val arbNonsiderealInput: Arbitrary[NonsiderealInput] =
     Arbitrary {
       for {
-        cat   <- arbitrary[Option[CatalogInfoInput]]
-        ra    <- arbitrary[RightAscensionModel.Input]
-        dec   <- arbitrary[DeclinationModel.Input]
-        epoch <- arbitrary[Option[Epoch]]
-        pm    <- arbitrary[Option[ProperMotionModel.Input]]
-        rv    <- arbitrary[Option[RadialVelocityModel.Input]]
-        px    <- arbitrary[Option[ParallaxModel.Input]]
-      } yield CreateSiderealInput(
-        cat,
-        ra,
-        dec,
-        epoch,
-        pm,
-        rv,
-        px
+        keyType <- arbitrary[Input[EphemerisKeyType]]
+        des     <- arbitrary[Input[NonEmptyString]]
+        key     <- arbitrary[Input[NonEmptyString]]
+      } yield NonsiderealInput(
+        keyType,
+        des,
+        key
       )
     }
 
-
-  implicit val cogCreateSidereal: Cogen[CreateSiderealInput] =
+  implicit val cogNonsidereal: Cogen[NonsiderealInput] =
     Cogen[(
-      Option[CatalogInfoInput],
-      RightAscensionModel.Input,
-      DeclinationModel.Input,
-      Option[Epoch],
-      Option[ProperMotionModel.Input],
-      Option[RadialVelocityModel.Input],
-      Option[ParallaxModel.Input]
-    )].contramap { in => (
-      in.catalogInfo,
-      in.ra,
-      in.dec,
-      in.epoch,
-      in.properMotion,
-      in.radialVelocity,
-      in.parallax
+      Input[EphemerisKeyType],
+      Input[String],
+      Input[String]
+    )].contramap { a => (
+      a.keyType,
+      a.des.map(_.value),
+      a.key.map(_.value),
     )}
 
-  implicit val arbCreateNonSidereal: Arbitrary[CreateNonsiderealInput] =
+  implicit val arbSiderealInput: Arbitrary[SiderealInput] =
     Arbitrary {
       for {
-        key  <- arbitrary[EphemerisKeyType]
-        des  <- arbitrary[NonEmptyString]
-      } yield CreateNonsiderealInput(
-        key,
-        des.value
-      )
-    }
-
-  implicit val cogCreateNonSidereal: Cogen[CreateNonsiderealInput] =
-    Cogen[(
-      EphemerisKeyType,
-      String
-    )].contramap { in => (in.keyType, in.des) }
-
-  implicit val arbCreateTarget: Arbitrary[TargetModel.Create] =
-    Arbitrary {
-      for {
-        t <- arbitrary[Option[Target.Id]]
-        m <- arbitrary[NonEmptyString]
-        p <- arbitrary[CreateSourceProfileInput]
-        s <- arbitrary[Option[CreateSiderealInput]]
-        n <- arbitrary[Option[CreateNonsiderealInput]]
-      } yield TargetModel.Create(t, m, p, s, n)
-    }
-
-  implicit val cogCreateTarget: Cogen[TargetModel.Create] =
-    Cogen[(
-      Option[Target.Id],
-      String,
-      CreateSourceProfileInput,
-      Option[CreateSiderealInput],
-      Option[CreateNonsiderealInput]
-    )].contramap { in => (
-      in.targetId,
-      in.name.value,
-      in.sourceProfile,
-      in.sidereal,
-      in.nonsidereal
-    )}
-
-  implicit val arbEditSidereal: Arbitrary[EditSiderealInput] =
-    Arbitrary {
-      for {
-        cat   <- arbitrary[Input[CatalogInfoInput]]
         ra    <- arbNotNullableInput[RightAscensionModel.Input].arbitrary
         dec   <- arbNotNullableInput[DeclinationModel.Input].arbitrary
         epoch <- arbNotNullableInput[Epoch].arbitrary
         pm    <- arbitrary[Input[ProperMotionModel.Input]]
         rv    <- arbitrary[Input[RadialVelocityModel.Input]]
         px    <- arbitrary[Input[ParallaxModel.Input]]
-      } yield EditSiderealInput(
-        cat,
+        cat   <- arbitrary[Input[CatalogInfoInput]]
+      } yield SiderealInput(
         ra,
         dec,
         epoch,
         pm,
         rv,
-        px
+        px,
+        cat
       )
     }
 
-  implicit val cogEditSidereal: Cogen[EditSiderealInput] =
+  implicit val cogSiderealInput: Cogen[SiderealInput] =
     Cogen[(
-      Input[CatalogInfoInput],
       Input[RightAscensionModel.Input],
       Input[DeclinationModel.Input],
       Input[Epoch],
       Input[ProperMotionModel.Input],
       Input[RadialVelocityModel.Input],
-      Input[ParallaxModel.Input]
-    )].contramap { in => (
-      in.catalogInfo,
-      in.ra,
-      in.dec,
-      in.epoch,
-      in.properMotion,
-      in.radialVelocity,
-      in.parallax
+      Input[ParallaxModel.Input],
+      Input[CatalogInfoInput]
+    )].contramap { a => (
+      a.ra,
+      a.dec,
+      a.epoch,
+      a.properMotion,
+      a.radialVelocity,
+      a.parallax,
+      a.catalogInfo
     )}
 
-  implicit val arbEditNonSidereal: Arbitrary[EditNonsiderealInput] =
+  implicit val arbCreateTarget: Arbitrary[TargetModel.Create] =
     Arbitrary {
       for {
-        key  <- arbitrary[Input[EphemerisKey]]
-      } yield EditNonsiderealInput(
-        key
-      )
+        t <- arbitrary[Option[Target.Id]]
+        m <- arbitrary[NonEmptyString]
+        s <- arbitrary[Option[SiderealInput]]
+        n <- arbitrary[Option[NonsiderealInput]]
+        p <- arbitrary[CreateSourceProfileInput]
+      } yield TargetModel.Create(t, m, s, n, p)
     }
 
-  implicit val cogEditNonSidereal: Cogen[EditNonsiderealInput] =
+  implicit val cogCreateTarget: Cogen[TargetModel.Create] =
     Cogen[(
-      Input[EphemerisKey]
-    )].contramap { in => (
-      in.key
+      Option[Target.Id],
+      String,
+      Option[SiderealInput],
+      Option[NonsiderealInput],
+      CreateSourceProfileInput
+    )].contramap { a => (
+      a.targetId,
+      a.name.value,
+      a.sidereal,
+      a.nonsidereal,
+      a.sourceProfile
     )}
 
   implicit val arbEditAsterismInput: Arbitrary[EditAsterismInput] =

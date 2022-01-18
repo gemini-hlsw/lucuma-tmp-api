@@ -14,8 +14,8 @@ import clue.data.Input
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
-import io.circe.refined._
 import io.circe.generic.semiauto._
+import io.circe.refined._
 import lucuma.core.model.{Program, Target}
 import lucuma.odb.api.model.{DatabaseState, Event, Existence, InputError, TopLevelModel, ValidatedInput}
 import lucuma.odb.api.model.syntax.input._
@@ -65,9 +65,9 @@ object TargetModel extends TargetModelOptics {
   final case class Create(
     targetId:      Option[Target.Id],
     name:          NonEmptyString,
-    sourceProfile: CreateSourceProfileInput,
-    sidereal:      Option[CreateSiderealInput],
-    nonsidereal:   Option[CreateNonsiderealInput]
+    sidereal:      Option[SiderealInput],
+    nonsidereal:   Option[NonsiderealInput],
+    sourceProfile: CreateSourceProfileInput
   ) {
 
     def create[F[_]: Monad, T](
@@ -78,10 +78,9 @@ object TargetModel extends TargetModelOptics {
       for {
         i  <- db.target.getUnusedId(targetId)
         p  <- db.program.lookupValidated(programId)
-        sp <- S.monad.pure(sourceProfile.toSourceProfile)
         t  = ValidatedInput.requireOne("target",
-          sidereal.map(_.toGemTarget(name, sp)),
-          nonsidereal.map(_.toGemTarget(name, sp))
+          sidereal.map(_.createTarget(name, sourceProfile)),
+          nonsidereal.map(_.createTarget(name, sourceProfile))
         )
         tm = (i, p, t).mapN { (iʹ, _, tʹ) =>
           TargetModel(iʹ, Existence.Present, programId, tʹ, observed = false)
@@ -96,18 +95,18 @@ object TargetModel extends TargetModelOptics {
     def sidereal(
       targetId:      Option[Target.Id],
       name:          NonEmptyString,
-      sourceProfile: CreateSourceProfileInput,
-      input:         CreateSiderealInput
+      input:         SiderealInput,
+      sourceProfile: CreateSourceProfileInput
     ): Create =
-      Create(targetId, name, sourceProfile, input.some, None)
+      Create(targetId, name, input.some, None, sourceProfile)
 
     def nonsidereal(
       targetId:      Option[Target.Id],
       name:          NonEmptyString,
-      sourceProfile: CreateSourceProfileInput,
-      input:         CreateNonsiderealInput
+      input:         NonsiderealInput,
+      sourceProfile: CreateSourceProfileInput
     ): Create =
-      Create(targetId, name, sourceProfile, None, input.some)
+      Create(targetId, name, None, input.some, sourceProfile)
 
     implicit val DecoderCreate: Decoder[Create] =
       deriveDecoder[Create]
@@ -116,21 +115,22 @@ object TargetModel extends TargetModelOptics {
       Eq.by { a => (
         a.targetId,
         a.name,
-        a.sourceProfile,
         a.sidereal,
-        a.nonsidereal
+        a.nonsidereal,
+        a.sourceProfile
       )}
   }
 
   final case class Edit(
     targetId:    Target.Id,
-    existence:   Input[Existence]             = Input.ignore,
-    name:        Input[NonEmptyString]        = Input.ignore,
-    sidereal:    Option[EditSiderealInput]    = None,
-    nonSidereal: Option[EditNonsiderealInput] = None
+    existence:   Input[Existence]         = Input.ignore,
+    name:        Input[NonEmptyString]    = Input.ignore,
+    sidereal:    Option[SiderealInput]    = None,
+    nonsidereal: Option[NonsiderealInput] = None
   ) {
 
     val editor: StateT[EitherNec[InputError, *], TargetModel, Unit] = {
+
       val validArgs =
         (
           existence.validateIsNotNull("existence"),
@@ -145,8 +145,8 @@ object TargetModel extends TargetModelOptics {
         (e, n) = args
         _ <- TargetModel.existence := e
         _ <- TargetModel.name      := n
-        _ <- editTarget(sidereal.map(_.editor))
-        _ <- editTarget(nonSidereal.map(_.editor))
+        _ <- editTarget(sidereal.map(_.targetEditor))
+        _ <- editTarget(nonsidereal.map(_.targetEditor))
       } yield ()
     }
 
@@ -166,7 +166,7 @@ object TargetModel extends TargetModelOptics {
         a.existence,
         a.name,
         a.sidereal,
-        a.nonSidereal
+        a.nonsidereal
       )}
 
   }
