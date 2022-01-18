@@ -17,7 +17,7 @@ import io.circe.refined._
 import lucuma.core.`enum`.EphemerisKeyType
 import lucuma.core.model.{EphemerisKey, Target}
 import lucuma.odb.api.model.{EditorInput, EitherInput, InputError, ValidatedInput}
-import lucuma.odb.api.model.targetModel.SourceProfileModel.CreateSourceProfileInput
+import lucuma.odb.api.model.targetModel.SourceProfileModel.SourceProfileInput
 
 
 /**
@@ -45,7 +45,7 @@ final case class NonsiderealInput(
 
   def createTarget(
     name:          NonEmptyString,
-    sourceProfile: CreateSourceProfileInput
+    sourceProfile: SourceProfileInput
   ): ValidatedInput[Target] =
     (create, sourceProfile.toSourceProfile).mapN { (key, profile) =>
       Target.Nonsidereal(name, key, profile)

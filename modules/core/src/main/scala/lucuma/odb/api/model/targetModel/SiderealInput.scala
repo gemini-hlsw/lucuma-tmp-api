@@ -18,7 +18,7 @@ import lucuma.odb.api.model.json.target._
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.optional._
-import lucuma.odb.api.model.targetModel.SourceProfileModel.CreateSourceProfileInput
+import lucuma.odb.api.model.targetModel.SourceProfileModel.SourceProfileInput
 import monocle.{Focus, Lens, Optional}
 
 
@@ -57,7 +57,7 @@ final case class SiderealInput(
 
   def createTarget(
     name:          NonEmptyString,
-    sourceProfile: CreateSourceProfileInput
+    sourceProfile: SourceProfileInput
   ): ValidatedInput[Target] =
     (create, sourceProfile.toSourceProfile).mapN { case ((track, catInfo), profile) =>
       Target.Sidereal(name, track, profile, catInfo)

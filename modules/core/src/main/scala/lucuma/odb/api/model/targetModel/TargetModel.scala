@@ -20,7 +20,7 @@ import lucuma.core.model.{Program, Target}
 import lucuma.odb.api.model.{DatabaseState, Event, Existence, InputError, TopLevelModel, ValidatedInput}
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
-import lucuma.odb.api.model.targetModel.SourceProfileModel.CreateSourceProfileInput
+import lucuma.odb.api.model.targetModel.SourceProfileModel.SourceProfileInput
 import monocle.{Focus, Lens}
 
 
@@ -67,7 +67,7 @@ object TargetModel extends TargetModelOptics {
     name:          NonEmptyString,
     sidereal:      Option[SiderealInput],
     nonsidereal:   Option[NonsiderealInput],
-    sourceProfile: CreateSourceProfileInput
+    sourceProfile: SourceProfileInput
   ) {
 
     def create[F[_]: Monad, T](
@@ -96,7 +96,7 @@ object TargetModel extends TargetModelOptics {
       targetId:      Option[Target.Id],
       name:          NonEmptyString,
       input:         SiderealInput,
-      sourceProfile: CreateSourceProfileInput
+      sourceProfile: SourceProfileInput
     ): Create =
       Create(targetId, name, input.some, None, sourceProfile)
 
@@ -104,7 +104,7 @@ object TargetModel extends TargetModelOptics {
       targetId:      Option[Target.Id],
       name:          NonEmptyString,
       input:         NonsiderealInput,
-      sourceProfile: CreateSourceProfileInput
+      sourceProfile: SourceProfileInput
     ): Create =
       Create(targetId, name, None, input.some, sourceProfile)
 
