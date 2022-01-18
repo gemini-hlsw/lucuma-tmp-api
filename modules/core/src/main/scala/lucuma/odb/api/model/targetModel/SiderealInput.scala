@@ -18,7 +18,6 @@ import lucuma.odb.api.model.json.target._
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.optional._
-import lucuma.odb.api.model.syntax.prism._
 import lucuma.odb.api.model.targetModel.SourceProfileModel.CreateSourceProfileInput
 import monocle.{Focus, Lens, Optional}
 
@@ -92,9 +91,15 @@ final case class SiderealInput(
   }
 
   val targetEditor: StateT[EitherInput, Target, Unit] =
-    Target.sidereal.transformOrIgnore(
-      SiderealInput.optics.siderealPair.transform(edit)
-    )
+    StateT.modifyF[EitherInput, Target] {
+      case Target.Sidereal(name, tracking, sourceProfile, catalogInfo)  =>
+        edit.runS((tracking, catalogInfo)).map { case (t, c) =>
+          Target.Sidereal(name, t, sourceProfile, c)
+        }
+
+      case Target.Nonsidereal(name, _, sourceProfile) =>
+        create.map { case (t, c) => Target.Sidereal(name, t, sourceProfile, c) }.toEither
+    }
 
 }
 

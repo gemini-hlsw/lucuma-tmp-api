@@ -4,7 +4,7 @@
 package lucuma.odb.api.model.targetModel
 
 import cats.Eq
-import cats.data.{EitherNec, StateT}
+import cats.data.StateT
 import cats.syntax.apply._
 import cats.syntax.either._
 import cats.syntax.option._
@@ -15,11 +15,8 @@ import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.refined._
 import lucuma.core.`enum`.EphemerisKeyType
-import lucuma.core.model.Target.Nonsidereal
 import lucuma.core.model.{EphemerisKey, Target}
 import lucuma.odb.api.model.{EditorInput, EitherInput, InputError, ValidatedInput}
-import lucuma.odb.api.model.syntax.lens._
-import lucuma.odb.api.model.syntax.prism._
 import lucuma.odb.api.model.targetModel.SourceProfileModel.CreateSourceProfileInput
 
 
@@ -93,10 +90,16 @@ final case class NonsiderealInput(
     }
   }
 
-  val targetEditor: StateT[EitherNec[InputError, *], Target, Unit] =
-    Target.nonsidereal.transformOrIgnore(
-      Nonsidereal.ephemerisKey.transform(edit)
-    )
+  val targetEditor: StateT[EitherInput, Target, Unit] =
+    StateT.modifyF[EitherInput, Target] {
+      case Target.Sidereal(name, _, sourceProfile, _)  =>
+        create.map { k => Target.Nonsidereal(name, k, sourceProfile) }.toEither
+
+      case Target.Nonsidereal(name, key, sourceProfile) =>
+        edit.runS(key).map { k =>
+          Target.Nonsidereal(name, k, sourceProfile)
+        }
+    }
 
 }
 
