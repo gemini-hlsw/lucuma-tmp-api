@@ -78,18 +78,9 @@ object TargetModel extends TargetModelOptics {
       for {
         i  <- db.target.getUnusedId(targetId)
         p  <- db.program.lookupValidated(programId)
-        sp <- S.monad.pure(sourceProfile.toSourceProfile)
         t  = ValidatedInput.requireOne("target",
-          sidereal.map { si =>
-            (si.create, sp).mapN { case ((track, catInfo), profile) =>
-              Target.Sidereal(name, track, profile, catInfo): Target
-            }
-          },
-          nonsidereal.map { ni =>
-            (ni.create, sp).mapN { case (key, profile) =>
-              Target.Nonsidereal(name, key, profile): Target
-            }
-          }
+          sidereal.map(_.createTarget(name, sourceProfile)),
+          nonsidereal.map(_.createTarget(name, sourceProfile))
         )
         tm = (i, p, t).mapN { (iʹ, _, tʹ) =>
           TargetModel(iʹ, Existence.Present, programId, tʹ, observed = false)

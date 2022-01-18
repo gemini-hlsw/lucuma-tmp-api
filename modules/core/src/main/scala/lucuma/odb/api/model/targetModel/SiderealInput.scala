@@ -8,6 +8,7 @@ import cats.data.StateT
 import cats.syntax.all._
 import clue.data.Input
 import eu.timepit.refined.cats._
+import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import lucuma.core.math.{Coordinates, Declination, Epoch, Parallax, ProperMotion, RadialVelocity, RightAscension}
 import lucuma.core.model.{CatalogInfo, SiderealTracking, Target}
@@ -18,11 +19,13 @@ import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.optional._
 import lucuma.odb.api.model.syntax.prism._
+import lucuma.odb.api.model.targetModel.SourceProfileModel.CreateSourceProfileInput
 import monocle.{Focus, Lens, Optional}
 
 
-//  name:             Input[NonEmptyString]             = Input.ignore,
-//  sourceProfile:    Input[CreateSourceProfileInput]   = Input.ignore,
+// Editor for (SiderealTracking, Option[CatalogInfo]).  It's a bit weird in that
+// it wants to be an editor for Sidereal, but that has target name and source
+// profile which belong on Target.
 
 final case class SiderealInput(
   ra:               Input[RightAscensionModel.Input]  = Input.ignore,
@@ -49,14 +52,17 @@ final case class SiderealInput(
         px
       )
     }
-// name.notMissing("sidereal 'name'"),
-//     sourceProfile.notMissingAndThen("sidereal 'sourceProfile'")(_.toSourceProfile),
 
   override val create: ValidatedInput[(SiderealTracking, Option[CatalogInfo])] =
     (toSiderealTracking, catalogInfo.toOption.traverse(_.create)).tupled
 
-// name .validateIsNotNull("name"),
-//      _ <- Sidereal.name           := n
+  def createTarget(
+    name:          NonEmptyString,
+    sourceProfile: CreateSourceProfileInput
+  ): ValidatedInput[Target] =
+    (create, sourceProfile.toSourceProfile).mapN { case ((track, catInfo), profile) =>
+      Target.Sidereal(name, track, profile, catInfo)
+    }
 
   override val edit: StateT[EitherInput, (SiderealTracking, Option[CatalogInfo]), Unit] = {
     val validArgs =
@@ -104,7 +110,7 @@ object SiderealInput {
         pair => _.copy(tracking = pair._1, catalogInfo = pair._2)
       )
 
-    val target: Optional[Target, (SiderealTracking, Option[CatalogInfo])] = //: Prism[Target, (SiderealTracking, Option[CatalogInfo])] =
+    val target: Optional[Target, (SiderealTracking, Option[CatalogInfo])] =
       Target.sidereal.andThen(siderealPair)
 
     val tracking: Lens[SiderealPair, SiderealTracking] =
@@ -141,14 +147,12 @@ object SiderealInput {
 
   implicit val EqEditSidereal: Eq[SiderealInput] =
     Eq.by { a => (
-//      a.name,
       a.ra,
       a.dec,
       a.epoch,
       a.properMotion,
       a.radialVelocity,
       a.parallax,
-//      a.sourceProfile,
       a.catalogInfo
     )}
 

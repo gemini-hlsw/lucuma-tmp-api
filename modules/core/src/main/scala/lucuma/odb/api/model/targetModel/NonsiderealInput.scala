@@ -5,6 +5,7 @@ package lucuma.odb.api.model.targetModel
 
 import cats.Eq
 import cats.data.{EitherNec, StateT}
+import cats.syntax.apply._
 import cats.syntax.either._
 import cats.syntax.option._
 import cats.syntax.validated._
@@ -19,6 +20,7 @@ import lucuma.core.model.{EphemerisKey, Target}
 import lucuma.odb.api.model.{EditorInput, EitherInput, InputError, ValidatedInput}
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.prism._
+import lucuma.odb.api.model.targetModel.SourceProfileModel.CreateSourceProfileInput
 
 
 /**
@@ -44,13 +46,13 @@ final case class NonsiderealInput(
         NonsiderealInput.Error.invalidNec[EphemerisKey]
     }
 
-//    (name.notMissing("nonsidereal 'name'"),
-//     toEphemerisKey,
-//     sourceProfile.notMissingAndThen("nonsidereal 'sourceProfile'")(_.toSourceProfile)
-//    ).mapN { (n, t, s) =>
-//      Nonsidereal(n, t, s)
-//    }
-//  }
+  def createTarget(
+    name:          NonEmptyString,
+    sourceProfile: CreateSourceProfileInput
+  ): ValidatedInput[Target] =
+    (create, sourceProfile.toSourceProfile).mapN { (key, profile) =>
+      Target.Nonsidereal(name, key, profile)
+    }
 
   override val edit: StateT[EitherInput, EphemerisKey, Unit] = {
     def modType(keyType: EphemerisKeyType): StateT[EitherInput, EphemerisKey, Unit] =
