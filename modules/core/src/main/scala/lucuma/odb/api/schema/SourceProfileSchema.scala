@@ -13,7 +13,7 @@ import lucuma.core.math.dimensional.{Measure, Of, Units}
 import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
 import lucuma.core.model.{SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.core.util.Enumerated
-import lucuma.odb.api.model.targetModel.SourceProfileModel.{BandBrightnessPair, CreateBandBrightnessInput, CreateBandNormalizedInput, CreateEmissionLineInput, CreateEmissionLinesInput, CreateGaussianInput, CreateMeasureInput, CreateSpectralDefinitionInput, FluxDensityInput, SourceProfileInput, UnnormalizedSedInput, WavelengthEmissionLinePair}
+import lucuma.odb.api.model.targetModel.SourceProfileModel.{BandBrightnessPair, CreateBandBrightnessInput, CreateBandNormalizedInput, CreateEmissionLineInput, CreateEmissionLinesInput, GaussianInput, CreateMeasureInput, SpectralDefinitionInput, FluxDensityInput, SourceProfileInput, UnnormalizedSedInput, WavelengthEmissionLinePair}
 import lucuma.odb.api.schema.syntax.inputtype._
 import monocle.Prism
 import sangria.schema.{Field, _}
@@ -657,38 +657,50 @@ object SourceProfileSchema {
   implicit val InputObjectCreateEmissionLinesSurface: InputObjectType[CreateEmissionLinesInput[Surface]] =
     createEmissionLinesInputObjectType("surface")
 
-  private def createSpectralDefinitionInputObjectType[T](
+  private def spectralDefinitionInputObjectType[T](
     groupName: String
   )(
     implicit ev0: InputType[CreateBandNormalizedInput[T]],
              ev1: InputType[CreateEmissionLinesInput[T]]
-  ): InputObjectType[CreateSpectralDefinitionInput[T]] =
+  ): InputObjectType[SpectralDefinitionInput[T]] = {
+    val message = """Exactly one of "bandNormalized" or "emissionLines" is required"""
+
     deriveInputObjectType(
-      InputObjectTypeName(s"CreateSpectralDefinition${groupName.capitalize}"),
-      InputObjectTypeDescription(s"Create a spectral definition with $groupName units")
+      InputObjectTypeName(s"SpectralDefinition${groupName.capitalize}Input"),
+      InputObjectTypeDescription(s"Spectral definition input with $groupName units"),
+
+      ReplaceInputField("bandNormalized", ev0.optionField("bandNormalized", message)),
+      ReplaceInputField("emissionLines", ev1.optionField("emissionLines", message))
+    )
+  }
+
+  implicit val InputObjectSpectralDefinitionIntegrated: InputObjectType[SpectralDefinitionInput[Integrated]] =
+    spectralDefinitionInputObjectType("integrated")
+
+  implicit val InputObjectSpectralDefinitionSurface: InputObjectType[SpectralDefinitionInput[Surface]] =
+    spectralDefinitionInputObjectType("surface")
+
+  implicit val InputObjectGaussian: InputObjectType[GaussianInput] =
+    deriveInputObjectType(
+      InputObjectTypeName("GaussianInput"),
+      InputObjectTypeDescription("Create a gaussian source"),
+
+      ReplaceInputField("fwhm", InputObjectAngle.createRequiredEditOptional("fwhm", "Gaussian")),
+      ReplaceInputField("spectralDefinition", InputObjectSpectralDefinitionIntegrated.createRequiredEditOptional("spectralDefinition", "Gaussian"))
     )
 
-  implicit val InputObjectCreateSpectralDefinitionIntegrated: InputObjectType[CreateSpectralDefinitionInput[Integrated]] =
-    createSpectralDefinitionInputObjectType("integrated")
+  implicit val InputObjectSourceProfile: InputObjectType[SourceProfileInput] = {
+    val message = """Exactly one of "point", "uniform", or "gaussian" is required"""
 
-  implicit val InputObjectCreateSpectralDefinitionSurface: InputObjectType[CreateSpectralDefinitionInput[Surface]] =
-    createSpectralDefinitionInputObjectType("surface")
-
-  implicit val InputObjectCreateGaussian: InputObjectType[CreateGaussianInput] =
-    deriveInputObjectType(
-      InputObjectTypeName("CreateGaussian"),
-      InputObjectTypeDescription("Create a gaussian source")
-    )
-
-  implicit val InputObjectSourceProfile: InputObjectType[SourceProfileInput] =
     deriveInputObjectType(
       InputObjectTypeName("SourceProfileInput"),
       InputObjectTypeDescription("Create or edit a source profile"),
 
-      ReplaceInputField("point",    InputObjectCreateSpectralDefinitionIntegrated.notNullableField("point")),
-      ReplaceInputField("uniform",  InputObjectCreateSpectralDefinitionSurface.notNullableField("uniform")),
-      ReplaceInputField("gaussian", InputObjectCreateGaussian.notNullableField("gaussian"))
+      ReplaceInputField("point",    InputObjectSpectralDefinitionIntegrated.optionField("point", message)),
+      ReplaceInputField("uniform",  InputObjectSpectralDefinitionSurface.optionField("uniform", message)),
+      ReplaceInputField("gaussian", InputObjectGaussian.optionField("gaussian", message))
     )
+  }
 
   // Arguments
 

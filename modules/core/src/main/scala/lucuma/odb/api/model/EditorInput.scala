@@ -5,10 +5,11 @@ package lucuma.odb.api.model
 
 import cats.data.StateT
 import clue.data.{Assign, Ignore, Input, Unassign}
+import cats.syntax.either._
 import cats.syntax.functor._
 import cats.syntax.option._
 import lucuma.odb.api.model.syntax.optional._
-import monocle.Optional
+import monocle.{Lens, Optional}
 
 /**
  * Describes how to validate arguments and create a new A or else validate
@@ -30,9 +31,9 @@ object EditorInput {
    * Using the provided optic, applies the update described by the given `Input`
    * in the resulting state computation.
    */
-  def nullable[S, A, N <: EditorInput[A]](
+  def editNullable[S, A](
     optional: Optional[S, Option[A]],
-    input:    Input[N]
+    input:    Input[EditorInput[A]]
   ): StateT[EitherInput, S, Unit] =
 
     input match {
@@ -53,6 +54,27 @@ object EditorInput {
           optional
             .modifyA[EitherInput](_.fold(n.create.toEither)(n.edit.runS).map(_.some))(s)
         }
+    }
+
+  def editNotNullable[S, A](
+    name: String,
+    lens: Lens[S, A],
+    input: Input[EditorInput[A]]
+  ): StateT[EitherInput, S, Unit] =
+
+    input match {
+
+      // Do nothing
+      case Ignore   =>
+        StateT.empty[EitherInput, S, Unit]
+
+      // Cannot unset.
+      case Unassign =>
+        StateT.setF(InputError.fromMessage(s""""$name" cannot be unassigned""").leftNec)
+
+      case Assign(n) =>
+        StateT.modifyF[EitherInput, S](lens.modifyF(n.edit.runS))
+
     }
 
 }

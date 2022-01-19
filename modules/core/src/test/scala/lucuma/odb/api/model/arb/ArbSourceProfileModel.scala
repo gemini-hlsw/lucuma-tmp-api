@@ -194,43 +194,43 @@ trait ArbSourceProfileModel {
       in.fluxDensityContinuum
     )}
 
-  implicit def arbCreateSpectralDefinition[T](
+  implicit def arbSpectralDefinition[T](
     implicit ev0: Enumerated[Units Of Brightness[T]],
              ev1: Enumerated[Units Of LineFlux[T]],
              ev2: Enumerated[Units Of FluxDensityContinuum[T]]
-  ): Arbitrary[CreateSpectralDefinitionInput[T]] =
+  ): Arbitrary[SpectralDefinitionInput[T]] =
     Arbitrary {
       Gen.oneOf(
-        arbitrary[CreateBandNormalizedInput[T]].map(CreateSpectralDefinitionInput.bandNormalized),
-        arbitrary[CreateEmissionLinesInput[T]].map(CreateSpectralDefinitionInput.emissionLines)
+        arbitrary[CreateBandNormalizedInput[T]].map(SpectralDefinitionInput.bandNormalized),
+        arbitrary[CreateEmissionLinesInput[T]].map(SpectralDefinitionInput.emissionLines)
       )
     }
 
-  implicit def cogCreateSpectralDefinition[T](
+  implicit def cogSpectralDefinition[T](
     implicit ev0: Enumerated[Units Of Brightness[T]],
              ev1: Enumerated[Units Of LineFlux[T]],
              ev2: Enumerated[Units Of FluxDensityContinuum[T]]
-  ): Cogen[CreateSpectralDefinitionInput[T]] =
+  ): Cogen[SpectralDefinitionInput[T]] =
     Cogen[(
-      Option[CreateBandNormalizedInput[T]],
-      Option[CreateEmissionLinesInput[T]]
+      Input[CreateBandNormalizedInput[T]],
+      Input[CreateEmissionLinesInput[T]]
     )].contramap { in => (
       in.bandNormalized,
       in.emissionLines
     )}
 
-  implicit val arbCreateGaussianInput: Arbitrary[CreateGaussianInput] =
+  implicit val arbGaussianInput: Arbitrary[GaussianInput] =
     Arbitrary {
       for {
-        f <- arbitrary[AngleModel.AngleInput]
-        s <- arbitrary[CreateSpectralDefinitionInput[Integrated]]
-      } yield CreateGaussianInput(f, s)
+        f <- arbitrary[Input[AngleModel.AngleInput]]
+        s <- arbitrary[Input[SpectralDefinitionInput[Integrated]]]
+      } yield GaussianInput(f, s)
     }
 
-  implicit val cogCreateGaussianInput: Cogen[CreateGaussianInput] =
+  implicit val cogGaussianInput: Cogen[GaussianInput] =
     Cogen[(
-      AngleModel.AngleInput,
-      CreateSpectralDefinitionInput[Integrated]
+      Input[AngleModel.AngleInput],
+      Input[SpectralDefinitionInput[Integrated]]
     )].contramap { in => (
       in.fwhm,
       in.spectralDefinition
@@ -239,17 +239,17 @@ trait ArbSourceProfileModel {
   implicit val arbSourceProfileInput: Arbitrary[SourceProfileInput] =
     Arbitrary {
       Gen.oneOf(
-        arbitrary[CreateSpectralDefinitionInput[Integrated]].map(SourceProfileInput.point),
-        arbitrary[CreateSpectralDefinitionInput[Surface]].map(SourceProfileInput.uniform),
-        arbitrary[CreateGaussianInput].map(SourceProfileInput.gaussian)
+        arbitrary[SpectralDefinitionInput[Integrated]].map(SourceProfileInput.point),
+        arbitrary[SpectralDefinitionInput[Surface]].map(SourceProfileInput.uniform),
+        arbitrary[GaussianInput].map(SourceProfileInput.gaussian)
       )
     }
 
   implicit val cogSourceProfileInput: Cogen[SourceProfileInput] =
     Cogen[(
-      Input[CreateSpectralDefinitionInput[Integrated]],
-      Input[CreateSpectralDefinitionInput[Surface]],
-      Input[CreateGaussianInput]
+      Input[SpectralDefinitionInput[Integrated]],
+      Input[SpectralDefinitionInput[Surface]],
+      Input[GaussianInput]
     )].contramap { in => (
       in.point,
       in.uniform,

@@ -7,18 +7,25 @@ import sangria.schema._
 
 final class InputTypeOps[A](self: InputType[A]) {
 
+  def optionField(name: String, message: String): InputField[Option[A]] =
+    InputField(name, OptionInputType(self), message)
+
   def nullableField(name: String): InputField[Option[A]] =
-    InputField(
+    optionField(
       name,
-      OptionInputType(self),
       s"The $name field may be unset by assigning a null value, or ignored by skipping it altogether"
     )
 
   def notNullableField(name: String): InputField[Option[A]] =
-    InputField(
+    optionField(
       name,
-      OptionInputType(self),
       s"The $name field must be either specified or skipped altogether.  It cannot be unset with a null value."
+    )
+
+  def createRequiredEditOptional(name: String, item: String): InputField[Option[A]] =
+    optionField(
+      name,
+      s"The $name field is required when creating a new instance of $item, but optional when editing"
     )
 
 }
