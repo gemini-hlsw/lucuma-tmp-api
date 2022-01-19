@@ -680,7 +680,7 @@ object SourceProfileSchema {
       InputObjectTypeDescription("Create a gaussian source")
     )
 
-  implicit val InputObjectCreateSourceProfile: InputObjectType[SourceProfileInput] =
+  implicit val InputObjectSourceProfile: InputObjectType[SourceProfileInput] =
     deriveInputObjectType(
       InputObjectTypeName("SourceProfileInput"),
       InputObjectTypeDescription("Create or edit a source profile"),
@@ -697,7 +697,7 @@ object SourceProfileSchema {
   val ArgumentCreateBandNormalizedIntegrated: Argument[CreateBandNormalizedInput[Integrated]] =
     InputObjectCreateBandNormalizedIntegrated.argument("mag", "magnitude")
 
-  val ArgumentCreateSourceProfile: Argument[SourceProfileInput] =
-    InputObjectCreateSourceProfile.argument("sourceProfile", "source profile description")
+  val ArgumentSourceProfile: Argument[SourceProfileInput] =
+    InputObjectSourceProfile.argument("sourceProfile", "source profile description")
 
 }

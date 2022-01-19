@@ -59,7 +59,7 @@ final case class SiderealInput(
     name:          NonEmptyString,
     sourceProfile: SourceProfileInput
   ): ValidatedInput[Target] =
-    (create, sourceProfile.toSourceProfile).mapN { case ((track, catInfo), profile) =>
+    (create, sourceProfile.create).mapN { case ((track, catInfo), profile) =>
       Target.Sidereal(name, track, profile, catInfo)
     }
 

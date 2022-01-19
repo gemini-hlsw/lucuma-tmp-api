@@ -47,7 +47,7 @@ final case class NonsiderealInput(
     name:          NonEmptyString,
     sourceProfile: SourceProfileInput
   ): ValidatedInput[Target] =
-    (create, sourceProfile.toSourceProfile).mapN { (key, profile) =>
+    (create, sourceProfile.create).mapN { (key, profile) =>
       Target.Nonsidereal(name, key, profile)
     }
 

@@ -4,9 +4,10 @@
 package lucuma.odb.api.model.targetModel
 
 import cats.Eq
-import cats.data.{Nested, NonEmptyList, NonEmptyMap}
+import cats.data.{Nested, NonEmptyList, NonEmptyMap, StateT}
 import cats.Order.catsKernelOrderingForOrder
 import cats.syntax.apply._
+import cats.syntax.either._
 import cats.syntax.functor._
 import cats.syntax.option._
 import cats.syntax.traverse._
@@ -27,7 +28,7 @@ import lucuma.core.math.units.KilometersPerSecond
 import lucuma.core.math.{BrightnessValue, Wavelength}
 import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
 import lucuma.core.model.{EmissionLine, SourceProfile, SpectralDefinition, UnnormalizedSED}
-import lucuma.odb.api.model.{AngleModel, InputError, ValidatedInput, WavelengthModel}
+import lucuma.odb.api.model.{AngleModel, EditorInput, EitherInput, InputError, ValidatedInput, WavelengthModel}
 
 import scala.collection.immutable.SortedMap
 
@@ -430,14 +431,25 @@ object SourceProfileModel {
     point:    Input[CreateSpectralDefinitionInput[Integrated]] = Input.ignore,
     uniform:  Input[CreateSpectralDefinitionInput[Surface]]    = Input.ignore,
     gaussian: Input[CreateGaussianInput]                       = Input.ignore
-  ) {
+  ) extends EditorInput[SourceProfile] {
 
-    def toSourceProfile: ValidatedInput[SourceProfile] =
+    override val create: ValidatedInput[SourceProfile] =
       ValidatedInput.requireOne("sourceProfile",
         point.map(_.toSpectralDefinition.map(SourceProfile.Point(_))).toOption,
         uniform.map(_.toSpectralDefinition.map(SourceProfile.Uniform(_))).toOption,
         gaussian.map(_.toGaussian).toOption
       )
+
+    // At the moment, edit is extremely coarse grained.  You have to replace the
+    // entire source profile in order to change any part of it.
+
+    override val edit: StateT[EitherInput, SourceProfile, Unit] =
+      (point.toOption, uniform.toOption, gaussian.toOption) match {
+        case (Some(p), None,    None   ) => StateT.setF(p.toSpectralDefinition.toEither.map(SourceProfile.Point(_)))
+        case (None,    Some(u), None   ) => StateT.setF(u.toSpectralDefinition.toEither.map(SourceProfile.Uniform(_)))
+        case (None,    None,    Some(g)) => StateT.setF(g.toGaussian.toEither)
+        case _                           => StateT.setF(InputError.fromMessage("set exactly one of `point`, `uniform`, or `gaussian`").leftNec[SourceProfile])
+      }
 
   }
 
