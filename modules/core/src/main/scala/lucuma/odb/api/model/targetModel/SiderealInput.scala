@@ -85,7 +85,7 @@ final case class SiderealInput(
       _ <- optics.properMotion   := pm
       _ <- optics.radialVelocity := rv
       _ <- optics.parallax       := px
-      _ <- EditorInput.editNullable(optics.catalogInfo.asOptional, catalogInfo)
+      _ <- optics.catalogInfo    :? catalogInfo
     } yield ()
 
   }

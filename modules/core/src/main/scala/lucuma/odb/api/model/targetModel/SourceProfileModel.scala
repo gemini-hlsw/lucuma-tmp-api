@@ -32,7 +32,6 @@ import lucuma.odb.api.model.{AngleModel, EditorInput, EitherInput, InputError, V
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.prism._
 import lucuma.odb.api.model.syntax.lens._
-//import lucuma.odb.api.model.syntax.optional._
 
 import scala.collection.immutable.SortedMap
 
@@ -40,6 +39,8 @@ import scala.collection.immutable.SortedMap
  * SourceProfile GraphQL schema support model.
  */
 object SourceProfileModel {
+
+  // TODO: a more appropriate place for this stuff
 
   def error[S](m: String): StateT[EitherInput, S, Unit] =
     StateT.setF[EitherInput, S](InputError.fromMessage(m).leftNec)
@@ -476,12 +477,8 @@ object SourceProfileModel {
     override val edit: StateT[EitherInput, SourceProfile.Gaussian, Unit] = {
       for {
         a <- StateT.liftF(fwhm.validateNotNullable("fwhm")(_.toAngle).toEither)
-        _ <- SourceProfile.Gaussian.fwhm := a
-        _ <- EditorInput.editNotNullable(
-               "spectralDefinition",
-               SourceProfile.Gaussian.spectralDefinition,
-               spectralDefinition
-             )
+        _ <- SourceProfile.Gaussian.fwhm               := a
+        _ <- SourceProfile.Gaussian.spectralDefinition :! spectralDefinition
       } yield ()
     }
 
