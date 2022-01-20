@@ -4,13 +4,16 @@
 package lucuma.odb.api.model.targetModel
 
 import cats.Eq
-import cats.data.{Nested, NonEmptyList, NonEmptyMap}
+import cats.data.{Nested, NonEmptyList, NonEmptyMap, StateT}
 import cats.Order.catsKernelOrderingForOrder
 import cats.syntax.apply._
+import cats.syntax.either._
 import cats.syntax.functor._
 import cats.syntax.option._
 import cats.syntax.traverse._
 import cats.syntax.validated._
+import clue.data.Input
+import clue.data.syntax._
 import coulomb.Quantity
 import coulomb.si.Kelvin
 import eu.timepit.refined.cats._
@@ -25,7 +28,7 @@ import lucuma.core.math.units.KilometersPerSecond
 import lucuma.core.math.{BrightnessValue, Wavelength}
 import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
 import lucuma.core.model.{EmissionLine, SourceProfile, SpectralDefinition, UnnormalizedSED}
-import lucuma.odb.api.model.{AngleModel, InputError, ValidatedInput, WavelengthModel}
+import lucuma.odb.api.model.{AngleModel, EditorInput, EitherInput, InputError, ValidatedInput, WavelengthModel}
 
 import scala.collection.immutable.SortedMap
 
@@ -424,44 +427,59 @@ object SourceProfileModel {
 
   }
 
-  final case class CreateSourceProfileInput(
-    point:    Option[CreateSpectralDefinitionInput[Integrated]],
-    uniform:  Option[CreateSpectralDefinitionInput[Surface]],
-    gaussian: Option[CreateGaussianInput]
-  ) {
+  final case class SourceProfileInput(
+    point:    Input[CreateSpectralDefinitionInput[Integrated]] = Input.ignore,
+    uniform:  Input[CreateSpectralDefinitionInput[Surface]]    = Input.ignore,
+    gaussian: Input[CreateGaussianInput]                       = Input.ignore
+  ) extends EditorInput[SourceProfile] {
 
-    def toSourceProfile: ValidatedInput[SourceProfile] =
+    override val create: ValidatedInput[SourceProfile] =
       ValidatedInput.requireOne("sourceProfile",
-        point.map(_.toSpectralDefinition.map(SourceProfile.Point(_))),
-        uniform.map(_.toSpectralDefinition.map(SourceProfile.Uniform(_))),
-        gaussian.map(_.toGaussian)
+        point.map(_.toSpectralDefinition.map(SourceProfile.Point(_))).toOption,
+        uniform.map(_.toSpectralDefinition.map(SourceProfile.Uniform(_))).toOption,
+        gaussian.map(_.toGaussian).toOption
       )
+
+    // At the moment, edit is extremely coarse grained.  You have to replace the
+    // entire source profile in order to change any part of it.
+
+    override val edit: StateT[EitherInput, SourceProfile, Unit] =
+      (point.toOption, uniform.toOption, gaussian.toOption) match {
+        case (Some(p), None,    None   ) => StateT.setF(p.toSpectralDefinition.toEither.map(SourceProfile.Point(_)))
+        case (None,    Some(u), None   ) => StateT.setF(u.toSpectralDefinition.toEither.map(SourceProfile.Uniform(_)))
+        case (None,    None,    Some(g)) => StateT.setF(g.toGaussian.toEither)
+        case _                           => StateT.setF(InputError.fromMessage("set exactly one of `point`, `uniform`, or `gaussian`").leftNec[SourceProfile])
+      }
 
   }
 
-  object CreateSourceProfileInput {
+  object SourceProfileInput {
 
-    implicit val DecoderCreateSourceProfileInput: Decoder[CreateSourceProfileInput] =
-      deriveDecoder[CreateSourceProfileInput]
+    import io.circe.generic.extras.semiauto._
+    import io.circe.generic.extras.Configuration
+    implicit val customConfig: Configuration = Configuration.default.withDefaults
 
-    implicit val EqCreateSourceProfileInput: Eq[CreateSourceProfileInput] =
+    implicit val DecoderSourceProfileInput: Decoder[SourceProfileInput] =
+      deriveConfiguredDecoder[SourceProfileInput]
+
+    implicit val EqSourceProfileInput: Eq[SourceProfileInput] =
       Eq.by { a => (
         a.point,
         a.uniform,
         a.gaussian
       )}
 
-    val Empty: CreateSourceProfileInput =
-      CreateSourceProfileInput(None, None, None)
+    val Empty: SourceProfileInput =
+      SourceProfileInput(Input.ignore, Input.ignore, Input.ignore)
 
-    def point(sd: CreateSpectralDefinitionInput[Integrated]): CreateSourceProfileInput =
-      Empty.copy(point = sd.some)
+    def point(sd: CreateSpectralDefinitionInput[Integrated]): SourceProfileInput =
+      Empty.copy(point = sd.assign)
 
-    def uniform(sd: CreateSpectralDefinitionInput[Surface]): CreateSourceProfileInput =
-      Empty.copy(uniform = sd.some)
+    def uniform(sd: CreateSpectralDefinitionInput[Surface]): SourceProfileInput =
+      Empty.copy(uniform = sd.assign)
 
-    def gaussian(g: CreateGaussianInput): CreateSourceProfileInput =
-      Empty.copy(gaussian = g.some)
+    def gaussian(g: CreateGaussianInput): SourceProfileInput =
+      Empty.copy(gaussian = g.assign)
 
   }
 

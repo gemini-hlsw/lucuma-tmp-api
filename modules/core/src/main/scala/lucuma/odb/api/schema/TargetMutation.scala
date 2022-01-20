@@ -24,7 +24,7 @@ trait TargetMutation extends TargetScalars {
   import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
   import NumericUnitsSchema._
   import ProgramSchema.ProgramIdArgument
-  import SourceProfileSchema.InputObjectCreateSourceProfile
+  import SourceProfileSchema.InputObjectSourceProfile
   import TargetSchema.{EnumTypeCatalogName, EphemerisKeyTypeEnumType, ArgumentTargetId, TargetIdType, TargetType}
 
   import syntax.inputtype._
@@ -149,22 +149,26 @@ trait TargetMutation extends TargetScalars {
 
   implicit val InputObjectEditTargetInput: InputObjectType[TargetModel.Edit] = {
 
-      // Not able to derive this for some reason, TBD.
+    // Not able to derive this for some reason, TBD.
 //    deriveInputObjectType[TargetModel.Edit](
 //      InputObjectTypeName("EditTargetInput"),
 //      InputObjectTypeDescription("Single target edit options"),
-//      ReplaceInputField("existence",  EnumTypeExistence.notNullableField("existence"))
+//
+//      ReplaceInputField("existence",     EnumTypeExistence.notNullableField("existence")),
+//      ReplaceInputField("name",          NonEmptyStringType.notNullableField("name")),
+//      ReplaceInputField("sourceProfile", InputObjectSourceProfile.notNullableField("sourceProfile"))
 //    )
 
     InputObjectType[TargetModel.Edit](
       "EditTargetInput",
       "Single target edit options",
       List(
-        InputField("targetId",    TargetIdType),
-        InputField("existence",   OptionInputType(EnumTypeExistence)),
-        InputField("name",        OptionInputType(NonEmptyStringType)),
-        InputField("sidereal",    OptionInputType(InputObjectTypeSidereal)),
-        InputField("nonsidereal", OptionInputType(InputObjectTypeNonsidereal))
+        InputField("targetId",      TargetIdType),
+        InputField("existence",     OptionInputType(EnumTypeExistence)),
+        InputField("name",          OptionInputType(NonEmptyStringType)),
+        InputField("sidereal",      OptionInputType(InputObjectTypeSidereal)),
+        InputField("nonsidereal",   OptionInputType(InputObjectTypeNonsidereal)),
+        InputField("sourceProfile", OptionInputType(InputObjectSourceProfile))
       )
     )
   }

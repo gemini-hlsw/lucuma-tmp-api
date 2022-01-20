@@ -4,7 +4,7 @@
 package lucuma.odb.api.model.targetModel
 
 import cats.{Eq, Monad, Order}
-import cats.data.{EitherNec, StateT}
+import cats.data.StateT
 import cats.mtl.Stateful
 import cats.syntax.apply._
 import cats.syntax.flatMap._
@@ -16,11 +16,11 @@ import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
-import lucuma.core.model.{Program, Target}
-import lucuma.odb.api.model.{DatabaseState, Event, Existence, InputError, TopLevelModel, ValidatedInput}
+import lucuma.core.model.{Program, SourceProfile, Target}
+import lucuma.odb.api.model.{DatabaseState, EitherInput, Event, Existence, TopLevelModel, ValidatedInput}
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
-import lucuma.odb.api.model.targetModel.SourceProfileModel.CreateSourceProfileInput
+import lucuma.odb.api.model.targetModel.SourceProfileModel.SourceProfileInput
 import monocle.{Focus, Lens}
 
 
@@ -67,7 +67,7 @@ object TargetModel extends TargetModelOptics {
     name:          NonEmptyString,
     sidereal:      Option[SiderealInput],
     nonsidereal:   Option[NonsiderealInput],
-    sourceProfile: CreateSourceProfileInput
+    sourceProfile: SourceProfileInput
   ) {
 
     def create[F[_]: Monad, T](
@@ -96,7 +96,7 @@ object TargetModel extends TargetModelOptics {
       targetId:      Option[Target.Id],
       name:          NonEmptyString,
       input:         SiderealInput,
-      sourceProfile: CreateSourceProfileInput
+      sourceProfile: SourceProfileInput
     ): Create =
       Create(targetId, name, input.some, None, sourceProfile)
 
@@ -104,7 +104,7 @@ object TargetModel extends TargetModelOptics {
       targetId:      Option[Target.Id],
       name:          NonEmptyString,
       input:         NonsiderealInput,
-      sourceProfile: CreateSourceProfileInput
+      sourceProfile: SourceProfileInput
     ): Create =
       Create(targetId, name, None, input.some, sourceProfile)
 
@@ -122,31 +122,31 @@ object TargetModel extends TargetModelOptics {
   }
 
   final case class Edit(
-    targetId:    Target.Id,
-    existence:   Input[Existence]         = Input.ignore,
-    name:        Input[NonEmptyString]    = Input.ignore,
-    sidereal:    Option[SiderealInput]    = None,
-    nonsidereal: Option[NonsiderealInput] = None
+    targetId:      Target.Id,
+    existence:     Input[Existence]          = Input.ignore,
+    name:          Input[NonEmptyString]     = Input.ignore,
+    sidereal:      Option[SiderealInput]     = None,
+    nonsidereal:   Option[NonsiderealInput]  = None,
+    sourceProfile: Input[SourceProfileInput] = Input.ignore
   ) {
 
-    val editor: StateT[EitherNec[InputError, *], TargetModel, Unit] = {
+    val editor: StateT[EitherInput, TargetModel, Unit] = {
 
       val validArgs =
         (
-          existence.validateIsNotNull("existence"),
-          name     .validateIsNotNull("name")
+          existence    .validateIsNotNull("existence"),
+          name         .validateIsNotNull("name"),
+          sourceProfile.validateIsNotNull("sourceProfile")
         ).tupled.toEither
-
-      def editTarget(s: Option[StateT[EitherNec[InputError, *], Target, Unit]]): StateT[EitherNec[InputError, *], TargetModel, Unit] =
-        TargetModel.target.transform(s.getOrElse(StateT.empty[EitherNec[InputError, *], Target, Unit]))
 
       for {
         args <- StateT.liftF(validArgs)
-        (e, n) = args
-        _ <- TargetModel.existence := e
-        _ <- TargetModel.name      := n
-        _ <- editTarget(sidereal.map(_.targetEditor))
-        _ <- editTarget(nonsidereal.map(_.targetEditor))
+        (e, n, p) = args
+        _ <- TargetModel.existence     := e
+        _ <- TargetModel.name          := n
+        _ <- TargetModel.target        :< sidereal.map(_.targetEditor)
+        _ <- TargetModel.target        :< nonsidereal.map(_.targetEditor)
+        _ <- TargetModel.sourceProfile :< p.map(_.edit)
       } yield ()
     }
 
@@ -202,6 +202,9 @@ trait TargetModelOptics { self: TargetModel.type =>
 
   val name: Lens[TargetModel, NonEmptyString] =
     target.andThen(Target.name)
+
+  val sourceProfile: Lens[TargetModel, SourceProfile] =
+    target.andThen(Target.sourceProfile)
 
   val observed: Lens[TargetModel, Boolean] =
     Focus[TargetModel](_.observed)

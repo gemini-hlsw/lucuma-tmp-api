@@ -14,7 +14,7 @@ import lucuma.core.math.arb.{ArbCoordinates, ArbEpoch}
 import lucuma.core.model.{Program, Target}
 import lucuma.core.model.arb.ArbTarget
 import lucuma.core.util.arb.{ArbEnumerated, ArbGid}
-import lucuma.odb.api.model.targetModel.SourceProfileModel.CreateSourceProfileInput
+import lucuma.odb.api.model.targetModel.SourceProfileModel.SourceProfileInput
 import lucuma.odb.api.model.targetModel._
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck._
@@ -153,7 +153,7 @@ trait ArbTargetModel {
         m <- arbitrary[NonEmptyString]
         s <- arbitrary[Option[SiderealInput]]
         n <- arbitrary[Option[NonsiderealInput]]
-        p <- arbitrary[CreateSourceProfileInput]
+        p <- arbitrary[SourceProfileInput]
       } yield TargetModel.Create(t, m, s, n, p)
     }
 
@@ -163,7 +163,7 @@ trait ArbTargetModel {
       String,
       Option[SiderealInput],
       Option[NonsiderealInput],
-      CreateSourceProfileInput
+      SourceProfileInput
     )].contramap { a => (
       a.targetId,
       a.name.value,

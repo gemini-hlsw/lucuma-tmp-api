@@ -4,6 +4,7 @@
 package lucuma.odb.api.model
 package arb
 
+import clue.data.Input
 import eu.timepit.refined.types.all.PosBigDecimal
 import lucuma.core.`enum`.{Band, CoolStarTemperature, GalaxySpectrum, HIIRegionSpectrum, PlanetSpectrum, PlanetaryNebulaSpectrum, StellarLibrarySpectrum}
 import lucuma.core.math.BrightnessUnits.{Brightness, FluxDensityContinuum, Integrated, LineFlux, Surface}
@@ -19,6 +20,7 @@ trait ArbSourceProfileModel {
 
   import ArbAngleModel._
   import ArbEnumerated._
+  import ArbInput._
   import ArbRefined._
   import ArbWavelengthModel._
 
@@ -234,20 +236,20 @@ trait ArbSourceProfileModel {
       in.spectralDefinition
     )}
 
-  implicit val arbCreateSourceProfileInput: Arbitrary[CreateSourceProfileInput] =
+  implicit val arbSourceProfileInput: Arbitrary[SourceProfileInput] =
     Arbitrary {
       Gen.oneOf(
-        arbitrary[CreateSpectralDefinitionInput[Integrated]].map(CreateSourceProfileInput.point),
-        arbitrary[CreateSpectralDefinitionInput[Surface]].map(CreateSourceProfileInput.uniform),
-        arbitrary[CreateGaussianInput].map(CreateSourceProfileInput.gaussian)
+        arbitrary[CreateSpectralDefinitionInput[Integrated]].map(SourceProfileInput.point),
+        arbitrary[CreateSpectralDefinitionInput[Surface]].map(SourceProfileInput.uniform),
+        arbitrary[CreateGaussianInput].map(SourceProfileInput.gaussian)
       )
     }
 
-  implicit val cogCreateSourceProfileInput: Cogen[CreateSourceProfileInput] =
+  implicit val cogSourceProfileInput: Cogen[SourceProfileInput] =
     Cogen[(
-      Option[CreateSpectralDefinitionInput[Integrated]],
-      Option[CreateSpectralDefinitionInput[Surface]],
-      Option[CreateGaussianInput]
+      Input[CreateSpectralDefinitionInput[Integrated]],
+      Input[CreateSpectralDefinitionInput[Surface]],
+      Input[CreateGaussianInput]
     )].contramap { in => (
       in.point,
       in.uniform,

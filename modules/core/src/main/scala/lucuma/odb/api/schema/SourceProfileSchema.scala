@@ -13,7 +13,8 @@ import lucuma.core.math.dimensional.{Measure, Of, Units}
 import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
 import lucuma.core.model.{SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.core.util.Enumerated
-import lucuma.odb.api.model.targetModel.SourceProfileModel.{BandBrightnessPair, CreateBandBrightnessInput, CreateBandNormalizedInput, CreateEmissionLineInput, CreateEmissionLinesInput, CreateGaussianInput, CreateMeasureInput, CreateSourceProfileInput, CreateSpectralDefinitionInput, FluxDensityInput, UnnormalizedSedInput, WavelengthEmissionLinePair}
+import lucuma.odb.api.model.targetModel.SourceProfileModel.{BandBrightnessPair, CreateBandBrightnessInput, CreateBandNormalizedInput, CreateEmissionLineInput, CreateEmissionLinesInput, CreateGaussianInput, CreateMeasureInput, CreateSpectralDefinitionInput, FluxDensityInput, SourceProfileInput, UnnormalizedSedInput, WavelengthEmissionLinePair}
+import lucuma.odb.api.schema.syntax.inputtype._
 import monocle.Prism
 import sangria.schema.{Field, _}
 import sangria.macros.derive._
@@ -679,10 +680,14 @@ object SourceProfileSchema {
       InputObjectTypeDescription("Create a gaussian source")
     )
 
-  implicit val InputObjectCreateSourceProfile: InputObjectType[CreateSourceProfileInput] =
+  implicit val InputObjectSourceProfile: InputObjectType[SourceProfileInput] =
     deriveInputObjectType(
-      InputObjectTypeName("CreateSourceProfile"),
-      InputObjectTypeDescription("Create a source profile")
+      InputObjectTypeName("SourceProfileInput"),
+      InputObjectTypeDescription("Create or edit a source profile"),
+
+      ReplaceInputField("point",    InputObjectCreateSpectralDefinitionIntegrated.notNullableField("point")),
+      ReplaceInputField("uniform",  InputObjectCreateSpectralDefinitionSurface.notNullableField("uniform")),
+      ReplaceInputField("gaussian", InputObjectCreateGaussian.notNullableField("gaussian"))
     )
 
   // Arguments
@@ -692,7 +697,7 @@ object SourceProfileSchema {
   val ArgumentCreateBandNormalizedIntegrated: Argument[CreateBandNormalizedInput[Integrated]] =
     InputObjectCreateBandNormalizedIntegrated.argument("mag", "magnitude")
 
-  val ArgumentCreateSourceProfile: Argument[CreateSourceProfileInput] =
-    InputObjectCreateSourceProfile.argument("sourceProfile", "source profile description")
+  val ArgumentSourceProfile: Argument[SourceProfileInput] =
+    InputObjectSourceProfile.argument("sourceProfile", "source profile description")
 
 }

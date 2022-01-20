@@ -12,6 +12,9 @@ final class LensOps[S, A](val self: Lens[S, A]) extends AnyVal {
   def transform(st: StateT[EitherInput, A, Unit]): StateT[EitherInput, S, Unit] =
     st.transformS[S](self.get, (s, a) => self.replace(a)(s))
 
+  def :<(st: Option[StateT[EitherInput, A, Unit]]): StateT[EitherInput, S, Unit] =
+    st.fold(StateT.empty[EitherInput, S, Unit])(transform)
+
   def toState: StateT[EitherInput, S, A] =
     StateT(s => Right((s, self.get(s))))
 
