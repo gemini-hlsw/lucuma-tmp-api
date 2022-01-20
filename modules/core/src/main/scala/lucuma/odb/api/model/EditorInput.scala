@@ -65,8 +65,8 @@ object EditorInput {
   )(implicit ev1: ClassTag[A1], ev2: ClassTag[A2]): StateT[EitherInput, S, Unit] = {
 
     def fold(
-      a1: StateT[EitherInput, S, Unit],
-      a2: StateT[EitherInput, S, Unit]
+      a1: => StateT[EitherInput, S, Unit],
+      a2: => StateT[EitherInput, S, Unit]
     ): StateT[EitherInput, S, Unit] =
       StateT.get[EitherInput, S].flatMap {
         case _: A1 => a1

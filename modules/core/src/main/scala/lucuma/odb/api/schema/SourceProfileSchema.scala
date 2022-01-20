@@ -584,7 +584,10 @@ object SourceProfileSchema {
   )(implicit ev: InputType[CreateBandBrightnessInput[T]]): InputObjectType[BandNormalizedInput[T]] =
     deriveInputObjectType(
       InputObjectTypeName(s"BandNormalized${groupName.capitalize}Input"),
-      InputObjectTypeDescription(s"Create or edit a band normalized value with $groupName magnitude units")
+      InputObjectTypeDescription(s"Create or edit a band normalized value with $groupName magnitude units"),
+
+      ReplaceInputField("sed", InputObjectUnnormalizedSed.createRequiredEditOptional("sed", "BandNormalized")),
+      ReplaceInputField("brightnesses", ListInputType(ev).createRequiredEditOptional("brightnesses", "BandNormalized"))
     )
 
   implicit val InputObjectBandNormalizedIntegrated: InputObjectType[BandNormalizedInput[Integrated]] =
@@ -648,7 +651,10 @@ object SourceProfileSchema {
   )(implicit ev0: InputType[CreateEmissionLineInput[T]], ev1: InputType[CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[T]]]): InputObjectType[EmissionLinesInput[T]] =
     deriveInputObjectType(
       InputObjectTypeName(s"EmissionLines${groupName.capitalize}Input"),
-      InputObjectTypeDescription(s"Create or edit emission lines with $groupName line flux and flux density continuum units")
+      InputObjectTypeDescription(s"Create or edit emission lines with $groupName line flux and flux density continuum units"),
+
+      ReplaceInputField("lines", ListInputType(ev0).createRequiredEditOptional("lines", "EmissionLines")),
+      ReplaceInputField("fluxDensityContinuum", ev1.createRequiredEditOptional("fluxDensityContinuum", "EmissionLines"))
     )
 
   implicit val InputObjectEmissionLinesIntegrated: InputObjectType[EmissionLinesInput[Integrated]] =
@@ -685,7 +691,7 @@ object SourceProfileSchema {
       InputObjectTypeName("GaussianInput"),
       InputObjectTypeDescription("Create a gaussian source"),
 
-      ReplaceInputField("fwhm", InputObjectAngle.createRequiredEditOptional("fwhm", "Gaussian")),
+      ReplaceInputField("fwhm",               InputObjectAngle.createRequiredEditOptional("fwhm", "Gaussian")),
       ReplaceInputField("spectralDefinition", InputObjectSpectralDefinitionIntegrated.createRequiredEditOptional("spectralDefinition", "Gaussian"))
     )
 

@@ -265,32 +265,42 @@ object SourceProfileModel {
   }
 
   final case class BandNormalizedInput[T](
-    sed:          UnnormalizedSedInput,
-    brightnesses: List[CreateBandBrightnessInput[T]]
+    sed:          Input[UnnormalizedSedInput]               = Input.ignore,
+    brightnesses: Input[List[CreateBandBrightnessInput[T]]] = Input.ignore
   ) extends EditorInput[BandNormalized[T]] {
 
     override val create: ValidatedInput[BandNormalized[T]] =
-      sed.toUnnormalizedSed.map { sed =>
-        BandNormalized(
-          sed,
-          SortedMap.from(brightnesses.map(_.toBandBrightnessPair.toTuple))
-        )
+      (sed.notMissingAndThen("sed")(_.toUnnormalizedSed),
+       brightnesses.notMissing("brightnesses")
+      ).mapN { (sed, bright) =>
+        BandNormalized(sed, SortedMap.from(bright.map(_.toBandBrightnessPair.toTuple)))
       }
 
-    override val edit: StateT[EitherInput, BandNormalized[T], Unit] =
+    override val edit: StateT[EitherInput, BandNormalized[T], Unit] = {
+      val validArgs = (
+        sed.validateNotNullable("sed")(_.toUnnormalizedSed),
+        brightnesses.validateIsNotNull("brightnesses")
+      ).tupled.toEither
+
       for {
-        s <- StateT.liftF(sed.toUnnormalizedSed.toEither)
-        _ <- BandNormalized.sed[T]          := s
-        _ <- BandNormalized.brightnesses[T] := SortedMap.from(brightnesses.map(_.toBandBrightnessPair.toTuple))
+        args  <- StateT.liftF(validArgs)
+        (s, m) = args
+        _     <- BandNormalized.sed[T]          := s
+        _     <- BandNormalized.brightnesses[T] := m.map(lst => SortedMap.from(lst.map(_.toBandBrightnessPair.toTuple)))
       } yield ()
+    }
   }
 
   object BandNormalizedInput {
 
+    import io.circe.generic.extras.semiauto._
+    import io.circe.generic.extras.Configuration
+    implicit val customConfig: Configuration = Configuration.default.withDefaults
+
     implicit def DecoderBandNormalizedInput[T](
       implicit ev: Decoder[Units Of Brightness[T]]
     ): Decoder[BandNormalizedInput[T]] =
-      deriveDecoder[BandNormalizedInput[T]]
+      deriveConfiguredDecoder[BandNormalizedInput[T]]
 
     implicit def EqBandNormalizedInput[T]: Eq[BandNormalizedInput[T]] =
       Eq.by { a => (a.sed, a.brightnesses) }
@@ -354,32 +364,45 @@ object SourceProfileModel {
   }
 
   final case class EmissionLinesInput[T](
-    lines:                List[CreateEmissionLineInput[T]],
-    fluxDensityContinuum: CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[T]]
+    lines:                Input[List[CreateEmissionLineInput[T]]]                           = Input.ignore,
+    fluxDensityContinuum: Input[CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[T]]] = Input.ignore
   ) extends EditorInput[EmissionLines[T]] {
 
     override val create: ValidatedInput[EmissionLines[T]] =
-      lines
-        .traverse(_.toWavelengthEmissionLinePair)
-        .map { lst =>
-          EmissionLines(SortedMap.from(lst.map(_.toTuple)), fluxDensityContinuum.toMeasure)
-        }
+      (lines.notMissingAndThen("lines")(_.traverse(_.toWavelengthEmissionLinePair)),
+       fluxDensityContinuum.notMissing("fluxDensityContinuum")
+      ).mapN { (lst, fdc) =>
+        EmissionLines(SortedMap.from(lst.map(_.toTuple)), fdc.toMeasure)
+      }
 
-    override val edit: StateT[EitherInput, EmissionLines[T], Unit] =
+    override val edit: StateT[EitherInput, EmissionLines[T], Unit] = {
+
+      val validArgs = (
+        lines.validateNotNullable("lines")(_.traverse(_.toWavelengthEmissionLinePair).map(lst => SortedMap.from(lst.map(_.toTuple)))),
+        fluxDensityContinuum.validateIsNotNull("fluxDensityContinuum")
+      ).tupled.toEither
+
       for {
-        ls <- StateT.liftF(lines.traverse(_.toWavelengthEmissionLinePair).toEither)
-        _  <- EmissionLines.lines[T]                := SortedMap.from(ls.map(_.toTuple))
-        _  <- EmissionLines.fluxDensityContinuum[T] := fluxDensityContinuum.toMeasure
+        args <- StateT.liftF(validArgs)
+        (m, f) = args
+        _    <- EmissionLines.lines[T]                := m
+        _    <- EmissionLines.fluxDensityContinuum[T] := f.map(_.toMeasure)
       } yield ()
+
+    }
 
   }
 
   object EmissionLinesInput {
 
-    implicit def CreateEmissionsLineInput[T](
+    import io.circe.generic.extras.semiauto._
+    import io.circe.generic.extras.Configuration
+    implicit val customConfig: Configuration = Configuration.default.withDefaults
+
+    implicit def DecoderEmissionsLineInput[T](
       implicit ev0: Decoder[Units Of LineFlux[T]], ev1: Decoder[Units Of FluxDensityContinuum[T]]
     ): Decoder[EmissionLinesInput[T]] =
-      deriveDecoder[EmissionLinesInput[T]]
+      deriveConfiguredDecoder[EmissionLinesInput[T]]
 
     implicit def EqEmissionLinesInput[T]: Eq[EmissionLinesInput[T]] =
       Eq.by { a => (
@@ -461,7 +484,7 @@ object SourceProfileModel {
     import io.circe.generic.extras.Configuration
     implicit val customConfig: Configuration = Configuration.default.withDefaults
 
-    implicit val DecoderCreateGaussianInput: Decoder[GaussianInput] =
+    implicit val DecoderGaussianInput: Decoder[GaussianInput] =
       deriveConfiguredDecoder[GaussianInput]
 
     implicit val EqCreateGaussianInput: Eq[GaussianInput] =
