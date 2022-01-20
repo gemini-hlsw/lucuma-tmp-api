@@ -5,7 +5,7 @@ package lucuma.odb.api.model.syntax
 
 import cats.syntax.either._
 import cats.data.StateT
-import lucuma.odb.api.model.{EitherInput, InputError}
+import lucuma.odb.api.model.{EditorInput, EitherInput, InputError}
 import monocle.Prism
 
 final class PrismOps[S, A](val self: Prism[S, A]) extends AnyVal {
@@ -35,6 +35,12 @@ final class PrismOps[S, A](val self: Prism[S, A]) extends AnyVal {
         st.runS(a).map(aʹ => (self.replace(aʹ)(s), ()))
       }
     }
+
+  def create(ed: EditorInput[A]): StateT[EitherInput, S, Unit] =
+    StateT.modifyF { s => ed.create.toEither.map(a => self.replace(a)(s)) }
+
+  def editOrIgnore(ed: EditorInput[A]): StateT[EitherInput, S, Unit] =
+    transformOrIgnore(ed.edit)
 
 }
 

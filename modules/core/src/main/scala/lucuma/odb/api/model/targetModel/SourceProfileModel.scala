@@ -388,7 +388,6 @@ object SourceProfileModel {
       )
 
     override val edit: StateT[EitherInput, SpectralDefinition[T], Unit] = {
-
       def createBandNormalized(b: CreateBandNormalizedInput[T]): StateT[EitherInput, SpectralDefinition[T], Unit] =
         SpectralDefinition.bandNormalized[T].transformOrIgnore(
           StateT.setF[EitherInput, BandNormalized[T]](b.toBandNormalized.toEither)
@@ -431,8 +430,11 @@ object SourceProfileModel {
         case (_,         Unassign ) => fold(empty, oneIsRequired)
       }
 
+//      EditorInput.editOneOf[SpectralDefinition[T], BandNormalized[T], EmissionLines[T]](
+//        ("bandNormalized", bandNormalized, SpectralDefinition.bandNormalized[T]),
+//        ("emissionLines", emissionLines, SpectralDefinition.emissionLines[T])
+//      )
     }
-
   }
 
   object SpectralDefinitionInput {
@@ -514,13 +516,19 @@ object SourceProfileModel {
         gaussian.map(_.create).toOption
       )
 
-    override val edit: StateT[EitherInput, SourceProfile, Unit] =
-      (point.toOption, uniform.toOption, gaussian.toOption) match {
-        case (Some(p), None,    None   ) => StateT.setF(p.create.toEither.map(SourceProfile.Point(_)))
-        case (None,    Some(u), None   ) => StateT.setF(u.create.toEither.map(SourceProfile.Uniform(_)))
-        case (None,    None,    Some(g)) => StateT.setF(g.create.toEither)
-        case _                           => StateT.setF(InputError.fromMessage("""exactly one of "point", "uniform", or "gaussian" must be set""").leftNec[SourceProfile])
-      }
+    override val edit: StateT[EitherInput, SourceProfile, Unit] = {
+      val pointInput: Input[EditorInput[SourceProfile.Point]] =
+        point.map(_.imap[SourceProfile.Point](SourceProfile.Point(_), _.spectralDefinition))
+
+      val uniformInput: Input[EditorInput[SourceProfile.Uniform]] =
+        uniform.map(_.imap[SourceProfile.Uniform](SourceProfile.Uniform(_), _.spectralDefinition))
+
+      EditorInput.editOneOf[SourceProfile, SourceProfile.Point, SourceProfile.Uniform, SourceProfile.Gaussian](
+        ("point",    pointInput,   SourceProfile.point   ),
+        ("uniform",  uniformInput, SourceProfile.uniform ),
+        ("gaussian", gaussian,     SourceProfile.gaussian)
+      )
+    }
 
   }
 
