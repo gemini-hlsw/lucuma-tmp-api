@@ -10,8 +10,6 @@ import lucuma.odb.api.model.syntax.prism._
 import monocle.Prism
 
 import scala.reflect.ClassTag
-//import scala.reflect.api._
-//import scala.reflect.runtime.universe._
 
 /**
  * Describes how to validate arguments and create a new A or else validate
@@ -39,6 +37,24 @@ trait EditorInput[A] { self =>
 
 object EditorInput {
 
+  /**
+   * Provides an editor of a sum type `S` with two mutually exclusive options
+   * `A1` and `A2`.  When the existing object is an `A1`, an edit for `A1` may
+   * be used (which implies only supplying arguments that need to change) but
+   * to switch to an `A2` requires creation (which implies specifying all
+   * required `A2` inputs).  Similarly when the existing object is an instance
+   * of `A2` an editor for `A2` is used but to switch to `A1` requires
+   * creation.
+   *
+   * @param in1 triplet containing name of the input field, the input itself, and a prism for editing
+   * @param in2 triplet containing name of the input field, the input itself, and a prism for editing
+   *
+   * @tparam S sum type
+   * @tparam A1 type of option 1
+   * @tparam A2 type of option 2
+   *
+   * @return editor of the sum type
+   */
   def editOneOf[S, A1 <: S, A2 <: S](
     in1: (String, Input[EditorInput[A1]], Prism[S, A1]),
     in2: (String, Input[EditorInput[A2]], Prism[S, A2]),
@@ -69,6 +85,21 @@ object EditorInput {
     }
   }
 
+  /**
+   * Provides an editor of a sum type `S` with three mutually exclusive options
+   * `A1`, `A2` and `A3`.  See `editOnOf` with two arguments above.
+   *
+   * @param in1 triplet containing name of the input field, the input itself, and a prism for editing
+   * @param in2 triplet containing name of the input field, the input itself, and a prism for editing
+   * @param in3 triplet containing name of the input field, the input itself, and a prism for editing
+   *
+   * @tparam S sum type
+   * @tparam A1 type of option 1
+   * @tparam A2 type of option 2
+   * @tparam A3 type of option 3
+   *
+   * @return editor of the sum type
+   */
   def editOneOf[S, A1 <: S, A2 <: S, A3 <: S](
     in1: (String, Input[EditorInput[A1]], Prism[S, A1]),
     in2: (String, Input[EditorInput[A2]], Prism[S, A2]),

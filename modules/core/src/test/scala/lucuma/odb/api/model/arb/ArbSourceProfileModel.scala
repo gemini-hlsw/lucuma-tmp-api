@@ -126,7 +126,7 @@ trait ArbSourceProfileModel {
       in.error
     )}
 
-  implicit def arbCreateBandNormalizedInput[T](
+  implicit def arbBandNormalizedInput[T](
     implicit ev: Enumerated[Units Of Brightness[T]]
   ): Arbitrary[BandNormalizedInput[T]] =
     Arbitrary {
@@ -136,7 +136,7 @@ trait ArbSourceProfileModel {
       } yield BandNormalizedInput(s, b)
     }
 
-  implicit def cogCreateBandNormalizedInput[T](
+  implicit def cogBandNormalizedInput[T](
     implicit ev: Enumerated[Units Of Brightness[T]]
   ): Cogen[BandNormalizedInput[T]] =
     Cogen[(
@@ -171,7 +171,7 @@ trait ArbSourceProfileModel {
       in.lineFlux
     )}
 
-  implicit def arbCreateEmissionLinesInput[T](
+  implicit def arbEmissionLinesInput[T](
     implicit ev0: Enumerated[Units Of LineFlux[T]],
              ev1: Enumerated[Units Of FluxDensityContinuum[T]]
   ): Arbitrary[EmissionLinesInput[T]] =
@@ -182,7 +182,7 @@ trait ArbSourceProfileModel {
       } yield EmissionLinesInput(ls, fdc)
     }
 
-  implicit def cogCreateCreateEmissionLinesInput[T](
+  implicit def cogCreateEmissionLinesInput[T](
     implicit ev0: Enumerated[Units Of LineFlux[T]],
              ev1: Enumerated[Units Of FluxDensityContinuum[T]]
   ): Cogen[EmissionLinesInput[T]] =
