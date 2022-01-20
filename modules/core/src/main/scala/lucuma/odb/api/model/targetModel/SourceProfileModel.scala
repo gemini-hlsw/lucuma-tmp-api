@@ -29,6 +29,8 @@ import lucuma.core.math.{BrightnessValue, Wavelength}
 import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
 import lucuma.core.model.{EmissionLine, SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.odb.api.model.{AngleModel, EditorInput, EitherInput, InputError, ValidatedInput, WavelengthModel}
+import lucuma.odb.api.model.syntax.input._
+import lucuma.odb.api.model.syntax.lens._
 
 import scala.collection.immutable.SortedMap
 
@@ -36,6 +38,15 @@ import scala.collection.immutable.SortedMap
  * SourceProfile GraphQL schema support model.
  */
 object SourceProfileModel {
+
+  // TODO: a more appropriate place for this stuff
+
+  def error[S](m: String): StateT[EitherInput, S, Unit] =
+    StateT.setF[EitherInput, S](InputError.fromMessage(m).leftNec)
+
+  def empty[S]: StateT[EitherInput, S, Unit] =
+    StateT.empty
+
 
   final case class FluxDensityEntry(
     wavelength: Wavelength,
@@ -253,29 +264,45 @@ object SourceProfileModel {
 
   }
 
-  final case class CreateBandNormalizedInput[T](
-    sed:          UnnormalizedSedInput,
-    brightnesses: List[CreateBandBrightnessInput[T]]
-  ) {
+  final case class BandNormalizedInput[T](
+    sed:          Input[UnnormalizedSedInput]               = Input.ignore,
+    brightnesses: Input[List[CreateBandBrightnessInput[T]]] = Input.ignore
+  ) extends EditorInput[BandNormalized[T]] {
 
-    def toBandNormalized: ValidatedInput[BandNormalized[T]] =
-      sed.toUnnormalizedSed.map { sed =>
-        BandNormalized(
-          sed,
-          SortedMap.from(brightnesses.map(_.toBandBrightnessPair.toTuple))
-        )
+    override val create: ValidatedInput[BandNormalized[T]] =
+      (sed.notMissingAndThen("sed")(_.toUnnormalizedSed),
+       brightnesses.notMissing("brightnesses")
+      ).mapN { (sed, bright) =>
+        BandNormalized(sed, SortedMap.from(bright.map(_.toBandBrightnessPair.toTuple)))
       }
 
+    override val edit: StateT[EitherInput, BandNormalized[T], Unit] = {
+      val validArgs = (
+        sed.validateNotNullable("sed")(_.toUnnormalizedSed),
+        brightnesses.validateIsNotNull("brightnesses")
+      ).tupled.toEither
+
+      for {
+        args  <- StateT.liftF(validArgs)
+        (s, m) = args
+        _     <- BandNormalized.sed[T]          := s
+        _     <- BandNormalized.brightnesses[T] := m.map(lst => SortedMap.from(lst.map(_.toBandBrightnessPair.toTuple)))
+      } yield ()
+    }
   }
 
-  object CreateBandNormalizedInput {
+  object BandNormalizedInput {
 
-    implicit def DecoderCreateBandNormalizedInput[T](
+    import io.circe.generic.extras.semiauto._
+    import io.circe.generic.extras.Configuration
+    implicit val customConfig: Configuration = Configuration.default.withDefaults
+
+    implicit def DecoderBandNormalizedInput[T](
       implicit ev: Decoder[Units Of Brightness[T]]
-    ): Decoder[CreateBandNormalizedInput[T]] =
-      deriveDecoder[CreateBandNormalizedInput[T]]
+    ): Decoder[BandNormalizedInput[T]] =
+      deriveConfiguredDecoder[BandNormalizedInput[T]]
 
-    implicit def EqCreateBandNormalizedInput[T]: Eq[CreateBandNormalizedInput[T]] =
+    implicit def EqBandNormalizedInput[T]: Eq[BandNormalizedInput[T]] =
       Eq.by { a => (a.sed, a.brightnesses) }
 
   }
@@ -336,90 +363,131 @@ object SourceProfileModel {
 
   }
 
-  final case class CreateEmissionLinesInput[T](
-    lines:                List[CreateEmissionLineInput[T]],
-    fluxDensityContinuum: CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[T]]
-  ) {
+  final case class EmissionLinesInput[T](
+    lines:                Input[List[CreateEmissionLineInput[T]]]                           = Input.ignore,
+    fluxDensityContinuum: Input[CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[T]]] = Input.ignore
+  ) extends EditorInput[EmissionLines[T]] {
 
-    def toEmissionLines: ValidatedInput[EmissionLines[T]] =
-      lines
-        .traverse(_.toWavelengthEmissionLinePair)
-        .map { lst =>
-          EmissionLines(SortedMap.from(lst.map(_.toTuple)), fluxDensityContinuum.toMeasure)
-        }
+    override val create: ValidatedInput[EmissionLines[T]] =
+      (lines.notMissingAndThen("lines")(_.traverse(_.toWavelengthEmissionLinePair)),
+       fluxDensityContinuum.notMissing("fluxDensityContinuum")
+      ).mapN { (lst, fdc) =>
+        EmissionLines(SortedMap.from(lst.map(_.toTuple)), fdc.toMeasure)
+      }
+
+    override val edit: StateT[EitherInput, EmissionLines[T], Unit] = {
+
+      val validArgs = (
+        lines.validateNotNullable("lines")(_.traverse(_.toWavelengthEmissionLinePair).map(lst => SortedMap.from(lst.map(_.toTuple)))),
+        fluxDensityContinuum.validateIsNotNull("fluxDensityContinuum")
+      ).tupled.toEither
+
+      for {
+        args <- StateT.liftF(validArgs)
+        (m, f) = args
+        _    <- EmissionLines.lines[T]                := m
+        _    <- EmissionLines.fluxDensityContinuum[T] := f.map(_.toMeasure)
+      } yield ()
+
+    }
 
   }
 
-  object CreateEmissionLinesInput {
+  object EmissionLinesInput {
 
-    implicit def DecoderCreateEmissionsLineInput[T](
+    import io.circe.generic.extras.semiauto._
+    import io.circe.generic.extras.Configuration
+    implicit val customConfig: Configuration = Configuration.default.withDefaults
+
+    implicit def DecoderEmissionsLineInput[T](
       implicit ev0: Decoder[Units Of LineFlux[T]], ev1: Decoder[Units Of FluxDensityContinuum[T]]
-    ): Decoder[CreateEmissionLinesInput[T]] =
-      deriveDecoder[CreateEmissionLinesInput[T]]
+    ): Decoder[EmissionLinesInput[T]] =
+      deriveConfiguredDecoder[EmissionLinesInput[T]]
 
-    implicit def EqCreateEmissionLinesInput[T]: Eq[CreateEmissionLinesInput[T]] =
+    implicit def EqEmissionLinesInput[T]: Eq[EmissionLinesInput[T]] =
       Eq.by { a => (
         a.lines,
         a.fluxDensityContinuum
       )}
   }
 
-  final case class CreateSpectralDefinitionInput[T](
-    bandNormalized: Option[CreateBandNormalizedInput[T]],
-    emissionLines:  Option[CreateEmissionLinesInput[T]]
-  ) {
+  final case class SpectralDefinitionInput[T](
+    bandNormalized: Input[BandNormalizedInput[T]] = Input.ignore,
+    emissionLines:  Input[EmissionLinesInput[T]]  = Input.ignore
+  ) extends EditorInput[SpectralDefinition[T]] {
 
-    def toSpectralDefinition: ValidatedInput[SpectralDefinition[T]] =
+    override val create: ValidatedInput[SpectralDefinition[T]] =
       ValidatedInput.requireOne("spectralDefinition",
-        bandNormalized.map(_.toBandNormalized),
-        emissionLines.map(_.toEmissionLines)
+        bandNormalized.toOption.map(_.create),
+        emissionLines.toOption.map(_.create)
       )
 
+    override val edit: StateT[EitherInput, SpectralDefinition[T], Unit] =
+      EditorInput.editOneOf[SpectralDefinition[T], BandNormalized[T], EmissionLines[T]](
+        ("bandNormalized", bandNormalized, SpectralDefinition.bandNormalized[T]),
+        ("emissionLines",  emissionLines,  SpectralDefinition.emissionLines[T] )
+      )
   }
 
-  object CreateSpectralDefinitionInput {
+  object SpectralDefinitionInput {
 
-    implicit def DecoderCreateSpectralDefinitionInput[T](
+    import io.circe.generic.extras.semiauto._
+    import io.circe.generic.extras.Configuration
+    implicit val customConfig: Configuration = Configuration.default.withDefaults
+
+    implicit def DecoderSpectralDefinitionInput[T](
       implicit ev0: Decoder[Units Of Brightness[T]],
                ev1: Decoder[Units Of LineFlux[T]],
                ev2: Decoder[Units Of FluxDensityContinuum[T]]
-    ): Decoder[CreateSpectralDefinitionInput[T]] =
-      deriveDecoder[CreateSpectralDefinitionInput[T]]
+    ): Decoder[SpectralDefinitionInput[T]] =
+      deriveConfiguredDecoder[SpectralDefinitionInput[T]]
 
-    implicit def EqCreateSpectralDefinitionInput[T]: Eq[CreateSpectralDefinitionInput[T]] =
+    implicit def EqSpectralDefinitionInput[T]: Eq[SpectralDefinitionInput[T]] =
       Eq.by { a => (
         a.bandNormalized,
         a.emissionLines
       )}
 
-    def Empty[T]: CreateSpectralDefinitionInput[T] =
-      CreateSpectralDefinitionInput[T](None, None)
+    def Empty[T]: SpectralDefinitionInput[T] =
+      SpectralDefinitionInput[T](Input.ignore, Input.ignore)
 
-    def bandNormalized[T](bn: CreateBandNormalizedInput[T]): CreateSpectralDefinitionInput[T] =
-      Empty[T].copy(bandNormalized = bn.some)
+    def bandNormalized[T](bn: BandNormalizedInput[T]): SpectralDefinitionInput[T] =
+      Empty[T].copy(bandNormalized = bn.assign)
 
-    def emissionLines[T](el: CreateEmissionLinesInput[T]): CreateSpectralDefinitionInput[T] =
-      Empty[T].copy(emissionLines = el.some)
+    def emissionLines[T](el: EmissionLinesInput[T]): SpectralDefinitionInput[T] =
+      Empty[T].copy(emissionLines = el.assign)
   }
 
-  final case class CreateGaussianInput(
-    fwhm:               AngleModel.AngleInput,
-    spectralDefinition: CreateSpectralDefinitionInput[Integrated]
-  ) {
+  final case class GaussianInput(
+    fwhm:               Input[AngleModel.AngleInput]               = Input.ignore,
+    spectralDefinition: Input[SpectralDefinitionInput[Integrated]] = Input.ignore
+  ) extends EditorInput[SourceProfile.Gaussian] {
 
-    def toGaussian: ValidatedInput[SourceProfile.Gaussian] =
-      (fwhm.toAngle, spectralDefinition.toSpectralDefinition).mapN { (a, s) =>
-        SourceProfile.Gaussian(a, s)
-      }
+    override val create: ValidatedInput[SourceProfile.Gaussian] =
+      (fwhm.notMissingAndThen("fwhm")(_.toAngle),
+       spectralDefinition.notMissingAndThen("spectralDefinition")(_.create)
+      ).mapN { (a, s) => SourceProfile.Gaussian(a, s) }
+
+    override val edit: StateT[EitherInput, SourceProfile.Gaussian, Unit] = {
+      for {
+        a <- StateT.liftF(fwhm.validateNotNullable("fwhm")(_.toAngle).toEither)
+        _ <- SourceProfile.Gaussian.fwhm               := a
+        _ <- SourceProfile.Gaussian.spectralDefinition :! spectralDefinition
+      } yield ()
+    }
 
   }
 
-  object CreateGaussianInput {
+  object GaussianInput {
 
-    implicit val DecoderCreateGaussianInput: Decoder[CreateGaussianInput] =
-      deriveDecoder[CreateGaussianInput]
+    import io.circe.generic.extras.semiauto._
+    import io.circe.generic.extras.Configuration
+    implicit val customConfig: Configuration = Configuration.default.withDefaults
 
-    implicit val EqCreateGaussianInput: Eq[CreateGaussianInput] =
+    implicit val DecoderGaussianInput: Decoder[GaussianInput] =
+      deriveConfiguredDecoder[GaussianInput]
+
+    implicit val EqCreateGaussianInput: Eq[GaussianInput] =
       Eq.by { a => (
         a.fwhm,
         a.spectralDefinition
@@ -428,28 +496,31 @@ object SourceProfileModel {
   }
 
   final case class SourceProfileInput(
-    point:    Input[CreateSpectralDefinitionInput[Integrated]] = Input.ignore,
-    uniform:  Input[CreateSpectralDefinitionInput[Surface]]    = Input.ignore,
-    gaussian: Input[CreateGaussianInput]                       = Input.ignore
+    point:    Input[SpectralDefinitionInput[Integrated]] = Input.ignore,
+    uniform:  Input[SpectralDefinitionInput[Surface]]    = Input.ignore,
+    gaussian: Input[GaussianInput]                       = Input.ignore
   ) extends EditorInput[SourceProfile] {
 
     override val create: ValidatedInput[SourceProfile] =
       ValidatedInput.requireOne("sourceProfile",
-        point.map(_.toSpectralDefinition.map(SourceProfile.Point(_))).toOption,
-        uniform.map(_.toSpectralDefinition.map(SourceProfile.Uniform(_))).toOption,
-        gaussian.map(_.toGaussian).toOption
+        point.map(_.create.map(SourceProfile.Point(_))).toOption,
+        uniform.map(_.create.map(SourceProfile.Uniform(_))).toOption,
+        gaussian.map(_.create).toOption
       )
 
-    // At the moment, edit is extremely coarse grained.  You have to replace the
-    // entire source profile in order to change any part of it.
+    override val edit: StateT[EitherInput, SourceProfile, Unit] = {
+      val pointInput: Input[EditorInput[SourceProfile.Point]] =
+        point.map(_.imap[SourceProfile.Point](SourceProfile.Point(_), _.spectralDefinition))
 
-    override val edit: StateT[EitherInput, SourceProfile, Unit] =
-      (point.toOption, uniform.toOption, gaussian.toOption) match {
-        case (Some(p), None,    None   ) => StateT.setF(p.toSpectralDefinition.toEither.map(SourceProfile.Point(_)))
-        case (None,    Some(u), None   ) => StateT.setF(u.toSpectralDefinition.toEither.map(SourceProfile.Uniform(_)))
-        case (None,    None,    Some(g)) => StateT.setF(g.toGaussian.toEither)
-        case _                           => StateT.setF(InputError.fromMessage("set exactly one of `point`, `uniform`, or `gaussian`").leftNec[SourceProfile])
-      }
+      val uniformInput: Input[EditorInput[SourceProfile.Uniform]] =
+        uniform.map(_.imap[SourceProfile.Uniform](SourceProfile.Uniform(_), _.spectralDefinition))
+
+      EditorInput.editOneOf[SourceProfile, SourceProfile.Point, SourceProfile.Uniform, SourceProfile.Gaussian](
+        ("point",    pointInput,   SourceProfile.point   ),
+        ("uniform",  uniformInput, SourceProfile.uniform ),
+        ("gaussian", gaussian,     SourceProfile.gaussian)
+      )
+    }
 
   }
 
@@ -472,13 +543,13 @@ object SourceProfileModel {
     val Empty: SourceProfileInput =
       SourceProfileInput(Input.ignore, Input.ignore, Input.ignore)
 
-    def point(sd: CreateSpectralDefinitionInput[Integrated]): SourceProfileInput =
+    def point(sd: SpectralDefinitionInput[Integrated]): SourceProfileInput =
       Empty.copy(point = sd.assign)
 
-    def uniform(sd: CreateSpectralDefinitionInput[Surface]): SourceProfileInput =
+    def uniform(sd: SpectralDefinitionInput[Surface]): SourceProfileInput =
       Empty.copy(uniform = sd.assign)
 
-    def gaussian(g: CreateGaussianInput): SourceProfileInput =
+    def gaussian(g: GaussianInput): SourceProfileInput =
       Empty.copy(gaussian = g.assign)
 
   }

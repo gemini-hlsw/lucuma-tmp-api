@@ -4,10 +4,69 @@
 package lucuma.odb.api.model.syntax
 
 import cats.data.StateT
-import lucuma.odb.api.model.EitherInput
+import clue.data.{Assign, Ignore, Input, Unassign}
+import cats.syntax.either._
+import cats.syntax.functor._
+import cats.syntax.option._
+import lucuma.odb.api.model.{EditorInput, EitherInput, InputError}
 import monocle.Lens
 
 final class LensOps[S, A](val self: Lens[S, A]) extends AnyVal {
+
+  /**
+   * Uses the lens to create an editor of a nullable field of type `A` in `S`.
+   * When assigning the value, if there is an existing value of type `A` then
+   * it may be edited (which implies only specifying changes).  If there is no
+   * existing `A` then it must be created (which implies specifying all required
+   * values).
+   */
+  def :?[B](input: Input[EditorInput[B]])(implicit ev: Option[B] =:= A): StateT[EitherInput, S, Unit] =
+    input match {
+
+      // Do nothing.
+      case Ignore    =>
+        StateT.empty[EitherInput, S, Unit]
+
+      // Unset the A in S.
+      case Unassign  =>
+        edit(Option.empty[B]).void
+
+      // Create a new instance of A for the state S or else edit the existing
+      // A instance in the state S.  Arguments to the input are validated
+      // appropriately either way.
+
+      case Assign(n) =>
+        StateT.modifyF[EitherInput, S] { s =>
+          self
+            .modifyA[EitherInput] { a =>
+                ev.flip(a)
+                  .fold(n.create.toEither)(n.edit.runS)
+                  .map(b => ev(b.some))
+            }(s)
+        }
+
+    }
+
+  /**
+   * Uses the lens to create an editor of a required, non-nullable field of type
+   * `A` in `S`.  Since there will always be a value of type `A`, it can always
+   * be edited and need not be created with all required inputs.
+   */
+  def :!(input: Input[EditorInput[A]]): StateT[EitherInput, S, Unit] =
+    input match {
+
+      // Do nothing
+      case Ignore    =>
+        StateT.empty[EitherInput, S, Unit]
+
+      // Cannot unset.  This is caught at a higher level in reality.
+      case Unassign  =>
+        StateT.setF(InputError.fromMessage("Cannot un-assign value").leftNec)
+
+      case Assign(n) =>
+        StateT.modifyF[EitherInput, S](self.modifyF(n.edit.runS))
+
+    }
 
   def transform(st: StateT[EitherInput, A, Unit]): StateT[EitherInput, S, Unit] =
     st.transformS[S](self.get, (s, a) => self.replace(a)(s))
