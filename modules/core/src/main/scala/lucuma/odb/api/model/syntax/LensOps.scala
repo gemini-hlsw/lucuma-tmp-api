@@ -13,6 +13,13 @@ import monocle.Lens
 
 final class LensOps[S, A](val self: Lens[S, A]) extends AnyVal {
 
+  /**
+   * Uses the lens to create an editor of a nullable field of type `A` in `S`.
+   * When assigning the value, if there is an existing value of type `A` then
+   * it may be edited (which implies only specifying changes).  If there is no
+   * existing `A` then it must be created (which implies specifying all required
+   * values).
+   */
   def :?[B](input: Input[EditorInput[B]])(implicit ev: Option[B] =:= A): StateT[EitherInput, S, Unit] =
     input match {
 
@@ -40,6 +47,11 @@ final class LensOps[S, A](val self: Lens[S, A]) extends AnyVal {
 
     }
 
+  /**
+   * Uses the lens to create an editor of a required, non-nullable field of type
+   * `A` in `S`.  Since there will always be a value of type `A`, it can always
+   * be edited and need not be created with all required inputs.
+   */
   def :!(input: Input[EditorInput[A]]): StateT[EitherInput, S, Unit] =
     input match {
 
