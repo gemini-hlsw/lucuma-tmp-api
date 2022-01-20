@@ -5,6 +5,7 @@ package lucuma.odb.api.model
 
 import cats.data.StateT
 import cats.syntax.either._
+import cats.syntax.functor._
 import clue.data.Input
 import lucuma.odb.api.model.syntax.prism._
 import monocle.Prism
@@ -36,6 +37,9 @@ trait EditorInput[A] { self =>
 }
 
 object EditorInput {
+
+  private def create[S, A <: S](a: EditorInput[A]): StateT[EitherInput, S, Unit] =
+    StateT.setF(a.create.widen[S].toEither)
 
   /**
    * Provides an editor of a sum type `S` with two mutually exclusive options
@@ -75,10 +79,10 @@ object EditorInput {
 
     (input1.toOption, input2.toOption) match {
       case (Some(a1), None    ) =>
-        fold(prism1.editOrIgnore(a1), prism1.create(a1))
+        fold(prism1.editOrIgnore(a1), create(a1))
 
       case (None,     Some(a2)) =>
-        fold(prism2.create(a2), prism2.editOrIgnore(a2))
+        fold(create(a2), prism2.editOrIgnore(a2))
 
       case _                    =>
         StateT.setF(InputError.fromMessage(s"""exactly one of "$name1" or "$name2" must be set """).leftNec)
@@ -107,9 +111,9 @@ object EditorInput {
   )(implicit ev1: ClassTag[A1], ev2: ClassTag[A2], ev3: ClassTag[A3]): StateT[EitherInput, S, Unit] = {
 
     def fold(
-      a1: StateT[EitherInput, S, Unit],
-      a2: StateT[EitherInput, S, Unit],
-      a3: StateT[EitherInput, S, Unit]
+      a1: => StateT[EitherInput, S, Unit],
+      a2: => StateT[EitherInput, S, Unit],
+      a3: => StateT[EitherInput, S, Unit]
     ): StateT[EitherInput, S, Unit] =
       StateT.get[EitherInput, S].flatMap {
         case _: A1 => a1
@@ -124,13 +128,13 @@ object EditorInput {
 
     (input1.toOption, input2.toOption, input3.toOption) match {
       case (Some(a1), None,     None    ) =>
-        fold(prism1.editOrIgnore(a1), prism1.create(a1), prism1.create(a1))
+        fold(prism1.editOrIgnore(a1), create(a1), create(a1))
 
       case (None,     Some(a2), None    ) =>
-        fold(prism2.create(a2), prism2.editOrIgnore(a2), prism2.create(a2))
+        fold(create(a2), prism2.editOrIgnore(a2), create(a2))
 
       case (None,     None,     Some(a3)) =>
-        fold(prism3.create(a3), prism3.create(a3), prism3.editOrIgnore(a3))
+        fold(create(a3), create(a3), prism3.editOrIgnore(a3))
 
       case _                              =>
         StateT.setF(InputError.fromMessage(s"""exactly one of "$name1", "$name2" or $name3" must be set """).leftNec)

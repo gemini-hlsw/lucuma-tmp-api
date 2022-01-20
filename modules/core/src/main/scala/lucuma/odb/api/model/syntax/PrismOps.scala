@@ -36,9 +36,6 @@ final class PrismOps[S, A](val self: Prism[S, A]) extends AnyVal {
       }
     }
 
-  def create(ed: EditorInput[A]): StateT[EitherInput, S, Unit] =
-    StateT.modifyF { s => ed.create.toEither.map(a => self.replace(a)(s)) }
-
   def editOrIgnore(ed: EditorInput[A]): StateT[EitherInput, S, Unit] =
     transformOrIgnore(ed.edit)
 
