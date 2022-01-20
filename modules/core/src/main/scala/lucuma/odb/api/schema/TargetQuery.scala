@@ -93,7 +93,7 @@ trait TargetQuery {
       description = "test source profile".some,
       arguments   = List(ArgumentCreateBandNormalizedIntegrated),
       resolve     = c => {
-        val big = c.arg(ArgumentCreateBandNormalizedIntegrated).toBandNormalized.toOption.get
+        val big = c.arg(ArgumentCreateBandNormalizedIntegrated).create.toOption.get
         SourceProfile.Point(big)
       }
     )

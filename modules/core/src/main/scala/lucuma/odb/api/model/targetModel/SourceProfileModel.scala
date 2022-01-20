@@ -12,7 +12,7 @@ import cats.syntax.functor._
 import cats.syntax.option._
 import cats.syntax.traverse._
 import cats.syntax.validated._
-import clue.data.{Assign, Ignore, Input, Unassign}
+import clue.data.Input
 import clue.data.syntax._
 import coulomb.Quantity
 import coulomb.si.Kelvin
@@ -30,7 +30,6 @@ import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
 import lucuma.core.model.{EmissionLine, SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.odb.api.model.{AngleModel, EditorInput, EitherInput, InputError, ValidatedInput, WavelengthModel}
 import lucuma.odb.api.model.syntax.input._
-import lucuma.odb.api.model.syntax.prism._
 import lucuma.odb.api.model.syntax.lens._
 
 import scala.collection.immutable.SortedMap
@@ -265,12 +264,12 @@ object SourceProfileModel {
 
   }
 
-  final case class CreateBandNormalizedInput[T](
+  final case class BandNormalizedInput[T](
     sed:          UnnormalizedSedInput,
     brightnesses: List[CreateBandBrightnessInput[T]]
-  ) {
+  ) extends EditorInput[BandNormalized[T]] {
 
-    def toBandNormalized: ValidatedInput[BandNormalized[T]] =
+    override val create: ValidatedInput[BandNormalized[T]] =
       sed.toUnnormalizedSed.map { sed =>
         BandNormalized(
           sed,
@@ -278,16 +277,22 @@ object SourceProfileModel {
         )
       }
 
+    override val edit: StateT[EitherInput, BandNormalized[T], Unit] =
+      for {
+        s <- StateT.liftF(sed.toUnnormalizedSed.toEither)
+        _ <- BandNormalized.sed[T]          := s
+        _ <- BandNormalized.brightnesses[T] := SortedMap.from(brightnesses.map(_.toBandBrightnessPair.toTuple))
+      } yield ()
   }
 
-  object CreateBandNormalizedInput {
+  object BandNormalizedInput {
 
-    implicit def DecoderCreateBandNormalizedInput[T](
+    implicit def DecoderBandNormalizedInput[T](
       implicit ev: Decoder[Units Of Brightness[T]]
-    ): Decoder[CreateBandNormalizedInput[T]] =
-      deriveDecoder[CreateBandNormalizedInput[T]]
+    ): Decoder[BandNormalizedInput[T]] =
+      deriveDecoder[BandNormalizedInput[T]]
 
-    implicit def EqCreateBandNormalizedInput[T]: Eq[CreateBandNormalizedInput[T]] =
+    implicit def EqBandNormalizedInput[T]: Eq[BandNormalizedInput[T]] =
       Eq.by { a => (a.sed, a.brightnesses) }
 
   }
@@ -348,28 +353,35 @@ object SourceProfileModel {
 
   }
 
-  final case class CreateEmissionLinesInput[T](
+  final case class EmissionLinesInput[T](
     lines:                List[CreateEmissionLineInput[T]],
     fluxDensityContinuum: CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[T]]
-  ) {
+  ) extends EditorInput[EmissionLines[T]] {
 
-    def toEmissionLines: ValidatedInput[EmissionLines[T]] =
+    override val create: ValidatedInput[EmissionLines[T]] =
       lines
         .traverse(_.toWavelengthEmissionLinePair)
         .map { lst =>
           EmissionLines(SortedMap.from(lst.map(_.toTuple)), fluxDensityContinuum.toMeasure)
         }
 
+    override val edit: StateT[EitherInput, EmissionLines[T], Unit] =
+      for {
+        ls <- StateT.liftF(lines.traverse(_.toWavelengthEmissionLinePair).toEither)
+        _  <- EmissionLines.lines[T]                := SortedMap.from(ls.map(_.toTuple))
+        _  <- EmissionLines.fluxDensityContinuum[T] := fluxDensityContinuum.toMeasure
+      } yield ()
+
   }
 
-  object CreateEmissionLinesInput {
+  object EmissionLinesInput {
 
-    implicit def DecoderCreateEmissionsLineInput[T](
+    implicit def CreateEmissionsLineInput[T](
       implicit ev0: Decoder[Units Of LineFlux[T]], ev1: Decoder[Units Of FluxDensityContinuum[T]]
-    ): Decoder[CreateEmissionLinesInput[T]] =
-      deriveDecoder[CreateEmissionLinesInput[T]]
+    ): Decoder[EmissionLinesInput[T]] =
+      deriveDecoder[EmissionLinesInput[T]]
 
-    implicit def EqCreateEmissionLinesInput[T]: Eq[CreateEmissionLinesInput[T]] =
+    implicit def EqEmissionLinesInput[T]: Eq[EmissionLinesInput[T]] =
       Eq.by { a => (
         a.lines,
         a.fluxDensityContinuum
@@ -377,64 +389,21 @@ object SourceProfileModel {
   }
 
   final case class SpectralDefinitionInput[T](
-    bandNormalized: Input[CreateBandNormalizedInput[T]] = Input.ignore,
-    emissionLines:  Input[CreateEmissionLinesInput[T]]  = Input.ignore
+    bandNormalized: Input[BandNormalizedInput[T]] = Input.ignore,
+    emissionLines:  Input[EmissionLinesInput[T]]  = Input.ignore
   ) extends EditorInput[SpectralDefinition[T]] {
 
     override val create: ValidatedInput[SpectralDefinition[T]] =
       ValidatedInput.requireOne("spectralDefinition",
-        bandNormalized.toOption.map(_.toBandNormalized),
-        emissionLines.toOption.map(_.toEmissionLines)
+        bandNormalized.toOption.map(_.create),
+        emissionLines.toOption.map(_.create)
       )
 
-    override val edit: StateT[EitherInput, SpectralDefinition[T], Unit] = {
-      def createBandNormalized(b: CreateBandNormalizedInput[T]): StateT[EitherInput, SpectralDefinition[T], Unit] =
-        SpectralDefinition.bandNormalized[T].transformOrIgnore(
-          StateT.setF[EitherInput, BandNormalized[T]](b.toBandNormalized.toEither)
-        )
-
-      def editBandNormalized(b: CreateBandNormalizedInput[T]): StateT[EitherInput, SpectralDefinition[T], Unit] =
-        SpectralDefinition.bandNormalized[T].transformOrIgnore(
-          StateT.setF[EitherInput, BandNormalized[T]](b.toBandNormalized.toEither)
-        )
-
-      def createEmissionLines(e: CreateEmissionLinesInput[T]): StateT[EitherInput, SpectralDefinition[T], Unit] =
-        SpectralDefinition.emissionLines[T].transformOrIgnore(
-          StateT.setF[EitherInput, EmissionLines[T]](e.toEmissionLines.toEither)
-        )
-
-      def editEmissionLines(e: CreateEmissionLinesInput[T]): StateT[EitherInput, SpectralDefinition[T], Unit] =
-        SpectralDefinition.emissionLines[T].transformOrIgnore(
-          StateT.setF[EitherInput, EmissionLines[T]](e.toEmissionLines.toEither)
-        )
-
-      val oneIsRequired: StateT[EitherInput, SpectralDefinition[T], Unit] =
-        error("One of `bandNormalized` or `emissionLines` must be set")
-
-      def fold(
-        ifBandNormalized: StateT[EitherInput, SpectralDefinition[T], Unit],
-        ifEmissionLines:  StateT[EitherInput, SpectralDefinition[T], Unit]
-      ): StateT[EitherInput, SpectralDefinition[T], Unit] =
-        StateT.get[EitherInput, SpectralDefinition[T]].flatMap {
-          case _: BandNormalized[T] => ifBandNormalized
-          case _: EmissionLines[T]  => ifEmissionLines
-        }
-
-      (bandNormalized, emissionLines) match {
-        case (Assign(_), Assign(_)) => error("Assign one of `bandNormalized` or `emissionLines`, but not both")
-        case (Unassign,  Unassign ) => oneIsRequired
-        case (Ignore,    Ignore   ) => empty
-        case (Assign(b), _        ) => fold(editBandNormalized(b), createBandNormalized(b))
-        case (_        , Assign(e)) => fold(createEmissionLines(e), editEmissionLines(e))
-        case (Unassign,  _        ) => fold(oneIsRequired, empty)
-        case (_,         Unassign ) => fold(empty, oneIsRequired)
-      }
-
-//      EditorInput.editOneOf[SpectralDefinition[T], BandNormalized[T], EmissionLines[T]](
-//        ("bandNormalized", bandNormalized, SpectralDefinition.bandNormalized[T]),
-//        ("emissionLines", emissionLines, SpectralDefinition.emissionLines[T])
-//      )
-    }
+    override val edit: StateT[EitherInput, SpectralDefinition[T], Unit] =
+      EditorInput.editOneOf[SpectralDefinition[T], BandNormalized[T], EmissionLines[T]](
+        ("bandNormalized", bandNormalized, SpectralDefinition.bandNormalized[T]),
+        ("emissionLines",  emissionLines,  SpectralDefinition.emissionLines[T] )
+      )
   }
 
   object SpectralDefinitionInput {
@@ -459,10 +428,10 @@ object SourceProfileModel {
     def Empty[T]: SpectralDefinitionInput[T] =
       SpectralDefinitionInput[T](Input.ignore, Input.ignore)
 
-    def bandNormalized[T](bn: CreateBandNormalizedInput[T]): SpectralDefinitionInput[T] =
+    def bandNormalized[T](bn: BandNormalizedInput[T]): SpectralDefinitionInput[T] =
       Empty[T].copy(bandNormalized = bn.assign)
 
-    def emissionLines[T](el: CreateEmissionLinesInput[T]): SpectralDefinitionInput[T] =
+    def emissionLines[T](el: EmissionLinesInput[T]): SpectralDefinitionInput[T] =
       Empty[T].copy(emissionLines = el.assign)
   }
 

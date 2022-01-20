@@ -128,17 +128,17 @@ trait ArbSourceProfileModel {
 
   implicit def arbCreateBandNormalizedInput[T](
     implicit ev: Enumerated[Units Of Brightness[T]]
-  ): Arbitrary[CreateBandNormalizedInput[T]] =
+  ): Arbitrary[BandNormalizedInput[T]] =
     Arbitrary {
       for {
         s <- arbitrary[UnnormalizedSedInput]
         b <- arbitrary[List[CreateBandBrightnessInput[T]]]
-      } yield CreateBandNormalizedInput(s, b)
+      } yield BandNormalizedInput(s, b)
     }
 
   implicit def cogCreateBandNormalizedInput[T](
     implicit ev: Enumerated[Units Of Brightness[T]]
-  ): Cogen[CreateBandNormalizedInput[T]] =
+  ): Cogen[BandNormalizedInput[T]] =
     Cogen[(
       UnnormalizedSedInput,
       List[CreateBandBrightnessInput[T]]
@@ -174,18 +174,18 @@ trait ArbSourceProfileModel {
   implicit def arbCreateEmissionLinesInput[T](
     implicit ev0: Enumerated[Units Of LineFlux[T]],
              ev1: Enumerated[Units Of FluxDensityContinuum[T]]
-  ): Arbitrary[CreateEmissionLinesInput[T]] =
+  ): Arbitrary[EmissionLinesInput[T]] =
     Arbitrary {
       for {
         ls  <- arbitrary[List[CreateEmissionLineInput[T]]]
         fdc <- arbitrary[CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[T]]]
-      } yield CreateEmissionLinesInput(ls, fdc)
+      } yield EmissionLinesInput(ls, fdc)
     }
 
   implicit def cogCreateCreateEmissionLinesInput[T](
     implicit ev0: Enumerated[Units Of LineFlux[T]],
              ev1: Enumerated[Units Of FluxDensityContinuum[T]]
-  ): Cogen[CreateEmissionLinesInput[T]] =
+  ): Cogen[EmissionLinesInput[T]] =
     Cogen[(
       List[CreateEmissionLineInput[T]],
       CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[T]]
@@ -201,8 +201,8 @@ trait ArbSourceProfileModel {
   ): Arbitrary[SpectralDefinitionInput[T]] =
     Arbitrary {
       Gen.oneOf(
-        arbitrary[CreateBandNormalizedInput[T]].map(SpectralDefinitionInput.bandNormalized),
-        arbitrary[CreateEmissionLinesInput[T]].map(SpectralDefinitionInput.emissionLines)
+        arbitrary[BandNormalizedInput[T]].map(SpectralDefinitionInput.bandNormalized),
+        arbitrary[EmissionLinesInput[T]].map(SpectralDefinitionInput.emissionLines)
       )
     }
 
@@ -212,8 +212,8 @@ trait ArbSourceProfileModel {
              ev2: Enumerated[Units Of FluxDensityContinuum[T]]
   ): Cogen[SpectralDefinitionInput[T]] =
     Cogen[(
-      Input[CreateBandNormalizedInput[T]],
-      Input[CreateEmissionLinesInput[T]]
+      Input[BandNormalizedInput[T]],
+      Input[EmissionLinesInput[T]]
     )].contramap { in => (
       in.bandNormalized,
       in.emissionLines

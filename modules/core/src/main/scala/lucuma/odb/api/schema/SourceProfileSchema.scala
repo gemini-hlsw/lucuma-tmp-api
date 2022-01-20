@@ -13,7 +13,7 @@ import lucuma.core.math.dimensional.{Measure, Of, Units}
 import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
 import lucuma.core.model.{SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.core.util.Enumerated
-import lucuma.odb.api.model.targetModel.SourceProfileModel.{BandBrightnessPair, CreateBandBrightnessInput, CreateBandNormalizedInput, CreateEmissionLineInput, CreateEmissionLinesInput, GaussianInput, CreateMeasureInput, SpectralDefinitionInput, FluxDensityInput, SourceProfileInput, UnnormalizedSedInput, WavelengthEmissionLinePair}
+import lucuma.odb.api.model.targetModel.SourceProfileModel.{BandBrightnessPair, CreateBandBrightnessInput, BandNormalizedInput, CreateEmissionLineInput, EmissionLinesInput, GaussianInput, CreateMeasureInput, SpectralDefinitionInput, FluxDensityInput, SourceProfileInput, UnnormalizedSedInput, WavelengthEmissionLinePair}
 import lucuma.odb.api.schema.syntax.inputtype._
 import monocle.Prism
 import sangria.schema.{Field, _}
@@ -581,16 +581,16 @@ object SourceProfileSchema {
 
   private def createBandNormalizedInputObjectType[T](
     groupName: String
-  )(implicit ev: InputType[CreateBandBrightnessInput[T]]): InputObjectType[CreateBandNormalizedInput[T]] =
+  )(implicit ev: InputType[CreateBandBrightnessInput[T]]): InputObjectType[BandNormalizedInput[T]] =
     deriveInputObjectType(
-      InputObjectTypeName(s"CreateBandNormalized${groupName.capitalize}"),
-      InputObjectTypeDescription(s"Create a band normalized value with $groupName magnitude units")
+      InputObjectTypeName(s"BandNormalized${groupName.capitalize}Input"),
+      InputObjectTypeDescription(s"Create or edit a band normalized value with $groupName magnitude units")
     )
 
-  implicit val InputObjectCreateBandNormalizedIntegrated: InputObjectType[CreateBandNormalizedInput[Integrated]] =
+  implicit val InputObjectBandNormalizedIntegrated: InputObjectType[BandNormalizedInput[Integrated]] =
     createBandNormalizedInputObjectType[Integrated]("integrated")
 
-  implicit val InputObjectCreateBandNormalizedSurface: InputObjectType[CreateBandNormalizedInput[Surface]] =
+  implicit val InputObjectBandNormalizedSurface: InputObjectType[BandNormalizedInput[Surface]] =
     createBandNormalizedInputObjectType[Surface]("surface")
 
   private def createLineFluxInputObjectType[T](
@@ -645,23 +645,23 @@ object SourceProfileSchema {
 
   private def createEmissionLinesInputObjectType[T](
     groupName: String
-  )(implicit ev0: InputType[CreateEmissionLineInput[T]], ev1: InputType[CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[T]]]): InputObjectType[CreateEmissionLinesInput[T]] =
+  )(implicit ev0: InputType[CreateEmissionLineInput[T]], ev1: InputType[CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[T]]]): InputObjectType[EmissionLinesInput[T]] =
     deriveInputObjectType(
-      InputObjectTypeName(s"CreateEmissionLines${groupName.capitalize}"),
-      InputObjectTypeDescription(s"Create an emission lines with $groupName line flux and flux density continuum units")
+      InputObjectTypeName(s"EmissionLines${groupName.capitalize}Input"),
+      InputObjectTypeDescription(s"Create or edit emission lines with $groupName line flux and flux density continuum units")
     )
 
-  implicit val InputObjectCreateEmissionLinesIntegrated: InputObjectType[CreateEmissionLinesInput[Integrated]] =
+  implicit val InputObjectEmissionLinesIntegrated: InputObjectType[EmissionLinesInput[Integrated]] =
     createEmissionLinesInputObjectType("integrated")
 
-  implicit val InputObjectCreateEmissionLinesSurface: InputObjectType[CreateEmissionLinesInput[Surface]] =
+  implicit val InputObjectEmissionLinesSurface: InputObjectType[EmissionLinesInput[Surface]] =
     createEmissionLinesInputObjectType("surface")
 
   private def spectralDefinitionInputObjectType[T](
     groupName: String
   )(
-    implicit ev0: InputType[CreateBandNormalizedInput[T]],
-             ev1: InputType[CreateEmissionLinesInput[T]]
+    implicit ev0: InputType[BandNormalizedInput[T]],
+             ev1: InputType[EmissionLinesInput[T]]
   ): InputObjectType[SpectralDefinitionInput[T]] = {
     val message = """Exactly one of "bandNormalized" or "emissionLines" is required"""
 
@@ -670,7 +670,7 @@ object SourceProfileSchema {
       InputObjectTypeDescription(s"Spectral definition input with $groupName units"),
 
       ReplaceInputField("bandNormalized", ev0.optionField("bandNormalized", message)),
-      ReplaceInputField("emissionLines", ev1.optionField("emissionLines", message))
+      ReplaceInputField("emissionLines",  ev1.optionField("emissionLines",  message))
     )
   }
 
@@ -706,8 +706,8 @@ object SourceProfileSchema {
 
   // TODO: Remove
 
-  val ArgumentCreateBandNormalizedIntegrated: Argument[CreateBandNormalizedInput[Integrated]] =
-    InputObjectCreateBandNormalizedIntegrated.argument("mag", "magnitude")
+  val ArgumentCreateBandNormalizedIntegrated: Argument[BandNormalizedInput[Integrated]] =
+    InputObjectBandNormalizedIntegrated.argument("mag", "magnitude")
 
   val ArgumentSourceProfile: Argument[SourceProfileInput] =
     InputObjectSourceProfile.argument("sourceProfile", "source profile description")
