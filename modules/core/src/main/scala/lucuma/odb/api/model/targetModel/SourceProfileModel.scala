@@ -31,6 +31,7 @@ import lucuma.core.model.{EmissionLine, SourceProfile, SpectralDefinition, Unnor
 import lucuma.odb.api.model.{AngleModel, EditorInput, EitherInput, InputError, ValidatedInput, WavelengthModel}
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
+import monocle.{Focus, Lens}
 
 import scala.collection.immutable.SortedMap
 
@@ -233,31 +234,61 @@ object SourceProfileModel {
         a.measure
       )}
 
+    def measure[T]: Lens[BandBrightnessPair[T], Measure[BrightnessValue] Of Brightness[T]] =
+      Focus[BandBrightnessPair[T]](_.measure)
+
   }
 
   final case class BandBrightnessInput[T](
-    band:      Band,
-    value:     BigDecimal,
-    units:     Units Of Brightness[T],
-    error:     Option[BigDecimal]
-  ) {
+    band:  Band,
+    value: Input[BigDecimal]             = Input.ignore,
+    units: Input[Units Of Brightness[T]] = Input.ignore,
+    error: Input[BigDecimal]             = Input.ignore
+  ) extends EditorInput[BandBrightnessPair[T]] {
 
-    val toBandBrightnessPair: BandBrightnessPair[T] = {
-      val m = units.withValueTagged(BrightnessValue.fromBigDecimal.get(value))
-      BandBrightnessPair[T](
-        band,
-        error.fold(m) { e => m.withError(BrightnessValue.fromBigDecimal.get(e)) }
-      )
+    override val create: ValidatedInput[BandBrightnessPair[T]] =
+      (value.notMissing("value"),
+       units.notMissing("units")
+      ).mapN { (v, u) =>
+        val m = u.withValueTagged(BrightnessValue.fromBigDecimal.get(v))
+        BandBrightnessPair[T](
+          band,
+          error.toOption.fold(m) { e => m.withError(BrightnessValue.fromBigDecimal.get(e)) }
+        )
+      }
+
+    override val edit: StateT[EitherInput, BandBrightnessPair[T], Unit] = {
+      val validArgs = (
+        value.validateIsNotNull("value"),
+        units.validateIsNotNull("units")
+      ).tupled.toEither
+
+      for {
+        args   <- StateT.liftF(validArgs)
+        (v, u)  = args
+        measure = StateT.modify[EitherInput, Measure[BrightnessValue] Of Brightness[T]] { m =>
+          val newValue = v.map(BrightnessValue.fromBigDecimal.get).getOrElse(m.value)
+          val newUnits = u.getOrElse(Measure.unitsTagged.get(m))
+          val newError = error.map(BrightnessValue.fromBigDecimal.get).fold(m.error, Option.empty[BrightnessValue], _.some)
+
+          val newMeasure = newUnits.withValueTagged(newValue)
+          newError.fold(newMeasure)(newMeasure.withError)
+        }
+        _      <- BandBrightnessPair.measure[T] :< measure.some
+      } yield ()
     }
-
   }
 
   object BandBrightnessInput {
 
+    import io.circe.generic.extras.semiauto._
+    import io.circe.generic.extras.Configuration
+    implicit val customConfig: Configuration = Configuration.default.withDefaults
+
     implicit def DecoderBandBrightnessInput[T](
       implicit ev: Decoder[Units Of Brightness[T]]
     ): Decoder[BandBrightnessInput[T]] =
-      deriveDecoder[BandBrightnessInput[T]]
+      deriveConfiguredDecoder[BandBrightnessInput[T]]
 
     implicit def EqBandBrightnessInput[T]: Eq[BandBrightnessInput[T]] =
       Eq.by { a => (a.band, a.value, a.units, a.error) }
@@ -265,15 +296,15 @@ object SourceProfileModel {
   }
 
   final case class BandNormalizedInput[T](
-    sed:          Input[UnnormalizedSedInput]               = Input.ignore,
+    sed:          Input[UnnormalizedSedInput]         = Input.ignore,
     brightnesses: Input[List[BandBrightnessInput[T]]] = Input.ignore
   ) extends EditorInput[BandNormalized[T]] {
 
     override val create: ValidatedInput[BandNormalized[T]] =
       (sed.notMissingAndThen("sed")(_.toUnnormalizedSed),
-       brightnesses.notMissing("brightnesses")
+       brightnesses.notMissingAndThen("brightnesses")(_.traverse(_.create))
       ).mapN { (sed, bright) =>
-        BandNormalized(sed, SortedMap.from(bright.map(_.toBandBrightnessPair.toTuple)))
+        BandNormalized(sed, SortedMap.from(bright.map(_.toTuple)))
       }
 
     override val edit: StateT[EitherInput, BandNormalized[T], Unit] = {
@@ -284,9 +315,24 @@ object SourceProfileModel {
 
       for {
         args  <- StateT.liftF(validArgs)
-        (s, m) = args
+        (s, b) = args
         _     <- BandNormalized.sed[T]          := s
-        _     <- BandNormalized.brightnesses[T] := m.map(lst => SortedMap.from(lst.map(_.toBandBrightnessPair.toTuple)))
+        _     <- BandNormalized.brightnesses[T] :< b.map { lst =>
+                   StateT.modifyF[EitherInput, SortedMap[Band, BrightnessMeasure[T]]] { m =>
+
+                     // When editing, the `brightnesses` input is taken to mean
+                     // the list of edits to perform.  Any band not mentioned is
+                     // left unchanged.
+                     val updates: EitherInput[List[(Band, Of[Measure[BrightnessValue], Brightness[T]])]] =
+                       lst.traverse { bbi =>
+                         m.get(bbi.band).fold(bbi.create.map(_.toTuple)) { measure =>
+                           bbi.edit.runS(BandBrightnessPair[T](bbi.band, measure)).map(_.toTuple).toValidated
+                         }
+                       }.toEither
+
+                     updates.map(m ++ _)
+                   }
+                 }
       } yield ()
     }
   }
