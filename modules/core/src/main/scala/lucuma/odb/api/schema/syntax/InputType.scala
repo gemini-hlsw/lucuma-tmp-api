@@ -7,6 +7,9 @@ import sangria.schema._
 
 final class InputTypeOps[A](self: InputType[A]) {
 
+  def optionField(name: String): InputField[Option[A]] =
+    InputField(name, OptionInputType(self))
+
   def optionField(name: String, message: String): InputField[Option[A]] =
     InputField(name, OptionInputType(self), message)
 
