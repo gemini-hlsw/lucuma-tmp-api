@@ -13,7 +13,7 @@ import lucuma.core.math.dimensional.{Measure, Of, Units}
 import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
 import lucuma.core.model.{SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.core.util.Enumerated
-import lucuma.odb.api.model.targetModel.SourceProfileModel.{BandBrightnessPair, CreateBandBrightnessInput, BandNormalizedInput, CreateEmissionLineInput, EmissionLinesInput, GaussianInput, CreateMeasureInput, SpectralDefinitionInput, FluxDensityInput, SourceProfileInput, UnnormalizedSedInput, WavelengthEmissionLinePair}
+import lucuma.odb.api.model.targetModel.SourceProfileModel.{BandBrightnessPair, BandNormalizedInput, CreateBandBrightnessInput, CreateEmissionLineInput, CreateMeasureInput, EmissionLinesInput, FluxDensityInput, GaussianInput, SourceProfileInput, SpectralDefinitionInput, UnnormalizedSedInput, WavelengthEmissionLinePair}
 import lucuma.odb.api.schema.syntax.inputtype._
 import monocle.Prism
 import sangria.schema.{Field, _}
@@ -582,12 +582,13 @@ object SourceProfileSchema {
   private def createBandNormalizedInputObjectType[T](
     groupName: String
   )(implicit ev: InputType[CreateBandBrightnessInput[T]]): InputObjectType[BandNormalizedInput[T]] =
-    deriveInputObjectType(
-      InputObjectTypeName(s"BandNormalized${groupName.capitalize}Input"),
-      InputObjectTypeDescription(s"Create or edit a band normalized value with $groupName magnitude units"),
-
-      ReplaceInputField("sed", InputObjectUnnormalizedSed.createRequiredEditOptional("sed", "BandNormalized")),
-      ReplaceInputField("brightnesses", ListInputType(ev).createRequiredEditOptional("brightnesses", "BandNormalized"))
+    InputObjectType[BandNormalizedInput[T]](
+      s"BandNormalized${groupName.capitalize}Input",
+      s"""Create or edit a band normalized value with $groupName magnitude units.  Specify both "sed" and "brightnesses" when creating a new BandNormalized${groupName.capitalize}.""",
+      List(
+        InputObjectUnnormalizedSed.createRequiredEditOptional("sed", s"BandNormalized${groupName.capitalize}"),
+        ListInputType(ev).createRequiredEditOptional("brightnesses", s"BandNormalized${groupName.capitalize}")
+      )
     )
 
   implicit val InputObjectBandNormalizedIntegrated: InputObjectType[BandNormalizedInput[Integrated]] =
@@ -649,12 +650,13 @@ object SourceProfileSchema {
   private def createEmissionLinesInputObjectType[T](
     groupName: String
   )(implicit ev0: InputType[CreateEmissionLineInput[T]], ev1: InputType[CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[T]]]): InputObjectType[EmissionLinesInput[T]] =
-    deriveInputObjectType(
-      InputObjectTypeName(s"EmissionLines${groupName.capitalize}Input"),
-      InputObjectTypeDescription(s"Create or edit emission lines with $groupName line flux and flux density continuum units"),
-
-      ReplaceInputField("lines", ListInputType(ev0).createRequiredEditOptional("lines", "EmissionLines")),
-      ReplaceInputField("fluxDensityContinuum", ev1.createRequiredEditOptional("fluxDensityContinuum", "EmissionLines"))
+    InputObjectType[EmissionLinesInput[T]](
+      s"EmissionLines${groupName.capitalize}Input",
+      s"""Create or edit emission lines with $groupName line flux and flux density continuum units. Both "lines" and "fluxDensityContinuum" are required when creating a new EmissionLines${groupName.capitalize}.""",
+      List(
+        ListInputType(ev0).createRequiredEditOptional("lines", s"EmissionLines${groupName.capitalize}"),
+        ev1.createRequiredEditOptional("fluxDensityContinuum", s"EmissionLines${groupName.capitalize}")
+      )
     )
 
   implicit val InputObjectEmissionLinesIntegrated: InputObjectType[EmissionLinesInput[Integrated]] =
@@ -668,17 +670,15 @@ object SourceProfileSchema {
   )(
     implicit ev0: InputType[BandNormalizedInput[T]],
              ev1: InputType[EmissionLinesInput[T]]
-  ): InputObjectType[SpectralDefinitionInput[T]] = {
-    val message = """Exactly one of "bandNormalized" or "emissionLines" is required"""
-
-    deriveInputObjectType(
-      InputObjectTypeName(s"SpectralDefinition${groupName.capitalize}Input"),
-      InputObjectTypeDescription(s"Spectral definition input with $groupName units"),
-
-      ReplaceInputField("bandNormalized", ev0.optionField("bandNormalized", message)),
-      ReplaceInputField("emissionLines",  ev1.optionField("emissionLines",  message))
+  ): InputObjectType[SpectralDefinitionInput[T]] =
+    InputObjectType[SpectralDefinitionInput[T]](
+      s"SpectralDefinition${groupName.capitalize}Input",
+      s"""Spectral definition input with $groupName units.  Specify exactly one of "bandNormalized" or "emissionLines" """,
+      List(
+        ev0.optionField("bandNormalized"),
+        ev1.optionField("emissionLines")
+      )
     )
-  }
 
   implicit val InputObjectSpectralDefinitionIntegrated: InputObjectType[SpectralDefinitionInput[Integrated]] =
     spectralDefinitionInputObjectType("integrated")
@@ -687,26 +687,25 @@ object SourceProfileSchema {
     spectralDefinitionInputObjectType("surface")
 
   implicit val InputObjectGaussian: InputObjectType[GaussianInput] =
-    deriveInputObjectType(
-      InputObjectTypeName("GaussianInput"),
-      InputObjectTypeDescription("Create a gaussian source"),
-
-      ReplaceInputField("fwhm",               InputObjectAngle.createRequiredEditOptional("fwhm", "Gaussian")),
-      ReplaceInputField("spectralDefinition", InputObjectSpectralDefinitionIntegrated.createRequiredEditOptional("spectralDefinition", "Gaussian"))
+    InputObjectType[GaussianInput](
+      "GaussianInput",
+      """Create or edit a gaussian source.  Specify both "fwhm" and "spectralDefinition" when creating a new Gaussian.""",
+      List(
+        InputObjectAngle.createRequiredEditOptional("fwhm", "Gaussian"),
+        InputObjectSpectralDefinitionIntegrated.createRequiredEditOptional("spectralDefinition", "Gaussian")
+      )
     )
 
-  implicit val InputObjectSourceProfile: InputObjectType[SourceProfileInput] = {
-    val message = """Exactly one of "point", "uniform", or "gaussian" is required"""
-
-    deriveInputObjectType(
-      InputObjectTypeName("SourceProfileInput"),
-      InputObjectTypeDescription("Create or edit a source profile"),
-
-      ReplaceInputField("point",    InputObjectSpectralDefinitionIntegrated.optionField("point", message)),
-      ReplaceInputField("uniform",  InputObjectSpectralDefinitionSurface.optionField("uniform", message)),
-      ReplaceInputField("gaussian", InputObjectGaussian.optionField("gaussian", message))
+  implicit val InputObjectSourceProfile: InputObjectType[SourceProfileInput] =
+    InputObjectType[SourceProfileInput](
+      "SourceProfileInput",
+      """Create or edit a source profile.  Exactly one of "point", "uniform" or "gaussian" is required.""",
+      List(
+        InputObjectSpectralDefinitionIntegrated.optionField("point"),
+        InputObjectSpectralDefinitionSurface.optionField("uniform"),
+        InputObjectGaussian.optionField("gaussian")
+      )
     )
-  }
 
   // Arguments
 
