@@ -13,7 +13,7 @@ import lucuma.core.math.dimensional.{Measure, Of, Units}
 import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
 import lucuma.core.model.{SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.core.util.Enumerated
-import lucuma.odb.api.model.targetModel.SourceProfileModel.{BandBrightnessPair, BandNormalizedInput, CreateBandBrightnessInput, CreateEmissionLineInput, CreateMeasureInput, EmissionLinesInput, FluxDensityInput, GaussianInput, SourceProfileInput, SpectralDefinitionInput, UnnormalizedSedInput, WavelengthEmissionLinePair}
+import lucuma.odb.api.model.targetModel.SourceProfileModel.{BandBrightnessPair, BandNormalizedInput, BandBrightnessInput, CreateEmissionLineInput, CreateMeasureInput, EmissionLinesInput, FluxDensityInput, GaussianInput, SourceProfileInput, SpectralDefinitionInput, UnnormalizedSedInput, WavelengthEmissionLinePair}
 import lucuma.odb.api.schema.syntax.inputtype._
 import monocle.Prism
 import sangria.schema.{Field, _}
@@ -567,21 +567,21 @@ object SourceProfileSchema {
 
   private def createBandBrightnessInputObjectType[T](
     groupName: String
-  )(implicit ev: InputType[Units Of Brightness[T]]): InputObjectType[CreateBandBrightnessInput[T]] =
-    deriveInputObjectType[CreateBandBrightnessInput[T]](
-      InputObjectTypeName(s"CreateBandBrightness${groupName.capitalize}"),
+  )(implicit ev: InputType[Units Of Brightness[T]]): InputObjectType[BandBrightnessInput[T]] =
+    deriveInputObjectType[BandBrightnessInput[T]](
+      InputObjectTypeName(s"BandBrightness${groupName.capitalize}Input"),
       InputObjectTypeDescription(s"Create a band brightness value with $groupName magnitude units")
     )
 
-  implicit val InputObjectCreateBandBrightnessIntegrated: InputObjectType[CreateBandBrightnessInput[Integrated]] =
+  implicit val InputObjectBandBrightnessIntegrated: InputObjectType[BandBrightnessInput[Integrated]] =
     createBandBrightnessInputObjectType[Integrated]("integrated")
 
-  implicit val InputObjectCreateBandBrightnessSurface: InputObjectType[CreateBandBrightnessInput[Surface]] =
+  implicit val InputObjectBandBrightnessSurface: InputObjectType[BandBrightnessInput[Surface]] =
     createBandBrightnessInputObjectType[Surface]("surface")
 
   private def createBandNormalizedInputObjectType[T](
     groupName: String
-  )(implicit ev: InputType[CreateBandBrightnessInput[T]]): InputObjectType[BandNormalizedInput[T]] =
+  )(implicit ev: InputType[BandBrightnessInput[T]]): InputObjectType[BandNormalizedInput[T]] =
     InputObjectType[BandNormalizedInput[T]](
       s"BandNormalized${groupName.capitalize}Input",
       s"""Create or edit a band normalized value with $groupName magnitude units.  Specify both "sed" and "brightnesses" when creating a new BandNormalized${groupName.capitalize}.""",

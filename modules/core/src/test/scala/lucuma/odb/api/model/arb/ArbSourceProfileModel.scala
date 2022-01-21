@@ -102,18 +102,18 @@ trait ArbSourceProfileModel {
 
   implicit def arbCreateBandBrightnessInput[T](
     implicit ev: Enumerated[Units Of Brightness[T]]
-  ): Arbitrary[CreateBandBrightnessInput[T]] =
+  ): Arbitrary[BandBrightnessInput[T]] =
     Arbitrary {
       for {
         br <- arbitrary[CreateMeasureInput[BigDecimal, Brightness[T]]]
         bd <- arbitrary[Band]
         e  <- arbitrary[Option[BigDecimal]]
-      } yield CreateBandBrightnessInput(bd, br.value, br.units, e)
+      } yield BandBrightnessInput(bd, br.value, br.units, e)
     }
 
   implicit def cogCreateBandBrightnessInput[T](
     implicit ev: Enumerated[Units Of Brightness[T]]
-  ): Cogen[CreateBandBrightnessInput[T]] =
+  ): Cogen[BandBrightnessInput[T]] =
     Cogen[(
       Band,
       BigDecimal,
@@ -132,7 +132,7 @@ trait ArbSourceProfileModel {
     Arbitrary {
       for {
         s <- arbitrary[Input[UnnormalizedSedInput]]
-        b <- arbitrary[Input[List[CreateBandBrightnessInput[T]]]]
+        b <- arbitrary[Input[List[BandBrightnessInput[T]]]]
       } yield BandNormalizedInput(s, b)
     }
 
@@ -141,7 +141,7 @@ trait ArbSourceProfileModel {
   ): Cogen[BandNormalizedInput[T]] =
     Cogen[(
       Input[UnnormalizedSedInput],
-      Input[List[CreateBandBrightnessInput[T]]]
+      Input[List[BandBrightnessInput[T]]]
     )].contramap { in => (
       in.sed,
       in.brightnesses

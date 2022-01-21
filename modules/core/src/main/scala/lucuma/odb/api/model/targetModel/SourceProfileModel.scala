@@ -235,7 +235,7 @@ object SourceProfileModel {
 
   }
 
-  final case class CreateBandBrightnessInput[T](
+  final case class BandBrightnessInput[T](
     band:      Band,
     value:     BigDecimal,
     units:     Units Of Brightness[T],
@@ -252,21 +252,21 @@ object SourceProfileModel {
 
   }
 
-  object CreateBandBrightnessInput {
+  object BandBrightnessInput {
 
-    implicit def DecoderCreateBandBrightnessInput[T](
+    implicit def DecoderBandBrightnessInput[T](
       implicit ev: Decoder[Units Of Brightness[T]]
-    ): Decoder[CreateBandBrightnessInput[T]] =
-      deriveDecoder[CreateBandBrightnessInput[T]]
+    ): Decoder[BandBrightnessInput[T]] =
+      deriveDecoder[BandBrightnessInput[T]]
 
-    implicit def EqCreateBandBrightnessInput[T]: Eq[CreateBandBrightnessInput[T]] =
+    implicit def EqBandBrightnessInput[T]: Eq[BandBrightnessInput[T]] =
       Eq.by { a => (a.band, a.value, a.units, a.error) }
 
   }
 
   final case class BandNormalizedInput[T](
     sed:          Input[UnnormalizedSedInput]               = Input.ignore,
-    brightnesses: Input[List[CreateBandBrightnessInput[T]]] = Input.ignore
+    brightnesses: Input[List[BandBrightnessInput[T]]] = Input.ignore
   ) extends EditorInput[BandNormalized[T]] {
 
     override val create: ValidatedInput[BandNormalized[T]] =
