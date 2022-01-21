@@ -370,37 +370,71 @@ object SourceProfileModel {
         a.line
       )}
 
+    def line[T]: Lens[WavelengthEmissionLinePair[T], EmissionLine[T]] =
+      Focus[WavelengthEmissionLinePair[T]](_.line)
+
   }
 
 
   // TODO: should lineWidth offer other units?  m/s etc?
-  final case class CreateEmissionLineInput[T](
+  final case class EmissionLineInput[T](
     wavelength: WavelengthModel.Input,
-    lineWidth:  PosBigDecimal,
-    lineFlux:   CreateMeasureInput[PosBigDecimal, LineFlux[T]]
-  ) {
+    lineWidth:  Input[PosBigDecimal]                                  = Input.ignore,
+    lineFlux:   Input[CreateMeasureInput[PosBigDecimal, LineFlux[T]]] = Input.ignore
+  ) extends EditorInput[WavelengthEmissionLinePair[T]] {
 
-    def toWavelengthEmissionLinePair: ValidatedInput[WavelengthEmissionLinePair[T]] =
-      wavelength.toWavelength("wavelength").map { w =>
+    override val create: ValidatedInput[WavelengthEmissionLinePair[T]] =
+      (wavelength.toWavelength("wavelength"),
+       lineWidth.notMissing("lineWidth"),
+       lineFlux.notMissing("lineFlux")
+      ).mapN { (w, lw, lf) =>
         WavelengthEmissionLinePair(
           w,
           EmissionLine(
-            Quantity[PosBigDecimal, KilometersPerSecond](lineWidth),
-            lineFlux.toMeasure
+            Quantity[PosBigDecimal, KilometersPerSecond](lw),
+            lf.toMeasure
           )
         )
       }
 
+    override val edit: StateT[EitherInput, WavelengthEmissionLinePair[T], Unit] = {
+      val validArgs = (
+        wavelength.toWavelength("wavelength"),
+        lineWidth.validateIsNotNull("lineWidth"),
+        lineFlux.validateIsNotNull("lineFlux")
+      ).tupled.toEither
+
+      for {
+        args       <- StateT.liftF(validArgs)
+        (_, lw, lf) = args
+
+        line        = lw.orElse(lf).as(
+          StateT.modify[EitherInput, EmissionLine[T]] { l =>
+            val newWidth = lw.map(d => Quantity[PosBigDecimal, KilometersPerSecond](d)).getOrElse(l.lineWidth)
+            val newFlux  = lf.map(_.toMeasure).getOrElse(l.lineFlux)
+            EmissionLine(newWidth, newFlux)
+          }
+        )
+
+        _          <- WavelengthEmissionLinePair.line[T] :< line
+      } yield ()
+    }
+
+
   }
 
-  object CreateEmissionLineInput {
+  object EmissionLineInput {
 
-    implicit def DecoderCreateEmissionLine[T](
+    import io.circe.generic.extras.semiauto._
+    import io.circe.generic.extras.Configuration
+    implicit val customConfig: Configuration = Configuration.default.withDefaults
+
+    implicit def DecoderEmissionLineInput[T](
       implicit ev: Decoder[Units Of LineFlux[T]]
-    ): Decoder[CreateEmissionLineInput[T]] =
-      deriveDecoder[CreateEmissionLineInput[T]]
+    ): Decoder[EmissionLineInput[T]] =
+      deriveConfiguredDecoder[EmissionLineInput[T]]
 
-    implicit def EqCreateEmissionLine[T]: Eq[CreateEmissionLineInput[T]] =
+    implicit def EqEmissionLineInput[T]: Eq[EmissionLineInput[T]] =
       Eq.by { a => (
         a.wavelength,
         a.lineWidth,
@@ -410,12 +444,12 @@ object SourceProfileModel {
   }
 
   final case class EmissionLinesInput[T](
-    lines:                Input[List[CreateEmissionLineInput[T]]]                           = Input.ignore,
+    lines:                Input[List[EmissionLineInput[T]]]                           = Input.ignore,
     fluxDensityContinuum: Input[CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[T]]] = Input.ignore
   ) extends EditorInput[EmissionLines[T]] {
 
     override val create: ValidatedInput[EmissionLines[T]] =
-      (lines.notMissingAndThen("lines")(_.traverse(_.toWavelengthEmissionLinePair)),
+      (lines.notMissingAndThen("lines")(_.traverse(_.create)),
        fluxDensityContinuum.notMissing("fluxDensityContinuum")
       ).mapN { (lst, fdc) =>
         EmissionLines(SortedMap.from(lst.map(_.toTuple)), fdc.toMeasure)
@@ -424,7 +458,7 @@ object SourceProfileModel {
     override val edit: StateT[EitherInput, EmissionLines[T], Unit] = {
 
       val validArgs = (
-        lines.validateNotNullable("lines")(_.traverse(_.toWavelengthEmissionLinePair).map(lst => SortedMap.from(lst.map(_.toTuple)))),
+        lines.validateNotNullable("lines")(_.traverse(_.create).map(lst => SortedMap.from(lst.map(_.toTuple)))),
         fluxDensityContinuum.validateIsNotNull("fluxDensityContinuum")
       ).tupled.toEither
 
