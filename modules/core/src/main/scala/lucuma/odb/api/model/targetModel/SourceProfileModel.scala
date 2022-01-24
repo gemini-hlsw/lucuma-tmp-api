@@ -458,14 +458,31 @@ object SourceProfileModel {
     override val edit: StateT[EitherInput, EmissionLines[T], Unit] = {
 
       val validArgs = (
-        lines.validateNotNullable("lines")(_.traverse(_.create).map(lst => SortedMap.from(lst.map(_.toTuple)))),
+        lines.validateIsNotNull("lines"),
         fluxDensityContinuum.validateIsNotNull("fluxDensityContinuum")
       ).tupled.toEither
 
       for {
         args <- StateT.liftF(validArgs)
-        (m, f) = args
-        _    <- EmissionLines.lines[T]                := m
+        (ls, f) = args
+        _    <- EmissionLines.lines[T]                :< ls.map { lst =>
+
+          StateT.modifyF[EitherInput, SortedMap[Wavelength, EmissionLine[T]]] { m =>
+            // When editing, the emission `lines` input is taken to mean the list
+            // of edits to perform.  Any wavelength not mentioned is left unchanged.
+            val updates: EitherInput[List[(Wavelength, EmissionLine[T])]] =
+              lst.traverse { lineIn =>
+                lineIn.wavelength.toWavelength("wavelength").andThen { wave =>
+                  m.get(wave).fold(lineIn.create.map(_.toTuple)) { line =>
+                    lineIn.edit.runS(WavelengthEmissionLinePair(wave, line)).map(_.toTuple).toValidated
+                  }
+                }
+              }.toEither
+
+            updates.map(m ++ _)
+          }
+
+        }
         _    <- EmissionLines.fluxDensityContinuum[T] := f.map(_.toMeasure)
       } yield ()
 

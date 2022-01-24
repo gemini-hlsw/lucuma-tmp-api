@@ -153,8 +153,8 @@ trait ArbSourceProfileModel {
     Arbitrary {
       for {
         wl <- arbitrary[WavelengthModel.Input]
-        lw <- arbitrary[PosBigDecimal]
-        lf <- arbitrary[CreateMeasureInput[PosBigDecimal, LineFlux[T]]]
+        lw <- arbitrary[Input[PosBigDecimal]]
+        lf <- arbitrary[Input[CreateMeasureInput[PosBigDecimal, LineFlux[T]]]]
       } yield EmissionLineInput(wl, lw, lf)
     }
 
@@ -163,8 +163,8 @@ trait ArbSourceProfileModel {
   ): Cogen[EmissionLineInput[T]] =
     Cogen[(
       WavelengthModel.Input,
-      PosBigDecimal,
-      CreateMeasureInput[PosBigDecimal, LineFlux[T]]
+      Input[PosBigDecimal],
+      Input[CreateMeasureInput[PosBigDecimal, LineFlux[T]]]
     )].contramap { in => (
       in.wavelength,
       in.lineWidth,
