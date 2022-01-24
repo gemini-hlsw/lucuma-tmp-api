@@ -594,7 +594,8 @@ object SourceProfileSchema {
       s"""Create or edit a band normalized value with $groupName magnitude units.  Specify both "sed" and "brightnesses" when creating a new BandNormalized${groupName.capitalize}.""",
       List(
         InputObjectUnnormalizedSed.createRequiredEditOptional("sed", s"BandNormalized${groupName.capitalize}"),
-        ListInputType(ev).createRequiredEditOptional("brightnesses", s"BandNormalized${groupName.capitalize}")
+        ListInputType(ev).createRequiredEditOptional("brightnesses", s"BandNormalized${groupName.capitalize}"),
+        ListInputType(ev).optionField("brightnessEdits", "Optional field that may be provided to edit existing brightness definitions or add new ones")
       )
     )
 
@@ -670,6 +671,7 @@ object SourceProfileSchema {
       s"""Create or edit emission lines with $groupName line flux and flux density continuum units. Both "lines" and "fluxDensityContinuum" are required when creating a new EmissionLines${groupName.capitalize}.""",
       List(
         ListInputType(ev0).createRequiredEditOptional("lines", s"EmissionLines${groupName.capitalize}"),
+        ListInputType(ev0).optionField("lineEdits", "Optional field that may be provided to edit existing emission line definitions or add new ones"),
         ev1.createRequiredEditOptional("fluxDensityContinuum", s"EmissionLines${groupName.capitalize}")
       )
     )

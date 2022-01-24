@@ -133,7 +133,8 @@ trait ArbSourceProfileModel {
       for {
         s <- arbitrary[Input[UnnormalizedSedInput]]
         b <- arbitrary[Input[List[BandBrightnessInput[T]]]]
-      } yield BandNormalizedInput(s, b)
+        e <- arbitrary[Input[List[BandBrightnessInput[T]]]]
+      } yield BandNormalizedInput(s, b, e)
     }
 
   implicit def cogBandNormalizedInput[T](
@@ -141,10 +142,12 @@ trait ArbSourceProfileModel {
   ): Cogen[BandNormalizedInput[T]] =
     Cogen[(
       Input[UnnormalizedSedInput],
+      Input[List[BandBrightnessInput[T]]],
       Input[List[BandBrightnessInput[T]]]
     )].contramap { in => (
       in.sed,
-      in.brightnesses
+      in.brightnesses,
+      in.brightnessEdits
     )}
 
   implicit def arbEmissionLineInput[T](
@@ -178,8 +181,9 @@ trait ArbSourceProfileModel {
     Arbitrary {
       for {
         ls  <- arbitrary[Input[List[EmissionLineInput[T]]]]
+        e   <- arbitrary[Input[List[EmissionLineInput[T]]]]
         fdc <- arbitrary[Input[MeasureInput[PosBigDecimal, FluxDensityContinuum[T]]]]
-      } yield EmissionLinesInput(ls, fdc)
+      } yield EmissionLinesInput(ls, e, fdc)
     }
 
   implicit def cogEmissionLinesInput[T](
@@ -188,9 +192,11 @@ trait ArbSourceProfileModel {
   ): Cogen[EmissionLinesInput[T]] =
     Cogen[(
       Input[List[EmissionLineInput[T]]],
+      Input[List[EmissionLineInput[T]]],
       Input[MeasureInput[PosBigDecimal, FluxDensityContinuum[T]]]
     )].contramap { in => (
       in.lines,
+      in.lineEdits,
       in.fluxDensityContinuum
     )}
 
