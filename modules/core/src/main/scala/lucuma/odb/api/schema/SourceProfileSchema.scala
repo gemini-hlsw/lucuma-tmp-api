@@ -13,7 +13,7 @@ import lucuma.core.math.dimensional.{Measure, Of, Units}
 import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
 import lucuma.core.model.{SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.core.util.Enumerated
-import lucuma.odb.api.model.targetModel.SourceProfileModel.{BandBrightnessInput, BandBrightnessPair, BandNormalizedInput, CreateEmissionLineInput, CreateMeasureInput, EmissionLinesInput, FluxDensityInput, GaussianInput, SourceProfileInput, SpectralDefinitionInput, UnnormalizedSedInput, WavelengthEmissionLinePair}
+import lucuma.odb.api.model.targetModel.SourceProfileModel.{BandBrightnessInput, BandBrightnessPair, BandNormalizedInput, EmissionLineInput, CreateMeasureInput, EmissionLinesInput, FluxDensityInput, GaussianInput, SourceProfileInput, SpectralDefinitionInput, UnnormalizedSedInput, WavelengthEmissionLinePair}
 import lucuma.odb.api.schema.syntax.inputtype._
 import monocle.Prism
 import sangria.schema.{Field, _}
@@ -626,16 +626,24 @@ object SourceProfileSchema {
 
   private def createEmissionLineInputObjectType[T](
     groupName: String
-  )(implicit ev: InputType[CreateMeasureInput[PosBigDecimal, LineFlux[T]]]): InputObjectType[CreateEmissionLineInput[T]] =
-    deriveInputObjectType(
-      InputObjectTypeName(s"CreateEmissionLine${groupName.capitalize}"),
-      InputObjectTypeDescription(s"Create an emission line with $groupName line flux units")
-    )
+  )(implicit ev: InputType[CreateMeasureInput[PosBigDecimal, LineFlux[T]]]): InputObjectType[EmissionLineInput[T]] = {
+    val typeName = s"EmissionLine${groupName.capitalize}"
 
-  implicit val InputObjectEmissionLineIntegrated: InputObjectType[CreateEmissionLineInput[Integrated]] =
+    InputObjectType[EmissionLineInput[T]](
+      s"${typeName}Input",
+      s"Create or edit an emission line with $groupName line flux units.  When creating a new value, all fields are required.",
+      List(
+        InputField("wavelength", WavelengthSchema.InputWavelength),
+        PosBigDecimalType.createRequiredEditOptional("lineWidth", typeName),
+        ev.createRequiredEditOptional("lineFlux", typeName)
+      )
+    )
+  }
+
+  implicit val InputObjectEmissionLineIntegrated: InputObjectType[EmissionLineInput[Integrated]] =
     createEmissionLineInputObjectType[Integrated]("integrated")
 
-  implicit val InputObjectEmissionLineSurface: InputObjectType[CreateEmissionLineInput[Surface]] =
+  implicit val InputObjectEmissionLineSurface: InputObjectType[EmissionLineInput[Surface]] =
     createEmissionLineInputObjectType[Surface]("surface")
 
   private def createFluxDensityContinuumInputObjectType[T](
@@ -658,7 +666,7 @@ object SourceProfileSchema {
 
   private def createEmissionLinesInputObjectType[T](
     groupName: String
-  )(implicit ev0: InputType[CreateEmissionLineInput[T]], ev1: InputType[CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[T]]]): InputObjectType[EmissionLinesInput[T]] =
+  )(implicit ev0: InputType[EmissionLineInput[T]], ev1: InputType[CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[T]]]): InputObjectType[EmissionLinesInput[T]] =
     InputObjectType[EmissionLinesInput[T]](
       s"EmissionLines${groupName.capitalize}Input",
       s"""Create or edit emission lines with $groupName line flux and flux density continuum units. Both "lines" and "fluxDensityContinuum" are required when creating a new EmissionLines${groupName.capitalize}.""",
