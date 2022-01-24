@@ -6,7 +6,6 @@ package lucuma.odb.api.schema
 import cats.MonadError
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
-import lucuma.core.model.SourceProfile
 import lucuma.odb.api.repo.{OdbRepo, ResultPage}
 import lucuma.odb.api.model.targetModel.TargetModel
 import lucuma.odb.api.schema.TargetSchema.ArgumentTargetId
@@ -82,31 +81,13 @@ trait TargetQuery {
       resolve     = c => c.target(_.selectObservationTargetEnvironment(c.observationId))
     )
 
-  def testSourceProfile[F[_]]: Field[OdbRepo[F], Unit] = {
-    import SourceProfileSchema._
-
-    // temporary
-
-    Field(
-      name        = "testSourceProfile",
-      fieldType   = SourceProfileType,
-      description = "test source profile".some,
-      arguments   = List(ArgumentCreateBandNormalizedIntegrated),
-      resolve     = c => {
-        val big = c.arg(ArgumentCreateBandNormalizedIntegrated).create.toOption.get
-        SourceProfile.Point(big)
-      }
-    )
-  }
-
   def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
     List(
       target[F],
       scienceTargets[F],
       firstScienceTarget[F],
       asterism[F],
-      targetEnvironment[F],
-      testSourceProfile[F]
+      targetEnvironment[F]
     )
 }
 

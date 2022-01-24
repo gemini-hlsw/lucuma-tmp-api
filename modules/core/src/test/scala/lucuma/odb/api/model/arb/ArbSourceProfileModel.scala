@@ -79,19 +79,19 @@ trait ArbSourceProfileModel {
       in.fluxDensities
     )}
 
-  implicit def arbCreateMeasureInput[V: Arbitrary, U](
+  implicit def arbMeasureInput[V: Arbitrary, U](
     implicit ev: Enumerated[Units Of U]
-  ): Arbitrary[CreateMeasureInput[V, U]] =
+  ): Arbitrary[MeasureInput[V, U]] =
     Arbitrary {
       for {
         v <- arbitrary[V]
         u <- arbitrary[Units Of U]
-      } yield CreateMeasureInput(v, u)
+      } yield MeasureInput(v, u)
     }
 
-  implicit def cogCreateMeasureInput[V: Cogen, U](
+  implicit def cogMeasureInput[V: Cogen, U](
     implicit ev: Enumerated[Units Of U]
-  ): Cogen[CreateMeasureInput[V, U]] =
+  ): Cogen[MeasureInput[V, U]] =
     Cogen[(
       V,
       Units Of U
@@ -105,7 +105,7 @@ trait ArbSourceProfileModel {
   ): Arbitrary[BandBrightnessInput[T]] =
     Arbitrary {
       for {
-        br <- arbitrary[Input[CreateMeasureInput[BigDecimal, Brightness[T]]]]
+        br <- arbitrary[Input[MeasureInput[BigDecimal, Brightness[T]]]]
         bd <- arbitrary[Band]
         e  <- arbitrary[Input[BigDecimal]]
       } yield BandBrightnessInput(bd, br.map(_.value), br.map(_.units), e)
@@ -154,7 +154,7 @@ trait ArbSourceProfileModel {
       for {
         wl <- arbitrary[WavelengthModel.Input]
         lw <- arbitrary[Input[PosBigDecimal]]
-        lf <- arbitrary[Input[CreateMeasureInput[PosBigDecimal, LineFlux[T]]]]
+        lf <- arbitrary[Input[MeasureInput[PosBigDecimal, LineFlux[T]]]]
       } yield EmissionLineInput(wl, lw, lf)
     }
 
@@ -164,7 +164,7 @@ trait ArbSourceProfileModel {
     Cogen[(
       WavelengthModel.Input,
       Input[PosBigDecimal],
-      Input[CreateMeasureInput[PosBigDecimal, LineFlux[T]]]
+      Input[MeasureInput[PosBigDecimal, LineFlux[T]]]
     )].contramap { in => (
       in.wavelength,
       in.lineWidth,
@@ -178,7 +178,7 @@ trait ArbSourceProfileModel {
     Arbitrary {
       for {
         ls  <- arbitrary[Input[List[EmissionLineInput[T]]]]
-        fdc <- arbitrary[Input[CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[T]]]]
+        fdc <- arbitrary[Input[MeasureInput[PosBigDecimal, FluxDensityContinuum[T]]]]
       } yield EmissionLinesInput(ls, fdc)
     }
 
@@ -188,7 +188,7 @@ trait ArbSourceProfileModel {
   ): Cogen[EmissionLinesInput[T]] =
     Cogen[(
       Input[List[EmissionLineInput[T]]],
-      Input[CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[T]]]
+      Input[MeasureInput[PosBigDecimal, FluxDensityContinuum[T]]]
     )].contramap { in => (
       in.lines,
       in.fluxDensityContinuum

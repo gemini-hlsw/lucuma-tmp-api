@@ -13,12 +13,11 @@ import lucuma.core.math.dimensional.{Measure, Of, Units}
 import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
 import lucuma.core.model.{SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.core.util.Enumerated
-import lucuma.odb.api.model.targetModel.SourceProfileModel.{BandBrightnessInput, BandBrightnessPair, BandNormalizedInput, EmissionLineInput, CreateMeasureInput, EmissionLinesInput, FluxDensityInput, GaussianInput, SourceProfileInput, SpectralDefinitionInput, UnnormalizedSedInput, WavelengthEmissionLinePair}
+import lucuma.odb.api.model.targetModel.SourceProfileModel.{BandBrightnessInput, BandBrightnessPair, BandNormalizedInput, EmissionLineInput, MeasureInput, EmissionLinesInput, FluxDensityInput, GaussianInput, SourceProfileInput, SpectralDefinitionInput, UnnormalizedSedInput, WavelengthEmissionLinePair}
 import lucuma.odb.api.schema.syntax.inputtype._
 import monocle.Prism
 import sangria.schema.{Field, _}
 import sangria.macros.derive._
-import sangria.marshalling.circe._
 
 
 object SourceProfileSchema {
@@ -26,7 +25,6 @@ object SourceProfileSchema {
   import AngleSchema.{AngleType, InputObjectAngle}
   import GeneralSchema.PosBigDecimalType
   import syntax.`enum`._
-  import syntax.inputobjecttype._
   import WavelengthSchema._
 
   implicit val EnumTypeBand: EnumType[Band] =
@@ -609,24 +607,24 @@ object SourceProfileSchema {
   private def createLineFluxInputObjectType[T](
     groupName: String,
     e: EnumType[Units Of LineFlux[T]]
-  ): InputObjectType[CreateMeasureInput[PosBigDecimal, LineFlux[T]]] = {
+  ): InputObjectType[MeasureInput[PosBigDecimal, LineFlux[T]]] = {
     implicit val unitsInput: InputType[Units Of LineFlux[T]] = e
 
-    deriveInputObjectType[CreateMeasureInput[PosBigDecimal, LineFlux[T]]](
-      InputObjectTypeName(s"CreateLineFlux${groupName.capitalize}"),
-      InputObjectTypeDescription(s"Create a line flux value with $groupName units")
+    deriveInputObjectType[MeasureInput[PosBigDecimal, LineFlux[T]]](
+      InputObjectTypeName(s"LineFlux${groupName.capitalize}Input"),
+      InputObjectTypeDescription(s"A line flux value with $groupName units")
     )
   }
 
-  implicit val InputObjectCreateLineFluxIntegrated: InputObjectType[CreateMeasureInput[PosBigDecimal, LineFlux[Integrated]]] =
+  implicit val InputObjectLineFluxIntegrated: InputObjectType[MeasureInput[PosBigDecimal, LineFlux[Integrated]]] =
     createLineFluxInputObjectType("integrated", EnumTypeLineFluxIntegrated)
 
-  implicit val InputObjectCreateLineFluxSurface: InputObjectType[CreateMeasureInput[PosBigDecimal, LineFlux[Surface]]] =
+  implicit val InputObjectLineFluxSurface: InputObjectType[MeasureInput[PosBigDecimal, LineFlux[Surface]]] =
     createLineFluxInputObjectType("surface", EnumTypeLineFluxSurface)
 
   private def createEmissionLineInputObjectType[T](
     groupName: String
-  )(implicit ev: InputType[CreateMeasureInput[PosBigDecimal, LineFlux[T]]]): InputObjectType[EmissionLineInput[T]] = {
+  )(implicit ev: InputType[MeasureInput[PosBigDecimal, LineFlux[T]]]): InputObjectType[EmissionLineInput[T]] = {
     val typeName = s"EmissionLine${groupName.capitalize}"
 
     InputObjectType[EmissionLineInput[T]](
@@ -649,24 +647,24 @@ object SourceProfileSchema {
   private def createFluxDensityContinuumInputObjectType[T](
     groupName: String,
     e: EnumType[Units Of FluxDensityContinuum[T]]
-  ): InputObjectType[CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[T]]] = {
+  ): InputObjectType[MeasureInput[PosBigDecimal, FluxDensityContinuum[T]]] = {
     implicit val unitsInput: InputType[Units Of FluxDensityContinuum[T]] = e
 
-    deriveInputObjectType[CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[T]]](
-      InputObjectTypeName(s"CreateFluxDensityContinuum${groupName.capitalize}"),
-      InputObjectTypeDescription(s"Create a flux density continuum value with $groupName units")
+    deriveInputObjectType[MeasureInput[PosBigDecimal, FluxDensityContinuum[T]]](
+      InputObjectTypeName(s"FluxDensityContinuum${groupName.capitalize}Input"),
+      InputObjectTypeDescription(s"A flux density continuum value with $groupName units")
     )
   }
 
-  implicit val InputObjectCreateFluxDensityContinuumIntegrated: InputObjectType[CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[Integrated]]] =
+  implicit val InputObjectFluxDensityContinuumIntegrated: InputObjectType[MeasureInput[PosBigDecimal, FluxDensityContinuum[Integrated]]] =
     createFluxDensityContinuumInputObjectType("integrated", EnumTypeFluxDensityContinuumIntegrated)
 
-  implicit val InputObjectCreateFluxDensityContinuumSurface: InputObjectType[CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[Surface]]] =
+  implicit val InputObjectFluxDensityContinuumSurface: InputObjectType[MeasureInput[PosBigDecimal, FluxDensityContinuum[Surface]]] =
     createFluxDensityContinuumInputObjectType("surface", EnumTypeFluxDensityContinuumSurface)
 
   private def createEmissionLinesInputObjectType[T](
     groupName: String
-  )(implicit ev0: InputType[EmissionLineInput[T]], ev1: InputType[CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[T]]]): InputObjectType[EmissionLinesInput[T]] =
+  )(implicit ev0: InputType[EmissionLineInput[T]], ev1: InputType[MeasureInput[PosBigDecimal, FluxDensityContinuum[T]]]): InputObjectType[EmissionLinesInput[T]] =
     InputObjectType[EmissionLinesInput[T]](
       s"EmissionLines${groupName.capitalize}Input",
       s"""Create or edit emission lines with $groupName line flux and flux density continuum units. Both "lines" and "fluxDensityContinuum" are required when creating a new EmissionLines${groupName.capitalize}.""",
@@ -723,15 +721,5 @@ object SourceProfileSchema {
         InputObjectGaussian.optionField("gaussian")
       )
     )
-
-  // Arguments
-
-  // TODO: Remove
-
-  val ArgumentCreateBandNormalizedIntegrated: Argument[BandNormalizedInput[Integrated]] =
-    InputObjectBandNormalizedIntegrated.argument("mag", "magnitude")
-
-  val ArgumentSourceProfile: Argument[SourceProfileInput] =
-    InputObjectSourceProfile.argument("sourceProfile", "source profile description")
 
 }

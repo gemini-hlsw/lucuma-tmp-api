@@ -189,7 +189,7 @@ object SourceProfileModel {
 
   }
 
-  final case class CreateMeasureInput[V, U](
+  final case class MeasureInput[V, U](
     value: V,
     units: Units Of U
   ) {
@@ -199,16 +199,16 @@ object SourceProfileModel {
 
   }
 
-  object CreateMeasureInput {
+  object MeasureInput {
 
-    implicit def DecoderCreateMeasureInput[V: Decoder, U](
+    implicit def DecoderMeasureInput[V: Decoder, U](
       implicit ev: Decoder[Units Of U]
-    ): Decoder[CreateMeasureInput[V, U]] =
-      deriveDecoder[CreateMeasureInput[V, U]]
+    ): Decoder[MeasureInput[V, U]] =
+      deriveDecoder[MeasureInput[V, U]]
 
     implicit def EqMeasureInput[V: Eq, U](
       implicit ev: Eq[Units Of U]
-    ): Eq[CreateMeasureInput[V, U]] =
+    ): Eq[MeasureInput[V, U]] =
       Eq.by { a => (
         a.value,
         a.units
@@ -380,7 +380,7 @@ object SourceProfileModel {
   final case class EmissionLineInput[T](
     wavelength: WavelengthModel.Input,
     lineWidth:  Input[PosBigDecimal]                                  = Input.ignore,
-    lineFlux:   Input[CreateMeasureInput[PosBigDecimal, LineFlux[T]]] = Input.ignore
+    lineFlux:   Input[MeasureInput[PosBigDecimal, LineFlux[T]]] = Input.ignore
   ) extends EditorInput[WavelengthEmissionLinePair[T]] {
 
     override val create: ValidatedInput[WavelengthEmissionLinePair[T]] =
@@ -445,7 +445,7 @@ object SourceProfileModel {
 
   final case class EmissionLinesInput[T](
     lines:                Input[List[EmissionLineInput[T]]]                           = Input.ignore,
-    fluxDensityContinuum: Input[CreateMeasureInput[PosBigDecimal, FluxDensityContinuum[T]]] = Input.ignore
+    fluxDensityContinuum: Input[MeasureInput[PosBigDecimal, FluxDensityContinuum[T]]] = Input.ignore
   ) extends EditorInput[EmissionLines[T]] {
 
     override val create: ValidatedInput[EmissionLines[T]] =
@@ -584,7 +584,7 @@ object SourceProfileModel {
     implicit val DecoderGaussianInput: Decoder[GaussianInput] =
       deriveConfiguredDecoder[GaussianInput]
 
-    implicit val EqCreateGaussianInput: Eq[GaussianInput] =
+    implicit val EqGaussianInput: Eq[GaussianInput] =
       Eq.by { a => (
         a.fwhm,
         a.spectralDefinition
