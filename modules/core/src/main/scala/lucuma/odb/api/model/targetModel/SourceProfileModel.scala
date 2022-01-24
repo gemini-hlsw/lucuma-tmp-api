@@ -31,6 +31,8 @@ import lucuma.core.model.{EmissionLine, SourceProfile, SpectralDefinition, Unnor
 import lucuma.odb.api.model.{AngleModel, EditorInput, EitherInput, InputError, ValidatedInput, WavelengthModel}
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
+import lucuma.odb.api.model.targetModel.SourceProfileModel.BandNormalizedInput.brightnessEditor
+import lucuma.odb.api.model.targetModel.SourceProfileModel.EmissionLinesInput.lineEditor
 import monocle.{Focus, Lens}
 
 import scala.collection.immutable.SortedMap
@@ -307,34 +309,16 @@ object SourceProfileModel {
         BandNormalized(sed, SortedMap.from(bright.map(_.toTuple)))
       }
 
-    override val edit: StateT[EitherInput, BandNormalized[T], Unit] = {
-      val validArgs = (
-        sed.validateNotNullable("sed")(_.toUnnormalizedSed),
-        brightnesses.validateIsNotNull("brightnesses")
-      ).tupled.toEither
-
+    override val edit: StateT[EitherInput, BandNormalized[T], Unit] =
       for {
-        args  <- StateT.liftF(validArgs)
-        (s, b) = args
-        _     <- BandNormalized.sed[T]          := s
-        _     <- BandNormalized.brightnesses[T] :< b.map { lst =>
-                   StateT.modifyF[EitherInput, SortedMap[Band, BrightnessMeasure[T]]] { m =>
-
-                     // When editing, the `brightnesses` input is taken to mean
-                     // the list of edits to perform.  Any band not mentioned is
-                     // left unchanged.
-                     val updates: EitherInput[List[(Band, Of[Measure[BrightnessValue], Brightness[T]])]] =
-                       lst.traverse { bbi =>
-                         m.get(bbi.band).fold(bbi.create.map(_.toTuple)) { measure =>
-                           bbi.edit.runS(BandBrightnessPair[T](bbi.band, measure)).map(_.toTuple).toValidated
-                         }
-                       }.toEither
-
-                     updates.map(m ++ _)
-                   }
-                 }
+        s <- StateT.liftF(sed.validateNotNullable("sed")(_.toUnnormalizedSed).toEither)
+        _ <- BandNormalized.sed[T]          := s
+        _ <- BandNormalized.brightnesses[T] :< brightnesses.fold(
+          StateT.empty[EitherInput, SortedMap[Band, BrightnessMeasure[T]], Unit],
+          StateT.setF(SortedMap.empty[Band, BrightnessMeasure[T]].rightNec[InputError]),
+          brightnessEditor[T]
+        ).some
       } yield ()
-    }
   }
 
   object BandNormalizedInput {
@@ -350,6 +334,28 @@ object SourceProfileModel {
 
     implicit def EqBandNormalizedInput[T]: Eq[BandNormalizedInput[T]] =
       Eq.by { a => (a.sed, a.brightnesses) }
+
+    def brightnessEditor[T](
+      inputs: List[BandBrightnessInput[T]]
+    ): StateT[EitherInput, SortedMap[Band, BrightnessMeasure[T]], Unit] =
+
+      StateT.modifyF[EitherInput, SortedMap[Band, BrightnessMeasure[T]]] { m =>
+
+        // When editing, the `brightnesses` input is taken to mean
+        // the list of edits to perform.  Any band not mentioned is
+        // left unchanged.
+        val updates: EitherInput[List[(Band, Of[Measure[BrightnessValue], Brightness[T]])]] =
+          inputs.traverse { bbi =>
+            m.get(bbi.band).fold(bbi.create.map(_.toTuple)) { measure =>
+              bbi.edit.runS(BandBrightnessPair[T](bbi.band, measure)).map(_.toTuple).toValidated
+            }
+          }.toEither
+
+        updates.map(m ++ _)
+
+      }
+
+
 
   }
 
@@ -455,38 +461,17 @@ object SourceProfileModel {
         EmissionLines(SortedMap.from(lst.map(_.toTuple)), fdc.toMeasure)
       }
 
-    override val edit: StateT[EitherInput, EmissionLines[T], Unit] = {
-
-      val validArgs = (
-        lines.validateIsNotNull("lines"),
-        fluxDensityContinuum.validateIsNotNull("fluxDensityContinuum")
-      ).tupled.toEither
-
+    override val edit: StateT[EitherInput, EmissionLines[T], Unit] =
       for {
-        args <- StateT.liftF(validArgs)
-        (ls, f) = args
-        _    <- EmissionLines.lines[T]                :< ls.map { lst =>
-
-          StateT.modifyF[EitherInput, SortedMap[Wavelength, EmissionLine[T]]] { m =>
-            // When editing, the emission `lines` input is taken to mean the list
-            // of edits to perform.  Any wavelength not mentioned is left unchanged.
-            val updates: EitherInput[List[(Wavelength, EmissionLine[T])]] =
-              lst.traverse { lineIn =>
-                lineIn.wavelength.toWavelength("wavelength").andThen { wave =>
-                  m.get(wave).fold(lineIn.create.map(_.toTuple)) { line =>
-                    lineIn.edit.runS(WavelengthEmissionLinePair(wave, line)).map(_.toTuple).toValidated
-                  }
-                }
-              }.toEither
-
-            updates.map(m ++ _)
-          }
-
-        }
-        _    <- EmissionLines.fluxDensityContinuum[T] := f.map(_.toMeasure)
+        f <- StateT.liftF(fluxDensityContinuum.validateIsNotNull("fluxDensityContinuum").toEither)
+        _ <- EmissionLines.lines[T]                :< lines.fold(
+          StateT.empty[EitherInput, SortedMap[Wavelength, EmissionLine[T]], Unit],
+          StateT.setF(SortedMap.empty[Wavelength, EmissionLine[T]].rightNec[InputError]),
+          lineEditor[T]
+        ).some
+        _ <- EmissionLines.fluxDensityContinuum[T] := f.map(_.toMeasure)
       } yield ()
 
-    }
 
   }
 
@@ -506,6 +491,26 @@ object SourceProfileModel {
         a.lines,
         a.fluxDensityContinuum
       )}
+
+    def lineEditor[T](
+      inputs: List[EmissionLineInput[T]]
+    ): StateT[EitherInput, SortedMap[Wavelength, EmissionLine[T]], Unit] =
+
+      StateT.modifyF[EitherInput, SortedMap[Wavelength, EmissionLine[T]]] { m =>
+        // When editing, the emission `lines` input is taken to mean the list
+        // of edits to perform.  Any wavelength not mentioned is left unchanged.
+        val updates: EitherInput[List[(Wavelength, EmissionLine[T])]] =
+          inputs.traverse { lineIn =>
+            lineIn.wavelength.toWavelength("wavelength").andThen { wave =>
+              m.get(wave).fold(lineIn.create.map(_.toTuple)) { line =>
+                lineIn.edit.runS(WavelengthEmissionLinePair(wave, line)).map(_.toTuple).toValidated
+              }
+            }
+          }.toEither
+
+        updates.map(m ++ _)
+      }
+
   }
 
   final case class SpectralDefinitionInput[T](
