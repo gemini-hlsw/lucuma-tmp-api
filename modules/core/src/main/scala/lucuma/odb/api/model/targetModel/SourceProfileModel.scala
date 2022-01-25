@@ -31,8 +31,6 @@ import lucuma.core.model.{EmissionLine, SourceProfile, SpectralDefinition, Unnor
 import lucuma.odb.api.model.{AngleModel, EditorInput, EitherInput, InputError, ValidatedInput, WavelengthModel}
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
-import lucuma.odb.api.model.targetModel.SourceProfileModel.BandNormalizedInput.{brightnessCreator, brightnessEditor}
-import lucuma.odb.api.model.targetModel.SourceProfileModel.EmissionLinesInput.{lineCreator, lineEditor}
 import monocle.{Focus, Lens}
 
 import scala.collection.immutable.SortedMap
@@ -298,19 +296,26 @@ object SourceProfileModel {
   }
 
   final case class BandNormalizedInput[T](
-    sed:             Input[UnnormalizedSedInput]         = Input.ignore,
-    brightnesses:    Input[List[BandBrightnessInput[T]]] = Input.ignore,
-    brightnessEdits: Input[List[BandBrightnessInput[T]]] = Input.ignore
+    sed:                Input[UnnormalizedSedInput]         = Input.ignore,
+    brightnesses:       Input[List[BandBrightnessInput[T]]] = Input.ignore,
+    editBrightnesses:   Input[List[BandBrightnessInput[T]]] = Input.ignore,
+    deleteBrightnesses: Input[List[Band]]                   = Input.ignore
   ) extends EditorInput[BandNormalized[T]] {
+
+    import lucuma.odb.api.model.targetModel.SourceProfileModel.BandNormalizedInput._
 
     override val create: ValidatedInput[BandNormalized[T]] =
       (sed.notMissingAndThen("sed")(_.toUnnormalizedSed),
        brightnesses.notMissingAndThen("brightnesses")(brightnessCreator[T]).andThen { m =>
          // It would be weird to specify edits to the brightnesses you just
          // created, but it seems like it should work if you do.  Hence:
-         brightnessEdits
+         editBrightnesses
            .toOption
            .fold(m.validNec[InputError])(brightnessEditor[T](_).runS(m).toValidated)
+       }.map { m =>
+
+         // Also weird to delete bands you just made, but also should work.
+         deleteBrightnesses.toOption.fold(m)(bands => m -- bands)
        }
       ).mapN { (sed, bright) => BandNormalized(sed, bright) }
 
@@ -321,16 +326,22 @@ object SourceProfileModel {
 
         // `brightnesses` to set brightness values if you want to start over
         // from scratch
-        _ <- BandNormalized.brightnesses[T] :< brightnesses.fold(
-               StateT.empty[EitherInput, SortedMap[Band, BrightnessMeasure[T]], Unit],
-               StateT.setF(SortedMap.empty[Band, BrightnessMeasure[T]].rightNec[InputError]),
-               in => StateT.setF(brightnessCreator[T](in).toEither)
-             ).some
+        _ <- BandNormalized.brightnesses[T] :<
+               brightnesses.fold(
+                 brightnessNoop[T],
+                 StateT.setF(emptyBrightnessMap[T].rightNec[InputError]),
+                 in => StateT.setF(brightnessCreator[T](in).toEither)
+               ).some
 
-        // `brightnessEdits` to edit existing ones or add new ones
-        _ <- BandNormalized.brightnesses[T] :< brightnessEdits.toOption.fold(
-               StateT.empty[EitherInput, SortedMap[Band, BrightnessMeasure[T]], Unit]
-             )(brightnessEditor[T]).some
+        // `editBrightnesses` to edit existing ones or add new ones
+        _ <- BandNormalized.brightnesses[T] :<
+               editBrightnesses.toOption.fold(brightnessNoop[T])(brightnessEditor[T]).some
+
+        // `deleteBrightnesses` to delete existing ones
+        _ <- BandNormalized.brightnesses[T] :<
+               deleteBrightnesses.toOption.fold(brightnessNoop[T]) { bands =>
+                 StateT.modify[EitherInput, SortedMap[Band, BrightnessMeasure[T]]](_ -- bands)
+               }.some
 
       } yield ()
   }
@@ -349,14 +360,20 @@ object SourceProfileModel {
     implicit def EqBandNormalizedInput[T]: Eq[BandNormalizedInput[T]] =
       Eq.by { a => (a.sed, a.brightnesses) }
 
-    def brightnessCreator[T](
+    private def emptyBrightnessMap[T]: SortedMap[Band, BrightnessMeasure[T]] =
+      SortedMap.empty
+
+    private def brightnessNoop[T]: StateT[EitherInput, SortedMap[Band, BrightnessMeasure[T]], Unit] =
+      StateT.empty
+
+    private def brightnessCreator[T](
       inputs: List[BandBrightnessInput[T]]
     ): ValidatedInput[SortedMap[Band, BrightnessMeasure[T]]] =
         inputs
           .traverse(_.create)
           .map(lst => SortedMap.from(lst.map(_.toTuple)))
 
-    def brightnessEditor[T](
+    private def brightnessEditor[T](
       inputs: List[BandBrightnessInput[T]]
     ): StateT[EitherInput, SortedMap[Band, BrightnessMeasure[T]], Unit] =
 
@@ -375,8 +392,6 @@ object SourceProfileModel {
         updates.map(m ++ _)
 
       }
-
-
 
   }
 
@@ -472,17 +487,28 @@ object SourceProfileModel {
 
   final case class EmissionLinesInput[T](
     lines:                Input[List[EmissionLineInput[T]]]                           = Input.ignore,
-    lineEdits:            Input[List[EmissionLineInput[T]]]                           = Input.ignore,
+    editLines:            Input[List[EmissionLineInput[T]]]                           = Input.ignore,
+    deleteLines:          Input[List[WavelengthModel.Input]]                          = Input.ignore,
     fluxDensityContinuum: Input[MeasureInput[PosBigDecimal, FluxDensityContinuum[T]]] = Input.ignore
   ) extends EditorInput[EmissionLines[T]] {
+
+    import lucuma.odb.api.model.targetModel.SourceProfileModel.EmissionLinesInput._
 
     override val create: ValidatedInput[EmissionLines[T]] =
       (lines.notMissingAndThen("lines")(lineCreator[T]).andThen { m =>
         // It would be weird to specify edits to lines you just created, but it
         // seems like it should work if you do.  Hence:
-        lineEdits
+        editLines
           .toOption
           .fold(m.validNec[InputError])(lineEditor[T](_).runS(m).toValidated)
+      }.andThen { m =>
+
+        // Also weird to delete wavelengths you just created, but also should work.
+        deleteLines
+          .toOption
+          .traverse(_.traverse(_.toWavelength("wavelength")))
+          .map(_.fold(m)(m -- _))
+
       },
        fluxDensityContinuum.notMissing("fluxDensityContinuum")
       ).mapN { (lines, fdc) => EmissionLines(lines, fdc.toMeasure) }
@@ -490,19 +516,26 @@ object SourceProfileModel {
     override val edit: StateT[EitherInput, EmissionLines[T], Unit] =
       for {
         f <- StateT.liftF(fluxDensityContinuum.validateIsNotNull("fluxDensityContinuum").toEither)
+        w <- StateT.liftF(deleteLines.toOption.traverse(_.traverse(_.toWavelength("wavelength"))).toEither)
 
         // `lines` to set emission line values if you want to start over from
         // scratch
-        _ <- EmissionLines.lines[T]                :< lines.fold(
-               StateT.empty[EitherInput, SortedMap[Wavelength, EmissionLine[T]], Unit],
-               StateT.setF(SortedMap.empty[Wavelength, EmissionLine[T]].rightNec[InputError]),
+        _ <- EmissionLines.lines[T]                :<
+             lines.fold(
+               lineNoop[T],
+               StateT.setF(emptyLineMap[T].rightNec[InputError]),
                in => StateT.setF(lineCreator[T](in).toEither)
              ).some
 
-        // `lineEdits` to edit existing ones or add new ones
-        _ <- EmissionLines.lines[T]                :< lineEdits.toOption.fold(
-               StateT.empty[EitherInput, SortedMap[Wavelength, EmissionLine[T]], Unit]
-             )(lineEditor[T]).some
+        // `editLines` to edit existing ones or add new ones
+        _ <- EmissionLines.lines[T]                :<
+             editLines.toOption.fold(lineNoop[T])(lineEditor[T]).some
+
+        // `deleteLines` to delete existing ones
+        _ <- EmissionLines.lines[T]                :<
+          w.fold(lineNoop[T]) { lst =>
+            StateT.modify[EitherInput, SortedMap[Wavelength, EmissionLine[T]]](_ -- lst)
+          }.some
 
         _ <- EmissionLines.fluxDensityContinuum[T] := f.map(_.toMeasure)
       } yield ()
@@ -526,6 +559,12 @@ object SourceProfileModel {
         a.lines,
         a.fluxDensityContinuum
       )}
+
+    private def emptyLineMap[T]: SortedMap[Wavelength, EmissionLine[T]] =
+      SortedMap.empty
+
+    private def lineNoop[T]: StateT[EitherInput, SortedMap[Wavelength, EmissionLine[T]], Unit] =
+      StateT.empty
 
     def lineCreator[T](
       inputs: List[EmissionLineInput[T]]
