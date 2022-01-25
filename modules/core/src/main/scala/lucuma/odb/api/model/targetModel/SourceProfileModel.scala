@@ -313,7 +313,6 @@ object SourceProfileModel {
            .toOption
            .fold(m.validNec[InputError])(brightnessEditor[T](_).runS(m).toValidated)
        }.map { m =>
-
          // Also weird to delete bands you just made, but also should work.
          deleteBrightnesses.toOption.fold(m)(bands => m -- bands)
        }
@@ -502,13 +501,11 @@ object SourceProfileModel {
           .toOption
           .fold(m.validNec[InputError])(lineEditor[T](_).runS(m).toValidated)
       }.andThen { m =>
-
         // Also weird to delete wavelengths you just created, but also should work.
         deleteLines
           .toOption
           .traverse(_.traverse(_.toWavelength("wavelength")))
           .map(_.fold(m)(m -- _))
-
       },
        fluxDensityContinuum.notMissing("fluxDensityContinuum")
       ).mapN { (lines, fdc) => EmissionLines(lines, fdc.toMeasure) }
