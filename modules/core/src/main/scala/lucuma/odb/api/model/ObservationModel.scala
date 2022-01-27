@@ -82,7 +82,7 @@ object ObservationModel extends ObservationOptics {
     status:               Option[ObsStatus],
     activeStatus:         Option[ObsActiveStatus],
     targets:              Option[TargetEnvironmentModel.Create],
-    constraintSet:        Option[ConstraintSetModel.Create],
+    constraintSet:        Option[ConstraintSetInput],
     scienceRequirements:  Option[ScienceRequirementsModel.Create],
     scienceConfiguration: Option[ScienceConfigurationModel.Create],
     config:               Option[InstrumentConfigModel.Create]
@@ -165,7 +165,7 @@ object ObservationModel extends ObservationOptics {
     status:               Input[ObsStatus]                      = Input.ignore,
     activeStatus:         Input[ObsActiveStatus]                = Input.ignore,
     targets:              Option[TargetEnvironmentModel.Edit]   = None,
-    constraintSet:        Option[ConstraintSetModel.Edit]       = None,
+    constraintSet:        Option[ConstraintSetInput]            = None,
     scienceRequirements:  Option[ScienceRequirementsModel.Edit] = None,
     scienceConfiguration: Input[ScienceConfigurationModelEdit]  = Input.ignore
   ) {
@@ -197,7 +197,7 @@ object ObservationModel extends ObservationOptics {
                   targets.fold(empty[TargetEnvironmentModel])(_.editor)
                 )
         _    <- ObservationModel.constraintSet.transform(
-                  constraintSet.fold(empty[ConstraintSetModel])(_.editor)
+                  constraintSet.fold(empty[ConstraintSetModel])(_.edit)
                 )
         _    <- ObservationModel.scienceRequirements.transform(
                   scienceRequirements.fold(empty[ScienceRequirements])(_.editor)

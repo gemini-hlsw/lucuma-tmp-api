@@ -7,14 +7,13 @@ package arb
 import clue.data.Input
 import eu.timepit.refined.scalacheck._
 import lucuma.core.enum._
-import lucuma.core.util.arb.{ ArbEnumerated, ArbGid }
+import lucuma.core.util.arb.ArbEnumerated
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
 trait ArbConstraintSetModel {
   import ArbElevationRange._
   import ArbEnumerated._
-  import ArbGid._
   import ArbInput._
 
   implicit val arbConstraintSet: Arbitrary[ConstraintSetModel] =
@@ -45,46 +44,18 @@ trait ArbConstraintSetModel {
       )
     )
 
-  implicit val arbConstraintSetCreate: Arbitrary[ConstraintSetModel.Create] =
-    Arbitrary {
-      for {
-        iq   <- arbitrary[ImageQuality]
-        ce   <- arbitrary[CloudExtinction]
-        sb   <- arbitrary[SkyBackground]
-        wv   <- arbitrary[WaterVapor]
-        erc  <- arbitrary[ElevationRangeInput]
-      } yield ConstraintSetModel.Create(iq, ce, sb, wv, erc)
-    }
-
-  implicit val cogConstraintSetCreate: Cogen[ConstraintSetModel.Create] =
-    Cogen[
-      (ImageQuality,
-       CloudExtinction,
-       SkyBackground,
-       WaterVapor,
-       ElevationRangeInput
-      )
-    ].contramap(cs =>
-      (cs.imageQuality,
-       cs.cloudExtinction,
-       cs.skyBackground,
-       cs.waterVapor,
-       cs.elevationRange
-      )
-    )
-
-  implicit val arbConstraintSetEdit: Arbitrary[ConstraintSetModel.Edit] =
+  implicit val arbConstraintSetInput: Arbitrary[ConstraintSetInput] =
     Arbitrary {
       for {
         iq   <- arbitrary[Input[ImageQuality]]
-        c    <- arbitrary[Input[CloudExtinction]]
+        ce   <- arbitrary[Input[CloudExtinction]]
         sb   <- arbitrary[Input[SkyBackground]]
         wv   <- arbitrary[Input[WaterVapor]]
-        er   <- arbitrary[Input[ElevationRangeInput]]
-      } yield ConstraintSetModel.Edit(iq, c, sb, wv, er)
+        erc  <- arbitrary[Input[ElevationRangeInput]]
+      } yield ConstraintSetInput(iq, ce, sb, wv, erc)
     }
 
-  implicit val cogConstraintSetEdit: Cogen[ConstraintSetModel.Edit] =
+  implicit val cogConstraintSetInput: Cogen[ConstraintSetInput] =
     Cogen[
       (Input[ImageQuality],
        Input[CloudExtinction],
@@ -92,12 +63,12 @@ trait ArbConstraintSetModel {
        Input[WaterVapor],
        Input[ElevationRangeInput]
       )
-    ].contramap(cse =>
-      (cse.imageQuality,
-       cse.cloudExtinction,
-       cse.skyBackground,
-       cse.waterVapor,
-       cse.elevationRange
+    ].contramap(cs =>
+      (cs.imageQuality,
+       cs.cloudExtinction,
+       cs.skyBackground,
+       cs.waterVapor,
+       cs.elevationRange
       )
     )
 }

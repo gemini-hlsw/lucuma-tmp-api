@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{ConstraintSetModel, ObservationModel, ScienceRequirementsModel}
+import lucuma.odb.api.model.{ConstraintSetInput, ObservationModel, ScienceRequirementsModel}
 import lucuma.odb.api.model.ObservationModel.BulkEdit
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.inputtype._
@@ -17,7 +17,7 @@ import sangria.schema._
 
 trait ObservationMutation {
 
-  import ConstraintSetMutation.{InputObjectTypeConstraintSetCreate, InputObjectTypeConstraintSetEdit}
+  import ConstraintSetMutation.InputObjectTypeConstraintSet
   import context._
   import ScienceConfigurationMutation.{InputObjectTypeScienceConfigurationCreate, InputObjectTypeScienceConfigurationSetEdit}
   import ScienceRequirementsMutation.{InputObjectTypeScienceRequirementsCreate, InputObjectTypeScienceRequirementsEdit}
@@ -49,7 +49,7 @@ trait ObservationMutation {
       ReplaceInputField("status",               ObsStatusType.notNullableField("status")),
       ReplaceInputField("activeStatus",         ObsActiveStatusType.notNullableField("activeStatus")),
       ReplaceInputField("targets",              InputObjectTypeTargetEnvironmentEdit.notNullableField("targetEnvironment")),
-      ReplaceInputField("constraintSet",        InputObjectTypeConstraintSetEdit.notNullableField("constraintSet")),
+      ReplaceInputField("constraintSet",        InputObjectTypeConstraintSet.notNullableField("constraintSet")),
       ReplaceInputField("scienceRequirements",  InputObjectTypeScienceRequirementsEdit.nullableField("scienceRequirements")),
       ReplaceInputField("scienceConfiguration", InputObjectTypeScienceConfigurationSetEdit.nullableField("scienceConfiguration"))
     )
@@ -92,10 +92,10 @@ trait ObservationMutation {
       InputObjectTypeTargetEnvironmentEdit
     )
 
-  val ArgumentConstraintSetBulkEdit: Argument[BulkEdit[ConstraintSetModel.Edit]] =
-    bulkEditArgument[ConstraintSetModel.Edit](
+  val ArgumentConstraintSetBulkEdit: Argument[BulkEdit[ConstraintSetInput]] =
+    bulkEditArgument[ConstraintSetInput](
       "constraintSet",
-      InputObjectTypeConstraintSetEdit
+      InputObjectTypeConstraintSet
     )
 
   val ArgumentScienceRequirementsBulkEdit: Argument[BulkEdit[ScienceRequirementsModel.Edit]] =

@@ -24,8 +24,7 @@ final class ConstraintSetModelSuite extends DisciplineSuite {
   checkAll("ConstraintSet.elevationRange", LensTests(ConstraintSetModel.elevationRange))
   checkAll("ConstraintSet.airmass", OptionalTests(ConstraintSetModel.airmass))
   checkAll("ConstraintSet.hourAngle", OptionalTests(ConstraintSetModel.hourAngle))
-  checkAll("Eq[ConstraintSet.Create]", EqTests[ConstraintSetModel.Create].eqv)
-  checkAll("Eq[ConstraintSet.Edit]", EqTests[ConstraintSetModel.Edit].eqv)
+  checkAll("Eq[ConstraintSetInput]", EqTests[ConstraintSetInput].eqv)
 
   test("ConstraintSet.AirmassMin") {
     forAll { constraints: ConstraintSetModel =>

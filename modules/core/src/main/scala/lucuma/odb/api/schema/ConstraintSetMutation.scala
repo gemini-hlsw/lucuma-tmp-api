@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{AirmassRangeInput, ConstraintSetModel, ElevationRangeInput, HourAngleRangeInput}
+import lucuma.odb.api.model.{AirmassRangeInput, ConstraintSetInput, ElevationRangeInput, HourAngleRangeInput}
 import lucuma.odb.api.schema.syntax.inputtype._
 import sangria.macros.derive._
 import sangria.marshalling.circe._
@@ -36,32 +36,25 @@ trait ConstraintSetMutation {
       )
     )
 
-  implicit val InputObjectTypeConstraintSetCreate: InputObjectType[ConstraintSetModel.Create] =
-    deriveInputObjectType[ConstraintSetModel.Create](
-      InputObjectTypeName("CreateConstraintSetInput"),
-      InputObjectTypeDescription("Constraint set creation parameters")
+  implicit val InputObjectTypeConstraintSet: InputObjectType[ConstraintSetInput] =
+    InputObjectType[ConstraintSetInput](
+      "ConstraintSetInput",
+      "Constraint set creation and editing parameters",
+      List(
+        EnumTypeImageQuality.createRequiredEditOptional("imageQuality", "ConstraintSet"),
+        EnumTypeCloudExtinction.createRequiredEditOptional("cloudExtinction", "ConstraintSet"),
+        EnumTypeSkyBackground.createRequiredEditOptional("skyBackground", "ConstraintSet"),
+        EnumTypeWaterVapor.createRequiredEditOptional("waterVapor", "ConstraintSet"),
+        InputObjectTypeElevationRange.createRequiredEditOptional("elevationRange", "ConstraintSet")
+      )
     )
 
-  val ArgumentConstraintSetCreate: Argument[ConstraintSetModel.Create] =
-    InputObjectTypeConstraintSetCreate.argument(
+  val ArgumentConstraintSetInput: Argument[ConstraintSetInput] =
+    InputObjectTypeConstraintSet.argument(
       "input",
       "Constraint set description"
     )
 
-  implicit val InputObjectTypeConstraintSetEdit: InputObjectType[ConstraintSetModel.Edit] =
-    deriveInputObjectType[ConstraintSetModel.Edit](
-      InputObjectTypeName("EditConstraintSetInput"),
-      InputObjectTypeDescription("Edit constraint set"),
-      ReplaceInputField("imageQuality", EnumTypeImageQuality.notNullableField("imageQuality")),
-      ReplaceInputField("cloudExtinction",
-                        EnumTypeCloudExtinction.notNullableField("cloudExtinction")
-      ),
-      ReplaceInputField("skyBackground", EnumTypeSkyBackground.notNullableField("skyBackground")),
-      ReplaceInputField("waterVapor", EnumTypeWaterVapor.notNullableField("waterVapor")),
-      ReplaceInputField("elevationRange",
-                        InputObjectTypeElevationRange.notNullableField("elevationRange")
-      )
-    )
 
 }
 

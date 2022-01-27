@@ -8,7 +8,6 @@ import cats.data.StateT
 import cats.syntax.all._
 import clue.data.Input
 import io.circe.Decoder
-import io.circe.generic.semiauto._
 import lucuma.core.enum._
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
@@ -51,73 +50,6 @@ object ConstraintSetModel extends ConstraintSetModelOptics {
       WaterVapor.Wet,
       ElevationRangeModel.airmassRange.reverseGet(AirmassRange.Default)
     )
-
-  final case class Create(
-    imageQuality:    ImageQuality,
-    cloudExtinction: CloudExtinction,
-    skyBackground:   SkyBackground,
-    waterVapor:      WaterVapor,
-    elevationRange:  ElevationRangeInput
-  ) {
-
-    def create: ValidatedInput[ConstraintSetModel] =
-      elevationRange.create.map { e =>
-        ConstraintSetModel(
-          imageQuality,
-          cloudExtinction,
-          skyBackground,
-          waterVapor,
-          e
-        )
-      }
-  }
-
-  object Create {
-
-    implicit val DecoderCreate: Decoder[Create] = deriveDecoder
-
-    implicit val EqCreate: Eq[Create] = Eq.fromUniversalEquals
-  }
-
-  final case class Edit(
-    imageQuality:    Input[ImageQuality]        = Input.ignore,
-    cloudExtinction: Input[CloudExtinction]     = Input.ignore,
-    skyBackground:   Input[SkyBackground]       = Input.ignore,
-    waterVapor:      Input[WaterVapor]          = Input.ignore,
-    elevationRange:  Input[ElevationRangeInput] = Input.ignore
-  ) {
-
-    def editor: StateT[EitherInput, ConstraintSetModel, Unit] = {
-      val validArgs =
-        (imageQuality.validateIsNotNull("imageQuality"),
-         cloudExtinction.validateIsNotNull("cloudExtinction"),
-         skyBackground.validateIsNotNull("skyBackground"),
-         waterVapor.validateIsNotNull("waterVapor"),
-         elevationRange.validateNotNullable("elevationRange")(_.create)
-        ).tupled.toEither
-
-      for {
-        args <- StateT.liftF(validArgs)
-        (i, c, s, w, e) = args
-          _ <- ConstraintSetModel.imageQuality    := i
-          _ <- ConstraintSetModel.cloudExtinction := c
-          _ <- ConstraintSetModel.skyBackground   := s
-          _ <- ConstraintSetModel.waterVapor      := w
-          _ <- ConstraintSetModel.elevationRange  := e
-      } yield ()
-    }
-  }
-
-  object Edit {
-    import io.circe.generic.extras.semiauto._
-    import io.circe.generic.extras.Configuration
-    implicit val customConfig: Configuration = Configuration.default.withDefaults
-
-    implicit val DecoderEdit: Decoder[Edit] = deriveConfiguredDecoder[Edit]
-
-    implicit val EqEdit: Eq[Edit] = Eq.fromUniversalEquals
-  }
-
 }
 
 trait ConstraintSetModelOptics {
@@ -166,3 +98,61 @@ trait ConstraintSetModelOptics {
   lazy val hourAngleMax: Fold[ConstraintSetModel, HourAngleRange.DecimalHour] =
     hourAngle.andThen(HourAngleRange.maxHours)
 }
+
+
+final case class ConstraintSetInput(
+  imageQuality:    Input[ImageQuality]        = Input.ignore,
+  cloudExtinction: Input[CloudExtinction]     = Input.ignore,
+  skyBackground:   Input[SkyBackground]       = Input.ignore,
+  waterVapor:      Input[WaterVapor]          = Input.ignore,
+  elevationRange:  Input[ElevationRangeInput] = Input.ignore
+) extends EditorInput[ConstraintSetModel] {
+
+  override val create: ValidatedInput[ConstraintSetModel] =
+    (imageQuality.notMissing("imageQuality"),
+     cloudExtinction.notMissing("cloudExtinction"),
+     skyBackground.notMissing("skyBackground"),
+     waterVapor.notMissing("waterVapor"),
+     elevationRange.notMissingAndThen("elevationRange")(_.create)
+    ).mapN { case (iq, cc, sb, wv, el) =>
+      ConstraintSetModel(iq, cc, sb, wv, el)
+    }
+
+  override val edit: StateT[EitherInput, ConstraintSetModel, Unit] = {
+    val validArgs =
+      (imageQuality.validateIsNotNull("imageQuality"),
+       cloudExtinction.validateIsNotNull("cloudExtinction"),
+       skyBackground.validateIsNotNull("skyBackground"),
+       waterVapor.validateIsNotNull("waterVapor")
+      ).tupled.toEither
+
+    for {
+      args <- StateT.liftF(validArgs)
+      (i, c, s, w) = args
+        _ <- ConstraintSetModel.imageQuality    := i
+        _ <- ConstraintSetModel.cloudExtinction := c
+        _ <- ConstraintSetModel.skyBackground   := s
+        _ <- ConstraintSetModel.waterVapor      := w
+        _ <- ConstraintSetModel.elevationRange  :! elevationRange
+    } yield ()
+  }
+}
+
+object ConstraintSetInput {
+  import io.circe.generic.extras.semiauto._
+  import io.circe.generic.extras.Configuration
+  implicit val customConfig: Configuration = Configuration.default.withDefaults
+
+  implicit val DecoderConstraintSetInput: Decoder[ConstraintSetInput] =
+    deriveConfiguredDecoder[ConstraintSetInput]
+
+  implicit val EqConstraintSetInput: Eq[ConstraintSetInput] =
+    Eq.by { a => (
+      a.imageQuality,
+      a.cloudExtinction,
+      a.skyBackground,
+      a.waterVapor,
+      a.elevationRange
+    )}
+}
+
