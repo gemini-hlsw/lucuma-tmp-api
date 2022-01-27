@@ -93,7 +93,7 @@ sealed abstract case class AirmassRange protected (
 object AirmassRange extends AirmassRangeOptics {
   val MinValue = BigDecimal(1.0)
   val MaxValue = BigDecimal(3.0)
-  type Value = Interval.Closed[MinValue.type, MaxValue.type]
+  type Value        = Interval.Closed[MinValue.type, MaxValue.type]
   type DecimalValue = BigDecimal Refined Value
 
   val Any: AirmassRange =
