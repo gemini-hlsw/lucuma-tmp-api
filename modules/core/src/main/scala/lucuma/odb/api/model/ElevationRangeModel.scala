@@ -79,8 +79,6 @@ object ElevationRangeInput {
   implicit val EqElevationRangeInput: Eq[ElevationRangeInput] =
     Eq.by(c => (c.airmassRange, c.hourAngleRange))
 
-//  implicit val InputValidatorCreate: InputValidator[ElevationRangeInput, ElevationRangeModel] =
-//    InputValidator.by(_.create)
 }
 
 /**
