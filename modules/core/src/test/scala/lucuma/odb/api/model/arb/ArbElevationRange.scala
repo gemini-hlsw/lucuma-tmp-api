@@ -3,15 +3,17 @@
 
 package lucuma.odb.api.model.arb
 
+import clue.data.Input
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.scalacheck._
 import lucuma.core.util.arb.ArbEnumerated
-import lucuma.odb.api.model.{AirmassRange, ElevationRangeModel, HourAngleRange}
+import lucuma.odb.api.model.{AirmassRange, AirmassRangeInput, ElevationRangeInput, ElevationRangeModel, HourAngleRange, HourAngleRangeInput}
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
 trait ArbElevationRange {
   import ArbEnumerated._
+  import ArbInput._
 
   implicit val arbDecimalValue: Arbitrary[AirmassRange.DecimalValue] =
     Arbitrary {
@@ -43,22 +45,22 @@ trait ArbElevationRange {
       (amr.min, amr.max)
     )
 
-  implicit val arbAirmassRangeCreate: Arbitrary[AirmassRange.Create] =
+  implicit val arbAirmassRangeInput: Arbitrary[AirmassRangeInput] =
     Arbitrary {
       for {
-        min        <- arbitrary[BigDecimal]
-        max        <- arbitrary[BigDecimal]
-        arc1        = AirmassRange.Create(min, max)
+        min        <- arbitrary[Option[BigDecimal]]
+        max        <- arbitrary[Option[BigDecimal]]
+        arc1        = AirmassRangeInput(min, max)
         // make at least some of them valid
-        minInRange <- arbitrary[AirmassRange.DecimalValue]
-        maxInRange <- arbitrary[AirmassRange.DecimalValue]
-        arc2        = AirmassRange.Create(minInRange.value, maxInRange.value)
+        minInRange <- arbitrary[Option[AirmassRange.DecimalValue]]
+        maxInRange <- arbitrary[Option[AirmassRange.DecimalValue]]
+        arc2        = AirmassRangeInput(minInRange.map(_.value), maxInRange.map(_.value))
         arc        <- Gen.oneOf(arc1, arc2)
       } yield arc
     }
 
-  implicit val cogAirmassRangeCreate: Cogen[AirmassRange.Create] =
-    Cogen[(BigDecimal, BigDecimal)].contramap(c => (c.min, c.max))
+  implicit val cogAirmassRangeInput: Cogen[AirmassRangeInput] =
+    Cogen[(Option[BigDecimal], Option[BigDecimal])].contramap(c => (c.min, c.max))
 
   implicit val arbHourAngleRange: Arbitrary[HourAngleRange] =
     Arbitrary {
@@ -75,22 +77,22 @@ trait ArbElevationRange {
       (har.minHours, har.maxHours)
     )
 
-  implicit val arbHourAngleRangeCreate: Arbitrary[HourAngleRange.Create] =
+  implicit val arbHourAngleRangeInput: Arbitrary[HourAngleRangeInput] =
     Arbitrary {
       for {
-        min        <- arbitrary[BigDecimal]
-        max        <- arbitrary[BigDecimal]
-        harc1       = HourAngleRange.Create(min, max)
+        min        <- arbitrary[Option[BigDecimal]]
+        max        <- arbitrary[Option[BigDecimal]]
+        harc1       = HourAngleRangeInput(min, max)
         // make at least some of them valid
-        minInRange <- arbitrary[HourAngleRange.DecimalHour]
-        maxInRange <- arbitrary[HourAngleRange.DecimalHour]
-        harc2       = HourAngleRange.Create(minInRange.value, maxInRange.value)
+        minInRange <- arbitrary[Option[HourAngleRange.DecimalHour]]
+        maxInRange <- arbitrary[Option[HourAngleRange.DecimalHour]]
+        harc2       = HourAngleRangeInput(minInRange.map(_.value), maxInRange.map(_.value))
         harc       <- Gen.oneOf(harc1, harc2)
       } yield harc
     }
 
-  implicit val cogHourAngleRangeCreate: Cogen[HourAngleRange.Create] =
-    Cogen[(BigDecimal, BigDecimal)].contramap(c => (c.minHours, c.maxHours))
+  implicit val cogHourAngleRangeInput: Cogen[HourAngleRangeInput] =
+    Cogen[(Option[BigDecimal], Option[BigDecimal])].contramap(c => (c.minHours, c.maxHours))
 
   implicit val arbElevationRange: Arbitrary[ElevationRangeModel] =
     Arbitrary {
@@ -107,16 +109,16 @@ trait ArbElevationRange {
       case hourAngle: HourAngleRange => Right(hourAngle)
     }
 
-  implicit val arbElevationRangeCreate: Arbitrary[ElevationRangeModel.Create] =
+  implicit val arbElevationRangeCreate: Arbitrary[ElevationRangeInput] =
     Arbitrary {
       for {
-        airmassRange   <- arbitrary[Option[AirmassRange.Create]]
-        hourAngleRange <- arbitrary[Option[HourAngleRange.Create]]
-      } yield ElevationRangeModel.Create(airmassRange, hourAngleRange)
+        airmassRange   <- arbitrary[Input[AirmassRangeInput]]
+        hourAngleRange <- arbitrary[Input[HourAngleRangeInput]]
+      } yield ElevationRangeInput(airmassRange, hourAngleRange)
     }
 
-  implicit val cogElevationRangeCreate: Cogen[ElevationRangeModel.Create] =
-    Cogen[(Option[AirmassRange.Create], Option[HourAngleRange.Create])].contramap { ermc =>
+  implicit val cogElevationRangeCreate: Cogen[ElevationRangeInput] =
+    Cogen[(Input[AirmassRangeInput], Input[HourAngleRangeInput])].contramap { ermc =>
       (ermc.airmassRange, ermc.hourAngleRange)
     }
 }

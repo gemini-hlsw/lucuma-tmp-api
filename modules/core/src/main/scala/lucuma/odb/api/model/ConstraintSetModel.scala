@@ -57,7 +57,7 @@ object ConstraintSetModel extends ConstraintSetModelOptics {
     cloudExtinction: CloudExtinction,
     skyBackground:   SkyBackground,
     waterVapor:      WaterVapor,
-    elevationRange:  ElevationRangeModel.Create
+    elevationRange:  ElevationRangeInput
   ) {
 
     def create: ValidatedInput[ConstraintSetModel] =
@@ -80,11 +80,11 @@ object ConstraintSetModel extends ConstraintSetModelOptics {
   }
 
   final case class Edit(
-    imageQuality:    Input[ImageQuality]               = Input.ignore,
-    cloudExtinction: Input[CloudExtinction]            = Input.ignore,
-    skyBackground:   Input[SkyBackground]              = Input.ignore,
-    waterVapor:      Input[WaterVapor]                 = Input.ignore,
-    elevationRange:  Input[ElevationRangeModel.Create] = Input.ignore
+    imageQuality:    Input[ImageQuality]        = Input.ignore,
+    cloudExtinction: Input[CloudExtinction]     = Input.ignore,
+    skyBackground:   Input[SkyBackground]       = Input.ignore,
+    waterVapor:      Input[WaterVapor]          = Input.ignore,
+    elevationRange:  Input[ElevationRangeInput] = Input.ignore
   ) {
 
     def editor: StateT[EitherInput, ConstraintSetModel, Unit] = {

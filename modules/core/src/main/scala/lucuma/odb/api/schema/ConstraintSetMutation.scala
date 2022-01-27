@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{AirmassRange, ConstraintSetModel, ElevationRangeModel, HourAngleRange}
+import lucuma.odb.api.model.{AirmassRangeInput, ConstraintSetModel, ElevationRangeInput, HourAngleRangeInput}
 import lucuma.odb.api.schema.syntax.inputtype._
 import sangria.macros.derive._
 import sangria.marshalling.circe._
@@ -14,22 +14,26 @@ trait ConstraintSetMutation {
   import ConstraintSetSchema._
   import syntax.inputobjecttype._
 
-  implicit val InputObjectTypeAirmassRangeCreate: InputObjectType[AirmassRange.Create] =
-    deriveInputObjectType[AirmassRange.Create](
-      InputObjectTypeName("CreateAirmassRangeInput"),
-      InputObjectTypeDescription("Airmass range creation parameters")
+  implicit val InputObjectTypeAirmassRange: InputObjectType[AirmassRangeInput] =
+    deriveInputObjectType[AirmassRangeInput](
+      InputObjectTypeName("AirmassRangeInput"),
+      InputObjectTypeDescription("Airmass range creation and edit parameters")
     )
 
-  implicit val InputObjectTypeHourAngleRangeCreate: InputObjectType[HourAngleRange.Create] =
-    deriveInputObjectType[HourAngleRange.Create](
+  implicit val InputObjectTypeHourAngleRange: InputObjectType[HourAngleRangeInput] =
+    deriveInputObjectType[HourAngleRangeInput](
       InputObjectTypeName("CreateHourAngleRangeInput"),
       InputObjectTypeDescription("Hour angle range creation parameters")
     )
 
-  implicit val InputObjectTypeElevationRangeCreate: InputObjectType[ElevationRangeModel.Create] =
-    deriveInputObjectType[ElevationRangeModel.Create](
-      InputObjectTypeName("CreateElevationRangeInput"),
-      InputObjectTypeDescription("Elevation range creation parameters")
+  implicit val InputObjectTypeElevationRange: InputObjectType[ElevationRangeInput] =
+    InputObjectType[ElevationRangeInput](
+      "ElevationRangeInput",
+      "Elevation range creation and edit parameters.  Choose one of airmass or hour angle constraints.",
+      List(
+        InputObjectTypeAirmassRange.optionField("airmassRange"),
+        InputObjectTypeHourAngleRange.optionField("hourAngleRange")
+      )
     )
 
   implicit val InputObjectTypeConstraintSetCreate: InputObjectType[ConstraintSetModel.Create] =
@@ -55,7 +59,7 @@ trait ConstraintSetMutation {
       ReplaceInputField("skyBackground", EnumTypeSkyBackground.notNullableField("skyBackground")),
       ReplaceInputField("waterVapor", EnumTypeWaterVapor.notNullableField("waterVapor")),
       ReplaceInputField("elevationRange",
-                        InputObjectTypeElevationRangeCreate.notNullableField("elevationRange")
+                        InputObjectTypeElevationRange.notNullableField("elevationRange")
       )
     )
 

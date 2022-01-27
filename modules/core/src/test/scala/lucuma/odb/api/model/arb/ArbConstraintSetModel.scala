@@ -8,7 +8,6 @@ import clue.data.Input
 import eu.timepit.refined.scalacheck._
 import lucuma.core.enum._
 import lucuma.core.util.arb.{ ArbEnumerated, ArbGid }
-import lucuma.odb.api.model.{ ConstraintSetModel, ElevationRangeModel }
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
@@ -53,7 +52,7 @@ trait ArbConstraintSetModel {
         ce   <- arbitrary[CloudExtinction]
         sb   <- arbitrary[SkyBackground]
         wv   <- arbitrary[WaterVapor]
-        erc  <- arbitrary[ElevationRangeModel.Create]
+        erc  <- arbitrary[ElevationRangeInput]
       } yield ConstraintSetModel.Create(iq, ce, sb, wv, erc)
     }
 
@@ -63,7 +62,7 @@ trait ArbConstraintSetModel {
        CloudExtinction,
        SkyBackground,
        WaterVapor,
-       ElevationRangeModel.Create
+       ElevationRangeInput
       )
     ].contramap(cs =>
       (cs.imageQuality,
@@ -81,7 +80,7 @@ trait ArbConstraintSetModel {
         c    <- arbitrary[Input[CloudExtinction]]
         sb   <- arbitrary[Input[SkyBackground]]
         wv   <- arbitrary[Input[WaterVapor]]
-        er   <- arbitrary[Input[ElevationRangeModel.Create]]
+        er   <- arbitrary[Input[ElevationRangeInput]]
       } yield ConstraintSetModel.Edit(iq, c, sb, wv, er)
     }
 
@@ -91,7 +90,7 @@ trait ArbConstraintSetModel {
        Input[CloudExtinction],
        Input[SkyBackground],
        Input[WaterVapor],
-       Input[ElevationRangeModel.Create]
+       Input[ElevationRangeInput]
       )
     ].contramap(cse =>
       (cse.imageQuality,
