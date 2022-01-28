@@ -4,6 +4,7 @@
 package lucuma.odb.api.model
 package syntax
 
+import cats.data.StateT
 import cats.{Applicative, ApplicativeError}
 import cats.syntax.functor._
 import cats.syntax.validated._
@@ -12,6 +13,9 @@ final class ValidatedInputOps[A](self: ValidatedInput[A]) {
 
   def liftTo[F[_]](implicit F: ApplicativeError[F, Throwable]): F[A] =
     self.leftMap(nec => InputError.Exception(nec)).liftTo[F]
+
+  def liftState[S]: StateT[EitherInput, S, A] =
+    StateT.liftF(self.toEither)
 
   def flatten[B](implicit ev: A <:< ValidatedInput[B]): ValidatedInput[B] =
     self.andThen(ev)

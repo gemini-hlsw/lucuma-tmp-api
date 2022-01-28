@@ -20,6 +20,7 @@ import lucuma.core.util.Display
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.prism._
+import lucuma.odb.api.model.syntax.validatedinput._
 import monocle.{Focus, Lens, Prism}
 import monocle.macros.GenPrism
 
@@ -97,14 +98,14 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
         val validArgs =
           (disperser.validateIsNotNull("disperser"),
            slitWidth.validateNotNullable("slitWidth")(_.toAngle)
-          ).tupled.toEither
+          ).tupled
 
         for {
-          args <- StateT.liftF(validArgs)
+          args <- validArgs.liftState
           (disperser, slitWidth) = args
-          _    <- GmosNorthLongSlit.filter    := filter.toOptionOption
-          _    <- GmosNorthLongSlit.disperser := disperser
-          _    <- GmosNorthLongSlit.slitWidth := slitWidth
+          _ <- GmosNorthLongSlit.filter    := filter.toOptionOption
+          _ <- GmosNorthLongSlit.disperser := disperser
+          _ <- GmosNorthLongSlit.slitWidth := slitWidth
         } yield ()
       }
     }
@@ -183,14 +184,14 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
         val validArgs =
           (disperser.validateIsNotNull("disperser"),
            slitWidth.validateNotNullable("slitWidth")(_.toAngle)
-          ).tupled.toEither
+          ).tupled
 
         for {
-          args <- StateT.liftF(validArgs)
+          args <- validArgs.liftState
           (disperser, slitWidth) = args
-          _    <- GmosSouthLongSlit.filter    := filter.toOptionOption
-          _    <- GmosSouthLongSlit.disperser := disperser
-          _    <- GmosSouthLongSlit.slitWidth := slitWidth
+          _ <- GmosSouthLongSlit.filter    := filter.toOptionOption
+          _ <- GmosSouthLongSlit.disperser := disperser
+          _ <- GmosSouthLongSlit.slitWidth := slitWidth
         } yield ()
       }
 
