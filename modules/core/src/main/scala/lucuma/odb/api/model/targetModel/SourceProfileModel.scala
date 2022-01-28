@@ -321,7 +321,7 @@ object SourceProfileModel {
 
     override val edit: StateT[EitherInput, BandNormalized[T], Unit] =
       for {
-        s <- StateT.liftF(sed.validateNotNullable("sed")(_.toUnnormalizedSed).toEither)
+        s <- sed.validateNotNullable("sed")(_.toUnnormalizedSed).liftState
         _ <- BandNormalized.sed[T]          := s
 
         // `brightnesses` to set brightness values if you want to start over
@@ -511,10 +511,15 @@ object SourceProfileModel {
        fluxDensityContinuum.notMissing("fluxDensityContinuum")
       ).mapN { (lines, fdc) => EmissionLines(lines, fdc.toMeasure) }
 
-    override val edit: StateT[EitherInput, EmissionLines[T], Unit] =
+    override val edit: StateT[EitherInput, EmissionLines[T], Unit] = {
+      val validArgs = (
+        fluxDensityContinuum.validateIsNotNull("fluxDensityContinuum"),
+        deleteLines.toOption.traverse(_.traverse(_.toWavelength("wavelength")))
+      ).tupled
+
       for {
-        f <- StateT.liftF(fluxDensityContinuum.validateIsNotNull("fluxDensityContinuum").toEither)
-        w <- StateT.liftF(deleteLines.toOption.traverse(_.traverse(_.toWavelength("wavelength"))).toEither)
+        args <- validArgs.liftState
+        (f, w) = args
 
         // `lines` to set emission line values if you want to start over from
         // scratch
@@ -537,6 +542,7 @@ object SourceProfileModel {
 
         _ <- EmissionLines.fluxDensityContinuum[T] := f.map(_.toMeasure)
       } yield ()
+    }
 
 
   }

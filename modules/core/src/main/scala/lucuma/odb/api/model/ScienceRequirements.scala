@@ -11,6 +11,7 @@ import io.circe.generic.semiauto._
 import lucuma.core.enum.ScienceMode
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
+import lucuma.odb.api.model.syntax.validatedinput._
 import monocle.Lens
 import monocle.Focus
 
@@ -57,7 +58,7 @@ object ScienceRequirementsModel {
 
     def editor: StateT[EitherInput, ScienceRequirements, Unit] =
       for {
-        m <- StateT.liftF(mode.validateIsNotNull("mode").toEither)
+        m <- mode.validateIsNotNull("mode").liftState
         _ <- ScienceRequirements.mode := m
         _ <- ScienceRequirements
                .spectroscopyRequirements
