@@ -16,6 +16,7 @@ import lucuma.core.`enum`.CatalogName
 import lucuma.core.model.CatalogInfo
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
+import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.odb.api.model.{InputError, EditorInput, ValidatedInput}
 
 final case class CatalogInfoInput(
@@ -31,13 +32,12 @@ final case class CatalogInfoInput(
 
   override val edit: StateT[EitherNec[InputError, *], CatalogInfo, Unit] = {
     val validArgs =
-      (
-        name.validateIsNotNull("name"),
-        id.validateIsNotNull("id")
-      ).tupled.toEither
+      (name.validateIsNotNull("name"),
+       id.validateIsNotNull("id")
+      ).tupled
 
     for {
-      args <- StateT.liftF(validArgs)
+      args <- validArgs.liftState
       (n, i) = args
       _ <- CatalogInfo.catalog    := n
       _ <- CatalogInfo.id         := i

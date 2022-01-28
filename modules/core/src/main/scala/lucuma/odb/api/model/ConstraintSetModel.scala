@@ -11,6 +11,7 @@ import io.circe.Decoder
 import lucuma.core.enum._
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
+import lucuma.odb.api.model.syntax.validatedinput._
 import monocle.{Fold, Lens, Optional}
 import monocle.macros.GenLens
 
@@ -124,16 +125,16 @@ final case class ConstraintSetInput(
        cloudExtinction.validateIsNotNull("cloudExtinction"),
        skyBackground.validateIsNotNull("skyBackground"),
        waterVapor.validateIsNotNull("waterVapor")
-      ).tupled.toEither
+      ).tupled
 
     for {
-      args <- StateT.liftF(validArgs)
+      args <- validArgs.liftState
       (i, c, s, w) = args
-        _ <- ConstraintSetModel.imageQuality    := i
-        _ <- ConstraintSetModel.cloudExtinction := c
-        _ <- ConstraintSetModel.skyBackground   := s
-        _ <- ConstraintSetModel.waterVapor      := w
-        _ <- ConstraintSetModel.elevationRange  :! elevationRange
+      _ <- ConstraintSetModel.imageQuality    := i
+      _ <- ConstraintSetModel.cloudExtinction := c
+      _ <- ConstraintSetModel.skyBackground   := s
+      _ <- ConstraintSetModel.waterVapor      := w
+      _ <- ConstraintSetModel.elevationRange  :! elevationRange
     } yield ()
   }
 }

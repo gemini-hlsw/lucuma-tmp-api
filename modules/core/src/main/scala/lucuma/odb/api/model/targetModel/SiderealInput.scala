@@ -18,6 +18,7 @@ import lucuma.odb.api.model.json.target._
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.optional._
+import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.odb.api.model.targetModel.SourceProfileModel.SourceProfileInput
 import monocle.{Focus, Lens, Optional}
 
@@ -71,12 +72,12 @@ final case class SiderealInput(
        properMotion  .validateNullable(_.toProperMotion),
        radialVelocity.validateNullable(_.toRadialVelocity),
        parallax      .validateNullable(_.toParallax)
-      ).tupled.toEither
+      ).tupled
 
     import SiderealInput.optics
 
     for {
-      args <- StateT.liftF(validArgs)
+      args <- validArgs.liftState
       (r, d, e, pm, rv, px) = args
 
       _ <- optics.baseRa         := r

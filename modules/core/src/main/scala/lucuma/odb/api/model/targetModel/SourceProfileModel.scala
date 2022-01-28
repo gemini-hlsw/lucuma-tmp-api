@@ -31,6 +31,7 @@ import lucuma.core.model.{EmissionLine, SourceProfile, SpectralDefinition, Unnor
 import lucuma.odb.api.model.{AngleModel, EditorInput, EitherInput, InputError, ValidatedInput, WavelengthModel}
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
+import lucuma.odb.api.model.syntax.validatedinput._
 import monocle.{Focus, Lens}
 
 import scala.collection.immutable.SortedMap
@@ -261,10 +262,10 @@ object SourceProfileModel {
       val validArgs = (
         value.validateIsNotNull("value"),
         units.validateIsNotNull("units")
-      ).tupled.toEither
+      ).tupled
 
       for {
-        args   <- StateT.liftF(validArgs)
+        args <- validArgs.liftState
         (v, u)  = args
         measure = StateT.modify[EitherInput, Measure[BrightnessValue] Of Brightness[T]] { m =>
           val newValue = v.map(BrightnessValue.fromBigDecimal.get).getOrElse(m.value)
@@ -274,7 +275,7 @@ object SourceProfileModel {
           val newMeasure = newUnits.withValueTagged(newValue)
           newError.fold(newMeasure)(newMeasure.withError)
         }
-        _      <- BandBrightnessPair.measure[T] :< measure.some
+        _  <- BandBrightnessPair.measure[T] :< measure.some
       } yield ()
     }
   }
@@ -443,13 +444,13 @@ object SourceProfileModel {
         wavelength.toWavelength("wavelength"),
         lineWidth.validateIsNotNull("lineWidth"),
         lineFlux.validateIsNotNull("lineFlux")
-      ).tupled.toEither
+      ).tupled
 
       for {
-        args       <- StateT.liftF(validArgs)
+        args <- validArgs.liftState
         (_, lw, lf) = args
 
-        line        = lw.orElse(lf).as(
+        line = lw.orElse(lf).as(
           StateT.modify[EitherInput, EmissionLine[T]] { l =>
             val newWidth = lw.map(d => Quantity[PosBigDecimal, KilometersPerSecond](d)).getOrElse(l.lineWidth)
             val newFlux  = lf.map(_.toMeasure).getOrElse(l.lineFlux)
@@ -457,7 +458,7 @@ object SourceProfileModel {
           }
         )
 
-        _          <- WavelengthEmissionLinePair.line[T] :< line
+        _ <- WavelengthEmissionLinePair.line[T] :< line
       } yield ()
     }
 

@@ -20,6 +20,7 @@ import lucuma.core.model.{Program, SourceProfile, Target}
 import lucuma.odb.api.model.{DatabaseState, EitherInput, Event, Existence, TopLevelModel, ValidatedInput}
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
+import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.odb.api.model.targetModel.SourceProfileModel.SourceProfileInput
 import monocle.{Focus, Lens}
 
@@ -133,14 +134,13 @@ object TargetModel extends TargetModelOptics {
     val editor: StateT[EitherInput, TargetModel, Unit] = {
 
       val validArgs =
-        (
-          existence    .validateIsNotNull("existence"),
-          name         .validateIsNotNull("name"),
-          sourceProfile.validateIsNotNull("sourceProfile")
-        ).tupled.toEither
+        (existence    .validateIsNotNull("existence"),
+         name         .validateIsNotNull("name"),
+         sourceProfile.validateIsNotNull("sourceProfile")
+        ).tupled
 
       for {
-        args <- StateT.liftF(validArgs)
+        args <- validArgs.liftState
         (e, n, p) = args
         _ <- TargetModel.existence     := e
         _ <- TargetModel.name          := n

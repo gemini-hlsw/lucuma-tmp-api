@@ -17,6 +17,7 @@ import io.circe.generic.semiauto._
 import io.circe.refined._
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
+import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.core.enum.FocalPlane
 import lucuma.core.enum.SpectroscopyCapabilities
 import lucuma.core.math.Angle
@@ -117,19 +118,19 @@ object SpectroscopyScienceRequirementsModel {
          signalToNoiseAt.validateNullable(_.toWavelength("signalToNoiseAt")),
          wavelengthCoverage.validateNullable(_.toWavelength("wavelengthCoverage")),
          focalPlaneAngle.validateNullable(_.toAngle)
-        ).tupled.toEither
+        ).tupled
 
       for {
-        args <- StateT.liftF(validArgs)
+        args <- validArgs.liftState
         (cw, signalToNoiseAt, wavelengthCoverage, focalPlaneAngle) = args
-          _ <- SpectroscopyScienceRequirements.wavelength         := cw
-          _ <- SpectroscopyScienceRequirements.resolution         := resolution.toOptionOption
-          _ <- SpectroscopyScienceRequirements.signalToNoise      := signalToNoise.toOptionOption
-          _ <- SpectroscopyScienceRequirements.signalToNoiseAt    := signalToNoiseAt
-          _ <- SpectroscopyScienceRequirements.wavelengthCoverage := wavelengthCoverage
-          _ <- SpectroscopyScienceRequirements.focalPlane         := focalPlane.toOptionOption
-          _ <- SpectroscopyScienceRequirements.focalPlaneAngle    := focalPlaneAngle
-          _ <- SpectroscopyScienceRequirements.capabilities       := capabilities.toOptionOption
+        _ <- SpectroscopyScienceRequirements.wavelength         := cw
+        _ <- SpectroscopyScienceRequirements.resolution         := resolution.toOptionOption
+        _ <- SpectroscopyScienceRequirements.signalToNoise      := signalToNoise.toOptionOption
+        _ <- SpectroscopyScienceRequirements.signalToNoiseAt    := signalToNoiseAt
+        _ <- SpectroscopyScienceRequirements.wavelengthCoverage := wavelengthCoverage
+        _ <- SpectroscopyScienceRequirements.focalPlane         := focalPlane.toOptionOption
+        _ <- SpectroscopyScienceRequirements.focalPlaneAngle    := focalPlaneAngle
+        _ <- SpectroscopyScienceRequirements.capabilities       := capabilities.toOptionOption
       } yield ()
     }
   }

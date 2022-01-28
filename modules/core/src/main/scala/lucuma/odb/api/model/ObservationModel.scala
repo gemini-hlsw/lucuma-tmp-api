@@ -7,6 +7,7 @@ import lucuma.odb.api.model.Existence._
 import lucuma.odb.api.model.ScienceConfigurationModel.ScienceConfigurationModelEdit
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
+import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.odb.api.model.targetModel.TargetEnvironmentModel
 import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.{Observation, Program}
@@ -175,7 +176,7 @@ object ObservationModel extends ObservationOptics {
         (existence   .validateIsNotNull("existence"),
          status      .validateIsNotNull("status"),
          activeStatus.validateIsNotNull("active")
-        ).tupled.toEither
+        ).tupled
 
       val sc: StateT[EitherInput, ObservationModel, Unit] =
         scienceConfiguration match {
@@ -187,22 +188,22 @@ object ObservationModel extends ObservationOptics {
       def empty[T]: StateT[EitherInput, T, Unit] = StateT.empty
 
       for {
-        args <- StateT.liftF(validArgs)
+        args <- validArgs.liftState
         (e, s, a) = args
-        _    <- ObservationModel.existence    := e
-        _    <- ObservationModel.name         := name.toOptionOption
-        _    <- ObservationModel.status       := s
-        _    <- ObservationModel.activeStatus := a
-        _    <- ObservationModel.targetEnvironment.transform(
-                  targets.fold(empty[TargetEnvironmentModel])(_.editor)
-                )
-        _    <- ObservationModel.constraintSet.transform(
-                  constraintSet.fold(empty[ConstraintSetModel])(_.edit)
-                )
-        _    <- ObservationModel.scienceRequirements.transform(
-                  scienceRequirements.fold(empty[ScienceRequirements])(_.editor)
-                )
-        _    <- sc
+        _ <- ObservationModel.existence    := e
+        _ <- ObservationModel.name         := name.toOptionOption
+        _ <- ObservationModel.status       := s
+        _ <- ObservationModel.activeStatus := a
+        _ <- ObservationModel.targetEnvironment.transform(
+               targets.fold(empty[TargetEnvironmentModel])(_.editor)
+             )
+        _ <- ObservationModel.constraintSet.transform(
+               constraintSet.fold(empty[ConstraintSetModel])(_.edit)
+             )
+        _ <- ObservationModel.scienceRequirements.transform(
+               scienceRequirements.fold(empty[ScienceRequirements])(_.editor)
+             )
+        _ <- sc
       } yield ()
     }
   }
