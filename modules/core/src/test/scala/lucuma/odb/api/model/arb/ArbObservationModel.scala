@@ -73,7 +73,7 @@ trait ArbObservationModel {
         st <- arbitrary[Option[ObsStatus]]
         as <- arbitrary[Option[ObsActiveStatus]]
         ts <- arbitrary[Option[TargetEnvironmentModel.Create]]
-        cs <- arbitrary[Option[ConstraintSetModel.Create]]
+        cs <- arbitrary[Option[ConstraintSetInput]]
       } yield ObservationModel.Create(
         id,
         pd,
@@ -96,7 +96,7 @@ trait ArbObservationModel {
       Option[ObsStatus],
       Option[ObsActiveStatus],
       Option[TargetEnvironmentModel.Create],
-      Option[ConstraintSetModel.Create]
+      Option[ConstraintSetInput]
     )].contramap { in => (
       in.observationId,
       in.programId,

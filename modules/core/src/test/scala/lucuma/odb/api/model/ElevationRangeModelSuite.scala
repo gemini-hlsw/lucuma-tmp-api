@@ -15,15 +15,15 @@ final class ElevationRangeModelSuite extends DisciplineSuite {
 
   // Laws
   checkAll("Eq[AirmassRange]", EqTests[AirmassRange].eqv)
-  checkAll("Eq[AirmassRange.Create]", EqTests[AirmassRange.Create].eqv)
+  checkAll("Eq[AirmassRangeInput]", EqTests[AirmassRangeInput].eqv)
   checkAll("AirmassRange.fromOrderedDecimalValues", PrismTests(AirmassRange.fromOrderedDecimalValues))
   checkAll("Eq[HourAngleRange]", EqTests[HourAngleRange].eqv)
-  checkAll("Eq[HourAngleRange.Create]", EqTests[HourAngleRange.Create].eqv)
+  checkAll("Eq[HourAngleRangeInput]", EqTests[HourAngleRangeInput].eqv)
   checkAll("HourAngleRange.fromDecimalHours", PrismTests(HourAngleRange.fromOrderedDecimalHours))
   checkAll("Eq[ElevationRangeModel]", EqTests[ElevationRangeModel].eqv)
   checkAll("ElevationRangeModel.airmassRange", PrismTests(ElevationRangeModel.airmassRange))
   checkAll("ElevationRangeModel.hourAngleRange", PrismTests(ElevationRangeModel.hourAngleRange))
-  checkAll("Eq[ElevationRangeModel.Create]", EqTests[ElevationRangeModel.Create].eqv)
+  checkAll("Eq[ElevationRangeInput]", EqTests[ElevationRangeInput].eqv)
 
   test("AirmassRange.min") {
     forAll { range: AirmassRange =>

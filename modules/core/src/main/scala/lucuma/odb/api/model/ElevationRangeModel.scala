@@ -4,9 +4,13 @@
 package lucuma.odb.api.model
 
 import cats._
+import cats.data.StateT
 import cats.syntax.all._
+import clue.data.Input
+import clue.data.syntax._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.numeric.Interval
+import eu.timepit.refined.numeric.Interval.Closed
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import lucuma.core.math._
@@ -27,38 +31,54 @@ object ElevationRangeModel {
 
   implicit val EqElevationRange: Eq[ElevationRangeModel] = Eq.fromUniversalEquals
 
-  final case class Create(
-    airmassRange:   Option[AirmassRange.Create],
-    hourAngleRange: Option[HourAngleRange.Create]
-  ) {
-    def create: ValidatedInput[ElevationRangeModel] =
-      ValidatedInput.requireOne("elevationRange",
-                                airmassRange.map(_.create),
-                                hourAngleRange.map(_.create)
-      )
+}
+
+final case class ElevationRangeInput(
+  airmassRange:   Input[AirmassRangeInput]   = Input.ignore,
+  hourAngleRange: Input[HourAngleRangeInput] = Input.ignore
+) extends EditorInput[ElevationRangeModel] {
+
+  override val create: ValidatedInput[ElevationRangeModel] =
+    ValidatedInput.requireOne(
+      "elevationRange",
+      airmassRange.map(_.create).toOption,
+      hourAngleRange.map(_.create).toOption
+    )
+
+  override val edit: StateT[EitherInput, ElevationRangeModel, Unit] =
+    EditorInput.editOneOf(
+      ("airmassRange",   airmassRange,   ElevationRangeModel.airmassRange),
+      ("hourAngleRange", hourAngleRange, ElevationRangeModel.hourAngleRange)
+    )
+
+}
+
+/**
+ * Input parameter used to create an elevation range. Both fields
+ * are optional, but validation will check that exactly one is defined.
+ */
+object ElevationRangeInput {
+  val Empty: ElevationRangeInput =
+    ElevationRangeInput()
+
+  def airmassRange(amr: AirmassRangeInput): ElevationRangeInput =
+    Empty.copy(airmassRange = amr.assign)
+
+  def hourAngleRange(har: HourAngleRangeInput): ElevationRangeInput =
+    Empty.copy(hourAngleRange = har.assign)
+
+
+  implicit val DecoderElevationRangeInput: Decoder[ElevationRangeInput] = {
+    import io.circe.generic.extras.semiauto._
+    import io.circe.generic.extras.Configuration
+    implicit val customConfig: Configuration = Configuration.default.withDefaults
+
+    deriveConfiguredDecoder[ElevationRangeInput]
   }
 
-  /**
-   * Input parameter used to create an elevation range. Both fields
-   * are optional, but validation will check that exactly one is defined.
-   */
-  object Create {
-    val Empty: Create = Create(airmassRange = None, hourAngleRange = None)
+  implicit val EqElevationRangeInput: Eq[ElevationRangeInput] =
+    Eq.by(c => (c.airmassRange, c.hourAngleRange))
 
-    def airmassRange(amr: AirmassRange.Create): Create =
-      Empty.copy(airmassRange = amr.some)
-
-    def hourAngleRange(har: HourAngleRange.Create): Create =
-      Empty.copy(hourAngleRange = har.some)
-
-    implicit val DecoderCreate: Decoder[Create] = deriveDecoder
-
-    implicit val EqCreate: Eq[Create] =
-      Eq.by(c => (c.airmassRange, c.hourAngleRange))
-
-    implicit val InputValidatorCreate: InputValidator[Create, ElevationRangeModel] =
-      InputValidator.by(_.create)
-  }
 }
 
 /**
@@ -85,6 +105,7 @@ object AirmassRange extends AirmassRangeOptics {
   /**
    * Construct a new AirmassRange.
    * min must be <= max.
+   *
    * @group Optics
    */
   def apply(min: DecimalValue, max: DecimalValue): Option[AirmassRange] =
@@ -100,32 +121,6 @@ object AirmassRange extends AirmassRangeOptics {
       ) {}
 
   implicit val EqAirmassRange: Eq[AirmassRange] = Eq.fromUniversalEquals
-
-  /**
-   * Input parameter used to create an airmass range. Parameter ranges
-   * are validated and min must be <= max
-   */
-  final case class Create(min: BigDecimal, max: BigDecimal) {
-    def create: ValidatedInput[AirmassRange] =
-      (ValidatedInput.closedInterval("min", min, MinValue, MaxValue),
-       ValidatedInput.closedInterval("max", max, MinValue, MaxValue)
-      ).tupled.andThen { case (min, max) =>
-        apply(min, max).toValidNec(
-          InputError.fromMessage(s"Invalid AirmassRange: 'min' must be <= 'max'")
-        )
-      }
-  }
-
-  object Create {
-    implicit val DecoderCreateAirmassRange: Decoder[Create] =
-      deriveDecoder[Create]
-
-    implicit val EqCreateAirmassRange: Eq[Create] =
-      Eq.fromUniversalEquals
-
-    implicit val ValidatorCreateAirmassRange: InputValidator[Create, AirmassRange] =
-      InputValidator.by(_.create)
-  }
 }
 
 trait AirmassRangeOptics {
@@ -134,11 +129,8 @@ trait AirmassRangeOptics {
   /** @group Optics */
   lazy val fromOrderedDecimalValues: Prism[(DecimalValue, DecimalValue), AirmassRange] =
     Prism[(DecimalValue, DecimalValue), AirmassRange] { case (min, max) =>
-      if (min.value <= max.value) (new AirmassRange(min, max) {}).some
-      else none
-    } { a =>
-      (a.min, a.max)
-    }
+      Option.when(min.value <= max.value)(new AirmassRange(min, max) {})
+    } { a => (a.min, a.max) }
 
   /** @group Optics */
   lazy val min: Getter[AirmassRange, DecimalValue] =
@@ -147,6 +139,56 @@ trait AirmassRangeOptics {
   /** @group Optics */
   lazy val max: Getter[AirmassRange, DecimalValue] =
     Getter(_.max)
+}
+
+final case class AirmassRangeInput(
+  min: Option[BigDecimal],
+  max: Option[BigDecimal]
+) extends EditorInput[AirmassRange] {
+
+  import AirmassRange._
+
+  private def invalidRange(min: DecimalValue, max: DecimalValue): InputError =
+    InputError.fromMessage(
+      s"""Invalid AirmassRange: "min" value ${min.value} must be <= "max" value ${max.value}."""
+    )
+
+  override val create: ValidatedInput[AirmassRange] = {
+
+    def checkRange(name: String, value: Option[BigDecimal]): ValidatedInput[Refined[BigDecimal, Closed[MinValue.type, MaxValue.type]]] =
+      value
+        .toValidNec(InputError.fromMessage(s""""$name" parameter of AirmassRange must be defined on creation"""))
+        .andThen(v => ValidatedInput.closedInterval(name, v, MinValue, MaxValue))
+
+    (checkRange("min", min),
+     checkRange("max", max)
+    ).tupled.andThen { case (min, max) =>
+      AirmassRange(min, max).toValidNec(invalidRange(min, max))
+    }
+  }
+
+  override val edit: StateT[EitherInput, AirmassRange, Unit] =
+    for {
+      min0 <- StateT.liftF(min.traverse(n => ValidatedInput.closedInterval("min", n, MinValue, MaxValue)).toEither)
+      max0 <- StateT.liftF(max.traverse(x => ValidatedInput.closedInterval("max", x, MinValue, MaxValue)).toEither)
+      min1 <- StateT.inspect[EitherInput, AirmassRange, DecimalValue](r => min0.getOrElse(r.min))
+      max1 <- StateT.inspect[EitherInput, AirmassRange, DecimalValue](r => max0.getOrElse(r.max))
+      _ <- StateT.setF(AirmassRange(min1, max1).toRightNec(invalidRange(min1, max1)))
+    } yield ()
+
+}
+
+object AirmassRangeInput {
+
+  implicit val DecoderAirmassRangeInput: Decoder[AirmassRangeInput] =
+    deriveDecoder[AirmassRangeInput]
+
+  implicit val EqAirmassRangeInput: Eq[AirmassRangeInput] =
+    Eq.by { a => (
+      a.min,
+      a.max
+    )}
+
 }
 
 /**
@@ -183,32 +225,6 @@ object HourAngleRange extends HourAngleRangeOptics {
     fromOrderedDecimalHours.getOption((minHours, maxHours))
 
   implicit val EqHourAngleRange: Eq[HourAngleRange] = Eq.fromUniversalEquals
-
-  /**
-   * Input parameter used to create an hour angle range. Parameter ranges
-   * are validated and minHours must be <= maxHours
-   */
-  final case class Create(minHours: BigDecimal, maxHours: BigDecimal) {
-    def create: ValidatedInput[HourAngleRange] =
-      (ValidatedInput.closedInterval("minHours", minHours, MinHour, MaxHour),
-       ValidatedInput.closedInterval("maxHours", maxHours, MinHour, MaxHour)
-      ).tupled.andThen { case (min, max) =>
-        apply(min, max).toValidNec(
-          InputError.fromMessage(s"Invalid HourAngleRange: 'minHours' must be <= 'maxHours'")
-        )
-      }
-  }
-
-  object Create {
-    implicit val DecoderCreateHourAngleRange: Decoder[Create] =
-      deriveDecoder[Create]
-
-    implicit val EqCreateHourAngleRange: Eq[Create] =
-      Eq.fromUniversalEquals
-
-    implicit val ValidatorCreateHourAngleRange: InputValidator[Create, HourAngleRange] =
-      InputValidator.by(_.create)
-  }
 }
 
 trait HourAngleRangeOptics {
@@ -216,11 +232,8 @@ trait HourAngleRangeOptics {
 
   lazy val fromOrderedDecimalHours: Prism[(DecimalHour, DecimalHour), HourAngleRange] =
     Prism[(DecimalHour, DecimalHour), HourAngleRange] { case (minHours, maxHours) =>
-      if (minHours.value <= maxHours.value) (new HourAngleRange(minHours, maxHours) {}).some
-      else none
-    } { a =>
-      (a.minHours, a.maxHours)
-    }
+      Option.when(minHours.value <= maxHours.value)(new HourAngleRange(minHours, maxHours) {})
+    } { a => (a.minHours, a.maxHours) }
 
   /** @group Optics */
   lazy val minHours: Getter[HourAngleRange, DecimalHour] =
@@ -229,4 +242,54 @@ trait HourAngleRangeOptics {
   /** @group Optics */
   lazy val maxHours: Getter[HourAngleRange, DecimalHour] =
     Getter(_.maxHours)
+}
+
+final case class HourAngleRangeInput(
+  minHours: Option[BigDecimal],
+  maxHours: Option[BigDecimal]
+) extends EditorInput[HourAngleRange] {
+
+  import HourAngleRange._
+
+  private def invalidRange(min: DecimalHour, max: DecimalHour): InputError =
+    InputError.fromMessage(
+      s"""Invalid HourAngleRange: "minHours" value ${min.value} must be <= "maxHours" value ${max.value}."""
+    )
+
+  override val create: ValidatedInput[HourAngleRange] = {
+    def checkRange(name: String, value: Option[BigDecimal]): ValidatedInput[Refined[BigDecimal, Closed[MinHour.type, MaxHour.type]]] =
+      value
+        .toValidNec(InputError.fromMessage(s""""$name" parameter of HourAngleRange must be defined on creation"""))
+        .andThen(v => ValidatedInput.closedInterval(name, v, MinHour, MaxHour))
+
+    (checkRange("min", minHours),
+     checkRange("max", maxHours)
+    ).tupled.andThen { case (min, max) =>
+      HourAngleRange(min, max).toValidNec(invalidRange(min,  max))
+    }
+
+  }
+
+  override val edit: StateT[EitherInput, HourAngleRange, Unit] =
+    for {
+      min0 <- StateT.liftF(minHours.traverse(n => ValidatedInput.closedInterval("minHours", n, MinHour, MaxHour)).toEither)
+      max0 <- StateT.liftF(maxHours.traverse(x => ValidatedInput.closedInterval("maxHours", x, MinHour, MaxHour)).toEither)
+      min1 <- StateT.inspect[EitherInput, HourAngleRange, DecimalHour](r => min0.getOrElse(r.minHours))
+      max1 <- StateT.inspect[EitherInput, HourAngleRange, DecimalHour](r => max0.getOrElse(r.maxHours))
+      _    <- StateT.setF(HourAngleRange(min1, max1).toRightNec(invalidRange(min1, max1)))
+    } yield ()
+
+}
+
+object HourAngleRangeInput {
+
+  implicit val DecoderHourAngleRangeInput: Decoder[HourAngleRangeInput] =
+    deriveDecoder[HourAngleRangeInput]
+
+  implicit val EqHourAngleRangeInput: Eq[HourAngleRangeInput] =
+    Eq.by { a => (
+      a.minHours,
+      a.maxHours
+    )}
+
 }

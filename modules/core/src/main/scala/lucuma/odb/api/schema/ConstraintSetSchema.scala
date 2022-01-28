@@ -65,12 +65,26 @@ object ConstraintSetSchema {
         )
     )
 
-  def ElevationRangeModelType[F[_]]: OutputType[ElevationRangeModel] =
-    UnionType(
+  def ElevationRangeModelType[F[_]]: ObjectType[OdbRepo[F], ElevationRangeModel] =
+    ObjectType(
       name        = "ElevationRange",
-      description = Some("Either airmass range or elevation range"),
-      types       = List(AirMassRangeType[F], HourAngleRangeType[F])
-    ).mapValue[ElevationRangeModel](identity)
+      description = "Either airmass range or elevation range",
+      fieldsFn    = () =>
+        fields(
+          Field(
+            name        = "airmassRange",
+            fieldType   = OptionType(AirMassRangeType[F]),
+            description = Some("Airmass range if elevation range is an Airmass range"),
+            resolve     = c => ElevationRangeModel.airmassRange.getOption(c.value)
+          ),
+          Field(
+            name        = "hourAngleRange",
+            fieldType   = OptionType(HourAngleRangeType[F]),
+            description = Some("Hour angle range if elevation range is an Hour angle range"),
+            resolve     = c => ElevationRangeModel.hourAngleRange.getOption(c.value)
+          )
+        )
+    )
 
   def ConstraintSetType[F[_]]: ObjectType[OdbRepo[F], ConstraintSetModel] =
     ObjectType(
@@ -106,18 +120,6 @@ object ConstraintSetSchema {
             fieldType   = ElevationRangeModelType,
             description = Some("Either airmass range or elevation range"),
             resolve     = _.value.elevationRange
-          ),
-          Field(
-            name        = "airmassRange",
-            fieldType   = OptionType(AirMassRangeType[F]),
-            description = Some("Airmass range if elevation range is an Airmass range"),
-            resolve     = c => ElevationRangeModel.airmassRange.getOption(c.value.elevationRange)
-          ),
-          Field(
-            name        = "hourAngleRange",
-            fieldType   = OptionType(HourAngleRangeType[F]),
-            description = Some("Hour angle range if elevation range is an Hour angle range"),
-            resolve     = c => ElevationRangeModel.hourAngleRange.getOption(c.value.elevationRange)
           )
         )
     )
