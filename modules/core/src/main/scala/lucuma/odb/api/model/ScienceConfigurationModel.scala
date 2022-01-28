@@ -31,10 +31,14 @@ sealed trait ScienceConfigurationModel extends Product with Serializable {
 
   def mode: ConfigurationMode
 
-  def fold[A](gnls: Modes.GmosNorthLongSlit => A, gsls: Modes.GmosSouthLongSlit => A): A = this match {
-    case g: Modes.GmosNorthLongSlit => gnls(g)
-    case g: Modes.GmosSouthLongSlit => gsls(g)
-  }
+  def fold[A](
+    gnls: Modes.GmosNorthLongSlit => A,
+    gsls: Modes.GmosSouthLongSlit => A
+  ): A =
+    this match {
+      case g: Modes.GmosNorthLongSlit => gnls(g)
+      case g: Modes.GmosSouthLongSlit => gsls(g)
+    }
 }
 
 object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
@@ -67,34 +71,20 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
         Eq.by(a => (a.filter, a.disperser, a.slitWidth))
     }
 
-    final case class CreateGmosNorthLongSlit(
-      filter:    Option[GmosNorthFilter],
-      disperser: GmosNorthDisperser,
-      slitWidth: SlitWidthInput
-    ) {
-      def create: ValidatedInput[ScienceConfigurationModel] =
-        slitWidth.toAngle.map(GmosNorthLongSlit(filter, disperser, _))
-    }
-
-    object CreateGmosNorthLongSlit {
-      implicit val DecoderCreateGmosNorthLongSlit: Decoder[CreateGmosNorthLongSlit] =
-        deriveDecoder[CreateGmosNorthLongSlit]
-
-      implicit val EqCreateGmosNorthLongSlit: Eq[CreateGmosNorthLongSlit] =
-        Eq.by { a => (
-          a.filter,
-          a.disperser,
-          a.slitWidth
-        )}
-    }
-
-    final case class EditGmosNorthLongSlit(
+    final case class GmosNorthLongSlitInput(
       filter:    Input[GmosNorthFilter]    = Input.ignore,
       disperser: Input[GmosNorthDisperser] = Input.ignore,
       slitWidth: Input[SlitWidthInput]     = Input.ignore
-    ) {
+    ) extends EditorInput[GmosNorthLongSlit] {
 
-      def edit: StateT[EitherInput, GmosNorthLongSlit, Unit] = {
+      override val create: ValidatedInput[GmosNorthLongSlit] =
+        (disperser.notMissing("filter"),
+         slitWidth.notMissingAndThen("slitWidth")(_.toAngle)
+        ).mapN { case (d, s) =>
+          GmosNorthLongSlit(filter.toOption, d, s)
+        }
+
+      override val edit: StateT[EitherInput, GmosNorthLongSlit, Unit] = {
         val validArgs =
           (disperser.validateIsNotNull("disperser"),
            slitWidth.validateNotNullable("slitWidth")(_.toAngle)
@@ -110,20 +100,22 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
       }
     }
 
-    object EditGmosNorthLongSlit {
+    object GmosNorthLongSlitInput {
+
       import io.circe.generic.extras.semiauto._
       import io.circe.generic.extras.Configuration
       implicit val customConfig: Configuration = Configuration.default.withDefaults
 
-      implicit val DecoderEditGmosNorthLongSlit: Decoder[EditGmosNorthLongSlit] =
-        deriveConfiguredDecoder[EditGmosNorthLongSlit]
+      implicit val DecoderGmosNorthLongSlitInput: Decoder[GmosNorthLongSlitInput] =
+        deriveConfiguredDecoder[GmosNorthLongSlitInput]
 
-      implicit val EqEditGmosNorthLongSlit: Eq[EditGmosNorthLongSlit] =
+      implicit val EqEditGmosNorthLongSlit: Eq[GmosNorthLongSlitInput] =
         Eq.by { a => (
           a.filter,
           a.disperser,
           a.slitWidth
         )}
+
     }
 
     final case class GmosSouthLongSlit(
@@ -153,32 +145,18 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
 
     }
 
-    final case class CreateGmosSouthLongSlit(
-      filter:    Option[GmosSouthFilter],
-      disperser: GmosSouthDisperser,
-      slitWidth: SlitWidthInput
-    ) {
-      def create: ValidatedInput[GmosSouthLongSlit] =
-        slitWidth.toAngle.map(GmosSouthLongSlit(filter, disperser, _))
-    }
-
-    object CreateGmosSouthLongSlit {
-      implicit val DecoderCreateGmosSouthLongSlit: Decoder[CreateGmosSouthLongSlit] =
-        deriveDecoder[CreateGmosSouthLongSlit]
-
-      implicit val EqCreateGmosSouthLongSlit: Eq[CreateGmosSouthLongSlit] =
-        Eq.by { a => (
-          a.filter,
-          a.disperser,
-          a.slitWidth
-        )}
-    }
-
-    final case class EditGmosSouthLongSlit(
+    final case class GmosSouthLongSlitInput(
       filter:    Input[GmosSouthFilter]    = Input.ignore,
       disperser: Input[GmosSouthDisperser] = Input.ignore,
       slitWidth: Input[SlitWidthInput]     = Input.ignore
-    ) {
+    ) extends EditorInput[GmosSouthLongSlit] {
+
+      override val create: ValidatedInput[GmosSouthLongSlit] =
+        (disperser.notMissing("filter"),
+         slitWidth.notMissingAndThen("slitWidth")(_.toAngle)
+        ).mapN { case (d, s) =>
+          GmosSouthLongSlit(filter.toOption, d, s)
+        }
 
       def edit: StateT[EitherInput, GmosSouthLongSlit, Unit] = {
         val validArgs =
@@ -197,15 +175,15 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
 
     }
 
-    object EditGmosSouthLongSlit {
+    object GmosSouthLongSlitInput {
       import io.circe.generic.extras.semiauto._
       import io.circe.generic.extras.Configuration
       implicit val customConfig: Configuration = Configuration.default.withDefaults
 
-      implicit val DecoderEditGmosSouthLongSlit: Decoder[EditGmosSouthLongSlit] =
-        deriveConfiguredDecoder[EditGmosSouthLongSlit]
+      implicit val DecoderGmosSouthLongSlitInput: Decoder[GmosSouthLongSlitInput] =
+        deriveConfiguredDecoder[GmosSouthLongSlitInput]
 
-      implicit val EqEditGmosSouthLongSlit: Eq[EditGmosSouthLongSlit] =
+      implicit val EqEditGmosSouthLongSlit: Eq[GmosSouthLongSlitInput] =
         Eq.by { a => (
           a.filter,
           a.disperser,
@@ -285,8 +263,8 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
     }
 
   final case class Create(
-    gmosNorthLongSlit: Option[CreateGmosNorthLongSlit],
-    gmosSouthLongSlit: Option[CreateGmosSouthLongSlit],
+    gmosNorthLongSlit: Option[GmosNorthLongSlitInput],
+    gmosSouthLongSlit: Option[GmosSouthLongSlitInput],
   ) {
 
     def create: ValidatedInput[ScienceConfigurationModel] =
@@ -345,8 +323,8 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
   }
 
   final case class Edit(
-    gmosNorthLongSlit: Option[EditGmosNorthLongSlit],
-    gmosSouthLongSlit: Option[EditGmosSouthLongSlit]
+    gmosNorthLongSlit: Option[GmosNorthLongSlitInput],
+    gmosSouthLongSlit: Option[GmosSouthLongSlitInput]
   ) {
 
     val gsLongSlit: Option[StateT[EitherInput, ScienceConfigurationModel, Unit]] =

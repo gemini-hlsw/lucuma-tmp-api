@@ -21,48 +21,40 @@ trait ScienceConfigurationMutation {
       InputObjectTypeDescription("Slit width in appropriate units"),
     )
 
-  implicit val InputObjectTypeCreateGmosNorthLongSlit: InputObjectType[CreateGmosNorthLongSlit] =
-    deriveInputObjectType[CreateGmosNorthLongSlit](
-      InputObjectTypeName("CreateGmosNorthLongSlit"),
-      InputObjectTypeDescription("Create a configuration for a GMOS North Long Slit observation")
-    )
-
-  implicit val InputObjectTypeCreateGmosSouthLongSlit: InputObjectType[CreateGmosSouthLongSlit] =
-    deriveInputObjectType[CreateGmosSouthLongSlit](
-      InputObjectTypeName("CreateGmosSouthLongSlit"),
-      InputObjectTypeDescription("Create a configuration for a GMOS South Long Slit observation")
-    )
-
   implicit val InputObjectTypeScienceConfigurationCreate: InputObjectType[ScienceConfigurationModel.Create] =
     deriveInputObjectType[ScienceConfigurationModel.Create](
       InputObjectTypeName("CreateObservationConfigInput"),
       InputObjectTypeDescription("Create observation configuration"),
     )
 
-  implicit val InputObjectTypeEditGmosSouthLongSlitEdit: InputObjectType[EditGmosSouthLongSlit] =
-    deriveInputObjectType[EditGmosSouthLongSlit](
-      InputObjectTypeName("EditGmosSouthLongSlit"),
-      InputObjectTypeDescription("Edit GMOS South Long Slit configuration"),
-      ReplaceInputField("filter", EnumTypeGmosSouthFilter.notNullableField("filter")),
-      ReplaceInputField("disperser", EnumTypeGmosSouthDisperser.notNullableField("disperser")),
-      ReplaceInputField("slitWidth", InputSlitWidthInput.notNullableField("slitWidth")),
+  implicit val InputObjectTypeGmosSouthLongSlit: InputObjectType[GmosSouthLongSlitInput] =
+    InputObjectType[GmosSouthLongSlitInput](
+      "EditGmosSouthLongSlit",
+      "Edit or create GMOS South Long Slit configuration",
+      List(
+        EnumTypeGmosSouthFilter.notNullableField("filter"),
+        EnumTypeGmosSouthDisperser.notNullableField("disperser"),
+        InputSlitWidthInput.notNullableField("slitWidth")
+      )
     )
 
-  implicit val InputObjectTypeEditGmosNorthLongSlitEdit: InputObjectType[EditGmosNorthLongSlit] =
-    deriveInputObjectType[EditGmosNorthLongSlit](
-      InputObjectTypeName("EditGmosNorthLongSlit"),
-      InputObjectTypeDescription("Edit GMOS North Long Slit configuration"),
-      ReplaceInputField("filter", EnumTypeGmosNorthFilter.notNullableField("filter")),
-      ReplaceInputField("disperser", EnumTypeGmosNorthDisperser.notNullableField("disperser")),
-      ReplaceInputField("slitWidth", InputSlitWidthInput.notNullableField("slitWidth")),
+  implicit val InputObjectTypeGmosNorthLongSlit: InputObjectType[GmosNorthLongSlitInput] =
+    InputObjectType[GmosNorthLongSlitInput](
+      "EditGmosNorthLongSlit",
+      "Edit or create GMOS North Long Slit configuration",
+      List(
+        EnumTypeGmosNorthFilter.notNullableField("filter"),
+        EnumTypeGmosNorthDisperser.notNullableField("disperser"),
+        InputSlitWidthInput.notNullableField("slitWidth")
+      )
     )
 
   implicit val InputObjectTypeScienceConfigEdit: InputObjectType[ScienceConfigurationModel.Edit] =
     deriveInputObjectType[ScienceConfigurationModel.Edit](
       InputObjectTypeName("EditScienceConfiguration"),
       InputObjectTypeDescription("Edit observation configuration"),
-      ReplaceInputField("gmosNorthLongSlit", InputObjectTypeEditGmosNorthLongSlitEdit.notNullableField("gmosNorthLongSlit")),
-      ReplaceInputField("gmosSouthLongSlit", InputObjectTypeEditGmosSouthLongSlitEdit.notNullableField("gmosSouthLongSlit")),
+      ReplaceInputField("gmosNorthLongSlit", InputObjectTypeGmosNorthLongSlit.notNullableField("gmosNorthLongSlit")),
+      ReplaceInputField("gmosSouthLongSlit", InputObjectTypeGmosSouthLongSlit.notNullableField("gmosSouthLongSlit")),
     )
 
   implicit val InputObjectTypeScienceConfigurationSetEdit: InputObjectType[ScienceConfigurationModelEdit] =
