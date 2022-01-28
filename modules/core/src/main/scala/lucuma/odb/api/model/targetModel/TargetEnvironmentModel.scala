@@ -21,6 +21,7 @@ import lucuma.core.util.Gid
 import lucuma.odb.api.model.{CoordinatesModel, DatabaseState, InputError, ValidatedInput}
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
+import lucuma.odb.api.model.syntax.validatedinput._
 import monocle.Lens
 
 import scala.collection.immutable.SortedSet
@@ -101,7 +102,7 @@ object TargetEnvironmentModel extends TargetEnvironmentModelOptics {
 
     val editor: StateT[EitherNec[InputError, *], TargetEnvironmentModel, Unit] =
       for {
-        b <- StateT.liftF(explicitBase.validateNullable(_.toCoordinates).toEither)
+        b <- explicitBase.validateNullable(_.toCoordinates).liftState
         _ <- TargetEnvironmentModel.explicitBase := b
         _ <- TargetEnvironmentModel.asterism     := asterism.map(ts => SortedSet.from(ts)(catsKernelOrderingForOrder))
       } yield ()

@@ -14,6 +14,7 @@ import eu.timepit.refined.numeric.Interval.Closed
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import lucuma.core.math._
+import lucuma.odb.api.model.syntax.validatedinput._
 import monocle.{Getter, Prism}
 import monocle.macros.GenPrism
 
@@ -167,14 +168,20 @@ final case class AirmassRangeInput(
     }
   }
 
-  override val edit: StateT[EitherInput, AirmassRange, Unit] =
+  override val edit: StateT[EitherInput, AirmassRange, Unit] = {
+    val validArgs = (
+      min.traverse(n => ValidatedInput.closedInterval("min", n, MinValue, MaxValue)),
+      max.traverse(x => ValidatedInput.closedInterval("max", x, MinValue, MaxValue))
+    ).tupled
+
     for {
-      min0 <- StateT.liftF(min.traverse(n => ValidatedInput.closedInterval("min", n, MinValue, MaxValue)).toEither)
-      max0 <- StateT.liftF(max.traverse(x => ValidatedInput.closedInterval("max", x, MinValue, MaxValue)).toEither)
-      min1 <- StateT.inspect[EitherInput, AirmassRange, DecimalValue](r => min0.getOrElse(r.min))
-      max1 <- StateT.inspect[EitherInput, AirmassRange, DecimalValue](r => max0.getOrElse(r.max))
-      _ <- StateT.setF(AirmassRange(min1, max1).toRightNec(invalidRange(min1, max1)))
+      args <- validArgs.liftState[AirmassRange]
+      (n0, x0) = args
+      n1 <- StateT.inspect[EitherInput, AirmassRange, DecimalValue](r => n0.getOrElse(r.min))
+      x1 <- StateT.inspect[EitherInput, AirmassRange, DecimalValue](r => x0.getOrElse(r.max))
+      _  <- StateT.setF(AirmassRange(n1, x1).toRightNec(invalidRange(n1, x1)))
     } yield ()
+  }
 
 }
 
@@ -270,14 +277,20 @@ final case class HourAngleRangeInput(
 
   }
 
-  override val edit: StateT[EitherInput, HourAngleRange, Unit] =
+  override val edit: StateT[EitherInput, HourAngleRange, Unit] = {
+    val validArgs = (
+      minHours.traverse(n => ValidatedInput.closedInterval("minHours", n, MinHour, MaxHour)),
+      maxHours.traverse(x => ValidatedInput.closedInterval("maxHours", x, MinHour, MaxHour))
+    ).tupled
+
     for {
-      min0 <- StateT.liftF(minHours.traverse(n => ValidatedInput.closedInterval("minHours", n, MinHour, MaxHour)).toEither)
-      max0 <- StateT.liftF(maxHours.traverse(x => ValidatedInput.closedInterval("maxHours", x, MinHour, MaxHour)).toEither)
-      min1 <- StateT.inspect[EitherInput, HourAngleRange, DecimalHour](r => min0.getOrElse(r.minHours))
-      max1 <- StateT.inspect[EitherInput, HourAngleRange, DecimalHour](r => max0.getOrElse(r.maxHours))
-      _    <- StateT.setF(HourAngleRange(min1, max1).toRightNec(invalidRange(min1, max1)))
+      args <- validArgs.liftState[HourAngleRange]
+      (n0, x0) = args
+      n1 <- StateT.inspect[EitherInput, HourAngleRange, DecimalHour](r => n0.getOrElse(r.minHours))
+      x1 <- StateT.inspect[EitherInput, HourAngleRange, DecimalHour](r => x0.getOrElse(r.maxHours))
+      _  <- StateT.setF(HourAngleRange(n1, x1).toRightNec(invalidRange(n1, x1)))
     } yield ()
+  }
 
 }
 
