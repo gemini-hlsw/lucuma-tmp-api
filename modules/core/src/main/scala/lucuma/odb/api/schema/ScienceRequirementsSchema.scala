@@ -7,12 +7,9 @@ import lucuma.core.math.Angle
 import lucuma.core.enum.FocalPlane
 import lucuma.core.enum.SpectroscopyCapabilities
 import lucuma.core.enum.ScienceMode
-import lucuma.odb.api.model.SpectroscopyScienceRequirements
-import lucuma.odb.api.model.SpectroscopyScienceRequirementsModel
-import lucuma.odb.api.model.ScienceRequirements
+import lucuma.odb.api.model.{FocalPlaneAngleInput, ScienceRequirements, SpectroscopyScienceRequirements}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.all._
-
 import sangria.schema._
 import sangria.macros.derive._
 
@@ -29,14 +26,14 @@ object ScienceRequirementsSchema {
   implicit val EnumTypeSpectroscopyCapabilities: EnumType[SpectroscopyCapabilities] =
     EnumType.fromEnumerated("SpectroscopyCapabilities", "Spectroscopy capabilities Nod&Shuffle/Polarimetry/Corongraphy")
 
-  implicit val EnumSpectroscopyModelAnglUnits: EnumType[SpectroscopyScienceRequirementsModel.Units] =
-    EnumType.fromEnumerated[SpectroscopyScienceRequirementsModel.Units](
+  implicit val EnumSpectroscopyModelAngleUnits: EnumType[FocalPlaneAngleInput.Units] =
+    EnumType.fromEnumerated[FocalPlaneAngleInput.Units](
       "FocalPlaneAngleUnits",
       "Focal plane angle units"
     )
 
-  implicit val InputFocalPlaneAngleInput: InputType[SpectroscopyScienceRequirementsModel.FocalPlaneAngleInput] =
-    deriveInputObjectType[SpectroscopyScienceRequirementsModel.FocalPlaneAngleInput](
+  implicit val InputFocalPlaneAngleInput: InputType[FocalPlaneAngleInput] =
+    deriveInputObjectType[FocalPlaneAngleInput](
       InputObjectTypeName("FocalPlaneAngleInput"),
       InputObjectTypeDescription("Focal plane angle source angle in appropriate units"),
     )
