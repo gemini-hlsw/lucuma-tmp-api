@@ -3,15 +3,17 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.schema.syntax.all._
+import cats.syntax.option._
+
+import lucuma.core.math.Angle
 import lucuma.odb.api.model.ConfigurationMode
+import lucuma.odb.api.model.ScienceConfigurationModel
+import lucuma.odb.api.model.ScienceConfigurationModel.Modes
+import lucuma.odb.api.repo.OdbRepo
+import lucuma.odb.api.schema.syntax.all._
 
 import sangria.schema._
 import sangria.macros.derive._
-import lucuma.odb.api.repo.OdbRepo
-import lucuma.odb.api.model.ScienceConfigurationModel
-import lucuma.odb.api.model.ScienceConfigurationModel.Modes
-import lucuma.core.math.Angle
 
 object ScienceConfigurationSchema {
   import GmosSchema._
@@ -63,8 +65,8 @@ object ScienceConfigurationSchema {
 
       )
     )
-  def ScienceConfigurationType[F[_]]: InterfaceType[OdbRepo[F], ScienceConfigurationModel] =
-    InterfaceType[OdbRepo[F], ScienceConfigurationModel](
+  def ScienceConfigurationType[F[_]]: ObjectType[OdbRepo[F], ScienceConfigurationModel] =
+    ObjectType[OdbRepo[F], ScienceConfigurationModel](
       name         = "ScienceConfiguration",
       description  = "Base science configuration",
       fields[OdbRepo[F], ScienceConfigurationModel](
@@ -72,28 +74,37 @@ object ScienceConfigurationSchema {
         Field(
           name        = "instrument",
           fieldType   = EnumTypeInstrument,
-          description = Some("Instrument"),
+          description = "Instrument".some,
           resolve     = _.value.instrument
         ),
 
         Field(
           name        = "mode",
           fieldType   = EnumTypeConfigurationMode,
-          description = Some("Configuration mode"),
+          description = "Configuration mode".some,
           resolve     = _.value.mode
-        )
+        ),
 
+        Field(
+          name        = "gmosNorthLongSlit",
+          fieldType   = OptionType(GmosNLongSlitType[F]),
+          description = "GMOS North Long Slit configuration".some,
+          resolve     = _.value.fold(_.some, _ => Option.empty)
+        ),
+
+        Field(
+          name        = "gmosSouthLongSlit",
+          fieldType   = OptionType(GmosSLongSlitType[F]),
+          description = "GMOS South Long Slit configuration".some,
+          resolve     = _.value.fold(_ => Option.empty, _.some)
+        )
       )
-    ).withPossibleTypes(() => List(
-      PossibleObject[OdbRepo[F], ScienceConfigurationModel](GmosNLongSlitType[F]),
-      PossibleObject[OdbRepo[F], ScienceConfigurationModel](GmosSLongSlitType[F]),
-    ))
+    )
 
   def GmosNLongSlitType[F[_]]: ObjectType[OdbRepo[F], Modes.GmosNorthLongSlit] =
     ObjectType[OdbRepo[F], Modes.GmosNorthLongSlit](
       name        = "GmosNorthLongSlit",
       description = "Basic configuration for GMOS North Long Slit",
-      interfaces  = List(PossibleInterface.apply[OdbRepo[F], Modes.GmosNorthLongSlit](ScienceConfigurationType[F])),
 
       fields[OdbRepo[F], Modes.GmosNorthLongSlit](
         Field(
@@ -123,7 +134,6 @@ object ScienceConfigurationSchema {
     ObjectType[OdbRepo[F], Modes.GmosSouthLongSlit](
       name        = "GmosSouthLongSlit",
       description = "Basic configuration for GMOS South Long Slit",
-      interfaces  = List(PossibleInterface.apply[OdbRepo[F], Modes.GmosSouthLongSlit](ScienceConfigurationType[F])),
 
       fields[OdbRepo[F], Modes.GmosSouthLongSlit](
         Field(

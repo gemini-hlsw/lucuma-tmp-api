@@ -78,7 +78,7 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
     ) extends EditorInput[GmosNorthLongSlit] {
 
       override val create: ValidatedInput[GmosNorthLongSlit] =
-        (disperser.notMissing("filter"),
+        (disperser.notMissing("disperser"),
          slitWidth.notMissingAndThen("slitWidth")(_.toAngle)
         ).mapN { case (d, s) =>
           GmosNorthLongSlit(filter.toOption, d, s)
@@ -152,7 +152,7 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
     ) extends EditorInput[GmosSouthLongSlit] {
 
       override val create: ValidatedInput[GmosSouthLongSlit] =
-        (disperser.notMissing("filter"),
+        (disperser.notMissing("disperser"),
          slitWidth.notMissingAndThen("slitWidth")(_.toAngle)
         ).mapN { case (d, s) =>
           GmosSouthLongSlit(filter.toOption, d, s)

@@ -177,27 +177,16 @@ object ObservationModel extends ObservationOptics {
          activeStatus.validateIsNotNull("active")
         ).tupled
 
-//      def empty[T]: StateT[EitherInput, T, Unit] = StateT.empty
-
       for {
         args <- validArgs.liftState
         (e, s, a) = args
-        _ <- ObservationModel.existence    := e
-        _ <- ObservationModel.name         := name.toOptionOption
-        _ <- ObservationModel.status       := s
-        _ <- ObservationModel.activeStatus := a
+        _ <- ObservationModel.existence            := e
+        _ <- ObservationModel.name                 := name.toOptionOption
+        _ <- ObservationModel.status               := s
+        _ <- ObservationModel.activeStatus         := a
         _ <- ObservationModel.targetEnvironment    :< targets.map(_.editor)
-        //.transform(
-//               targets.fold(empty[TargetEnvironmentModel])(_.editor)
-//             )
-        _ <- ObservationModel.constraintSet        :! constraintSet  //.map(_.edit)
-        //.transform(
-//               constraintSet.fold(empty[ConstraintSetModel])(_.edit)
-//             )
+        _ <- ObservationModel.constraintSet        :! constraintSet
         _ <- ObservationModel.scienceRequirements  :< scienceRequirements.map(_.editor)
-          //.transform(
-//               scienceRequirements.fold(empty[ScienceRequirements])(_.editor)
-//             )
         _ <- ObservationModel.scienceConfiguration :? scienceConfiguration
       } yield ()
     }
