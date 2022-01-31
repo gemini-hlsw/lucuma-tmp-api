@@ -85,7 +85,7 @@ final case class TargetEnvironmentInput(
     for {
       b <- explicitBase.validateNullable(_.toCoordinates).liftState
       _ <- TargetEnvironmentModel.explicitBase := b
-      _ <- TargetEnvironmentModel.asterism     := asterism.toOption.map(ts => SortedSet.from(ts)(catsKernelOrderingForOrder))
+      _ <- TargetEnvironmentModel.asterism     := asterism.toOption.map(SortedSet.from(_))
     } yield ()
 
 }
