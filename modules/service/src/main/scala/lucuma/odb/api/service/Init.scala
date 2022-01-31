@@ -360,8 +360,8 @@ object Init {
       name                 = target.map(_.name) orElse NonEmptyString.from("Observation").toOption,
       status               = ObsStatus.New.some,
       activeStatus         = ObsActiveStatus.Active.some,
-      targets              = target.fold(none[TargetEnvironmentModel.Create]) { sidereal =>
-        TargetEnvironmentModel.Create(List(sidereal.id).some, None).some
+      targetEnvironment    = target.fold(none[TargetEnvironmentInput]) { sidereal =>
+        TargetEnvironmentInput.asterism(sidereal.id).some
       },
       constraintSet        = None,
       scienceRequirements  = ScienceRequirementsModel.Create.Default.some,

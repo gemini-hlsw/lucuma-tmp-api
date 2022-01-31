@@ -7,7 +7,7 @@ import lucuma.odb.api.model.Existence._
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.validatedinput._
-import lucuma.odb.api.model.targetModel.TargetEnvironmentModel
+import lucuma.odb.api.model.targetModel.{TargetEnvironmentInput, TargetEnvironmentModel}
 import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.{Observation, Program}
 import cats.{Eq, Functor, Monad}
@@ -37,7 +37,7 @@ final case class ObservationModel(
   name:                 Option[NonEmptyString],
   status:               ObsStatus,
   activeStatus:         ObsActiveStatus,
-  targets:              TargetEnvironmentModel,
+  targetEnvironment:    TargetEnvironmentModel,
   constraintSet:        ConstraintSetModel,
   scienceRequirements:  ScienceRequirements,
   scienceConfiguration: Option[ScienceConfigurationModel],
@@ -48,7 +48,7 @@ final case class ObservationModel(
   def validate[F[_]: Monad, T](
     db: DatabaseState[T]
   )(implicit S: Stateful[F, T]): F[ValidatedInput[ObservationModel]] =
-    targets.validate[F, T](db, programId).map(_.as(this))
+    targetEnvironment.validate[F, T](db, programId).map(_.as(this))
 
 }
 
@@ -66,7 +66,7 @@ object ObservationModel extends ObservationOptics {
       o.name,
       o.status,
       o.activeStatus,
-      o.targets,
+      o.targetEnvironment,
       o.constraintSet,
       o.scienceRequirements,
       o.scienceConfiguration,
@@ -81,7 +81,7 @@ object ObservationModel extends ObservationOptics {
     name:                 Option[NonEmptyString],
     status:               Option[ObsStatus],
     activeStatus:         Option[ObsActiveStatus],
-    targets:              Option[TargetEnvironmentModel.Create],
+    targetEnvironment:    Option[TargetEnvironmentInput],
     constraintSet:        Option[ConstraintSetInput],
     scienceRequirements:  Option[ScienceRequirementsModel.Create],
     scienceConfiguration: Option[ScienceConfigurationInput],
@@ -96,7 +96,7 @@ object ObservationModel extends ObservationOptics {
       for {
         i <- db.observation.getUnusedId(observationId)
         p <- db.program.lookupValidated(programId)
-        t <- targets.getOrElse(TargetEnvironmentModel.Create.Empty).create[F, T](db)
+        t  = targetEnvironment.getOrElse(TargetEnvironmentInput.Empty).create
         c  = constraintSet.traverse(_.create)
         q  = scienceRequirements.traverse(_.create)
         u  = scienceConfiguration.traverse(_.create)
@@ -132,7 +132,7 @@ object ObservationModel extends ObservationOptics {
         name                 = None,
         status               = None,
         activeStatus         = None,
-        targets              = None,
+        targetEnvironment    = None,
         constraintSet        = None,
         scienceRequirements  = None,
         scienceConfiguration = None,
@@ -149,7 +149,7 @@ object ObservationModel extends ObservationOptics {
         a.name,
         a.status,
         a.activeStatus,
-        a.targets,
+        a.targetEnvironment,
         a.constraintSet,
         a.scienceRequirements,
         a.scienceConfiguration,
@@ -164,13 +164,13 @@ object ObservationModel extends ObservationOptics {
     name:                 Input[NonEmptyString]                 = Input.ignore,
     status:               Input[ObsStatus]                      = Input.ignore,
     activeStatus:         Input[ObsActiveStatus]                = Input.ignore,
-    targets:              Option[TargetEnvironmentModel.Edit]   = None,
+    targetEnvironment:    Input[TargetEnvironmentInput]         = Input.ignore,
     constraintSet:        Input[ConstraintSetInput]             = Input.ignore,
     scienceRequirements:  Option[ScienceRequirementsModel.Edit] = None,
     scienceConfiguration: Input[ScienceConfigurationInput]      = Input.ignore
   ) {
 
-    val editor: StateT[EitherInput, ObservationModel, Unit] = {
+    val edit: StateT[EitherInput, ObservationModel, Unit] = {
       val validArgs =
         (existence   .validateIsNotNull("existence"),
          status      .validateIsNotNull("status"),
@@ -184,7 +184,7 @@ object ObservationModel extends ObservationOptics {
         _ <- ObservationModel.name                 := name.toOptionOption
         _ <- ObservationModel.status               := s
         _ <- ObservationModel.activeStatus         := a
-        _ <- ObservationModel.targetEnvironment    :< targets.map(_.editor)
+        _ <- ObservationModel.targetEnvironment    :! targetEnvironment
         _ <- ObservationModel.constraintSet        :! constraintSet
         _ <- ObservationModel.scienceRequirements  :< scienceRequirements.map(_.editor)
         _ <- ObservationModel.scienceConfiguration :? scienceConfiguration
@@ -208,7 +208,7 @@ object ObservationModel extends ObservationOptics {
         a.name,
         a.status,
         a.activeStatus,
-        a.targets,
+        a.targetEnvironment,
         a.constraintSet,
         a.scienceRequirements,
         a.scienceConfiguration
@@ -308,7 +308,7 @@ trait ObservationOptics { self: ObservationModel.type =>
     Focus[ObservationModel](_.activeStatus)
 
   val targetEnvironment: Lens[ObservationModel, TargetEnvironmentModel] =
-    Focus[ObservationModel](_.targets)
+    Focus[ObservationModel](_.targetEnvironment)
 
   val constraintSet: Lens[ObservationModel, ConstraintSetModel] =
     Focus[ObservationModel](_.constraintSet)

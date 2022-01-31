@@ -38,6 +38,6 @@ final class TargetModelSuite extends DisciplineSuite {
 
   checkAll("EditTargetInput", EqTests[EditAsterismInput].eqv)
 
-  checkAll("TargetEnvironmentModel.Create", EqTests[TargetEnvironmentModel.Create].eqv)
+  checkAll("TargetEnvironmentInput", EqTests[TargetEnvironmentInput].eqv)
 
 }

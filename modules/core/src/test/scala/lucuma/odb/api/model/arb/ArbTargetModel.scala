@@ -189,18 +189,18 @@ trait ArbTargetModel {
       in.delete
     )}
 
-  implicit val arbCreateTargetEnvironmentInput: Arbitrary[TargetEnvironmentModel.Create] =
+  implicit val arbTargetEnvironmentInput: Arbitrary[TargetEnvironmentInput] =
     Arbitrary {
       for {
-        a <- arbitrary[Option[List[Target.Id]]]
-        e <- arbitrary[Option[CoordinatesModel.Input]]
-      } yield TargetEnvironmentModel.Create(a, e)
+        a <- arbitrary[Input[List[Target.Id]]]
+        e <- arbitrary[Input[CoordinatesModel.Input]]
+      } yield TargetEnvironmentInput(a, e)
     }
 
-  implicit val cogCreateTargetEnvironmentInput: Cogen[TargetEnvironmentModel.Create] =
+  implicit val cogTargetEnvironmentInput: Cogen[TargetEnvironmentInput] =
     Cogen[(
-      Option[List[Target.Id]],
-      Option[CoordinatesModel.Input]
+      Input[List[Target.Id]],
+      Input[CoordinatesModel.Input]
     )].contramap { in => (
       in.asterism,
       in.explicitBase

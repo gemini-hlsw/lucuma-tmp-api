@@ -26,7 +26,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
       mutation UpdateTargetEnvironment($envEdit: BulkEditTargetEnvironmentInput!) {
         updateTargetEnvironment(input: $envEdit) {
           id
-          targets {
+          targetEnvironment {
             asterism {
               name
             }
@@ -39,7 +39,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
         "updateTargetEnvironment": [
           {
             "id": "o-3",
-            "targets": {
+            "targetEnvironment": {
               "asterism": [
                 {
                   "name": "NGC 5949"
@@ -68,7 +68,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
       mutation UpdateTargetEnvironment($envEdit: BulkEditTargetEnvironmentInput!) {
         updateTargetEnvironment(input: $envEdit) {
           id
-          targets {
+          targetEnvironment {
             asterism {
               name
             }
@@ -96,7 +96,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
       mutation UpdateTargetEnvironment($envEdit: BulkEditTargetEnvironmentInput!) {
         updateTargetEnvironment(input: $envEdit) {
           id
-          targets {
+          targetEnvironment {
             explicitBase {
               ra { hms }
               dec { dms }
@@ -110,7 +110,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
         "updateTargetEnvironment": [
           {
             "id": "o-3",
-            "targets": {
+            "targetEnvironment": {
               "explicitBase": {
                 "ra": {
                   "hms": "01:00:00.000000"

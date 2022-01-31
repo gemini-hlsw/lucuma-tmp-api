@@ -12,7 +12,7 @@ import lucuma.odb.api.model.{ConstraintSetInput, ConstraintSetModel, EitherInput
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.model.syntax.validatedinput._
-import lucuma.odb.api.model.targetModel.{EditAsterismInput, TargetEnvironmentModel, TargetModel}
+import lucuma.odb.api.model.targetModel.{EditAsterismInput, TargetEnvironmentInput, TargetEnvironmentModel, TargetModel}
 
 import scala.collection.immutable.SortedSet
 
@@ -80,7 +80,7 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
   ): F[List[ObservationModel]]
 
   def bulkEditTargetEnvironment(
-    be: BulkEdit[TargetEnvironmentModel.Edit]
+    be: BulkEdit[TargetEnvironmentInput]
   ): F[List[ObservationModel]]
 
   def bulkEditConstraintSet(
@@ -168,7 +168,7 @@ object ObservationRepo {
         val update: State[Tables, ValidatedInput[ObservationModel]] =
           for {
             initial   <- TableState.observation.lookupValidated[State[Tables, *]](edit.observationId)
-            edited     = initial.andThen(o => edit.editor.runS(o).toValidated )
+            edited     = initial.andThen(o => edit.edit.runS(o).toValidated )
             validated <- edited
                            .traverse(_.validate[State[Tables, *], Tables](TableState))
                            .map(_.andThen(identity))
@@ -197,7 +197,7 @@ object ObservationRepo {
             t.observations
              .values
              .filter(o => (o.programId === pid) && (includeDeleted || o.isPresent))
-             .flatMap(o => o.targets.asterism.toList.tupleRight(o.id))
+             .flatMap(o => o.targetEnvironment.asterism.toList.tupleRight(o.id))
              .groupMap(_._1)(_._2)
              .map { case (a, oids) => Group.from(a, oids) }
              .toList
@@ -250,7 +250,7 @@ object ObservationRepo {
         pid:            Program.Id,
         includeDeleted: Boolean
       ): F[List[Group[SortedSet[Target.Id]]]] =
-        groupBy(pid, includeDeleted)(_.targets.asterism)
+        groupBy(pid, includeDeleted)(_.targetEnvironment.asterism)
 
       override def groupByAsterismInstantiated(
         pid:            Program.Id,
@@ -266,7 +266,7 @@ object ObservationRepo {
        pid:            Program.Id,
        includeDeleted: Boolean
      ): F[List[Group[TargetEnvironmentModel]]] =
-       groupBy(pid, includeDeleted)(_.targets)
+       groupBy(pid, includeDeleted)(_.targetEnvironment)
 
       override def groupByConstraintSet(
         pid:            Program.Id,
@@ -329,9 +329,9 @@ object ObservationRepo {
       }
 
       override def bulkEditTargetEnvironment(
-        be: BulkEdit[TargetEnvironmentModel.Edit]
+        be: BulkEdit[TargetEnvironmentInput]
       ): F[List[ObservationModel]] =
-        doBulkEditTargets(be, be.edit.editor)
+        doBulkEditTargets(be, be.edit.edit)
 
       override def bulkEditAsterism(
         be: BulkEdit[Seq[EditAsterismInput]]
