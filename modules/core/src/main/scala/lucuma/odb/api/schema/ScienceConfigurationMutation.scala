@@ -3,8 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.ScienceConfigurationModel
-import lucuma.odb.api.model.ScienceConfigurationModel.ScienceConfigurationModelEdit
+import lucuma.odb.api.model.{ScienceConfigurationInput, ScienceConfigurationModel}
 import sangria.macros.derive._
 import sangria.schema._
 
@@ -19,12 +18,6 @@ trait ScienceConfigurationMutation {
     deriveInputObjectType[SlitWidthInput](
       InputObjectTypeName("SlitWidthInput"),
       InputObjectTypeDescription("Slit width in appropriate units"),
-    )
-
-  implicit val InputObjectTypeScienceConfigurationCreate: InputObjectType[ScienceConfigurationModel.Create] =
-    deriveInputObjectType[ScienceConfigurationModel.Create](
-      InputObjectTypeName("CreateObservationConfigInput"),
-      InputObjectTypeDescription("Create observation configuration"),
     )
 
   implicit val InputObjectTypeGmosSouthLongSlit: InputObjectType[GmosSouthLongSlitInput] =
@@ -49,20 +42,14 @@ trait ScienceConfigurationMutation {
       )
     )
 
-  implicit val InputObjectTypeScienceConfigEdit: InputObjectType[ScienceConfigurationModel.Edit] =
-    deriveInputObjectType[ScienceConfigurationModel.Edit](
-      InputObjectTypeName("EditScienceConfiguration"),
-      InputObjectTypeDescription("Edit observation configuration"),
-      ReplaceInputField("gmosNorthLongSlit", InputObjectTypeGmosNorthLongSlit.notNullableField("gmosNorthLongSlit")),
-      ReplaceInputField("gmosSouthLongSlit", InputObjectTypeGmosSouthLongSlit.notNullableField("gmosSouthLongSlit")),
-    )
-
-  implicit val InputObjectTypeScienceConfigurationSetEdit: InputObjectType[ScienceConfigurationModelEdit] =
-    deriveInputObjectType[ScienceConfigurationModelEdit](
-      InputObjectTypeName("EditScienceConfigurationInput"),
-      InputObjectTypeDescription("Edit or set observation configuration"),
-      ReplaceInputField("set", InputObjectTypeScienceConfigurationCreate.notNullableField("set")),
-      ReplaceInputField("edit", InputObjectTypeScienceConfigEdit.notNullableField("edit")),
+  implicit val InputObjectTypeScienceConfig: InputObjectType[ScienceConfigurationInput] =
+    InputObjectType[ScienceConfigurationInput](
+      "ScienceConfigurationInput",
+      "Edit or create an observation's science configuration",
+      List(
+        InputObjectTypeGmosNorthLongSlit.notNullableField("gmosNorthLongSlit"),
+        InputObjectTypeGmosSouthLongSlit.notNullableField("gmosSouthLongSlit")
+      )
     )
 
 }

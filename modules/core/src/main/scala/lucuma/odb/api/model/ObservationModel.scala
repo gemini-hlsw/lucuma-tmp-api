@@ -4,7 +4,6 @@
 package lucuma.odb.api.model
 
 import lucuma.odb.api.model.Existence._
-import lucuma.odb.api.model.ScienceConfigurationModel.ScienceConfigurationModelEdit
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.validatedinput._
@@ -20,7 +19,7 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
 import cats.syntax.traverse._
-import clue.data.{Assign, Ignore, Input, Unassign}
+import clue.data.Input
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string._
 import io.circe.Decoder
@@ -85,7 +84,7 @@ object ObservationModel extends ObservationOptics {
     targets:              Option[TargetEnvironmentModel.Create],
     constraintSet:        Option[ConstraintSetInput],
     scienceRequirements:  Option[ScienceRequirementsModel.Create],
-    scienceConfiguration: Option[ScienceConfigurationModel.Create],
+    scienceConfiguration: Option[ScienceConfigurationInput],
     config:               Option[InstrumentConfigModel.Create]
   ) {
 
@@ -166,9 +165,9 @@ object ObservationModel extends ObservationOptics {
     status:               Input[ObsStatus]                      = Input.ignore,
     activeStatus:         Input[ObsActiveStatus]                = Input.ignore,
     targets:              Option[TargetEnvironmentModel.Edit]   = None,
-    constraintSet:        Option[ConstraintSetInput]            = None,
+    constraintSet:        Input[ConstraintSetInput]             = Input.ignore,
     scienceRequirements:  Option[ScienceRequirementsModel.Edit] = None,
-    scienceConfiguration: Input[ScienceConfigurationModelEdit]  = Input.ignore
+    scienceConfiguration: Input[ScienceConfigurationInput]      = Input.ignore
   ) {
 
     val editor: StateT[EitherInput, ObservationModel, Unit] = {
@@ -178,14 +177,7 @@ object ObservationModel extends ObservationOptics {
          activeStatus.validateIsNotNull("active")
         ).tupled
 
-      val sc: StateT[EitherInput, ObservationModel, Unit] =
-        scienceConfiguration match {
-          case Ignore     => StateT.empty[EitherInput, ObservationModel, Unit]
-          case Unassign   => StateT.modify(ObservationModel.scienceConfiguration.replace(None))
-          case Assign(ed) => ObservationModel.scienceConfiguration.transform(ed.editor)
-        }
-
-      def empty[T]: StateT[EitherInput, T, Unit] = StateT.empty
+//      def empty[T]: StateT[EitherInput, T, Unit] = StateT.empty
 
       for {
         args <- validArgs.liftState
@@ -194,16 +186,19 @@ object ObservationModel extends ObservationOptics {
         _ <- ObservationModel.name         := name.toOptionOption
         _ <- ObservationModel.status       := s
         _ <- ObservationModel.activeStatus := a
-        _ <- ObservationModel.targetEnvironment.transform(
-               targets.fold(empty[TargetEnvironmentModel])(_.editor)
-             )
-        _ <- ObservationModel.constraintSet.transform(
-               constraintSet.fold(empty[ConstraintSetModel])(_.edit)
-             )
-        _ <- ObservationModel.scienceRequirements.transform(
-               scienceRequirements.fold(empty[ScienceRequirements])(_.editor)
-             )
-        _ <- sc
+        _ <- ObservationModel.targetEnvironment    :< targets.map(_.editor)
+        //.transform(
+//               targets.fold(empty[TargetEnvironmentModel])(_.editor)
+//             )
+        _ <- ObservationModel.constraintSet        :! constraintSet  //.map(_.edit)
+        //.transform(
+//               constraintSet.fold(empty[ConstraintSetModel])(_.edit)
+//             )
+        _ <- ObservationModel.scienceRequirements  :< scienceRequirements.map(_.editor)
+          //.transform(
+//               scienceRequirements.fold(empty[ScienceRequirements])(_.editor)
+//             )
+        _ <- ObservationModel.scienceConfiguration :? scienceConfiguration
       } yield ()
     }
   }

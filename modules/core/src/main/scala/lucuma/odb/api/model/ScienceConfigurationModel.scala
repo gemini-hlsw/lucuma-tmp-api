@@ -17,9 +17,9 @@ import lucuma.core.enum.GmosSouthDisperser
 import lucuma.core.math.Angle
 import lucuma.core.util.Enumerated
 import lucuma.core.util.Display
+import lucuma.odb.api.model.ScienceConfigurationModel.Modes.{GmosNorthLongSlit, GmosNorthLongSlitInput, GmosSouthLongSlit, GmosSouthLongSlitInput}
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
-import lucuma.odb.api.model.syntax.prism._
 import lucuma.odb.api.model.syntax.validatedinput._
 import monocle.{Focus, Lens, Prism}
 import monocle.macros.GenPrism
@@ -256,106 +256,12 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
 
   import Modes._
 
-  implicit val EqObservationConfigModel: Eq[ScienceConfigurationModel] =
+  implicit val EqScienceConfigurationModel: Eq[ScienceConfigurationModel] =
     Eq.instance {
       case (a: GmosNorthLongSlit, b: GmosNorthLongSlit) => a === b
       case (_, _)                                       => false
     }
 
-  final case class Create(
-    gmosNorthLongSlit: Option[GmosNorthLongSlitInput],
-    gmosSouthLongSlit: Option[GmosSouthLongSlitInput],
-  ) {
-
-    def create: ValidatedInput[ScienceConfigurationModel] =
-      ValidatedInput.requireOne[ScienceConfigurationModel](
-        "mode",
-        gmosNorthLongSlit.map(_.create),
-        gmosSouthLongSlit.map(_.create)
-      )
-
-  }
-
-  object Create {
-
-    implicit val DecoderCreate: Decoder[Create] =
-      deriveDecoder[Create]
-
-    implicit val EqCreate: Eq[Create] =
-      Eq.by { a => (
-        a.gmosNorthLongSlit,
-        a.gmosSouthLongSlit
-      )}
-  }
-
-  // TODO: I'm keeping this class and its behavior for now, but probably should
-  // TODO: be reworked so that you can create or edit with the appropriate
-  // TODO: validation like we do for CatalogInfo
-  final case class ScienceConfigurationModelEdit(
-    set:  Option[Create] = None,
-    edit: Option[Edit] = None
-  ) {
-
-    val editor: StateT[EitherInput, Option[ScienceConfigurationModel], Unit] =
-      (set, edit) match {
-        case (Some(c), None) => StateT.setF(c.create.toEither.map(_.some))
-        case (None, Some(e)) =>
-          StateT.modifyF { os =>
-            os.fold(InputError.fromMessage("There is no science configuration to edit, use `set` instead").leftNec[Option[ScienceConfigurationModel]]) { s =>
-              e.editor.runS(s).map(_.some)
-            }
-          }
-        case (None, None)    => StateT.empty[EitherInput, Option[ScienceConfigurationModel], Unit]
-        case _               => StateT.setF(InputError.fromMessage(s"Either 'set' or 'edit' are permitted but not both").leftNec[Option[ScienceConfigurationModel]])
-      }
-
-  }
-
-  object ScienceConfigurationModelEdit {
-    implicit val DecoderScienceConfigurationModelEdit: Decoder[ScienceConfigurationModelEdit] =
-      deriveDecoder[ScienceConfigurationModelEdit]
-
-    implicit val EqScienceConfigurationModelEdit: Eq[ScienceConfigurationModelEdit] =
-      Eq.by { a => (
-        a.set,
-        a.edit
-      )}
-  }
-
-  final case class Edit(
-    gmosNorthLongSlit: Option[GmosNorthLongSlitInput],
-    gmosSouthLongSlit: Option[GmosSouthLongSlitInput]
-  ) {
-
-    val gsLongSlit: Option[StateT[EitherInput, ScienceConfigurationModel, Unit]] =
-      gmosSouthLongSlit.map(e => ScienceConfigurationModel.gmosSouthLongSlit.transformOrIgnore(e.edit))
-
-    val gnLongSlit: Option[StateT[EitherInput, ScienceConfigurationModel, Unit]] =
-      gmosNorthLongSlit.map(e => ScienceConfigurationModel.gmosNorthLongSlit.transformOrIgnore(e.edit))
-
-    val editor: StateT[EitherInput, ScienceConfigurationModel, Unit] =
-      (gnLongSlit, gsLongSlit) match {
-        case (Some(n), None) => n
-        case (None, Some(s)) => s
-        case _               => StateT.setF(InputError.fromMessage("Exactly one of 'gmosNorthLongSlit' or 'gmosSouthLongSlit' must be supplied").leftNec)
-      }
-
-  }
-
-  object Edit {
-    import io.circe.generic.extras.semiauto._
-    import io.circe.generic.extras.Configuration
-    implicit val customConfig: Configuration = Configuration.default.withDefaults
-
-    implicit val DecoderEdit: Decoder[Edit] =
-      deriveConfiguredDecoder[Edit]
-
-    implicit val EqEdit: Eq[Edit] =
-      Eq.by { a => (
-        a.gmosNorthLongSlit,
-        a.gmosSouthLongSlit
-      )}
-  }
 }
 
 trait ScienceConfigurationModelOptics {
@@ -366,4 +272,41 @@ trait ScienceConfigurationModelOptics {
 
   val gmosSouthLongSlit: Prism[ScienceConfigurationModel, Modes.GmosSouthLongSlit] =
     GenPrism[ScienceConfigurationModel, Modes.GmosSouthLongSlit]
+}
+
+final case class ScienceConfigurationInput(
+  gmosNorthLongSlit: Input[GmosNorthLongSlitInput] = Input.ignore,
+  gmosSouthLongSlit: Input[GmosSouthLongSlitInput] = Input.ignore
+) extends EditorInput[ScienceConfigurationModel] {
+
+  override val create: ValidatedInput[ScienceConfigurationModel] =
+    ValidatedInput.requireOne[ScienceConfigurationModel](
+      "mode",
+      gmosNorthLongSlit.toOption.map(_.create.widen[ScienceConfigurationModel]),
+      gmosSouthLongSlit.toOption.map(_.create.widen[ScienceConfigurationModel])
+    )
+
+  override val edit: StateT[EitherInput, ScienceConfigurationModel, Unit] =
+    EditorInput.editOneOf[ScienceConfigurationModel, GmosNorthLongSlit, GmosSouthLongSlit](
+      ("gmosNorthLongSlit", gmosNorthLongSlit, ScienceConfigurationModel.gmosNorthLongSlit),
+      ("gmosSouthLongSlit", gmosSouthLongSlit, ScienceConfigurationModel.gmosSouthLongSlit)
+    )
+
+}
+
+object ScienceConfigurationInput {
+
+    import io.circe.generic.extras.semiauto._
+    import io.circe.generic.extras.Configuration
+    implicit val customConfig: Configuration = Configuration.default.withDefaults
+
+    implicit val DecoderScienceConfigurationInput: Decoder[ScienceConfigurationInput] =
+      deriveConfiguredDecoder[ScienceConfigurationInput]
+
+    implicit val EqScienceConfigurationInput: Eq[ScienceConfigurationInput] =
+      Eq.by { a => (
+        a.gmosNorthLongSlit,
+        a.gmosSouthLongSlit
+      )}
+
 }
