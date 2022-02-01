@@ -144,10 +144,10 @@ object ScienceRequirementsSchema {
           ),
 
           Field(
-            name        = "spectroscopyRequirements",
+            name        = "spectroscopy",
             fieldType   = SpectroscopyRequirementsType[F],
             description = Some("Spectroscopy requirements"),
-            resolve     = _.value.spectroscopyRequirements
+            resolve     = _.value.spectroscopy
           ),
         )
     )
