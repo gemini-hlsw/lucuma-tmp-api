@@ -11,6 +11,7 @@ import cats.MonadError
 import cats.data.State
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
+import lucuma.itc.client.ItcClient
 import lucuma.odb.api.schema.TargetSchema.TargetEnvironmentType
 import sangria.schema._
 
@@ -148,6 +149,25 @@ object ObservationSchema {
           description = Some("The science configuration"),
           arguments   = List(ArgumentIncludeDeleted),
           resolve     = c => c.value.scienceConfiguration
+        ),
+
+        Field(
+          name        = "itc",
+          fieldType   = OptionType(StringType),
+          description = "ITC execution results".some,
+          resolve     = c => c.unsafeToFuture {
+            for {
+              ts <- c.value.targetEnvironment.asterism.toList.traverse(tid => c.ctx.target.unsafeSelectTarget(tid))
+              rs <- ts.traverse(t => ItcClient.query[F](c.value, t.target))
+            } yield {
+
+              val x = rs.flatMap(_.toList).traverse(x => x.itc.toEither)
+              val y = x.map(_.maxByOption(s => (s.exposureTime.getSeconds, s.exposureTime.getNano)))
+                .leftMap(e => new Exception(e.msg))
+              val z = y.liftTo[F].map(_.map(_.toString))
+              z
+            }
+          }
         ),
 
         Field(
