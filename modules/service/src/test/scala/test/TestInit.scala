@@ -14,7 +14,7 @@ import lucuma.core.model.Program
 import lucuma.core.optics.syntax.all._
 import lucuma.odb.api.model.OffsetModel.ComponentInput
 import lucuma.odb.api.model._
-import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
+import lucuma.odb.api.model.targetModel.{TargetEnvironmentInput, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 
 import scala.concurrent.duration._
@@ -405,7 +405,7 @@ object TestInit {
       name                 = targets.headOption.map(_.name) orElse NonEmptyString.from("Observation").toOption,
       status               = ObsStatus.New.some,
       activeStatus         = ObsActiveStatus.Active.some,
-      targets              = TargetEnvironmentModel.Create(targets.map(_.id).some, None).some,
+      targetEnvironment    = TargetEnvironmentInput.asterism(targets.map(_.id)).some,
       constraintSet        = None,
       scienceRequirements  = ScienceRequirementsModel.Create.Default.some,
       scienceConfiguration = None,
@@ -446,7 +446,7 @@ object TestInit {
       _  <- repo.observation.bulkEditTargetEnvironment(
               ObservationModel.BulkEdit.observations(
                 List(o.id),
-                TargetEnvironmentModel.Edit.explicitBase(
+                TargetEnvironmentInput.explicitBase(
                   CoordinatesModel.Input(
                       RightAscensionModel.Input.fromDegrees(159.2583),
                       DeclinationModel.Input.fromDegrees(-27.5650)

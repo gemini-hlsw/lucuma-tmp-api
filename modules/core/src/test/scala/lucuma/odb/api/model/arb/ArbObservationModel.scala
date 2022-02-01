@@ -9,7 +9,7 @@ import lucuma.core.model.{Observation, Program}
 import lucuma.core.util.arb.{ArbEnumerated, ArbGid}
 import eu.timepit.refined.scalacheck.all._
 import eu.timepit.refined.types.all.NonEmptyString
-import lucuma.odb.api.model.targetModel.TargetEnvironmentModel
+import lucuma.odb.api.model.targetModel.{TargetEnvironmentInput, TargetEnvironmentModel}
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
@@ -72,7 +72,7 @@ trait ArbObservationModel {
         nm <- arbitrary[Option[NonEmptyString]]
         st <- arbitrary[Option[ObsStatus]]
         as <- arbitrary[Option[ObsActiveStatus]]
-        ts <- arbitrary[Option[TargetEnvironmentModel.Create]]
+        ts <- arbitrary[Option[TargetEnvironmentInput]]
         cs <- arbitrary[Option[ConstraintSetInput]]
       } yield ObservationModel.Create(
         id,
@@ -95,7 +95,7 @@ trait ArbObservationModel {
       Option[String],
       Option[ObsStatus],
       Option[ObsActiveStatus],
-      Option[TargetEnvironmentModel.Create],
+      Option[TargetEnvironmentInput],
       Option[ConstraintSetInput]
     )].contramap { in => (
       in.observationId,
@@ -103,7 +103,7 @@ trait ArbObservationModel {
       in.name.map(_.value),
       in.status,
       in.activeStatus,
-      in.targets,
+      in.targetEnvironment,
       in.constraintSet
     )}
 

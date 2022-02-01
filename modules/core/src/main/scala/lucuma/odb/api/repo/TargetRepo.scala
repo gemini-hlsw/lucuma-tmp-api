@@ -184,7 +184,7 @@ object TargetRepo {
             .observations
             .values
             .filter(o => o.programId === pid && (includeDeleted || o.isPresent))
-            .map(_.targets.asterism)
+            .map(_.targetEnvironment.asterism)
             .reduceOption(_.union(_))
             .getOrElse(SortedSet.empty[Target.Id])
         }
@@ -200,7 +200,7 @@ object TargetRepo {
             tab
               .observations
               .get(oid)
-              .map(_.targets.asterism)
+              .map(_.targetEnvironment.asterism)
               .getOrElse(SortedSet.empty[Target.Id])
           }.reduceOption(_.union(_))
            .getOrElse(SortedSet.empty[Target.Id])
@@ -237,7 +237,7 @@ object TargetRepo {
             .observations
             .values
             .filter(o => o.programId === pid && (includeDeleted || o.isPresent))
-            .map(_.targets.asterism)
+            .map(_.targetEnvironment.asterism)
             .toList
             .distinct
             .map(_.map(tab.targets.apply).filter(t => includeDeleted || t.isPresent))
@@ -252,7 +252,7 @@ object TargetRepo {
       override def selectObservationTargetEnvironment(
         id: Observation.Id
       ): F[Option[TargetEnvironmentModel]] =
-        tablesRef.get.map(_.observations.get(id).map(_.targets))
+        tablesRef.get.map(_.observations.get(id).map(_.targetEnvironment))
 
       override def unsafeSelectObservationTargetEnvironment(
         id: Observation.Id

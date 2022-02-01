@@ -10,7 +10,7 @@ import lucuma.odb.api.schema.syntax.inputtype._
 import cats.MonadError
 import cats.effect.std.Dispatcher
 import io.circe.Decoder
-import lucuma.odb.api.model.targetModel.{EditAsterismInput, TargetEnvironmentModel}
+import lucuma.odb.api.model.targetModel.{EditAsterismInput, TargetEnvironmentInput}
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -19,12 +19,12 @@ trait ObservationMutation {
 
   import ConstraintSetMutation.InputObjectTypeConstraintSet
   import context._
-  import ScienceConfigurationMutation.{InputObjectTypeScienceConfigurationCreate, InputObjectTypeScienceConfigurationSetEdit}
+  import ScienceConfigurationMutation.InputObjectTypeScienceConfig
   import ScienceRequirementsMutation.{InputObjectTypeScienceRequirementsCreate, InputObjectTypeScienceRequirementsEdit}
   import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
   import ObservationSchema.{ObsActiveStatusType, ObservationIdType, ObservationIdArgument, ObsStatusType, ObservationType}
   import ProgramSchema.ProgramIdType
-  import TargetMutation.{InputObjectTypeCreateTargetEnvironmentInput, InputObjectTypeEditAsterism, InputObjectTypeTargetEnvironmentEdit}
+  import TargetMutation.{InputObjectTypeEditAsterism, InputObjectTypeTargetEnvironment}
   import syntax.inputobjecttype._
 
   val InputObjectTypeObservationCreate: InputObjectType[ObservationModel.Create] =
@@ -48,10 +48,10 @@ trait ObservationMutation {
       ReplaceInputField("name",                 NonEmptyStringType.nullableField("name")),
       ReplaceInputField("status",               ObsStatusType.notNullableField("status")),
       ReplaceInputField("activeStatus",         ObsActiveStatusType.notNullableField("activeStatus")),
-      ReplaceInputField("targets",              InputObjectTypeTargetEnvironmentEdit.notNullableField("targetEnvironment")),
+      ReplaceInputField("targetEnvironment",    InputObjectTypeTargetEnvironment.notNullableField("targetEnvironment")),
       ReplaceInputField("constraintSet",        InputObjectTypeConstraintSet.notNullableField("constraintSet")),
       ReplaceInputField("scienceRequirements",  InputObjectTypeScienceRequirementsEdit.nullableField("scienceRequirements")),
-      ReplaceInputField("scienceConfiguration", InputObjectTypeScienceConfigurationSetEdit.nullableField("scienceConfiguration"))
+      ReplaceInputField("scienceConfiguration", InputObjectTypeScienceConfig.nullableField("scienceConfiguration"))
     )
 
   val ArgumentObservationEdit: Argument[ObservationModel.Edit] =
@@ -86,10 +86,10 @@ trait ObservationMutation {
       ListInputType(InputObjectTypeEditAsterism)
     )
 
-  val ArgumentTargetEnvironmentBulkEdit: Argument[BulkEdit[TargetEnvironmentModel.Edit]] =
-    bulkEditArgument[TargetEnvironmentModel.Edit](
+  val ArgumentTargetEnvironmentBulkEdit: Argument[BulkEdit[TargetEnvironmentInput]] =
+    bulkEditArgument[TargetEnvironmentInput](
       "targetEnvironment",
-      InputObjectTypeTargetEnvironmentEdit
+      InputObjectTypeTargetEnvironment
     )
 
   val ArgumentConstraintSetBulkEdit: Argument[BulkEdit[ConstraintSetInput]] =

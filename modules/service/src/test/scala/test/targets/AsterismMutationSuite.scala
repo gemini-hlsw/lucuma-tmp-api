@@ -27,7 +27,7 @@ class AsterismMutationSuite extends OdbSuite {
       mutation ReplaceTargets($listEdit: BulkEditAsterismInput!) {
         updateAsterism(input: $listEdit) {
           id
-          targets {
+          targetEnvironment {
             asterism {
               name
             }
@@ -40,7 +40,7 @@ class AsterismMutationSuite extends OdbSuite {
         "updateAsterism": [
           {
             "id": "o-3",
-            "targets": {
+            "targetEnvironment": {
               "asterism": [
                 {
                   "name": "NGC 5949"
@@ -50,7 +50,7 @@ class AsterismMutationSuite extends OdbSuite {
           },
           {
             "id": "o-4",
-            "targets": {
+            "targetEnvironment": {
               "asterism": [
                 {
                   "name": "NGC 5949"

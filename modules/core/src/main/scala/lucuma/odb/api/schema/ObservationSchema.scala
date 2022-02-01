@@ -121,7 +121,7 @@ object ObservationSchema {
         ),
 
         Field(
-          name        = "targets",
+          name        = "targetEnvironment",
           fieldType   = TargetEnvironmentType[F],
           description = "The observation's target(s)".some,
           resolve     = c => c.target(_.unsafeSelectObservationTargetEnvironment(c.value.id))

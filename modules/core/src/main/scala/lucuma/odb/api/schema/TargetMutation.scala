@@ -9,7 +9,7 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
 import lucuma.odb.api.model.{CoordinatesModel, DeclinationModel, ObservationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
-import lucuma.odb.api.model.targetModel.{CatalogInfoInput, EditAsterismInput, NonsiderealInput, SiderealInput, TargetEnvironmentModel, TargetModel}
+import lucuma.odb.api.model.targetModel.{CatalogInfoInput, EditAsterismInput, NonsiderealInput, SiderealInput, TargetEnvironmentInput, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
 import lucuma.core.model.Target
@@ -179,36 +179,15 @@ trait TargetMutation extends TargetScalars {
       "Parameters for editing an existing target. Nonsidereal edits are ignored for sidereal targets and vice versa."
     )
 
-  implicit val InputObjectTypeCreateTargetEnvironmentInput: InputObjectType[TargetEnvironmentModel.Create] =
-    deriveInputObjectType[TargetEnvironmentModel.Create](
-      InputObjectTypeName("CreateTargetEnvironmentInput"),
-      InputObjectTypeDescription("Target environment creation input parameters")
-    )
-
-  val ArgumentCreateTargetEnvironmentInput: Argument[TargetEnvironmentModel.Create] =
-    InputObjectTypeCreateTargetEnvironmentInput.argument(
-      "input",
-      "Parameters for creating a new target environment"
-    )
-
-  implicit val InputObjectTypeTargetEnvironmentEdit: InputObjectType[TargetEnvironmentModel.Edit] = {
-
-    // Not able to derive this for some reason, TBD.
-//    deriveInputObjectType[TargetEnvironmentModel.Edit](
-//      InputObjectTypeName("EditTargetEnvironmentInput"),
-//      InputObjectTypeDescription("Target environment editing parameters"),
-//      ReplaceInputField("explicitBase", InputObjectTypeCoordinates.nullableField("explicitBase"))
-//    )
-
-    InputObjectType[TargetEnvironmentModel.Edit](
-      "EditTargetEnvironmentInput",
-      "Target environment editing parameters",
+  implicit val InputObjectTypeTargetEnvironment: InputObjectType[TargetEnvironmentInput] =
+    InputObjectType[TargetEnvironmentInput](
+      "TargetEnvironmentInput",
+      "Target environment editing and creation parameters",
       List(
         InputObjectTypeCoordinates.nullableField("explicitBase"),
         InputField("asterism", OptionInputType(ListInputType(TargetIdType)))
       )
     )
-  }
 
   implicit val InputObjectTypeEditAsterism: InputObjectType[EditAsterismInput] =
     deriveInputObjectType[EditAsterismInput](
