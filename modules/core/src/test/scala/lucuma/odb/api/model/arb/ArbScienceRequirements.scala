@@ -76,7 +76,7 @@ trait ArbScienceRequirements {
       SpectroscopyScienceRequirements
     )].contramap { sc => (
       sc.mode,
-      sc.spectroscopyRequirements
+      sc.spectroscopy
     )}
 }
 

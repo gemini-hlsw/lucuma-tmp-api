@@ -199,7 +199,7 @@ class QuerySuite extends OdbSuite {
           nodes {
             scienceRequirements {
               mode
-              spectroscopyRequirements {
+              spectroscopy {
                 wavelength { nanometers }
               }
             }
@@ -221,7 +221,7 @@ class QuerySuite extends OdbSuite {
             {
               "scienceRequirements" : {
                 "mode" : "SPECTROSCOPY",
-                "spectroscopyRequirements" : {
+                "spectroscopy" : {
                   "wavelength" : null
                 }
               },

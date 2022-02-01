@@ -8,7 +8,7 @@ import cats.effect.{Async, Ref}
 import cats.implicits._
 import lucuma.core.model.{Observation, Program, Target}
 import lucuma.odb.api.model.ObservationModel.{BulkEdit, Create, Edit, Group, ObservationEvent}
-import lucuma.odb.api.model.{ConstraintSetInput, ConstraintSetModel, EitherInput, Event, InputError, InstrumentConfigModel, ObservationModel, PlannedTimeSummaryModel, ScienceRequirements, ScienceRequirementsModel, ValidatedInput}
+import lucuma.odb.api.model.{ConstraintSetInput, ConstraintSetModel, EitherInput, Event, InputError, InstrumentConfigModel, ObservationModel, PlannedTimeSummaryModel, ScienceRequirements, ScienceRequirementsInput, ValidatedInput}
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.model.syntax.validatedinput._
@@ -88,7 +88,7 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
   ): F[List[ObservationModel]]
 
   def bulkEditScienceRequirements(
-    be: BulkEdit[ScienceRequirementsModel.Edit]
+    be: BulkEdit[ScienceRequirementsInput]
   ): F[List[ObservationModel]]
 
 }
@@ -369,12 +369,12 @@ object ObservationRepo {
         )
 
       override def bulkEditScienceRequirements(
-        be: BulkEdit[ScienceRequirementsModel.Edit]
+        be: BulkEdit[ScienceRequirementsInput]
       ): F[List[ObservationModel]] =
 
         bulkEdit(
           selectObservations(be.selectProgram, be.selectObservations),
-          ObservationModel.scienceRequirements.transform(be.edit.editor)
+          ObservationModel.scienceRequirements.transform(be.edit.edit)
         )
 
     }

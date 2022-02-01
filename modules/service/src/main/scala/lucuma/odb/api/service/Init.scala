@@ -364,7 +364,7 @@ object Init {
         TargetEnvironmentInput.asterism(sidereal.id).some
       },
       constraintSet        = None,
-      scienceRequirements  = ScienceRequirementsModel.Create.Default.some,
+      scienceRequirements  = ScienceRequirementsInput.Default.some,
       scienceConfiguration = None,
       config               =
         InstrumentConfigModel.Create.gmosSouth(

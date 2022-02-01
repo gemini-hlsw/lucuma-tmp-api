@@ -83,7 +83,7 @@ object ObservationModel extends ObservationOptics {
     activeStatus:         Option[ObsActiveStatus],
     targetEnvironment:    Option[TargetEnvironmentInput],
     constraintSet:        Option[ConstraintSetInput],
-    scienceRequirements:  Option[ScienceRequirementsModel.Create],
+    scienceRequirements:  Option[ScienceRequirementsInput],
     scienceConfiguration: Option[ScienceConfigurationInput],
     config:               Option[InstrumentConfigModel.Create]
   ) {
@@ -160,14 +160,14 @@ object ObservationModel extends ObservationOptics {
 
   final case class Edit(
     observationId:        Observation.Id,
-    existence:            Input[Existence]                      = Input.ignore,
-    name:                 Input[NonEmptyString]                 = Input.ignore,
-    status:               Input[ObsStatus]                      = Input.ignore,
-    activeStatus:         Input[ObsActiveStatus]                = Input.ignore,
-    targetEnvironment:    Input[TargetEnvironmentInput]         = Input.ignore,
-    constraintSet:        Input[ConstraintSetInput]             = Input.ignore,
-    scienceRequirements:  Option[ScienceRequirementsModel.Edit] = None,
-    scienceConfiguration: Input[ScienceConfigurationInput]      = Input.ignore
+    existence:            Input[Existence]                 = Input.ignore,
+    name:                 Input[NonEmptyString]            = Input.ignore,
+    status:               Input[ObsStatus]                 = Input.ignore,
+    activeStatus:         Input[ObsActiveStatus]           = Input.ignore,
+    targetEnvironment:    Input[TargetEnvironmentInput]    = Input.ignore,
+    constraintSet:        Input[ConstraintSetInput]        = Input.ignore,
+    scienceRequirements:  Input[ScienceRequirementsInput]  = Input.ignore,
+    scienceConfiguration: Input[ScienceConfigurationInput] = Input.ignore
   ) {
 
     val edit: StateT[EitherInput, ObservationModel, Unit] = {
@@ -186,7 +186,7 @@ object ObservationModel extends ObservationOptics {
         _ <- ObservationModel.activeStatus         := a
         _ <- ObservationModel.targetEnvironment    :! targetEnvironment
         _ <- ObservationModel.constraintSet        :! constraintSet
-        _ <- ObservationModel.scienceRequirements  :< scienceRequirements.map(_.editor)
+        _ <- ObservationModel.scienceRequirements  :! scienceRequirements
         _ <- ObservationModel.scienceConfiguration :? scienceConfiguration
       } yield ()
     }

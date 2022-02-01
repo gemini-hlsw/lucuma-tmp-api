@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{ConstraintSetInput, ObservationModel, ScienceRequirementsModel}
+import lucuma.odb.api.model.{ConstraintSetInput, ObservationModel, ScienceRequirementsInput}
 import lucuma.odb.api.model.ObservationModel.BulkEdit
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.inputtype._
@@ -20,7 +20,7 @@ trait ObservationMutation {
   import ConstraintSetMutation.InputObjectTypeConstraintSet
   import context._
   import ScienceConfigurationMutation.InputObjectTypeScienceConfig
-  import ScienceRequirementsMutation.{InputObjectTypeScienceRequirementsCreate, InputObjectTypeScienceRequirementsEdit}
+  import ScienceRequirementsMutation.InputObjectTypeScienceRequirements
   import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
   import ObservationSchema.{ObsActiveStatusType, ObservationIdType, ObservationIdArgument, ObsStatusType, ObservationType}
   import ProgramSchema.ProgramIdType
@@ -50,7 +50,7 @@ trait ObservationMutation {
       ReplaceInputField("activeStatus",         ObsActiveStatusType.notNullableField("activeStatus")),
       ReplaceInputField("targetEnvironment",    InputObjectTypeTargetEnvironment.notNullableField("targetEnvironment")),
       ReplaceInputField("constraintSet",        InputObjectTypeConstraintSet.notNullableField("constraintSet")),
-      ReplaceInputField("scienceRequirements",  InputObjectTypeScienceRequirementsEdit.nullableField("scienceRequirements")),
+      ReplaceInputField("scienceRequirements",  InputObjectTypeScienceRequirements.notNullableField("scienceRequirements")),
       ReplaceInputField("scienceConfiguration", InputObjectTypeScienceConfig.nullableField("scienceConfiguration"))
     )
 
@@ -98,10 +98,10 @@ trait ObservationMutation {
       InputObjectTypeConstraintSet
     )
 
-  val ArgumentScienceRequirementsBulkEdit: Argument[BulkEdit[ScienceRequirementsModel.Edit]] =
-    bulkEditArgument[ScienceRequirementsModel.Edit](
+  val ArgumentScienceRequirementsBulkEdit: Argument[BulkEdit[ScienceRequirementsInput]] =
+    bulkEditArgument[ScienceRequirementsInput](
       "scienceRequirements",
-      InputObjectTypeScienceRequirementsEdit
+      InputObjectTypeScienceRequirements
     )
 
   def create[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =

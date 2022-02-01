@@ -5,9 +5,11 @@ package lucuma.odb.api.model
 
 import cats.Eq
 import cats.data.StateT
+import cats.syntax.apply._
+import cats.syntax.traverse._
 import clue.data.Input
+import clue.data.syntax._
 import io.circe.Decoder
-import io.circe.generic.semiauto._
 import lucuma.core.enum.ScienceMode
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
@@ -16,76 +18,60 @@ import monocle.Lens
 import monocle.Focus
 
 final case class ScienceRequirements(
-  mode:                     ScienceMode,
-  spectroscopyRequirements: SpectroscopyScienceRequirements
+  mode:         ScienceMode,
+  spectroscopy: SpectroscopyScienceRequirements
 )
 
 object ScienceRequirements extends ScienceRequirementsOptics {
-  val Default: ScienceRequirements = ScienceRequirements(ScienceMode.Spectroscopy, SpectroscopyScienceRequirements.Default)
+  val Default: ScienceRequirements =
+    ScienceRequirements(
+      ScienceMode.Spectroscopy,
+      SpectroscopyScienceRequirements.Default
+    )
 
   implicit val eqScienceRequirements: Eq[ScienceRequirements] =
-    Eq.by(x => (x.mode, x.spectroscopyRequirements))
+    Eq.by(a => (a.mode, a.spectroscopy))
 }
 
-object ScienceRequirementsModel {
-  final case class Create(
-    mode: ScienceMode,
-    spectroscopyRequirements: SpectroscopyScienceRequirementsModel.Create
-  ) {
-    val create: ValidatedInput[ScienceRequirements] =
-      spectroscopyRequirements.create.map { s =>
-        ScienceRequirements(mode, s)
-      }
-  }
+final case class ScienceRequirementsInput(
+  mode:         Input[ScienceMode]                          = Input.ignore,
+  spectroscopy: Input[SpectroscopyScienceRequirementsInput] = Input.ignore
+) extends EditorInput[ScienceRequirements] {
 
-  object Create {
-    val Default: Create = Create(ScienceMode.Spectroscopy, SpectroscopyScienceRequirementsModel.Create.Default)
+  override val create: ValidatedInput[ScienceRequirements] =
+    (mode.notMissing("mode"),
+     spectroscopy.toOption.traverse(_.create).map(_.getOrElse(SpectroscopyScienceRequirements.Default))
+    ).mapN { (m, s) => ScienceRequirements(m, s) }
 
-    implicit val DecoderCreate: Decoder[Create] = deriveDecoder
+  override val edit: StateT[EitherInput, ScienceRequirements, Unit] =
+    for {
+      m <- mode.validateIsNotNull("mode").liftState
+      _ <- ScienceRequirements.mode         := m
+      _ <- ScienceRequirements.spectroscopy :! spectroscopy
+    } yield ()
 
-    implicit val EqCreate: Eq[Create] =
-      Eq.by { a => (
-        a.mode,
-        a.spectroscopyRequirements
-      )}
+}
 
-  }
+object ScienceRequirementsInput {
+  import io.circe.generic.extras.semiauto._
+  import io.circe.generic.extras.Configuration
+  implicit val customConfig: Configuration = Configuration.default.withDefaults
 
-  final case class Edit(
-    mode:                     Input[ScienceMode]                                = Input.ignore,
-    spectroscopyRequirements: Option[SpectroscopyScienceRequirementsModel.Edit] = None
-  ) {
+  val Default: ScienceRequirementsInput =
+    ScienceRequirementsInput(ScienceMode.Spectroscopy.assign, SpectroscopyScienceRequirementsInput.Default.assign)
 
-    def editor: StateT[EitherInput, ScienceRequirements, Unit] =
-      for {
-        m <- mode.validateIsNotNull("mode").liftState
-        _ <- ScienceRequirements.mode := m
-        _ <- ScienceRequirements
-               .spectroscopyRequirements
-               .transform(spectroscopyRequirements.fold(StateT.empty[EitherInput, SpectroscopyScienceRequirements, Unit])(_.edit))
-      } yield ()
+  implicit val DecoderScienceRequirementsInput: Decoder[ScienceRequirementsInput] =
+    deriveConfiguredDecoder
 
-  }
-
-  object Edit {
-    import io.circe.generic.extras.semiauto._
-    import io.circe.generic.extras.Configuration
-    implicit val customConfig: Configuration = Configuration.default.withDefaults
-
-    implicit val DecoderEdit: Decoder[Edit] = deriveConfiguredDecoder
-
-    implicit val EqEdit: Eq[Edit] =
-      Eq.by { a => (
-        a.mode,
-        a.spectroscopyRequirements
-      )}
-  }
-
+  implicit val EqScienceRequirementsInput: Eq[ScienceRequirementsInput] =
+    Eq.by(a => (a.mode, a.spectroscopy))
 }
 
 trait ScienceRequirementsOptics {
-  val mode: Lens[ScienceRequirements, ScienceMode]                                         = Focus[ScienceRequirements](_.mode)
+  val mode: Lens[ScienceRequirements, ScienceMode] =
+    Focus[ScienceRequirements](_.mode)
 
-  val spectroscopyRequirements: Lens[ScienceRequirements, SpectroscopyScienceRequirements] = Focus[ScienceRequirements](_.spectroscopyRequirements)
+  val spectroscopy: Lens[ScienceRequirements, SpectroscopyScienceRequirements] =
+    Focus[ScienceRequirements](_.spectroscopy)
 
 }

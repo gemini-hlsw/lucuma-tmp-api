@@ -55,134 +55,68 @@ object SpectroscopyScienceRequirements extends SpectroscopyScienceRequirementsOp
   )
 }
 
-object SpectroscopyScienceRequirementsModel {
-  final case class Create(
-    wavelength:         Option[WavelengthModel.Input],
-    resolution:         Option[PosInt],
-    signalToNoise:      Option[PosBigDecimal],
-    signalToNoiseAt:    Option[WavelengthModel.Input],
-    wavelengthCoverage: Option[WavelengthModel.Input],
-    focalPlane:         Option[FocalPlane],
-    focalPlaneAngle:    Option[FocalPlaneAngleInput],
-    capabilities:       Option[SpectroscopyCapabilities]
-  ) {
-    val create: ValidatedInput[SpectroscopyScienceRequirements] =
-      (wavelength.traverse(_.toWavelength("wavelength")),
-       signalToNoiseAt.traverse(_.toWavelength("signalToNoiseAt")),
-       wavelengthCoverage.traverse(_.toWavelength("wavelengthCoverage")),
-       focalPlaneAngle.traverse(_.toAngle)
-      ).mapN { (cw, signalToNoiseAt, wavelengthCoverage, focalPlaneAngle) =>
-        SpectroscopyScienceRequirements(cw,
-                                        resolution,
-                                        signalToNoise,
-                                        signalToNoiseAt,
-                                        wavelengthCoverage,
-                                        focalPlane,
-                                        focalPlaneAngle,
-                                        capabilities)
-      }
+trait SpectroscopyScienceRequirementsOptics {
+  /** @group Optics */
+  lazy val wavelength: Lens[SpectroscopyScienceRequirements, Option[Wavelength]] =
+    Focus[SpectroscopyScienceRequirements](_.wavelength)
 
-  }
+  /** @group Optics */
+  lazy val resolution: Lens[SpectroscopyScienceRequirements, Option[PosInt]] =
+    Focus[SpectroscopyScienceRequirements](_.resolution)
 
-  object Create {
-    val Default: Create = Create(None, None, None, None, None, None, None, None)
+  /** @group Optics */
+  lazy val signalToNoise: Lens[SpectroscopyScienceRequirements, Option[PosBigDecimal]] =
+    Focus[SpectroscopyScienceRequirements](_.signalToNoise)
 
-    implicit val DecoderCreate: Decoder[Create] = deriveDecoder
+  /** @group Optics */
+  lazy val signalToNoiseAt: Lens[SpectroscopyScienceRequirements, Option[Wavelength]] =
+    Focus[SpectroscopyScienceRequirements](_.signalToNoiseAt)
 
-    implicit val EqCreate: Eq[Create] =
-      Eq.by { a => (
-        a.wavelength,
-        a.resolution,
-        a.signalToNoise,
-        a.signalToNoiseAt,
-        a.wavelengthCoverage,
-        a.focalPlane,
-        a.focalPlaneAngle,
-        a.capabilities
-      )}
-  }
+  /** @group Optics */
+  lazy val wavelengthCoverage: Lens[SpectroscopyScienceRequirements, Option[Wavelength]] =
+    Focus[SpectroscopyScienceRequirements](_.wavelengthCoverage)
 
-  final case class Edit(
-    wavelength:         Input[WavelengthModel.Input]    = Input.ignore,
-    resolution:         Input[PosInt]                   = Input.ignore,
-    signalToNoise:      Input[PosBigDecimal]            = Input.ignore,
-    signalToNoiseAt:    Input[WavelengthModel.Input]    = Input.ignore,
-    wavelengthCoverage: Input[WavelengthModel.Input]    = Input.ignore,
-    focalPlane:         Input[FocalPlane]               = Input.ignore,
-    focalPlaneAngle:    Input[FocalPlaneAngleInput]     = Input.ignore,
-    capabilities:       Input[SpectroscopyCapabilities] = Input.ignore
-  ) {
-    val edit: StateT[EitherInput, SpectroscopyScienceRequirements, Unit] = {
-      val validArgs =
-        (wavelength.validateNullable(_.toWavelength("wavelength")),
-         signalToNoiseAt.validateNullable(_.toWavelength("signalToNoiseAt")),
-         wavelengthCoverage.validateNullable(_.toWavelength("wavelengthCoverage")),
-         focalPlaneAngle.validateNullable(_.toAngle)
-        ).tupled
+  /** @group Optics */
+  lazy val focalPlane: Lens[SpectroscopyScienceRequirements, Option[FocalPlane]] =
+    Focus[SpectroscopyScienceRequirements](_.focalPlane)
 
-      for {
-        args <- validArgs.liftState
-        (cw, signalToNoiseAt, wavelengthCoverage, focalPlaneAngle) = args
-        _ <- SpectroscopyScienceRequirements.wavelength         := cw
-        _ <- SpectroscopyScienceRequirements.resolution         := resolution.toOptionOption
-        _ <- SpectroscopyScienceRequirements.signalToNoise      := signalToNoise.toOptionOption
-        _ <- SpectroscopyScienceRequirements.signalToNoiseAt    := signalToNoiseAt
-        _ <- SpectroscopyScienceRequirements.wavelengthCoverage := wavelengthCoverage
-        _ <- SpectroscopyScienceRequirements.focalPlane         := focalPlane.toOptionOption
-        _ <- SpectroscopyScienceRequirements.focalPlaneAngle    := focalPlaneAngle
-        _ <- SpectroscopyScienceRequirements.capabilities       := capabilities.toOptionOption
-      } yield ()
-    }
-  }
+  /** @group Optics */
+  lazy val focalPlaneAngle: Lens[SpectroscopyScienceRequirements, Option[Angle]] =
+    Focus[SpectroscopyScienceRequirements](_.focalPlaneAngle)
 
-  object Edit {
-    import io.circe.generic.extras.semiauto._
-    import io.circe.generic.extras.Configuration
-    implicit val customConfig: Configuration = Configuration.default.withDefaults
+  /** @group Optics */
+  lazy val capabilities: Lens[SpectroscopyScienceRequirements, Option[SpectroscopyCapabilities]] =
+    Focus[SpectroscopyScienceRequirements](_.capabilities)
+}
 
-    implicit val DecoderEdit: Decoder[Edit] = deriveConfiguredDecoder[Edit]
+final case class FocalPlaneAngleInput(
+  microarcseconds: Option[Long],
+  milliarcseconds: Option[BigDecimal],
+  arcseconds:      Option[BigDecimal]
+) extends EditorInput[Angle] {
+  import FocalPlaneAngleInput.Units._
 
-    implicit val EqEdit: Eq[Edit] =
-      Eq.by { a => (
-        a.wavelength,
-        a.resolution,
-        a.signalToNoise,
-        a.signalToNoiseAt,
-        a.wavelengthCoverage,
-        a.focalPlane,
-        a.focalPlaneAngle,
-        a.capabilities
-      )}
-  }
+  override val create: ValidatedInput[Angle] =
+    ValidatedInput.requireOne("focalPlaneAngle",
+      microarcseconds.map(Microarcseconds.readLong),
+      milliarcseconds.map(Milliarcseconds.readDecimal),
+      arcseconds     .map(Arcseconds.readDecimal)
+    )
 
+  override val edit: StateT[EitherInput, Angle, Unit] =
+    StateT.setF[EitherInput, Angle](create.toEither)
+}
 
-  final case class FocalPlaneAngleInput(
-    microarcseconds: Option[Long],
-    milliarcseconds: Option[BigDecimal],
-    arcseconds:      Option[BigDecimal]
-  ) {
-    import Units._
+object FocalPlaneAngleInput {
+  implicit def DecoderFocalPlaneAngleInput: Decoder[FocalPlaneAngleInput] =
+    deriveDecoder[FocalPlaneAngleInput]
 
-    val toAngle: ValidatedInput[Angle] =
-      ValidatedInput.requireOne("focalPlaneAngle",
-        microarcseconds.map(Microarcseconds.readLong),
-        milliarcseconds.map(Milliarcseconds.readDecimal),
-        arcseconds     .map(Arcseconds.readDecimal)
-      )
-  }
-
-  object FocalPlaneAngleInput {
-    implicit def DecoderFocalPlaneAngleInput: Decoder[FocalPlaneAngleInput] =
-      deriveDecoder[FocalPlaneAngleInput]
-
-    implicit val EqFocalPlaneAngleInput: Eq[FocalPlaneAngleInput] =
-      Eq.by { a => (
-        a.microarcseconds,
-        a.milliarcseconds,
-        a.arcseconds
-      )}
-
-  }
+  implicit val EqFocalPlaneAngleInput: Eq[FocalPlaneAngleInput] =
+    Eq.by { a => (
+      a.microarcseconds,
+      a.milliarcseconds,
+      a.arcseconds
+    )}
 
   sealed abstract class Units(
     val angleUnit: AngleModel.Units
@@ -219,36 +153,76 @@ object SpectroscopyScienceRequirementsModel {
 
 }
 
-trait SpectroscopyScienceRequirementsOptics {
-  /** @group Optics */
-  lazy val wavelength: Lens[SpectroscopyScienceRequirements, Option[Wavelength]] =
-    Focus[SpectroscopyScienceRequirements](_.wavelength)
+final case class SpectroscopyScienceRequirementsInput (
+  wavelength:         Input[WavelengthModel.Input]    = Input.ignore,
+  resolution:         Input[PosInt]                   = Input.ignore,
+  signalToNoise:      Input[PosBigDecimal]            = Input.ignore,
+  signalToNoiseAt:    Input[WavelengthModel.Input]    = Input.ignore,
+  wavelengthCoverage: Input[WavelengthModel.Input]    = Input.ignore,
+  focalPlane:         Input[FocalPlane]               = Input.ignore,
+  focalPlaneAngle:    Input[FocalPlaneAngleInput]     = Input.ignore,
+  capabilities:       Input[SpectroscopyCapabilities] = Input.ignore
+) extends EditorInput[SpectroscopyScienceRequirements] {
 
-  /** @group Optics */
-  lazy val resolution: Lens[SpectroscopyScienceRequirements, Option[PosInt]] =
-    Focus[SpectroscopyScienceRequirements](_.resolution)
+  override val create: ValidatedInput[SpectroscopyScienceRequirements] =
+    (wavelength.toOption.traverse(_.toWavelength("wavelength")),
+     signalToNoiseAt.toOption.traverse(_.toWavelength("signalToNoiseAt")),
+     wavelengthCoverage.toOption.traverse(_.toWavelength("wavelengthCoverage")),
+     focalPlaneAngle.toOption.traverse(_.create)
+    ).mapN { (cw, signalToNoiseAt, wavelengthCoverage, focalPlaneAngle) =>
+      SpectroscopyScienceRequirements(cw,
+                                      resolution.toOption,
+                                      signalToNoise.toOption,
+                                      signalToNoiseAt,
+                                      wavelengthCoverage,
+                                      focalPlane.toOption,
+                                      focalPlaneAngle,
+                                      capabilities.toOption)
+    }
 
-  /** @group Optics */
-  lazy val signalToNoise: Lens[SpectroscopyScienceRequirements, Option[PosBigDecimal]] =
-    Focus[SpectroscopyScienceRequirements](_.signalToNoise)
+  override val edit: StateT[EitherInput, SpectroscopyScienceRequirements, Unit] = {
+    val validArgs =
+      (wavelength.validateNullable(_.toWavelength("wavelength")),
+       signalToNoiseAt.validateNullable(_.toWavelength("signalToNoiseAt")),
+       wavelengthCoverage.validateNullable(_.toWavelength("wavelengthCoverage")),
+       focalPlaneAngle.validateNullable(_.create)
+      ).tupled
 
-  /** @group Optics */
-  lazy val signalToNoiseAt: Lens[SpectroscopyScienceRequirements, Option[Wavelength]] =
-    Focus[SpectroscopyScienceRequirements](_.signalToNoiseAt)
+    for {
+      args <- validArgs.liftState
+      (cw, signalToNoiseAt, wavelengthCoverage, focalPlaneAngle) = args
+      _ <- SpectroscopyScienceRequirements.wavelength         := cw
+      _ <- SpectroscopyScienceRequirements.resolution         := resolution.toOptionOption
+      _ <- SpectroscopyScienceRequirements.signalToNoise      := signalToNoise.toOptionOption
+      _ <- SpectroscopyScienceRequirements.signalToNoiseAt    := signalToNoiseAt
+      _ <- SpectroscopyScienceRequirements.wavelengthCoverage := wavelengthCoverage
+      _ <- SpectroscopyScienceRequirements.focalPlane         := focalPlane.toOptionOption
+      _ <- SpectroscopyScienceRequirements.focalPlaneAngle    := focalPlaneAngle
+      _ <- SpectroscopyScienceRequirements.capabilities       := capabilities.toOptionOption
+    } yield ()
+  }
+}
 
-  /** @group Optics */
-  lazy val wavelengthCoverage: Lens[SpectroscopyScienceRequirements, Option[Wavelength]] =
-    Focus[SpectroscopyScienceRequirements](_.wavelengthCoverage)
+object SpectroscopyScienceRequirementsInput {
+  import io.circe.generic.extras.semiauto._
+  import io.circe.generic.extras.Configuration
+  implicit val customConfig: Configuration = Configuration.default.withDefaults
 
-  /** @group Optics */
-  lazy val focalPlane: Lens[SpectroscopyScienceRequirements, Option[FocalPlane]] =
-    Focus[SpectroscopyScienceRequirements](_.focalPlane)
+  val Default: SpectroscopyScienceRequirementsInput =
+    SpectroscopyScienceRequirementsInput(resolution = Input.assign(refineMV[Positive](1)))
 
-  /** @group Optics */
-  lazy val focalPlaneAngle: Lens[SpectroscopyScienceRequirements, Option[Angle]] =
-    Focus[SpectroscopyScienceRequirements](_.focalPlaneAngle)
+  implicit val DecoderSpectroscopyScienceRequirementsInput: Decoder[SpectroscopyScienceRequirementsInput] =
+    deriveConfiguredDecoder[SpectroscopyScienceRequirementsInput]
 
-  /** @group Optics */
-  lazy val capabilities: Lens[SpectroscopyScienceRequirements, Option[SpectroscopyCapabilities]] =
-    Focus[SpectroscopyScienceRequirements](_.capabilities)
+  implicit val EqSpectroscopyScienceRequirementsInput: Eq[SpectroscopyScienceRequirementsInput] =
+    Eq.by { a => (
+      a.wavelength,
+      a.resolution,
+      a.signalToNoise,
+      a.signalToNoiseAt,
+      a.wavelengthCoverage,
+      a.focalPlane,
+      a.focalPlaneAngle,
+      a.capabilities
+    )}
 }
