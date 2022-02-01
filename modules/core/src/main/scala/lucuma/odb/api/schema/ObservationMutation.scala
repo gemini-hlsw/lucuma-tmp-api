@@ -50,7 +50,7 @@ trait ObservationMutation {
       ReplaceInputField("activeStatus",         ObsActiveStatusType.notNullableField("activeStatus")),
       ReplaceInputField("targetEnvironment",    InputObjectTypeTargetEnvironment.notNullableField("targetEnvironment")),
       ReplaceInputField("constraintSet",        InputObjectTypeConstraintSet.notNullableField("constraintSet")),
-      ReplaceInputField("scienceRequirements",  InputObjectTypeScienceRequirements.nullableField("scienceRequirements")),
+      ReplaceInputField("scienceRequirements",  InputObjectTypeScienceRequirements.notNullableField("scienceRequirements")),
       ReplaceInputField("scienceConfiguration", InputObjectTypeScienceConfig.nullableField("scienceConfiguration"))
     )
 
