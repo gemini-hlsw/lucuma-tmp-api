@@ -6,6 +6,7 @@ package lucuma.odb.api.model
 import cats.Eq
 import cats.data.StateT
 import cats.syntax.apply._
+import cats.syntax.traverse._
 import clue.data.Input
 import clue.data.syntax._
 import io.circe.Decoder
@@ -39,7 +40,7 @@ final case class ScienceRequirementsInput(
 
   override val create: ValidatedInput[ScienceRequirements] =
     (mode.notMissing("mode"),
-     spectroscopy.notMissingAndThen("spectroscopy")(_.create)
+     spectroscopy.toOption.traverse(_.create).map(_.getOrElse(SpectroscopyScienceRequirements.Default))
     ).mapN { (m, s) => ScienceRequirements(m, s) }
 
   override val edit: StateT[EitherInput, ScienceRequirements, Unit] =
