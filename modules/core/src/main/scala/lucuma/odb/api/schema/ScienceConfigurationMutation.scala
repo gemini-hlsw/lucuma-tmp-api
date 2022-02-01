@@ -22,7 +22,7 @@ trait ScienceConfigurationMutation {
 
   implicit val InputObjectTypeGmosSouthLongSlit: InputObjectType[GmosSouthLongSlitInput] =
     InputObjectType[GmosSouthLongSlitInput](
-      "EditGmosSouthLongSlit",
+      "GmosSouthLongSlitInput",
       "Edit or create GMOS South Long Slit configuration",
       List(
         EnumTypeGmosSouthFilter.notNullableField("filter"),
@@ -33,7 +33,7 @@ trait ScienceConfigurationMutation {
 
   implicit val InputObjectTypeGmosNorthLongSlit: InputObjectType[GmosNorthLongSlitInput] =
     InputObjectType[GmosNorthLongSlitInput](
-      "EditGmosNorthLongSlit",
+      "GmosNorthLongSlitInput",
       "Edit or create GMOS North Long Slit configuration",
       List(
         EnumTypeGmosNorthFilter.notNullableField("filter"),

@@ -22,7 +22,7 @@ trait ConstraintSetMutation {
 
   implicit val InputObjectTypeHourAngleRange: InputObjectType[HourAngleRangeInput] =
     deriveInputObjectType[HourAngleRangeInput](
-      InputObjectTypeName("CreateHourAngleRangeInput"),
+      InputObjectTypeName("HourAngleRangeInput"),
       InputObjectTypeDescription("Hour angle range creation parameters")
     )
 
