@@ -27,6 +27,7 @@ trait ScienceConfigurationMutation {
       List(
         EnumTypeGmosSouthFilter.notNullableField("filter"),
         EnumTypeGmosSouthDisperser.notNullableField("disperser"),
+        EnumTypeGmosSouthFpu.notNullableField("fpu"),
         InputSlitWidthInput.notNullableField("slitWidth")
       )
     )
@@ -38,6 +39,7 @@ trait ScienceConfigurationMutation {
       List(
         EnumTypeGmosNorthFilter.notNullableField("filter"),
         EnumTypeGmosNorthDisperser.notNullableField("disperser"),
+        EnumTypeGmosNorthFpu.notNullableField("fpu"),
         InputSlitWidthInput.notNullableField("slitWidth")
       )
     )

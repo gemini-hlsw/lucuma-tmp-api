@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.model
 
-import lucuma.core.`enum`.Instrument
+import lucuma.core.`enum`.{GmosNorthFpu, GmosSouthFpu, Instrument}
 import cats.Eq
 import cats.syntax.all._
 import cats.data.StateT
@@ -48,6 +48,7 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
     final case class GmosNorthLongSlit(
       filter:    Option[GmosNorthFilter],
       disperser: GmosNorthDisperser,
+      fpu:       GmosNorthFpu,
       slitWidth: Angle
     ) extends ScienceConfigurationModel {
       val mode: ConfigurationMode =
@@ -64,6 +65,9 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
       val disperser: Lens[GmosNorthLongSlit, GmosNorthDisperser] =
         Focus[GmosNorthLongSlit](_.disperser)
 
+      val fpu: Lens[GmosNorthLongSlit, GmosNorthFpu] =
+        Focus[GmosNorthLongSlit](_.fpu)
+
       val slitWidth: Lens[GmosNorthLongSlit, Angle] =
         Focus[GmosNorthLongSlit](_.slitWidth)
 
@@ -74,27 +78,31 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
     final case class GmosNorthLongSlitInput(
       filter:    Input[GmosNorthFilter]    = Input.ignore,
       disperser: Input[GmosNorthDisperser] = Input.ignore,
+      fpu:       Input[GmosNorthFpu]       = Input.ignore,
       slitWidth: Input[SlitWidthInput]     = Input.ignore
     ) extends EditorInput[GmosNorthLongSlit] {
 
       override val create: ValidatedInput[GmosNorthLongSlit] =
         (disperser.notMissing("disperser"),
+         fpu.notMissing("fpu"),
          slitWidth.notMissingAndThen("slitWidth")(_.toAngle)
-        ).mapN { case (d, s) =>
-          GmosNorthLongSlit(filter.toOption, d, s)
+        ).mapN { case (d, u, s) =>
+          GmosNorthLongSlit(filter.toOption, d, u, s)
         }
 
       override val edit: StateT[EitherInput, GmosNorthLongSlit, Unit] = {
         val validArgs =
           (disperser.validateIsNotNull("disperser"),
+           fpu.validateIsNotNull("fpu"),
            slitWidth.validateNotNullable("slitWidth")(_.toAngle)
           ).tupled
 
         for {
           args <- validArgs.liftState
-          (disperser, slitWidth) = args
+          (disperser, fpu, slitWidth) = args
           _ <- GmosNorthLongSlit.filter    := filter.toOptionOption
           _ <- GmosNorthLongSlit.disperser := disperser
+          _ <- GmosNorthLongSlit.fpu       := fpu
           _ <- GmosNorthLongSlit.slitWidth := slitWidth
         } yield ()
       }
@@ -113,6 +121,7 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
         Eq.by { a => (
           a.filter,
           a.disperser,
+          a.fpu,
           a.slitWidth
         )}
 
@@ -121,6 +130,7 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
     final case class GmosSouthLongSlit(
       filter:    Option[GmosSouthFilter],
       disperser: GmosSouthDisperser,
+      fpu:       GmosSouthFpu,
       slitWidth: Angle
     ) extends ScienceConfigurationModel {
       val mode: ConfigurationMode =
@@ -137,6 +147,9 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
       val disperser: Lens[GmosSouthLongSlit, GmosSouthDisperser] =
         Focus[GmosSouthLongSlit](_.disperser)
 
+      val fpu: Lens[GmosSouthLongSlit, GmosSouthFpu] =
+        Focus[GmosSouthLongSlit](_.fpu)
+
       val slitWidth: Lens[GmosSouthLongSlit, Angle] =
         Focus[GmosSouthLongSlit](_.slitWidth)
 
@@ -148,27 +161,31 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
     final case class GmosSouthLongSlitInput(
       filter:    Input[GmosSouthFilter]    = Input.ignore,
       disperser: Input[GmosSouthDisperser] = Input.ignore,
+      fpu:       Input[GmosSouthFpu]       = Input.ignore,
       slitWidth: Input[SlitWidthInput]     = Input.ignore
     ) extends EditorInput[GmosSouthLongSlit] {
 
       override val create: ValidatedInput[GmosSouthLongSlit] =
         (disperser.notMissing("disperser"),
+         fpu.notMissing("fpu"),
          slitWidth.notMissingAndThen("slitWidth")(_.toAngle)
-        ).mapN { case (d, s) =>
-          GmosSouthLongSlit(filter.toOption, d, s)
+        ).mapN { case (d, u, s) =>
+          GmosSouthLongSlit(filter.toOption, d, u, s)
         }
 
       def edit: StateT[EitherInput, GmosSouthLongSlit, Unit] = {
         val validArgs =
           (disperser.validateIsNotNull("disperser"),
+           fpu.validateIsNotNull("fpu"),
            slitWidth.validateNotNullable("slitWidth")(_.toAngle)
           ).tupled
 
         for {
           args <- validArgs.liftState
-          (disperser, slitWidth) = args
+          (disperser, fpu, slitWidth) = args
           _ <- GmosSouthLongSlit.filter    := filter.toOptionOption
           _ <- GmosSouthLongSlit.disperser := disperser
+          _ <- GmosSouthLongSlit.fpu       := fpu
           _ <- GmosSouthLongSlit.slitWidth := slitWidth
         } yield ()
       }
@@ -187,6 +204,7 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
         Eq.by { a => (
           a.filter,
           a.disperser,
+          a.fpu,
           a.slitWidth
         )}
 

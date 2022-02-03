@@ -122,6 +122,13 @@ object ScienceConfigurationSchema {
         ),
 
         Field(
+          name        = "fpu",
+          fieldType   = EnumTypeGmosNorthFpu,
+          description = Some("GMOS North FPU"),
+          resolve     = _.value.fpu
+        ),
+
+        Field(
           name        = "slitWidth",
           fieldType   = SlitWidthType[F],
           description = Some("Slit width in appropriate units"),
@@ -148,6 +155,13 @@ object ScienceConfigurationSchema {
           fieldType   = EnumTypeGmosSouthDisperser,
           description = Some("GMOS South Disperser"),
           resolve     = _.value.disperser
+        ),
+
+        Field(
+          name        = "fpu",
+          fieldType   = EnumTypeGmosSouthFpu,
+          description = Some("GMOS South  FPU"),
+          resolve     = _.value.fpu
         ),
 
         Field(
