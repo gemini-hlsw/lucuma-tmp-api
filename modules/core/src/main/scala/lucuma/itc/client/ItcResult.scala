@@ -5,7 +5,7 @@ package lucuma.itc.client
 
 import cats.Eq
 import cats.syntax.all._
-import eu.timepit.refined.types.all.PosBigDecimal
+import eu.timepit.refined.types.numeric.PosBigDecimal
 import io.circe.{Decoder, DecodingFailure, HCursor}
 
 import java.time.Duration

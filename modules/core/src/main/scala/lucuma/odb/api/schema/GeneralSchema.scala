@@ -4,7 +4,6 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.{Existence, PlannedTimeSummaryModel}
-import lucuma.odb.api.repo.OdbRepo
 import cats.syntax.all._
 import eu.timepit.refined.types.all.{NonEmptyString, PosBigDecimal}
 import sangria.schema._
@@ -60,28 +59,28 @@ object GeneralSchema {
       bd => PosBigDecimal.from(bd).leftMap(_ => PosBigDecimalViolation)
     )
 
-  def PlannedTimeSummaryType[F[_]]: ObjectType[OdbRepo[F], PlannedTimeSummaryModel] =
+  val PlannedTimeSummaryType: ObjectType[Any, PlannedTimeSummaryModel] =
     ObjectType(
       name = "PlannedTimeSummary",
       fieldsFn = () => fields(
 
         Field(
           name        = "pi",
-          fieldType   = DurationType[F],
+          fieldType   = DurationType,
           description = Some("The portion of planned time that will be charged"),
           resolve     = _.value.piTime
         ),
 
         Field(
           name        = "uncharged",
-          fieldType   = DurationType[F],
+          fieldType   = DurationType,
           description = Some("The portion of planned time that will not be charged"),
           resolve     = _.value.unchargedTime
         ),
 
         Field(
           name        = "execution",
-          fieldType   = DurationType[F],
+          fieldType   = DurationType,
           description = Some("The total estimated execution time"),
           resolve     = _.value.executionTime
         )

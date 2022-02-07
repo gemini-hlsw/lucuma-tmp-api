@@ -53,7 +53,7 @@ object AtomSchema {
 
         Field(
           name        = "time",
-          fieldType   = CategorizedTimeType[F],
+          fieldType   = CategorizedTimeType,
           description = Some("Time estimate for this atom's execution, the sum of each step's time."),
           resolve     = c => PlannedTime.estimateAtom(c.value)
         )

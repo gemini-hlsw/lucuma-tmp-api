@@ -38,14 +38,14 @@ object InstrumentConfigSchema {
 
         Field(
           name        = "plannedTime",
-          fieldType   = PlannedTimeType[F],
+          fieldType   = PlannedTimeType,
           description = Some("Planned time for this configuration"),
           resolve     = c => PlannedTime.estimate(c.value)
         ),
 
         Field(
           name        = "setupTime",
-          fieldType   = DurationType[F],
+          fieldType   = DurationType,
           description = Some("Estimated setup time"),
           resolve     = c => PlannedTime.estimate(c.value).setup.value
         )
@@ -111,7 +111,7 @@ object InstrumentConfigSchema {
     ObjectType(
       name        = "GmosSouthConfig",
       description = "GMOS South Configuration",
-      interfaces  = List(PossibleInterface.apply[OdbRepo[F], InstrumentConfigModel.GmosSouth](ConfigType[F])),
+      interfaces  = List(PossibleInterface.apply[OdbRepo[F], InstrumentConfigModel.GmosSouth](ConfigType)),
       fields      = instrumentConfigFields(
         "GmosSouth",
         GmosSouthStaticConfigType[F],

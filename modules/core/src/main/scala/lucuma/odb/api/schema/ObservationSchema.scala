@@ -24,6 +24,7 @@ object ObservationSchema {
   import ConstraintSetSchema.ConstraintSetType
   import ScienceConfigurationSchema._
   import ExecutionSchema.ExecutionType
+  import ItcSchema.ItcSuccessType
   import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, NonEmptyStringType, PlannedTimeSummaryType}
   import ProgramSchema.ProgramType
   import ScienceRequirementsSchema.ScienceRequirementsType
@@ -109,7 +110,7 @@ object ObservationSchema {
 
         Field(
           name        = "plannedTime",
-          fieldType   = PlannedTimeSummaryType[F],
+          fieldType   = PlannedTimeSummaryType,
           description = Some("Observation planned time calculation."),
           resolve     = _.value.plannedTimeSummary
         ),
@@ -154,7 +155,7 @@ object ObservationSchema {
 
         Field(
           name        = "itc",
-          fieldType   = OptionType(StringType),
+          fieldType   = OptionType(ItcSuccessType),
           description = "ITC execution results".some,
           resolve     = c => c.unsafeToFuture {
             for {
@@ -166,7 +167,7 @@ object ObservationSchema {
                                  .leftMap(e => new Exception(e.msg))
 
               s  <- maxResult.liftTo[F]
-            } yield s.map(_.toString)
+            } yield s
           }
         ),
 

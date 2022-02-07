@@ -98,7 +98,7 @@ object StepSchema {
 
         Field(
           name        = "time",
-          fieldType   = CategorizedTimeType[F],
+          fieldType   = CategorizedTimeType,
           description = Some("Time estimate for this step's execution"),
           resolve     = c => PlannedTime.estimateStep(c.value.config)
         )

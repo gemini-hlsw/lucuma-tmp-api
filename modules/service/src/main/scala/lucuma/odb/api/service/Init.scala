@@ -373,7 +373,7 @@ object Init {
           ScienceMode.Spectroscopy.assign,
           SpectroscopyScienceRequirementsInput(
             wavelength    = WavelengthModel.Input.fromNanometers(520).assign,
-            signalToNoise = PosBigDecimal.unsafeFrom(40).assign
+            signalToNoise = PosBigDecimal.unsafeFrom(700).assign
           ).assign
         ).some,
       scienceConfiguration =

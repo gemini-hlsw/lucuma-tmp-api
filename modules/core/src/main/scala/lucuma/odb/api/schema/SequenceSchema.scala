@@ -38,7 +38,7 @@ object SequenceSchema {
 
         Field(
           name        = "time",
-          fieldType   = CategorizedTimeType[F],
+          fieldType   = CategorizedTimeType,
           description = Some("Time required for the full execution of this sequence"),
           resolve     = c => PlannedTime.estimateSequence(c.value)
         )

@@ -89,7 +89,7 @@ object ProgramSchema {
 
         Field(
           name        = "plannedTime",
-          fieldType   = PlannedTimeSummaryType[F],
+          fieldType   = PlannedTimeSummaryType,
           description = Some("Program planned time calculation."),
           arguments   = List(ArgumentIncludeDeleted),
           resolve     = c => c.observation {
