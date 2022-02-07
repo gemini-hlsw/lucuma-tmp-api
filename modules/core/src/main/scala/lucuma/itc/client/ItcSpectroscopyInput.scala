@@ -7,9 +7,9 @@ import cats.syntax.all._
 import eu.timepit.refined.types.all.PosBigDecimal
 import io.circe._
 import io.circe.syntax._
-import lucuma.core.`enum`.{Band, CloudExtinction, GmosNorthFpu, GmosSouthFpu, ImageQuality, SkyBackground, WaterVapor}
+import lucuma.core.`enum`.{Band, CloudExtinction, ImageQuality, SkyBackground, WaterVapor}
 import lucuma.core.math.BrightnessUnits.{ABMagnitudeIsIntegratedBrightnessUnit, ABMagnitudePerArcsec2IsSurfaceBrightnessUnit, BrightnessMeasure, ErgsPerSecondCentimeter2AngstromArcsec2IsSurfaceBrightnessUnit, ErgsPerSecondCentimeter2AngstromIsIntegratedBrightnessUnit, ErgsPerSecondCentimeter2HertzArcsec2IsSurfaceBrightnessUnit, ErgsPerSecondCentimeter2HertzIsIntegratedBrightnessUnit, Integrated, JanskyIsIntegratedBrightnessUnit, JanskyPerArcsec2IsSurfaceBrightnessUnit, Surface, VegaMagnitudeIsIntegratedBrightnessUnit, VegaMagnitudePerArcsec2IsSurfaceBrightnessUnit, WattsPerMeter2MicrometerArcsec2IsSurfaceBrightnessUnit, WattsPerMeter2MicrometerIsIntegratedBrightnessUnit}
-import lucuma.core.math.{Angle, RadialVelocity, Wavelength}
+import lucuma.core.math.{RadialVelocity, Wavelength}
 import lucuma.core.model.{SourceProfile, Target, UnnormalizedSED}
 import lucuma.core.syntax.string._
 import lucuma.core.util.Enumerated
@@ -206,42 +206,24 @@ object ItcSpectroscopyInput {
         })
       )
 
-  private def gnSlitWidthToJson(slitWidth: Angle): Json =
-    GmosNorthFpu
-      .all
-      .filter(_.tag.startsWith("LongSlit"))
-      .minBy(fpu => (fpu.slitWidth.get.toMicroarcseconds - slitWidth.toMicroarcseconds).abs)
-      .tag
-      .toScreamingSnakeCase
-      .asJson
-
-  private def gsSlitWidthToJson(slitWidth: Angle): Json =
-    GmosSouthFpu
-      .all
-      .filter(_.tag.startsWith("LongSlit"))
-      .minBy(fpu => (fpu.slitWidth.get.toMicroarcseconds - slitWidth.toMicroarcseconds).abs)
-      .tag
-      .toScreamingSnakeCase
-      .asJson
-
   implicit val EncoderScienceConfigurationModel: Encoder[ScienceConfigurationModel] = {
-    case ScienceConfigurationModel.Modes.GmosNorthLongSlit(filter, disperser, slitWidth) =>
+    case ScienceConfigurationModel.Modes.GmosNorthLongSlit(filter, disperser, fpu, _) =>
       Json.obj(
         "gmosN" ->
           Json.fromFields(
             List(
               "disperser"  -> disperser.tag.toScreamingSnakeCase.asJson,
-              "fpu"        -> gnSlitWidthToJson(slitWidth)
+              "fpu"        -> fpu.tag.toScreamingSnakeCase.asJson
             ) ++ filter.map(_.tag.toScreamingSnakeCase.asJson).tupleLeft("filter").toList
           )
       )
-    case ScienceConfigurationModel.Modes.GmosSouthLongSlit(filter, disperser, slitWidth) =>
+    case ScienceConfigurationModel.Modes.GmosSouthLongSlit(filter, disperser, fpu, _) =>
       Json.obj(
         "gmosS" ->
           Json.fromFields(
             List(
               "disperser"  -> disperser.tag.toScreamingSnakeCase.asJson,
-              "fpu"        -> gsSlitWidthToJson(slitWidth)
+              "fpu"        -> fpu.tag.toScreamingSnakeCase.asJson
             ) ++ filter.map(_.tag.toScreamingSnakeCase.asJson).tupleLeft("filter").toList
           )
       )

@@ -380,6 +380,7 @@ object Init {
         ScienceConfigurationInput(
           gmosSouthLongSlit = GmosSouthLongSlitInput(
             disperser = GmosSouthDisperser.B600_G5323.assign,
+            fpu       = GmosSouthFpu.LongSlit_1_00.assign,
             slitWidth = SlitWidthInput.arcseconds(1.0).assign
           ).assign
         ).some,
