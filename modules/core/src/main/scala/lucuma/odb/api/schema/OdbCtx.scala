@@ -7,7 +7,9 @@ import lucuma.itc.client.ItcClient
 import lucuma.odb.api.repo.OdbRepo
 
 /**
- *
+ * Sangria context object passed into the resolvers. Contains the "repo" for
+ * the program and observation data along with any service clients that the
+ * ODB needs to resolve queries.
  */
 trait OdbCtx[F[_]] {
 

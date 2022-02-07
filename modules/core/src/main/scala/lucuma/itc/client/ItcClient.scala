@@ -12,15 +12,11 @@ import io.circe.syntax._
 import lucuma.core.model.Target
 import lucuma.odb.api.model.ObservationModel
 import org.http4s.Uri
-//import org.http4s.implicits.http4sLiteralsSyntax
 import org.typelevel.log4cats.Logger
 
 final case class ItcClient(
   uri: Uri
 ) {
-
-//  val uri: Uri =
-//    uri"https://itc-staging.herokuapp.com/itc"
 
   def resource[F[_]: Async: Logger]: Resource[F, TransactionalClient[F, Unit]] =
     for {
