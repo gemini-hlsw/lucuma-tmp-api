@@ -6,9 +6,9 @@ package lucuma.odb.api.schema
 import lucuma.odb.api.model.ExecutionEventModel
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.ExecutionEventSchema.{DatasetEventType, SequenceEventType, StepEventType}
-
-import cats.MonadError
+import cats.effect.Async
 import cats.effect.std.Dispatcher
+import org.typelevel.log4cats.Logger
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -41,7 +41,7 @@ trait ExecutionEventMutation {
       "Sequence event description"
     )
 
-  def addSequenceEvent[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def addSequenceEvent[F[_]: Dispatcher: Async: Logger]: Field[OdbRepo[F], Unit] =
     Field(
       name      = "addSequenceEvent",
       fieldType = SequenceEventType[F],
@@ -64,7 +64,7 @@ trait ExecutionEventMutation {
       "Step event description"
     )
 
-  def addStepEvent[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def addStepEvent[F[_]: Dispatcher: Async: Logger]: Field[OdbRepo[F], Unit] =
     Field(
       name      = "addStepEvent",
       fieldType = StepEventType[F],
@@ -87,7 +87,7 @@ trait ExecutionEventMutation {
       "Dataset event description"
     )
 
-  def addDatasetEvent[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def addDatasetEvent[F[_]: Dispatcher: Async: Logger]: Field[OdbRepo[F], Unit] =
     Field(
       name      = "addDatasetEvent",
       fieldType = DatasetEventType[F],
@@ -97,7 +97,7 @@ trait ExecutionEventMutation {
 
   // --------------------------------------------------------------------------
 
-  def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
+  def allFields[F[_]: Dispatcher: Async: Logger]: List[Field[OdbRepo[F], Unit]] =
     List(
       addSequenceEvent,
       addStepEvent,

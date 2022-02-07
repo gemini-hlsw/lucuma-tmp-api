@@ -4,7 +4,6 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.repo.OdbRepo
-import cats.MonadError
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import org.typelevel.log4cats.Logger
@@ -15,11 +14,10 @@ import sangria.schema._
  */
 object QueryType {
 
-  def apply[F[_]: Dispatcher: Async: Logger](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Unit] =
+  def apply[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], Unit] =
     ObjectType(
       name   = "Query",
       fields =
-        ItcQuery.allFields[F]           ++
         ObservationQuery.allFields[F]   ++
         ProgramQuery.allFields[F]       ++
         TargetQuery.allFields[F]

@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import cats.MonadError
+import cats.effect.Async
 import lucuma.odb.api.schema.syntax.all._
 import lucuma.odb.api.model.{DeclinationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
 import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
@@ -15,6 +15,7 @@ import cats.syntax.all._
 import cats.effect.std.Dispatcher
 import lucuma.core.model.Target.{Nonsidereal, Sidereal}
 import lucuma.odb.api.schema.GeneralSchema.EnumTypeExistence
+import org.typelevel.log4cats.Logger
 import sangria.schema.{Field, _}
 
 object TargetSchema extends TargetScalars {
@@ -349,9 +350,7 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-  def TargetType[F[_]: Dispatcher](
-    implicit ev: MonadError[F, Throwable]
-  ): ObjectType[OdbRepo[F], TargetModel] =
+  def TargetType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], TargetModel] =
 
     ObjectType[OdbRepo[F], TargetModel](
       name        = "Target",
@@ -414,14 +413,14 @@ object TargetSchema extends TargetScalars {
     )
 
 
-  def TargetEdgeType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Edge[TargetModel]] =
+  def TargetEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], Paging.Edge[TargetModel]] =
     Paging.EdgeType(
       "TargetEdge",
       "A Target and its cursor",
       TargetType[F]
     )
 
-  def TargetConnectionType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Connection[TargetModel]] =
+  def TargetConnectionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], Paging.Connection[TargetModel]] =
     Paging.ConnectionType(
       "TargetConnection",
       "Targets in the current page",
@@ -429,9 +428,7 @@ object TargetSchema extends TargetScalars {
       TargetEdgeType[F]
     )
 
-  def TargetEnvironmentType[F[_]: Dispatcher](
-    implicit ev: MonadError[F, Throwable]
-  ): ObjectType[OdbRepo[F], TargetEnvironmentModel] = {
+  def TargetEnvironmentType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], TargetEnvironmentModel] = {
 
     def asterism(
       env:             TargetEnvironmentModel,

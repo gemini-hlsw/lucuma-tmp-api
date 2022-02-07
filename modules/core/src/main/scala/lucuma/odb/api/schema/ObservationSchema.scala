@@ -7,12 +7,13 @@ import lucuma.odb.api.model.ObservationModel
 import lucuma.odb.api.repo.{OdbRepo, TableState, Tables}
 import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.Observation
-import cats.MonadError
 import cats.data.State
+import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import lucuma.itc.client.ItcClient
 import lucuma.odb.api.schema.TargetSchema.TargetEnvironmentType
+import org.typelevel.log4cats.Logger
 import sangria.schema._
 
 import scala.collection.immutable.Seq
@@ -66,7 +67,7 @@ object ObservationSchema {
       description  = "Observation IDs"
     )
 
-  def ObservationType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], ObservationModel] =
+  def ObservationType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], ObservationModel] =
     ObjectType(
       name     = "Observation",
       fieldsFn = () => fields(
@@ -159,14 +160,13 @@ object ObservationSchema {
             for {
               ts <- c.value.targetEnvironment.asterism.toList.traverse(tid => c.ctx.target.unsafeSelectTarget(tid))
               rs <- ts.traverse(t => ItcClient.query[F](c.value, t.target))
-            } yield {
 
-              val x = rs.flatMap(_.toList).traverse(x => x.itc.toEither)
-              val y = x.map(_.maxByOption(s => (s.exposureTime.getSeconds, s.exposureTime.getNano)))
-                .leftMap(e => new Exception(e.msg))
-              val z = y.liftTo[F].map(_.map(_.toString))
-              z
-            }
+              results   = rs.flatMap(_.toList).traverse(_.itc.toEither)
+              maxResult = results.map(_.maxByOption(s => (s.exposureTime.getSeconds, s.exposureTime.getNano)))
+                                 .leftMap(e => new Exception(e.msg))
+
+              s  <- maxResult.liftTo[F]
+            } yield s.map(_.toString)
           }
         ),
 
@@ -193,14 +193,14 @@ object ObservationSchema {
       )
     )
 
-  def ObservationEdgeType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Edge[ObservationModel]] =
+  def ObservationEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], Paging.Edge[ObservationModel]] =
     Paging.EdgeType[F, ObservationModel](
       "ObservationEdge",
       "An observation and its cursor",
       ObservationType[F]
     )
 
-  def ObservationConnectionType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Connection[ObservationModel]] =
+  def ObservationConnectionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], Paging.Connection[ObservationModel]] =
     Paging.ConnectionType[F, ObservationModel](
       "ObservationConnection",
       "Matching observations",

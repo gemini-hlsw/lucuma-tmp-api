@@ -6,11 +6,11 @@ package lucuma.odb.api.schema
 import lucuma.odb.api.model.ProgramModel
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.model.Program
-
-import cats.MonadError
+import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.foldable._
 import cats.syntax.functor._
+import org.typelevel.log4cats.Logger
 import sangria.schema._
 
 import scala.collection.immutable.Seq
@@ -46,7 +46,7 @@ object ProgramSchema {
       description  = "Program Ids"
     )
 
-  def ProgramType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], ProgramModel] =
+  def ProgramType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], ProgramModel] =
     ObjectType(
       name     = "Program",
       fieldsFn = () => fields(
@@ -102,14 +102,14 @@ object ProgramSchema {
       )
     )
 
-  def ProgramEdgeType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Edge[ProgramModel]] =
+  def ProgramEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], Edge[ProgramModel]] =
     EdgeType(
       "ProgramEdge",
       "A Program node and its cursor",
       ProgramType[F]
     )
 
-  def ProgramConnectionType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Connection[ProgramModel]] =
+  def ProgramConnectionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], Connection[ProgramModel]] =
     ConnectionType(
       "ProgramConnection",
       "Programs in the current page",

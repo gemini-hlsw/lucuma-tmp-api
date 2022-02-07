@@ -3,12 +3,13 @@
 
 package lucuma.odb.api.schema
 
-import cats.MonadError
+import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import lucuma.odb.api.repo.{OdbRepo, ResultPage}
 import lucuma.odb.api.model.targetModel.TargetModel
 import lucuma.odb.api.schema.TargetSchema.ArgumentTargetId
+import org.typelevel.log4cats.Logger
 import sangria.schema._
 
 trait TargetQuery {
@@ -20,7 +21,7 @@ trait TargetQuery {
   import ProgramSchema.OptionalProgramIdArgument
   import TargetSchema.{TargetEnvironmentType, TargetConnectionType, TargetType}
 
-  def target[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def target[F[_]: Dispatcher: Async: Logger]: Field[OdbRepo[F], Unit] =
     Field(
       name        = "target",
       fieldType   = OptionType(TargetType[F]),
@@ -32,7 +33,7 @@ trait TargetQuery {
       resolve     = c => c.target(_.select(c.targetId, c.includeDeleted))
     )
 
-  def scienceTargets[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def scienceTargets[F[_]: Dispatcher: Async: Logger]: Field[OdbRepo[F], Unit] =
     Field(
       name        = "scienceTargets",
       fieldType   = TargetConnectionType[F],
@@ -54,7 +55,7 @@ trait TargetQuery {
         }
     )
 
-  def firstScienceTarget[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def firstScienceTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbRepo[F], Unit] =
     Field(
       name        = "firstScienceTarget",
       fieldType   = OptionType(TargetType[F]),
@@ -63,7 +64,7 @@ trait TargetQuery {
       resolve     = c => c.target(_.selectObservationFirstTarget(c.observationId))
     )
 
-  def asterism[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def asterism[F[_]: Dispatcher: Async: Logger]: Field[OdbRepo[F], Unit] =
     Field(
       name        = "asterism",
       fieldType   = ListType(TargetType[F]),
@@ -72,7 +73,7 @@ trait TargetQuery {
       resolve     = c => c.target(_.selectObservationAsterism(c.observationId, c.includeDeleted).map(_.toList))
     )
 
-  def targetEnvironment[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def targetEnvironment[F[_]: Dispatcher: Async: Logger]: Field[OdbRepo[F], Unit] =
     Field(
       name        = "targetEnvironment",
       fieldType   = OptionType(TargetEnvironmentType[F]),
@@ -81,7 +82,7 @@ trait TargetQuery {
       resolve     = c => c.target(_.selectObservationTargetEnvironment(c.observationId))
     )
 
-  def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
+  def allFields[F[_]: Dispatcher: Async: Logger]: List[Field[OdbRepo[F], Unit]] =
     List(
       target[F],
       scienceTargets[F],

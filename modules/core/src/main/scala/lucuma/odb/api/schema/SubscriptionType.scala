@@ -10,7 +10,7 @@ import lucuma.odb.api.model.ObservationModel.ObservationEvent
 import lucuma.odb.api.model.ProgramModel.ProgramEvent
 import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.model.{Observation, Program, Target}
-import cats.{Applicative, Eq, MonadError}
+import cats.{Applicative, Eq}
 import cats.effect.std.Dispatcher
 import cats.syntax.applicative._
 import cats.syntax.apply._
@@ -19,6 +19,7 @@ import cats.syntax.functor._
 import fs2.Stream
 import lucuma.odb.api.model.targetModel.TargetModel.TargetEvent
 import lucuma.odb.api.model.targetModel.TargetModel
+import org.typelevel.log4cats.Logger
 import sangria.schema._
 import sangria.streaming.SubscriptionStream
 import sangria.streaming.SubscriptionStreamLike._
@@ -34,13 +35,13 @@ object SubscriptionType {
   import syntax.`enum`._
   import context._
 
-  implicit def observationType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], ObservationModel] =
+  implicit def observationType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], ObservationModel] =
     ObservationSchema.ObservationType[F]
 
-  implicit def programType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], ProgramModel] =
+  implicit def programType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], ProgramModel] =
     ProgramSchema.ProgramType[F]
 
-  implicit def targetType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], TargetModel] =
+  implicit def targetType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], TargetModel] =
     TargetSchema.TargetType[F]
 
   implicit val EditTypeEnum: EnumType[Event.EditType] =
@@ -150,7 +151,7 @@ object SubscriptionType {
         .mapN(_ && _)
     }
 
-  def apply[F[_]: Dispatcher: Async]: ObjectType[OdbRepo[F], Unit] = {
+  def apply[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], Unit] = {
 
     ObjectType(
       name   = "Subscription",

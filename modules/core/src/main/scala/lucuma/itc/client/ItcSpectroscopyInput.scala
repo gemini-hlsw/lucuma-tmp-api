@@ -8,7 +8,7 @@ import eu.timepit.refined.types.all.PosBigDecimal
 import io.circe._
 import io.circe.syntax._
 import lucuma.core.`enum`.{Band, CloudExtinction, GmosNorthFpu, GmosSouthFpu, ImageQuality, SkyBackground, WaterVapor}
-import lucuma.core.math.BrightnessUnits.{ABMagnitudeIsIntegratedBrightnessUnit, ABMagnitudePerArcsec2IsSurfaceBrightnessUnit, Brightness, BrightnessMeasure, ErgsPerSecondCentimeter2AngstromArcsec2IsSurfaceBrightnessUnit, ErgsPerSecondCentimeter2AngstromIsIntegratedBrightnessUnit, ErgsPerSecondCentimeter2HertzArcsec2IsSurfaceBrightnessUnit, ErgsPerSecondCentimeter2HertzIsIntegratedBrightnessUnit, Integrated, JanskyIsIntegratedBrightnessUnit, JanskyPerArcsec2IsSurfaceBrightnessUnit, Surface, VegaMagnitudeIsIntegratedBrightnessUnit, VegaMagnitudePerArcsec2IsSurfaceBrightnessUnit, WattsPerMeter2MicrometerArcsec2IsSurfaceBrightnessUnit, WattsPerMeter2MicrometerIsIntegratedBrightnessUnit}
+import lucuma.core.math.BrightnessUnits.{ABMagnitudeIsIntegratedBrightnessUnit, ABMagnitudePerArcsec2IsSurfaceBrightnessUnit, BrightnessMeasure, ErgsPerSecondCentimeter2AngstromArcsec2IsSurfaceBrightnessUnit, ErgsPerSecondCentimeter2AngstromIsIntegratedBrightnessUnit, ErgsPerSecondCentimeter2HertzArcsec2IsSurfaceBrightnessUnit, ErgsPerSecondCentimeter2HertzIsIntegratedBrightnessUnit, Integrated, JanskyIsIntegratedBrightnessUnit, JanskyPerArcsec2IsSurfaceBrightnessUnit, Surface, VegaMagnitudeIsIntegratedBrightnessUnit, VegaMagnitudePerArcsec2IsSurfaceBrightnessUnit, WattsPerMeter2MicrometerArcsec2IsSurfaceBrightnessUnit, WattsPerMeter2MicrometerIsIntegratedBrightnessUnit}
 import lucuma.core.math.{RadialVelocity, Wavelength}
 import lucuma.core.model.{SourceProfile, Target, UnnormalizedSED}
 import lucuma.core.syntax.string._
@@ -133,33 +133,36 @@ object ItcSpectroscopyInput {
 
     }
 
+  val BrightnessIntegratedToItc: Map[String, String] =
+    Map(
+      VegaMagnitudeIsIntegratedBrightnessUnit.unit.serialized                    -> "VEGA",
+      ABMagnitudeIsIntegratedBrightnessUnit.unit.serialized                      -> "AB",
+      JanskyIsIntegratedBrightnessUnit.unit.serialized                           -> "JY",
+      WattsPerMeter2MicrometerIsIntegratedBrightnessUnit.unit.serialized         -> "WATTS",
+      ErgsPerSecondCentimeter2AngstromIsIntegratedBrightnessUnit.unit.serialized -> "ERGS_WAVELENGTH",
+      ErgsPerSecondCentimeter2HertzIsIntegratedBrightnessUnit.unit.serialized    -> "ERGS_FREQUENCY"
+    )
+
+  val BrightnessSurfaceToItc: Map[String, String] =
+    Map(
+      VegaMagnitudePerArcsec2IsSurfaceBrightnessUnit.unit.serialized                 -> "VEGA",
+      ABMagnitudePerArcsec2IsSurfaceBrightnessUnit.unit.serialized                   -> "AB",
+      JanskyPerArcsec2IsSurfaceBrightnessUnit.unit.serialized                        -> "JY",
+      WattsPerMeter2MicrometerArcsec2IsSurfaceBrightnessUnit.unit.serialized         -> "WATTS",
+      ErgsPerSecondCentimeter2AngstromArcsec2IsSurfaceBrightnessUnit.unit.serialized -> "ERGS_WAVELENGTH",
+      ErgsPerSecondCentimeter2HertzArcsec2IsSurfaceBrightnessUnit.unit.serialized    -> "ERGS_FREQUENCY"
+    )
+
   def encodeBrightness(b: Band, e: Either[BrightnessMeasure[Integrated], BrightnessMeasure[Surface]]): Json = {
     val error: Option[BigDecimal] =
       e.map(_.error.map(_.toBigDecimal)).swap.map(_.error.map(_.toBigDecimal)).merge
 
     // Couldn't figure out the right way to do this
-    def unitsIntegrated(m: BrightnessMeasure[Integrated]): String =
-      m.units.serialized match {
-        case VegaMagnitudeIsIntegratedBrightnessUnit.unit.serialized                    => "VEGA"
-        case ABMagnitudeIsIntegratedBrightnessUnit.unit.serialized                      => "AB"
-        case JanskyIsIntegratedBrightnessUnit.unit.serialized                           => "JY"
-        case WattsPerMeter2MicrometerIsIntegratedBrightnessUnit.unit.serialized         => "WATTS"
-        case ErgsPerSecondCentimeter2AngstromIsIntegratedBrightnessUnit.unit.serialized => "ERGS_WAVELENGTH"
-        case ErgsPerSecondCentimeter2HertzIsIntegratedBrightnessUnit.unit.serialized    => "ERGS_FREQUENCY"
-      }
-
-    def unitsSurface(m: BrightnessMeasure[Surface]): String =
-      m.units.serialized match {
-        case VegaMagnitudePerArcsec2IsSurfaceBrightnessUnit.unit.serialized                 => "VEGA"
-        case ABMagnitudePerArcsec2IsSurfaceBrightnessUnit.unit.serialized                   => "AB"
-        case JanskyPerArcsec2IsSurfaceBrightnessUnit.unit.serialized                        => "JY"
-        case WattsPerMeter2MicrometerArcsec2IsSurfaceBrightnessUnit.unit.serialized         => "WATTS"
-        case ErgsPerSecondCentimeter2AngstromArcsec2IsSurfaceBrightnessUnit.unit.serialized => "ERGS_WAVELENGTH"
-        case ErgsPerSecondCentimeter2HertzArcsec2IsSurfaceBrightnessUnit.unit.serialized    => "ERGS_FREQUENCY"
-      }
-
     val system: String =
-      e.map(unitsSurface).swap.map(unitsIntegrated).merge
+      e.map(m => BrightnessSurfaceToItc(m.units.serialized))
+       .swap
+       .map(m => BrightnessIntegratedToItc(m.units.serialized))
+       .merge
 
     Json.fromFields(
       List(
