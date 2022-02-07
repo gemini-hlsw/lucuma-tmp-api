@@ -26,16 +26,14 @@ object ItcClient {
       c <- Resource.eval(TransactionalClient.of[F, Unit](uri)(Async[F], b, Logger[F]))
     } yield c
 
-
   def query[F[_]: Async: Logger](
     o: ObservationModel,
     t: Target
-  ): F[Option[ItcSpectroscopyResult]] = {
-    println(ItcSpectroscopyInput.fromObservation(o, t).asJson.spaces2)
+  ): F[Option[ItcSpectroscopyResult]] =
     (for {
       inp <- OptionT(Async[F].pure(ItcSpectroscopyInput.fromObservation(o, t)))
+      _   <- OptionT(Logger[F].info(inp.asJson.spaces2).map(_.some))
       res <- OptionT(resource[F].use(_.request(ItcQuery)(inp)).map(_.headOption))
     } yield res).value
-  }
 
 }
