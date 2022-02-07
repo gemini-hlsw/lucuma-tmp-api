@@ -13,7 +13,6 @@ import lucuma.core.math.{Angle, RadialVelocity, Wavelength}
 import lucuma.core.model.{SourceProfile, Target, UnnormalizedSED}
 import lucuma.core.syntax.string._
 import lucuma.core.util.Enumerated
-import lucuma.odb.api.model.ScienceConfigurationModel.Modes
 import lucuma.odb.api.model.{AirmassRange, ConstraintSetModel, HourAngleRange, ObservationModel, ScienceConfigurationModel}
 
 import scala.collection.immutable.SortedMap
@@ -226,7 +225,7 @@ object ItcSpectroscopyInput {
       .asJson
 
   implicit val EncoderScienceConfigurationModel: Encoder[ScienceConfigurationModel] = {
-    case Modes.GmosNorthLongSlit(filter, disperser, slitWidth) =>
+    case ScienceConfigurationModel.Modes.GmosNorthLongSlit(filter, disperser, slitWidth) =>
       Json.obj(
         "gmosN" ->
           Json.fromFields(
@@ -236,7 +235,7 @@ object ItcSpectroscopyInput {
             ) ++ filter.map(_.tag.toScreamingSnakeCase.asJson).tupleLeft("filter").toList
           )
       )
-    case Modes.GmosSouthLongSlit(filter, disperser, slitWidth) =>
+    case ScienceConfigurationModel.Modes.GmosSouthLongSlit(filter, disperser, slitWidth) =>
       Json.obj(
         "gmosS" ->
           Json.fromFields(
