@@ -7,7 +7,6 @@ import cats.effect.Async
 import lucuma.odb.api.schema.syntax.all._
 import lucuma.odb.api.model.{DeclinationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
 import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
-import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.`enum`.{CatalogName, EphemerisKeyType => EphemerisKeyTypeEnum}
 import lucuma.core.math.{Coordinates, Declination, Parallax, ProperMotion, RadialVelocity, RightAscension, VelocityAxis}
 import lucuma.core.model.{CatalogInfo, EphemerisKey, Target}
@@ -55,7 +54,7 @@ object TargetSchema extends TargetScalars {
       "Ephemeris key type options"
     )
 
-  def NonsiderealType[F[_]]: ObjectType[OdbRepo[F], Nonsidereal] =
+  val NonsiderealType: ObjectType[Any, Nonsidereal] =
     ObjectType(
       name     = "Nonsidereal",
       fieldsFn = () => fields(
@@ -112,10 +111,10 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-  def ProperMotionComponentType[A, F[_]](
+  def ProperMotionComponentType[A](
     name: String,
     componentName: String
-  ): ObjectType[OdbRepo[F], ProperMotion.AngularVelocityComponent[A]] =
+  ): ObjectType[Any, ProperMotion.AngularVelocityComponent[A]] =
     ObjectType(
       name     = s"${name.capitalize}${componentName.capitalize}",
       fieldsFn = () => fields(
@@ -137,28 +136,28 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-  def ProperMotionType[F[_]](name: String): ObjectType[OdbRepo[F], ProperMotion] =
+  def ProperMotionType(name: String): ObjectType[Any, ProperMotion] =
     ObjectType(
       name     = name.capitalize,
       fieldsFn = () => fields(
 
         Field(
           name        = "ra",
-          fieldType   = ProperMotionComponentType[VelocityAxis.RA, F](name, "RA"),
+          fieldType   = ProperMotionComponentType[VelocityAxis.RA](name, "RA"),
           description = Some("Proper motion in RA"),
           resolve     = _.value.ra
         ),
 
         Field(
           name        = "dec",
-          fieldType   = ProperMotionComponentType[VelocityAxis.Dec, F](name, "declination"),
+          fieldType   = ProperMotionComponentType[VelocityAxis.Dec](name, "declination"),
           description = Some("Proper motion in declination"),
           resolve     = _.value.dec
         )
       )
     )
 
-  def RightAscensionType[F[_]]: ObjectType[OdbRepo[F], RightAscension] =
+  val RightAscensionType: ObjectType[Any, RightAscension] =
     ObjectType(
       name     = "RightAscension",
       fieldsFn = () => fields(
@@ -193,7 +192,7 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-  def DeclinationType[F[_]]: ObjectType[OdbRepo[F], Declination] =
+  val DeclinationType: ObjectType[Any, Declination] =
     ObjectType(
       name     = "Declination",
       fieldsFn = () => fields(
@@ -221,28 +220,28 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-  def CoordinateType[F[_]]: ObjectType[OdbRepo[F], Coordinates] =
+  val CoordinateType: ObjectType[Any, Coordinates] =
     ObjectType(
       name     = "Coordinates",
       fieldsFn = () => fields(
 
         Field(
           name        = "ra",
-          fieldType   = RightAscensionType[F],
+          fieldType   = RightAscensionType,
           description = Some("Right Ascension"),
           resolve     = _.value.ra
         ),
 
         Field(
           name        = "dec",
-          fieldType   = DeclinationType[F],
+          fieldType   = DeclinationType,
           description = Some("Declination"),
           resolve     = _.value.dec
         )
       )
     )
 
-  def RadialVelocityType[F[_]]: ObjectType[OdbRepo[F], RadialVelocity] =
+  val RadialVelocityType: ObjectType[Any, RadialVelocity] =
     ObjectType(
       name     = "RadialVelocity",
       fieldsFn = () => fields(
@@ -271,7 +270,7 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-  def ParallaxType[F[_]]: ObjectType[OdbRepo[F], Parallax] =
+  val ParallaxType: ObjectType[Any, Parallax] =
     ObjectType(
       name     = "Parallax",
       fieldsFn = () => fields(
@@ -294,21 +293,21 @@ object TargetSchema extends TargetScalars {
     )
 
 
-  def SiderealType[F[_]]: ObjectType[OdbRepo[F], Sidereal] =
+  val SiderealType: ObjectType[Any, Sidereal] =
     ObjectType(
       name     = "Sidereal",
       fieldsFn = () => fields(
 
         Field(
           name        = "ra",
-          fieldType   = RightAscensionType[F],
+          fieldType   = RightAscensionType,
           description = "Right ascension at epoch".some,
           resolve     = _.value.tracking.baseCoordinates.ra
         ),
 
         Field(
           name        = "dec",
-          fieldType   = DeclinationType[F],
+          fieldType   = DeclinationType,
           description = "Declination at epoch".some,
           resolve     = _.value.tracking.baseCoordinates.dec
         ),
@@ -322,21 +321,21 @@ object TargetSchema extends TargetScalars {
 
         Field(
           name        = "properMotion",
-          fieldType   = OptionType(ProperMotionType[F]("properMotion")),
+          fieldType   = OptionType(ProperMotionType("properMotion")),
           description = Some("Proper motion per year in right ascension and declination"),
           resolve     = _.value.tracking.properMotion
         ),
 
         Field(
           name        = "radialVelocity",
-          fieldType   = OptionType(RadialVelocityType[F]),
+          fieldType   = OptionType(RadialVelocityType),
           description = Some("Radial velocity"),
           resolve     = _.value.tracking.radialVelocity
         ),
 
         Field(
           name        = "parallax",
-          fieldType   = OptionType(ParallaxType[F]),
+          fieldType   = OptionType(ParallaxType),
           description = Some("Parallax"),
           resolve     = _.value.tracking.parallax
         ),
@@ -350,12 +349,12 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-  def TargetType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], TargetModel] =
+  def TargetType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], TargetModel] =
 
-    ObjectType[OdbRepo[F], TargetModel](
+    ObjectType[OdbCtx[F], TargetModel](
       name        = "Target",
       description = "Target description",
-      fieldsFn    = () => fields[OdbRepo[F], TargetModel](
+      fieldsFn    = () => fields[OdbCtx[F], TargetModel](
 
         Field(
           name        = "id",
@@ -384,7 +383,7 @@ object TargetSchema extends TargetScalars {
           description = "Program that contains this target".some,
           arguments   = List(ArgumentIncludeDeleted),
           resolve     = c => c.unsafeToFuture(
-            c.ctx.program.unsafeSelect(c.value.programId, c.includeDeleted)
+            c.ctx.odbRepo.program.unsafeSelect(c.value.programId, c.includeDeleted)
           )
         ),
 
@@ -397,14 +396,14 @@ object TargetSchema extends TargetScalars {
 
         Field(
           name        = "sidereal",
-          fieldType   = OptionType(SiderealType[F]),
+          fieldType   = OptionType(SiderealType),
           description = "Sidereal tracking information, if this is a sidereal target".some,
           resolve     = c => Target.sidereal.getOption(c.value.target)
         ),
 
         Field(
           name        = "nonsidereal",
-          fieldType   = OptionType(NonsiderealType[F]),
+          fieldType   = OptionType(NonsiderealType),
           description = "Nonsidereal tracking information, if this is a nonsidereal target".some,
           resolve     = c => Target.nonsidereal.getOption(c.value.target)
         )
@@ -413,14 +412,14 @@ object TargetSchema extends TargetScalars {
     )
 
 
-  def TargetEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], Paging.Edge[TargetModel]] =
+  def TargetEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Edge[TargetModel]] =
     Paging.EdgeType(
       "TargetEdge",
       "A Target and its cursor",
       TargetType[F]
     )
 
-  def TargetConnectionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], Paging.Connection[TargetModel]] =
+  def TargetConnectionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Connection[TargetModel]] =
     Paging.ConnectionType(
       "TargetConnection",
       "Targets in the current page",
@@ -428,14 +427,14 @@ object TargetSchema extends TargetScalars {
       TargetEdgeType[F]
     )
 
-  def TargetEnvironmentType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], TargetEnvironmentModel] = {
+  def TargetEnvironmentType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], TargetEnvironmentModel] = {
 
     def asterism(
       env:             TargetEnvironmentModel,
       includeDeleted:  Boolean,
-      repo:            OdbRepo[F]
+      ctx: OdbCtx[F]
     ): F[List[TargetModel]] =
-      env.asterism.toList.flatTraverse(tid => repo.target.select(tid, includeDeleted).map(_.toList))
+      env.asterism.toList.flatTraverse(tid => ctx.odbRepo.target.select(tid, includeDeleted).map(_.toList))
 
     ObjectType(
       name = "TargetEnvironment",
@@ -470,7 +469,7 @@ object TargetSchema extends TargetScalars {
 
         Field(
           name        = "explicitBase",
-          fieldType   = OptionType(CoordinateType[F]),
+          fieldType   = OptionType(CoordinateType),
           description = "When set, overrides the default base position of the target group".some,
           resolve     = _.value.explicitBase
         )

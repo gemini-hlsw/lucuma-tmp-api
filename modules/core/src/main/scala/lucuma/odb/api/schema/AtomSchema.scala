@@ -5,7 +5,6 @@ package lucuma.odb.api.schema
 
 import lucuma.core.model.Atom
 import lucuma.odb.api.model.{AtomModel, PlannedTime, StepModel}
-import lucuma.odb.api.repo.OdbRepo
 
 import cats.syntax.all._
 import sangria.schema._
@@ -18,11 +17,11 @@ object AtomSchema {
   implicit val AtomIdType: ScalarType[Atom.Id] =
     ObjectIdSchema.idType[Atom.Id](name = "AtomId")
 
-  def AtomInterfaceType[F[_]]: InterfaceType[OdbRepo[F], AtomModel[_]] =
-    InterfaceType[OdbRepo[F], AtomModel[_]](
+  def AtomInterfaceType[F[_]]: InterfaceType[OdbCtx[F], AtomModel[_]] =
+    InterfaceType[OdbCtx[F], AtomModel[_]](
       name          = "Atom",
       description   = "Sequence atom",
-      fieldsFn      = () => fields[OdbRepo[F], AtomModel[_]](
+      fieldsFn      = () => fields[OdbCtx[F], AtomModel[_]](
 
         Field(
           name        = "id",
@@ -37,11 +36,11 @@ object AtomSchema {
   def AtomConcreteType[F[_], D](
     typePrefix:  String,
     dynamicType: OutputType[D]
-  ): ObjectType[OdbRepo[F], AtomModel[StepModel[D]]] =
+  ): ObjectType[OdbCtx[F], AtomModel[StepModel[D]]] =
     ObjectType(
       name        = s"${typePrefix}Atom",
       description = s"$typePrefix atom, a collection of steps that should be executed in their entirety",
-      interfaces  = List(PossibleInterface.apply[OdbRepo[F], AtomModel[StepModel[D]]](AtomInterfaceType[F])),
+      interfaces  = List(PossibleInterface.apply[OdbCtx[F], AtomModel[StepModel[D]]](AtomInterfaceType[F])),
       fieldsFn    = () => fields(
 
         Field(

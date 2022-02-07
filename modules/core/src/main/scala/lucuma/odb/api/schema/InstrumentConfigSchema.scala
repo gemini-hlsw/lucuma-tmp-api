@@ -5,7 +5,6 @@ package lucuma.odb.api.schema
 
 import lucuma.core.`enum`.Instrument
 import lucuma.odb.api.model.{DereferencedSequence, InstrumentConfigModel, PlannedTime}
-import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.TimeSchema.DurationType
 import sangria.schema._
 
@@ -23,11 +22,11 @@ object InstrumentConfigSchema {
       "Instrument"
     )
 
-  def ConfigType[F[_]]: InterfaceType[OdbRepo[F], InstrumentConfigModel] =
-    InterfaceType[OdbRepo[F], InstrumentConfigModel](
+  def ConfigType[F[_]]: InterfaceType[OdbCtx[F], InstrumentConfigModel] =
+    InterfaceType[OdbCtx[F], InstrumentConfigModel](
       name        = "Config",
       description = "Instrument configuration",
-      fields[OdbRepo[F], InstrumentConfigModel](
+      fields[OdbCtx[F], InstrumentConfigModel](
 
         Field(
           name        = "instrument",
@@ -66,7 +65,7 @@ object InstrumentConfigSchema {
     static:       I => S,
     acquisition:  I => DereferencedSequence[D],
     science:      I => DereferencedSequence[D]
-  ): List[Field[OdbRepo[F], I]] =
+  ): List[Field[OdbCtx[F], I]] =
 
     List(
 
@@ -92,11 +91,11 @@ object InstrumentConfigSchema {
       )
     )
 
-  def GmosNorthConfigType[F[_]]: ObjectType[OdbRepo[F], InstrumentConfigModel.GmosNorth] =
+  def GmosNorthConfigType[F[_]]: ObjectType[OdbCtx[F], InstrumentConfigModel.GmosNorth] =
     ObjectType(
       name        = "GmosNorthConfig",
       description = "GMOS North Configuration",
-      interfaces  = List(PossibleInterface.apply[OdbRepo[F], InstrumentConfigModel.GmosNorth](ConfigType[F])),
+      interfaces  = List(PossibleInterface.apply[OdbCtx[F], InstrumentConfigModel.GmosNorth](ConfigType[F])),
       fields      = instrumentConfigFields(
         "GmosNorth",
         GmosNorthStaticConfigType[F],
@@ -107,11 +106,11 @@ object InstrumentConfigSchema {
       )
     )
 
-  def GmosSouthConfigType[F[_]]: ObjectType[OdbRepo[F], InstrumentConfigModel.GmosSouth] =
+  def GmosSouthConfigType[F[_]]: ObjectType[OdbCtx[F], InstrumentConfigModel.GmosSouth] =
     ObjectType(
       name        = "GmosSouthConfig",
       description = "GMOS South Configuration",
-      interfaces  = List(PossibleInterface.apply[OdbRepo[F], InstrumentConfigModel.GmosSouth](ConfigType)),
+      interfaces  = List(PossibleInterface.apply[OdbCtx[F], InstrumentConfigModel.GmosSouth](ConfigType)),
       fields      = instrumentConfigFields(
         "GmosSouth",
         GmosSouthStaticConfigType[F],

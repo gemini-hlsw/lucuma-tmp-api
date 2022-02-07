@@ -4,7 +4,6 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.{DereferencedSequence, PlannedTime, SequenceModel}
-import lucuma.odb.api.repo.OdbRepo
 import sangria.schema._
 
 object SequenceSchema {
@@ -23,7 +22,7 @@ object SequenceSchema {
   def SequenceType[F[_], D](
     typePrefix:  String,
     dynamicType: OutputType[D]
-  ): ObjectType[OdbRepo[F], DereferencedSequence[D]] =
+  ): ObjectType[OdbCtx[F], DereferencedSequence[D]] =
     ObjectType(
       name        = s"${typePrefix}Sequence",
       description = s"A series of $typePrefix atoms that comprise the sequence",

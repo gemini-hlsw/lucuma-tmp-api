@@ -9,6 +9,7 @@ package lucuma.odb.api.service
 //import lucuma.sso.client.util.{GpgPublicKeyReader, JwtDecoder}
 
 import cats.effect.{Async, Resource}
+import cats.implicits.catsSyntaxTuple2Parallel
 import ciris.{ConfigDecoder, ConfigValue, env, prop}
 import org.http4s.Uri
 import org.http4s.blaze.client.BlazeClientBuilder
@@ -21,7 +22,8 @@ import org.http4s.client.Client
  * Application configuration.
  */
 final case class Config(
-  port:         Int
+  port:         Int,
+  itc:          Uri
 //  ssoRoot:      Uri,
 //  ssoPublicKey: PublicKey,
 //  serviceJwt:   String
@@ -63,13 +65,16 @@ object Config {
   def envOrProp[F[_]](name: String): ConfigValue[F, String] =
     env(name) or prop(name)
 
-  def fromCiris[F[_]]: ConfigValue[F, Config] = (
-    (envOrProp("ODB_PORT") or envOrProp("PORT") or ConfigValue.default("8080")).as[Int]
+  def fromCiris[F[_]]: ConfigValue[F, Config] =
+    (
+      (envOrProp[F]("ODB_PORT") or envOrProp[F]("PORT") or ConfigValue.default("8080")).as[Int],
+      (envOrProp[F]("ITC_URI") or ConfigValue.default("https://itc-staging.herokuapp.com/itc")).as[Uri]
+    ).parMapN(Config.apply)
+
 // TODO: SSO
 //    envOrProp("ODB_SSO_ROOT").as[Uri],
 //    envOrProp("ODB_SSO_PUBLIC_KEY").as[PublicKey],
 //    envOrProp("ODB_SERVICE_JWT")
 //  ).parMapN(Config.apply)
-    ).map(Config.apply)
 
 }

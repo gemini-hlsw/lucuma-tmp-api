@@ -4,7 +4,7 @@
 package lucuma.odb.api.schema
 
 import lucuma.core.model.{ExecutionEvent, Observation, Program, Step, Target}
-import lucuma.odb.api.repo.{AtomRepo, ExecutionEventRepo, ObservationRepo, OdbRepo, ProgramRepo, StepRepo, TargetRepo}
+import lucuma.odb.api.repo.{AtomRepo, ExecutionEventRepo, ObservationRepo, ProgramRepo, StepRepo, TargetRepo}
 
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
@@ -14,7 +14,7 @@ import sangria.schema.Context
 
 import scala.concurrent.Future
 
-final class RepoContextOps[F[_]](val self: Context[OdbRepo[F], _]) {
+final class OdbContextOps[F[_]](val self: Context[OdbCtx[F], _]) {
 
   def executionEventId: ExecutionEvent.Id =
     self.arg(ExecutionEventSchema.ExecutionEventArgument)
@@ -81,28 +81,28 @@ final class RepoContextOps[F[_]](val self: Context[OdbRepo[F], _]) {
     implicitly[Dispatcher[F]].unsafeToFuture(fb)
 
   def atom[B](f: AtomRepo[F] => F[B])(implicit ev: Dispatcher[F]): Future[B] =
-    unsafeToFuture(f(self.ctx.atom))
+    unsafeToFuture(f(self.ctx.odbRepo.atom))
 
   def executionEvent[B](f: ExecutionEventRepo[F] => F[B])(implicit ev: Dispatcher[F]): Future[B] =
-    unsafeToFuture(f(self.ctx.executionEvent))
+    unsafeToFuture(f(self.ctx.odbRepo.executionEvent))
 
   def observation[B](f: ObservationRepo[F] => F[B])(implicit ev: Dispatcher[F]): Future[B] =
-    unsafeToFuture(f(self.ctx.observation))
+    unsafeToFuture(f(self.ctx.odbRepo.observation))
 
   def program[B](f: ProgramRepo[F] => F[B])(implicit ev: Dispatcher[F]): Future[B] =
-    unsafeToFuture(f(self.ctx.program))
+    unsafeToFuture(f(self.ctx.odbRepo.program))
 
   def step[B](f: StepRepo[F] => F[B])(implicit ev: Dispatcher[F]): Future[B] =
-    unsafeToFuture(f(self.ctx.step))
+    unsafeToFuture(f(self.ctx.odbRepo.step))
 
   def target[B](f: TargetRepo[F] => F[B])(implicit ev: Dispatcher[F]): Future[B] =
-    unsafeToFuture(f(self.ctx.target))
+    unsafeToFuture(f(self.ctx.odbRepo.target))
 
 }
 
 trait ToRepoContextOps {
-  implicit def toRepoContextOps[F[_]](self: Context[OdbRepo[F], _]): RepoContextOps[F] =
-    new RepoContextOps[F](self)
+  implicit def toRepoContextOps[F[_]](self: Context[OdbCtx[F], _]): OdbContextOps[F] =
+    new OdbContextOps[F](self)
 }
 
 object context extends ToRepoContextOps

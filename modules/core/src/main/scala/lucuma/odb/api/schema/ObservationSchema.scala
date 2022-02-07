@@ -4,14 +4,13 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.ObservationModel
-import lucuma.odb.api.repo.{OdbRepo, TableState, Tables}
+import lucuma.odb.api.repo.{TableState, Tables}
 import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.Observation
 import cats.data.State
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
-import lucuma.itc.client.ItcClient
 import lucuma.odb.api.schema.TargetSchema.TargetEnvironmentType
 import org.typelevel.log4cats.Logger
 import sangria.schema._
@@ -68,7 +67,7 @@ object ObservationSchema {
       description  = "Observation IDs"
     )
 
-  def ObservationType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], ObservationModel] =
+  def ObservationType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], ObservationModel] =
     ObjectType(
       name     = "Observation",
       fieldsFn = () => fields(
@@ -132,7 +131,7 @@ object ObservationSchema {
 
         Field(
           name        = "constraintSet",
-          fieldType   = ConstraintSetType[F],
+          fieldType   = ConstraintSetType,
           description = Some("The constraint set for the observation"),
           resolve     = c => c.value.constraintSet
         ),
@@ -147,7 +146,7 @@ object ObservationSchema {
 
         Field(
           name        = "scienceConfiguration",
-          fieldType   = OptionType(ScienceConfigurationType[F]),
+          fieldType   = OptionType(ScienceConfigurationType),
           description = Some("The science configuration"),
           arguments   = List(ArgumentIncludeDeleted),
           resolve     = c => c.value.scienceConfiguration
@@ -159,8 +158,8 @@ object ObservationSchema {
           description = "ITC execution results".some,
           resolve     = c => c.unsafeToFuture {
             for {
-              ts <- c.value.targetEnvironment.asterism.toList.traverse(tid => c.ctx.target.unsafeSelectTarget(tid))
-              rs <- ts.traverse(t => ItcClient.query[F](c.value, t.target))
+              ts <- c.value.targetEnvironment.asterism.toList.traverse(tid => c.ctx.odbRepo.target.unsafeSelectTarget(tid))
+              rs <- ts.traverse(t => c.ctx.itcClient.query[F](c.value, t.target))
 
               results   = rs.flatMap(_.toList).traverse(_.itc.toEither)
               maxResult = results.map(_.maxByOption(s => (s.exposureTime.getSeconds, s.exposureTime.getNano)))
@@ -176,7 +175,7 @@ object ObservationSchema {
           fieldType   = OptionType(InstrumentConfigSchema.ConfigType[F]),
           description = Some("Manual instrument configuration"),
           resolve     = c => c.unsafeToFuture {
-            c.ctx.tables.get.map { tables =>
+            c.ctx.odbRepo.tables.get.map { tables =>
               c.value.config.flatMap { icm =>
                 icm.dereference[State[Tables, *], Tables](TableState).runA(tables).value
               }
@@ -194,14 +193,14 @@ object ObservationSchema {
       )
     )
 
-  def ObservationEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], Paging.Edge[ObservationModel]] =
+  def ObservationEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Edge[ObservationModel]] =
     Paging.EdgeType[F, ObservationModel](
       "ObservationEdge",
       "An observation and its cursor",
       ObservationType[F]
     )
 
-  def ObservationConnectionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], Paging.Connection[ObservationModel]] =
+  def ObservationConnectionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Connection[ObservationModel]] =
     Paging.ConnectionType[F, ObservationModel](
       "ObservationConnection",
       "Matching observations",

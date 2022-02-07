@@ -3,7 +3,6 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
@@ -17,7 +16,7 @@ trait ProgramQuery {
   import ProgramSchema.{OptionalListProgramIdArgument, ProgramIdArgument, ProgramType, ProgramConnectionType}
   import context._
 
-  def programs[F[_]: Dispatcher: Async: Logger]: Field[OdbRepo[F], Unit] =
+  def programs[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "programs",
       fieldType   = ProgramConnectionType[F],
@@ -31,14 +30,14 @@ trait ProgramQuery {
       resolve = c =>
         unsafeSelectTopLevelPageFuture(c.pagingProgramId) { gid =>
           c.arg(OptionalListProgramIdArgument).fold(
-            c.ctx.program.selectPage(c.pagingFirst, gid, c.includeDeleted)
+            c.ctx.odbRepo.program.selectPage(c.pagingFirst, gid, c.includeDeleted)
           ) { pids =>
-            c.ctx.program.selectPageForPrograms(pids.toSet, c.pagingFirst, gid, c.includeDeleted)
+            c.ctx.odbRepo.program.selectPageForPrograms(pids.toSet, c.pagingFirst, gid, c.includeDeleted)
           }
         }
     )
 
-  def forId[F[_]: Dispatcher: Async: Logger]: Field[OdbRepo[F], Unit] =
+  def forId[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "program",
       fieldType   = OptionType(ProgramType[F]),
@@ -47,7 +46,7 @@ trait ProgramQuery {
       resolve     = c => c.program(_.select(c.programId, c.includeDeleted))
     )
 
-  def allFields[F[_]: Dispatcher: Async: Logger]: List[Field[OdbRepo[F], Unit]] =
+  def allFields[F[_]: Dispatcher: Async: Logger]: List[Field[OdbCtx[F], Unit]] =
     List(
       programs,
       forId

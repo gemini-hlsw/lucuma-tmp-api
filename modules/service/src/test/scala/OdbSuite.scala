@@ -14,6 +14,8 @@ import io.circe.Json
 import clue.http4sjdk.Http4sJDKBackend
 import clue.http4sjdk.Http4sJDKWSBackend
 import io.circe.literal._
+import lucuma.itc.client.ItcClient
+import lucuma.odb.api.schema.OdbCtx
 // TODO: SSO
 //import lucuma.core.model.User
 import lucuma.odb.api.repo.OdbRepo
@@ -23,6 +25,7 @@ import lucuma.odb.api.service.Main
 import munit.CatsEffectSuite
 import org.http4s.{Uri => Http4sUri, _}
 import org.http4s.blaze.server.BlazeServerBuilder
+import org.http4s.implicits.http4sLiteralsSyntax
 import org.http4s.headers.Authorization
 import org.http4s.server.Server
 import org.typelevel.log4cats.Logger
@@ -53,7 +56,10 @@ trait OdbSuite extends CatsEffectSuite {
 
   private val httpApp: Resource[IO, WebSocketBuilder2[IO] => HttpApp[IO]] =
     Resource.eval(OdbRepo.create[IO].flatTap(TestInit.initialize(_)))
-      .flatMap(Main.httpApp(_))//, ssoClient))  // TODO: SSO
+      .flatMap { repo =>
+        val ctx = OdbCtx.create(ItcClient( uri"https://itc-staging.herokuapp.com/itc"), repo)
+        Main.httpApp(ctx) //, ssoClient))  // TODO: SSO
+      }
 
   private val server: Resource[IO, Server] =
     // Resource.make(IO.println("  • Server starting..."))(_ => IO.println("  • Server stopped.")) *>

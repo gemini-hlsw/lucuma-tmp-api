@@ -5,12 +5,11 @@ package lucuma.odb.api.schema
 
 import lucuma.core.math.{Angle, Offset}
 import lucuma.core.math.Axis.{P, Q}
-import lucuma.odb.api.repo.OdbRepo
 import sangria.schema._
 
 object OffsetSchema {
 
-  def OffsetComponentType[F[_], A](n: String): ObjectType[OdbRepo[F], Offset.Component[A]] =
+  def OffsetComponentType[A](n: String): ObjectType[Any, Offset.Component[A]] =
     ObjectType(
       name     = n,
       fieldsFn = () => fields(
@@ -39,21 +38,21 @@ object OffsetSchema {
       )
     )
 
-  def OffsetType[F[_]]: ObjectType[OdbRepo[F], Offset] =
+  val OffsetType: ObjectType[Any, Offset] =
     ObjectType(
       name     = "Offset",
       fieldsFn = () => fields(
 
         Field(
           name        = "p",
-          fieldType   = OffsetComponentType[F, P]("p"),
+          fieldType   = OffsetComponentType[P]("p"),
           description = Some("Offset in p"),
           resolve     = _.value.p
         ),
 
         Field(
           name        = "q",
-          fieldType   = OffsetComponentType[F, Q]("q"),
+          fieldType   = OffsetComponentType[Q]("q"),
           description = Some("Offset in q"),
           resolve     = _.value.q
         )

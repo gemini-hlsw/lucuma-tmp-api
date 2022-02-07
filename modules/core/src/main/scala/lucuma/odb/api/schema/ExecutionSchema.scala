@@ -5,7 +5,6 @@ package lucuma.odb.api.schema
 
 import lucuma.core.model.{ExecutionEvent, Observation, Step}
 import lucuma.odb.api.model.{DatasetModel, ExecutedStepModel, ExecutionEventModel, InstrumentConfigModel}
-import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
@@ -21,7 +20,7 @@ object ExecutionSchema {
   import ExecutedStepSchema._
   import Paging._
 
-  def ExecutionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], Observation.Id] =
+  def ExecutionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Observation.Id] =
     ObjectType(
       name     = "Execution",
       fieldsFn = () => fields(
@@ -38,7 +37,7 @@ object ExecutionSchema {
             unsafeSelectPageFuture[F, (Step.Id, PosInt), DatasetModel](
               c.pagingCursor("(step-id, index)")(StepAndIndexCursor.getOption),
               dm => StepAndIndexCursor.reverseGet((dm.stepId, dm.index)),
-              o  => c.ctx.executionEvent.selectDatasetsPageForObservation(c.value, c.pagingFirst, o)
+              o  => c.ctx.odbRepo.executionEvent.selectDatasetsPageForObservation(c.value, c.pagingFirst, o)
             )
         ),
 
@@ -54,7 +53,7 @@ object ExecutionSchema {
             unsafeSelectPageFuture[F, ExecutionEvent.Id, ExecutionEventModel](
               c.pagingExecutionEventId,
               (e: ExecutionEventModel) => Cursor.gid[ExecutionEvent.Id].reverseGet(e.id),
-              eid => c.ctx.executionEvent.selectEventsPageForObservation(c.value, c.pagingFirst, eid)
+              eid => c.ctx.odbRepo.executionEvent.selectEventsPageForObservation(c.value, c.pagingFirst, eid)
             )
         ),
 
@@ -70,7 +69,7 @@ object ExecutionSchema {
             unsafeSelectPageFuture[F, Step.Id, ExecutedStepModel](
               c.pagingStepId,
               (s: ExecutedStepModel) => Cursor.gid[Step.Id].reverseGet(s.stepId),
-              sid => c.ctx.executionEvent.selectExecutedStepsPageForObservation(c.value, c.pagingFirst, sid)
+              sid => c.ctx.odbRepo.executionEvent.selectExecutedStepsPageForObservation(c.value, c.pagingFirst, sid)
             )
         ),
 

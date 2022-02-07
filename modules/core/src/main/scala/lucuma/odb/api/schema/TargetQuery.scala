@@ -6,7 +6,7 @@ package lucuma.odb.api.schema
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
-import lucuma.odb.api.repo.{OdbRepo, ResultPage}
+import lucuma.odb.api.repo.ResultPage
 import lucuma.odb.api.model.targetModel.TargetModel
 import lucuma.odb.api.schema.TargetSchema.ArgumentTargetId
 import org.typelevel.log4cats.Logger
@@ -21,7 +21,7 @@ trait TargetQuery {
   import ProgramSchema.OptionalProgramIdArgument
   import TargetSchema.{TargetEnvironmentType, TargetConnectionType, TargetType}
 
-  def target[F[_]: Dispatcher: Async: Logger]: Field[OdbRepo[F], Unit] =
+  def target[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "target",
       fieldType   = OptionType(TargetType[F]),
@@ -33,7 +33,7 @@ trait TargetQuery {
       resolve     = c => c.target(_.select(c.targetId, c.includeDeleted))
     )
 
-  def scienceTargets[F[_]: Dispatcher: Async: Logger]: Field[OdbRepo[F], Unit] =
+  def scienceTargets[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "scienceTargets",
       fieldType   = TargetConnectionType[F],
@@ -48,14 +48,14 @@ trait TargetQuery {
       resolve = c =>
         unsafeSelectTopLevelPageFuture(c.pagingTargetId) { gid =>
           (c.optionalProgramId, c.arg(OptionalListObservationIdArgument)) match {
-            case (_, Some(oids)) => c.ctx.target.selectPageForObservations(oids.toSet, c.pagingFirst, gid, c.includeDeleted)
-            case (Some(pid), _)  => c.ctx.target.selectPageForProgram(pid, c.pagingFirst, gid, c.includeDeleted)
+            case (_, Some(oids)) => c.ctx.odbRepo.target.selectPageForObservations(oids.toSet, c.pagingFirst, gid, c.includeDeleted)
+            case (Some(pid), _)  => c.ctx.odbRepo.target.selectPageForProgram(pid, c.pagingFirst, gid, c.includeDeleted)
             case _               => ResultPage.empty[TargetModel].pure[F]
           }
         }
     )
 
-  def firstScienceTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbRepo[F], Unit] =
+  def firstScienceTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "firstScienceTarget",
       fieldType   = OptionType(TargetType[F]),
@@ -64,7 +64,7 @@ trait TargetQuery {
       resolve     = c => c.target(_.selectObservationFirstTarget(c.observationId))
     )
 
-  def asterism[F[_]: Dispatcher: Async: Logger]: Field[OdbRepo[F], Unit] =
+  def asterism[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "asterism",
       fieldType   = ListType(TargetType[F]),
@@ -73,7 +73,7 @@ trait TargetQuery {
       resolve     = c => c.target(_.selectObservationAsterism(c.observationId, c.includeDeleted).map(_.toList))
     )
 
-  def targetEnvironment[F[_]: Dispatcher: Async: Logger]: Field[OdbRepo[F], Unit] =
+  def targetEnvironment[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "targetEnvironment",
       fieldType   = OptionType(TargetEnvironmentType[F]),
@@ -82,7 +82,7 @@ trait TargetQuery {
       resolve     = c => c.target(_.selectObservationTargetEnvironment(c.observationId))
     )
 
-  def allFields[F[_]: Dispatcher: Async: Logger]: List[Field[OdbRepo[F], Unit]] =
+  def allFields[F[_]: Dispatcher: Async: Logger]: List[Field[OdbCtx[F], Unit]] =
     List(
       target[F],
       scienceTargets[F],

@@ -4,7 +4,6 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.ProgramModel
-import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.model.Program
 import cats.effect.Async
 import cats.effect.std.Dispatcher
@@ -46,7 +45,7 @@ object ProgramSchema {
       description  = "Program Ids"
     )
 
-  def ProgramType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], ProgramModel] =
+  def ProgramType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], ProgramModel] =
     ObjectType(
       name     = "Program",
       fieldsFn = () => fields(
@@ -83,7 +82,7 @@ object ProgramSchema {
           ),
           resolve     = c =>
             unsafeSelectTopLevelPageFuture(c.pagingObservationId) { gid =>
-              c.ctx.observation.selectPageForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
+              c.ctx.odbRepo.observation.selectPageForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
             }
         ),
 
@@ -102,14 +101,14 @@ object ProgramSchema {
       )
     )
 
-  def ProgramEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], Edge[ProgramModel]] =
+  def ProgramEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Edge[ProgramModel]] =
     EdgeType(
       "ProgramEdge",
       "A Program node and its cursor",
       ProgramType[F]
     )
 
-  def ProgramConnectionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbRepo[F], Connection[ProgramModel]] =
+  def ProgramConnectionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Connection[ProgramModel]] =
     ConnectionType(
       "ProgramConnection",
       "Programs in the current page",

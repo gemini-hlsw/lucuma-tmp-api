@@ -5,7 +5,6 @@ package lucuma.odb.api.schema
 
 import lucuma.core.enum.{CloudExtinction, ImageQuality, SkyBackground, WaterVapor}
 import lucuma.odb.api.model.{AirmassRange, ElevationRangeModel, HourAngleRange}
-import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.all._
 import lucuma.odb.api.model.ConstraintSetModel
 
@@ -25,7 +24,7 @@ object ConstraintSetSchema {
   implicit val EnumTypeWaterVapor: EnumType[WaterVapor] =
     EnumType.fromEnumerated("WaterVapor", "Water vapor")
 
-  def AirMassRangeType[F[_]]: ObjectType[OdbRepo[F], AirmassRange] =
+  val AirMassRangeType: ObjectType[Any, AirmassRange] =
     ObjectType(
       name     = "AirMassRange",
       fieldsFn = () =>
@@ -45,7 +44,7 @@ object ConstraintSetSchema {
         )
     )
 
-  def HourAngleRangeType[F[_]]: ObjectType[OdbRepo[F], HourAngleRange] =
+  val HourAngleRangeType: ObjectType[Any, HourAngleRange] =
     ObjectType(
       name     = "HourAngleRange",
       fieldsFn = () =>
@@ -65,7 +64,7 @@ object ConstraintSetSchema {
         )
     )
 
-  def ElevationRangeModelType[F[_]]: ObjectType[OdbRepo[F], ElevationRangeModel] =
+  val ElevationRangeModelType: ObjectType[Any, ElevationRangeModel] =
     ObjectType(
       name        = "ElevationRange",
       description = "Either airmass range or elevation range",
@@ -73,20 +72,20 @@ object ConstraintSetSchema {
         fields(
           Field(
             name        = "airmassRange",
-            fieldType   = OptionType(AirMassRangeType[F]),
+            fieldType   = OptionType(AirMassRangeType),
             description = Some("Airmass range if elevation range is an Airmass range"),
             resolve     = c => ElevationRangeModel.airmassRange.getOption(c.value)
           ),
           Field(
             name        = "hourAngleRange",
-            fieldType   = OptionType(HourAngleRangeType[F]),
+            fieldType   = OptionType(HourAngleRangeType),
             description = Some("Hour angle range if elevation range is an Hour angle range"),
             resolve     = c => ElevationRangeModel.hourAngleRange.getOption(c.value)
           )
         )
     )
 
-  def ConstraintSetType[F[_]]: ObjectType[OdbRepo[F], ConstraintSetModel] =
+  val ConstraintSetType: ObjectType[Any, ConstraintSetModel] =
     ObjectType(
       name     = "ConstraintSet",
       fieldsFn = () =>

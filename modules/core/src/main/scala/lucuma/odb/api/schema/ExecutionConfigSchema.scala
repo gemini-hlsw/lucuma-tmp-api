@@ -8,7 +8,6 @@ import cats.effect.std.Dispatcher
 import lucuma.core.model.Observation
 import lucuma.odb.api.model.{DereferencedSequence, GmosModel, SequenceModel}
 import lucuma.odb.api.model.SequenceModel.SequenceType.{Acquisition, Science}
-import lucuma.odb.api.repo.OdbRepo
 import cats.syntax.all._
 import lucuma.core.`enum`.Instrument
 import sangria.schema.{Field, _}
@@ -53,11 +52,11 @@ object ExecutionConfigSchema {
     science:     DereferencedSequence[GmosModel.SouthDynamic]
   ) extends ExecutionContext[GmosModel.SouthStatic, GmosModel.SouthDynamic]
 
-  def ExecutionConfigType[F[_]]: InterfaceType[OdbRepo[F], ExecutionContext[_, _]] =
-    InterfaceType[OdbRepo[F], ExecutionContext[_, _]](
+  def ExecutionConfigType[F[_]]: InterfaceType[OdbCtx[F], ExecutionContext[_, _]] =
+    InterfaceType[OdbCtx[F], ExecutionContext[_, _]](
       name        = "ExecutionConfig",
       description = "Execution configuration",
-      fields[OdbRepo[F], ExecutionContext[_, _]](
+      fields[OdbCtx[F], ExecutionContext[_, _]](
 
         Field(
           name        = "instrument",
@@ -79,7 +78,7 @@ object ExecutionConfigSchema {
     instrument:   Instrument,
     dynamicType:  OutputType[D],
     sequenceType: SequenceModel.SequenceType
-  ): ObjectType[OdbRepo[F], ExecutionContext[_, D]] =
+  ): ObjectType[OdbCtx[F], ExecutionContext[_, D]] =
     ObjectType(
       name        = s"${instrument.tag}ExecutionSequence",
       description = s"Next atom to execute and potential future atoms",
@@ -123,7 +122,7 @@ object ExecutionConfigSchema {
     instrument:  Instrument,
     staticType:  OutputType[S],
     dynamicType: OutputType[D]
-  ): List[Field[OdbRepo[F], E]] =
+  ): List[Field[OdbCtx[F], E]] =
 
     List(
       Field(
@@ -154,11 +153,11 @@ object ExecutionConfigSchema {
   private def executionConfigDescription(instrument: Instrument): String =
     s"${instrument.longName} Execution Config"
 
-  def GmosNorthExecutionConfigType[F[_]: Functor: Dispatcher]: ObjectType[OdbRepo[F], GmosNorthExecutionContext] =
+  def GmosNorthExecutionConfigType[F[_]: Functor: Dispatcher]: ObjectType[OdbCtx[F], GmosNorthExecutionContext] =
     ObjectType(
       name        = executionConfigName(Instrument.GmosNorth),
       description = executionConfigDescription(Instrument.GmosNorth),
-      interfaces  = List(PossibleInterface.apply[OdbRepo[F], GmosNorthExecutionContext](ExecutionConfigType[F])),
+      interfaces  = List(PossibleInterface.apply[OdbCtx[F], GmosNorthExecutionContext](ExecutionConfigType[F])),
       fields      = executionConfigFields(
         Instrument.GmosNorth,
         GmosSchema.GmosNorthStaticConfigType[F],
@@ -166,11 +165,11 @@ object ExecutionConfigSchema {
       )
     )
 
-  def GmosSouthExecutionConfigType[F[_]: Functor: Dispatcher]: ObjectType[OdbRepo[F], GmosSouthExecutionContext] =
+  def GmosSouthExecutionConfigType[F[_]: Functor: Dispatcher]: ObjectType[OdbCtx[F], GmosSouthExecutionContext] =
     ObjectType(
       name        = executionConfigName(Instrument.GmosSouth),
       description = executionConfigDescription(Instrument.GmosSouth),
-      interfaces  = List(PossibleInterface.apply[OdbRepo[F], GmosSouthExecutionContext](ExecutionConfigType[F])),
+      interfaces  = List(PossibleInterface.apply[OdbCtx[F], GmosSouthExecutionContext](ExecutionConfigType[F])),
       fields      = executionConfigFields(
         Instrument.GmosSouth,
         GmosSchema.GmosSouthStaticConfigType[F],

@@ -4,7 +4,6 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.InputError
-import lucuma.odb.api.repo.OdbRepo
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import org.typelevel.log4cats.Logger
@@ -31,7 +30,7 @@ object OdbSchema {
       }
     )
 
-  def apply[F[_]: Dispatcher: Async: Logger]: Schema[OdbRepo[F], Unit] =
+  def apply[F[_]: Dispatcher: Async: Logger]: Schema[OdbCtx[F], Unit] =
     Schema(
       QueryType[F],
       Some(MutationType[F]),
