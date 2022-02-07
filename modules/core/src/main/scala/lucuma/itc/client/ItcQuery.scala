@@ -11,14 +11,6 @@ object ItcQuery extends GraphQLOperation[Unit] {
   type Data      = List[ItcSpectroscopyResult]
   type Variables = ItcSpectroscopyInput
 
-//            mode {
-//              wavelength {
-//                micrometers
-//              }
-//              resolution
-//              instrument
-//            }
-
   override val document: String =
     """
       query Spectroscopy($spec: SpectroscopyModeInput!) {
@@ -44,7 +36,11 @@ object ItcQuery extends GraphQLOperation[Unit] {
     """
 
   override val varEncoder: Encoder[Variables] =
-    Encoder[ItcSpectroscopyInput]
+    Encoder.instance[ItcSpectroscopyInput] { inp =>
+      Json.obj(
+        "spec" -> Encoder[ItcSpectroscopyInput].apply(inp)
+      )
+    }
 
   override val dataDecoder: Decoder[List[ItcSpectroscopyResult]] =
     (c: HCursor) =>

@@ -8,6 +8,7 @@ import cats.syntax.all._
 import cats.effect.{Async, Resource}
 import clue.TransactionalClient
 import clue.http4sjdk.Http4sJDKBackend
+import io.circe.syntax._
 import lucuma.core.model.Target
 import lucuma.odb.api.model.ObservationModel
 import org.http4s.Uri
@@ -19,53 +20,6 @@ object ItcClient {
   val uri: Uri =
     uri"https://itc-staging.herokuapp.com/itc"
 
-  /*
-    val variables: Json =
-    json"""
-{
-  "spec": {
-    "wavelength": {
-      "nanometers": 500
-    },
-    "signalToNoise": 500,
-    "spatialProfile": {
-      "sourceType": "POINT_SOURCE"
-    },
-    "spectralDistribution": {
-      "stellar": "O5V"
-    },
-    "magnitude": {
-      "band": "J",
-      "value": 15.6
-    },
-    "radialVelocity": {
-      "metersPerSecond": 10
-    },
-    "constraints": {
-      "imageQuality": "POINT_ONE",
-      "cloudExtinction": "POINT_ONE",
-	    "skyBackground": "DARKEST",
-      "waterVapor": "VERY_DRY",
-      "elevationRange": {
-        "airmassRange": {
-          "min": 1.5,
-          "max": 2.0
-        }
-      }
-    },
-    "modes": [
-      {
-        "gmosS": {
-          "disperser": "B1200_G5321",
-          "fpu": "LONG_SLIT_0_50"
-        }
-      }
-    ]
-  }
-}
-      """
-      */
-
   def resource[F[_]: Async: Logger]: Resource[F, TransactionalClient[F, Unit]] =
     for {
       b <- Http4sJDKBackend[F]
@@ -76,10 +30,12 @@ object ItcClient {
   def query[F[_]: Async: Logger](
     o: ObservationModel,
     t: Target
-  ): F[Option[ItcSpectroscopyResult]] =
+  ): F[Option[ItcSpectroscopyResult]] = {
+    println(ItcSpectroscopyInput.fromObservation(o, t).asJson.spaces2)
     (for {
       inp <- OptionT(Async[F].pure(ItcSpectroscopyInput.fromObservation(o, t)))
       res <- OptionT(resource[F].use(_.request(ItcQuery)(inp)).map(_.headOption))
     } yield res).value
+  }
 
 }

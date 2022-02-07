@@ -227,6 +227,18 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
   }
 
   object SlitWidthInput {
+    val Empty: SlitWidthInput =
+      SlitWidthInput(None, None, None)
+
+    def microarcseconds(a: Long): SlitWidthInput =
+      Empty.copy(microarcseconds = a.some)
+
+    def milliarcseconds(a: BigDecimal): SlitWidthInput =
+      Empty.copy(milliarcseconds = a.some)
+
+    def arcseconds(a: BigDecimal): SlitWidthInput =
+      Empty.copy(arcseconds = a.some)
+
     implicit def DecoderFocalPlaneAngleInput: Decoder[SlitWidthInput] =
       deriveDecoder[SlitWidthInput]
 
