@@ -97,11 +97,11 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
 
   // Group by asterism.
   //
-  // NGC 5949                     => o-2
-  // NGC 3312                     => o-3, o-4, o-5
-  // NGC 3269, NGC 3312, NGC 5949 => o-6
-  // <nothing>                    => o-7
-  // NGC 4749                     => <none>
+  // NGC 5949                           => o-2
+  // NGC 3312                           => o-3, o-4, o-5
+  // (XXX NGC 3269), NGC 3312, NGC 5949 => o-6
+  // <nothing>                          => o-7
+  // NGC 4749                           => <none>
   queryTest(
     query ="""
       query GroupByAsterism {
