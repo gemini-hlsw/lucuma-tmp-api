@@ -199,6 +199,8 @@ object ObservationRepo {
              .filter(o => (o.programId === pid) && (includeDeleted || o.isPresent))
              .flatMap(o => o.targetEnvironment.asterism.toList.tupleRight(o.id))
              .groupMap(_._1)(_._2)
+             .view
+             .filterKeys(tid => includeDeleted || t.targets(tid).isPresent)
              .map { case (a, oids) => Group.from(a, oids) }
              .toList
 
@@ -235,11 +237,19 @@ object ObservationRepo {
       )(
         f: ObservationModel => A
       ): F[List[Group[A]]] =
+        groupByWithTables[A](pid, includeDeleted)((_, o) => f(o))
+
+      private def groupByWithTables[A](
+        pid:            Program.Id,
+        includeDeleted: Boolean
+      )(
+        f: (Tables, ObservationModel) => A
+      ): F[List[Group[A]]] =
         tablesRef.get.map { t =>
           t.observations
            .values
            .filter(o => (o.programId === pid) && (includeDeleted || o.isPresent))
-           .map(o => (f(o), o.id))
+           .map(o => (f(t, o), o.id))
            .groupMap(_._1)(_._2)
            .map { case (a, oids) => Group.from(a, oids) }
            .toList
@@ -250,7 +260,9 @@ object ObservationRepo {
         pid:            Program.Id,
         includeDeleted: Boolean
       ): F[List[Group[SortedSet[Target.Id]]]] =
-        groupBy(pid, includeDeleted)(_.targetEnvironment.asterism)
+        groupByWithTables(pid, includeDeleted) { (t, o) =>
+          o.targetEnvironment.asterism.filter(tid => includeDeleted || t.targets(tid).isPresent)
+        }
 
       override def groupByAsterismInstantiated(
         pid:            Program.Id,
@@ -266,7 +278,11 @@ object ObservationRepo {
        pid:            Program.Id,
        includeDeleted: Boolean
      ): F[List[Group[TargetEnvironmentModel]]] =
-       groupBy(pid, includeDeleted)(_.targetEnvironment)
+       groupByWithTables(pid, includeDeleted) { (t, o) =>
+         TargetEnvironmentModel.asterism.modify {
+           _.filter(tid => includeDeleted || t.targets(tid).isPresent)
+         }(o.targetEnvironment)
+       }
 
       override def groupByConstraintSet(
         pid:            Program.Id,
