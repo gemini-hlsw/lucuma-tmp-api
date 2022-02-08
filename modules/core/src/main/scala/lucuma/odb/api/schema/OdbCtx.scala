@@ -13,7 +13,7 @@ import lucuma.odb.api.repo.OdbRepo
  */
 trait OdbCtx[F[_]] {
 
-  def itcClient:  ItcClient
+  def itcClient:  ItcClient[F]
 
   def odbRepo: OdbRepo[F]
 
@@ -22,13 +22,13 @@ trait OdbCtx[F[_]] {
 object OdbCtx {
 
   def create[F[_]](
-    itc: ItcClient,
+    itc: ItcClient[F],
     repo: OdbRepo[F]
   ): OdbCtx[F] =
 
     new OdbCtx[F] {
 
-      override def itcClient: ItcClient =
+      override def itcClient: ItcClient[F] =
         itc
 
       override def odbRepo: OdbRepo[F] =

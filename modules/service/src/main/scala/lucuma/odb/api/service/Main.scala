@@ -93,7 +93,7 @@ object Main extends IOApp {
       cfg  <- Config.fromCiris.load(Async[IO])
       log  <- Slf4jLogger.create[IO]
       odb  <- OdbRepo.create[IO]
-      ctx   = OdbCtx.create(ItcClient(cfg.itc), odb)
+      ctx   = OdbCtx.create[IO](ItcClient(cfg.itc)(Async[IO], log), odb)
       _    <- Init.initialize(odb)
       _    <- stream(ctx, cfg)(log, Async[IO]).compile.drain
     } yield ExitCode.Success

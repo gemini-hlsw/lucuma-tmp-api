@@ -159,7 +159,7 @@ object ObservationSchema {
           resolve     = c => c.unsafeToFuture {
             for {
               ts <- c.value.targetEnvironment.asterism.toList.traverse(tid => c.ctx.odbRepo.target.unsafeSelectTarget(tid))
-              rs <- ts.traverse(t => c.ctx.itcClient.query[F](c.value, t.target))
+              rs <- ts.traverse(t => c.ctx.itcClient.query(c.value, t.target))
 
               results   = rs.flatMap(_.toList).traverse(_.itc.toEither)
               maxResult = results.map(_.maxByOption(s => (s.exposureTime.getSeconds, s.exposureTime.getNano)))
