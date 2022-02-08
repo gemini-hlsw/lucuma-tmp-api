@@ -95,6 +95,71 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
     clients = List(ClientOption.Http)
   )
 
+  // Group by individual science target, includeDeleted = true
+  //
+  // NGC 5949 => o-2, o-6
+  // NGC 3312 => o-3, o-4, o-5, o-6
+  // NGC 4749 => <none>
+  // XXX NGC 3269 => o-6
+  queryTest(
+    query ="""
+      query GroupByScienceTargetIncludeDeleted {
+        targetGroup(programId: "p-2", includeDeleted: true) {
+          nodes {
+            observationIds
+            target {
+              name
+            }
+          }
+        }
+      }
+    """,
+    expected = json"""
+      {
+        "targetGroup": {
+          "nodes": [
+            {
+              "observationIds": [
+                "o-2",
+                "o-6"
+              ],
+              "target": {
+                "name": "NGC 5949"
+              }
+            },
+            {
+              "observationIds": [
+                "o-6"
+              ],
+              "target": {
+                "name": "NGC 3269"
+              }
+            },
+            {
+              "observationIds": [
+                "o-3",
+                "o-4",
+                "o-5",
+                "o-6"
+              ],
+              "target": {
+                "name": "NGC 3312"
+              }
+            },
+            {
+              "observationIds": [
+              ],
+              "target": {
+                "name": "NGC 4749"
+              }
+            }
+          ]
+        }
+      }
+    """,
+    clients = List(ClientOption.Http)
+  )
+
   // Group by asterism.
   //
   // NGC 5949                           => o-2
