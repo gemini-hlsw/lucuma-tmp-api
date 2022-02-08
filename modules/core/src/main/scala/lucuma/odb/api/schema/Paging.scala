@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.repo.{OdbRepo, ResultPage}
+import lucuma.odb.api.repo.ResultPage
 import lucuma.core.util.Gid
 import lucuma.odb.api.model.{InputError, TopLevelModel}
 
@@ -111,7 +111,7 @@ object Paging {
 
   }
 
-  def PageInfoType[F[_]]: ObjectType[OdbRepo[F], PageInfo] =
+  val PageInfoType: ObjectType[Any, PageInfo] =
     ObjectType(
       name        = "PageInfo",
       description = "Information that supports paging through a list of elements",
@@ -163,7 +163,7 @@ object Paging {
     name:        String,
     description: String,
     nodeType:    OutputType[A]
-  ): ObjectType[OdbRepo[F], Edge[A]] =
+  ): ObjectType[OdbCtx[F], Edge[A]] =
 
     ObjectType(
       name        = name,
@@ -219,9 +219,9 @@ object Paging {
   def ConnectionType[F[_], A](
     name:        String,
     description: String,
-    nodeType:    ObjectLikeType[OdbRepo[F], A],
-    edgeType:    ObjectLikeType[OdbRepo[F], Edge[A]]
-  ): ObjectType[OdbRepo[F], Connection[A]] =
+    nodeType:    ObjectLikeType[OdbCtx[F], A],
+    edgeType:    ObjectLikeType[OdbCtx[F], Edge[A]]
+  ): ObjectType[OdbCtx[F], Connection[A]] =
 
     ObjectType(
       name        = name,
@@ -253,7 +253,7 @@ object Paging {
 
         Field(
           name        = "pageInfo",
-          fieldType   = PageInfoType[F],
+          fieldType   = PageInfoType,
           description = Some("Paging information"),
           resolve     = _.value.pageInfo
         )

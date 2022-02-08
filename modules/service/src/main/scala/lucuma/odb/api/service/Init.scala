@@ -12,11 +12,15 @@ import lucuma.core.math.syntax.int._
 import cats.data.State
 import cats.effect.Sync
 import cats.syntax.all._
+import clue.data.syntax._
 import eu.timepit.refined.auto._
+import eu.timepit.refined.types.numeric.PosBigDecimal
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.parser.decode
 import lucuma.core.model.Program
 import lucuma.odb.api.model.OffsetModel.ComponentInput
+import lucuma.odb.api.model.ScienceConfigurationModel.Modes.GmosSouthLongSlitInput
+import lucuma.odb.api.model.ScienceConfigurationModel.SlitWidthInput
 
 import scala.concurrent.duration._
 
@@ -45,7 +49,7 @@ object Init {
     "point": {
       "bandNormalized": {
         "sed": {
-          "galaxy": "SPIRAL"
+          "stellarLibrary": "O5_V"
         },
         "brightnesses": [
           {
@@ -364,8 +368,22 @@ object Init {
         TargetEnvironmentInput.asterism(sidereal.id).some
       },
       constraintSet        = None,
-      scienceRequirements  = ScienceRequirementsInput.Default.some,
-      scienceConfiguration = None,
+      scienceRequirements  =
+        ScienceRequirementsInput(
+          ScienceMode.Spectroscopy.assign,
+          SpectroscopyScienceRequirementsInput(
+            wavelength    = WavelengthModel.Input.fromNanometers(520).assign,
+            signalToNoise = PosBigDecimal.unsafeFrom(700).assign
+          ).assign
+        ).some,
+      scienceConfiguration =
+        ScienceConfigurationInput(
+          gmosSouthLongSlit = GmosSouthLongSlitInput(
+            disperser = GmosSouthDisperser.B600_G5323.assign,
+            fpu       = GmosSouthFpu.LongSlit_1_00.assign,
+            slitWidth = SlitWidthInput.arcseconds(1.0).assign
+          ).assign
+        ).some,
       config               =
         InstrumentConfigModel.Create.gmosSouth(
           GmosModel.CreateSouthStatic.Default,

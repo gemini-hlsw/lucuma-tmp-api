@@ -3,16 +3,16 @@
 
 package lucuma.odb.api.schema
 
-import cats.MonadError
+import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
 import lucuma.odb.api.model.{CoordinatesModel, DeclinationModel, ObservationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
 import lucuma.odb.api.model.targetModel.{CatalogInfoInput, EditAsterismInput, NonsiderealInput, SiderealInput, TargetEnvironmentInput, TargetModel}
-import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.`enum`._
 import lucuma.core.model.Target
+import org.typelevel.log4cats.Logger
 import sangria.macros.derive.{ReplaceInputField, _}
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -195,7 +195,7 @@ trait TargetMutation extends TargetScalars {
       InputObjectTypeDescription("Add or delete targets in an asterism")
     )
 
-  def createTarget[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def createTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "createTarget",
       fieldType   = TargetType[F],
@@ -204,7 +204,7 @@ trait TargetMutation extends TargetScalars {
       resolve     = c => c.target(_.insert(c.programId, c.arg(ArgumentTargetCreate)))
     )
 
-  def cloneTarget[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] = {
+  def cloneTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] = {
     import ObservationSchema.OptionalListObservationIdArgument
 
     val existing: Argument[Target.Id] =
@@ -229,8 +229,8 @@ trait TargetMutation extends TargetScalars {
       resolve     = c => {
         c.unsafeToFuture(
           for {
-            t <- c.ctx.target.clone(c.arg(existing), c.arg(suggested))
-            _ <- c.ctx.observation.bulkEditAsterism(
+            t <- c.ctx.odbRepo.target.clone(c.arg(existing), c.arg(suggested))
+            _ <- c.ctx.odbRepo.observation.bulkEditAsterism(
               ObservationModel.BulkEdit(
                 c.arg(OptionalListObservationIdArgument).map(_.toList),
                 None,
@@ -246,7 +246,7 @@ trait TargetMutation extends TargetScalars {
     )
   }
 
-  def updateTarget[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def updateTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "updateTarget",
       fieldType   = TargetType[F],
@@ -255,7 +255,7 @@ trait TargetMutation extends TargetScalars {
       resolve     = c => c.target(_.edit(c.arg(ArgumentEditTargetInput)))
     )
 
-    def delete[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+    def delete[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "deleteTarget",
       fieldType   = TargetType[F],
@@ -264,7 +264,7 @@ trait TargetMutation extends TargetScalars {
       resolve     = c => c.target(_.delete(c.targetId))
     )
 
-  def undelete[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def undelete[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "undeleteTarget",
       fieldType   = TargetType[F],
@@ -274,7 +274,7 @@ trait TargetMutation extends TargetScalars {
     )
 
 
-  def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
+  def allFields[F[_]: Dispatcher: Async: Logger]: List[Field[OdbCtx[F], Unit]] =
     List(
       createTarget,
       cloneTarget,

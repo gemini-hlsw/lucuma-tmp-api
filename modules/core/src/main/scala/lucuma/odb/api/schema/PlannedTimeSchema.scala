@@ -6,7 +6,6 @@ package lucuma.odb.api.schema
 import lucuma.odb.api.model.PlannedTime
 import lucuma.odb.api.model.PlannedTime.{CategorizedTime, Category}
 import lucuma.odb.api.model.time._
-import lucuma.odb.api.repo.OdbRepo
 import sangria.schema._
 
 
@@ -21,17 +20,17 @@ object PlannedTimeSchema {
       "Step time category"
     )
 
-  def CategorizedTimeType[F[_]]: ObjectType[OdbRepo[F], CategorizedTime] = {
+  val CategorizedTimeType: ObjectType[Any, CategorizedTime] = {
 
     def field(
       name: String,
       desc: String,
       f:    CategorizedTime => NonNegativeFiniteDuration
-    ): Field[OdbRepo[F], CategorizedTime] =
+    ): Field[Any, CategorizedTime] =
 
       Field(
         name        = name,
-        fieldType   = DurationType[F],
+        fieldType   = DurationType,
         description = Some(desc),
         resolve     = c => f(c.value).value
       )
@@ -49,50 +48,50 @@ object PlannedTimeSchema {
     )
   }
 
-  def PlannedTimeType[F[_]]: ObjectType[OdbRepo[F], PlannedTime] =
+  val PlannedTimeType: ObjectType[Any, PlannedTime] =
     ObjectType(
       name        = "PlannedTime",
       description = "Time estimates for executing this configuration",
-      fields[OdbRepo[F], PlannedTime](
+      fields[Any, PlannedTime](
 
         Field(
           name        = "setup",
-          fieldType   = DurationType[F],
+          fieldType   = DurationType,
           description = Some("Estimated setup time"),
           resolve     = _.value.setup.value
         ),
 
         Field(
           name        = "acquisition",
-          fieldType   = ListType(CategorizedTimeType[F]),
+          fieldType   = ListType(CategorizedTimeType),
           description = Some("Estimated acquisition time for each atom"),
           resolve     = _.value.acquisition
         ),
 
         Field(
           name        = "acquisitionTotal",
-          fieldType   = CategorizedTimeType[F],
+          fieldType   = CategorizedTimeType,
           description = Some("Total estimated acquisition time"),
           resolve     = _.value.acquisitionSum
         ),
 
         Field(
           name        = "science",
-          fieldType   = ListType(CategorizedTimeType[F]),
+          fieldType   = ListType(CategorizedTimeType),
           description = Some("Estimated science time for each atom"),
           resolve     = _.value.acquisition
         ),
 
         Field(
           name        = "scienceTotal",
-          fieldType   = CategorizedTimeType[F],
+          fieldType   = CategorizedTimeType,
           description = Some("Total estimated science time"),
           resolve     = _.value.scienceSum
         ),
 
         Field(
           name        = "total",
-          fieldType   = DurationType[F],
+          fieldType   = DurationType,
           description = Some("Total planned time across acquisition and science"),
           resolve     = _.value.total.value
         )

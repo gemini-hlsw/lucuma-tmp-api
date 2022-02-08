@@ -4,13 +4,12 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.ProgramModel
-import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.model.Program
-
-import cats.MonadError
+import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.foldable._
 import cats.syntax.functor._
+import org.typelevel.log4cats.Logger
 import sangria.schema._
 
 import scala.collection.immutable.Seq
@@ -46,7 +45,7 @@ object ProgramSchema {
       description  = "Program Ids"
     )
 
-  def ProgramType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], ProgramModel] =
+  def ProgramType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], ProgramModel] =
     ObjectType(
       name     = "Program",
       fieldsFn = () => fields(
@@ -83,13 +82,13 @@ object ProgramSchema {
           ),
           resolve     = c =>
             unsafeSelectTopLevelPageFuture(c.pagingObservationId) { gid =>
-              c.ctx.observation.selectPageForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
+              c.ctx.odbRepo.observation.selectPageForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
             }
         ),
 
         Field(
           name        = "plannedTime",
-          fieldType   = PlannedTimeSummaryType[F],
+          fieldType   = PlannedTimeSummaryType,
           description = Some("Program planned time calculation."),
           arguments   = List(ArgumentIncludeDeleted),
           resolve     = c => c.observation {
@@ -102,14 +101,14 @@ object ProgramSchema {
       )
     )
 
-  def ProgramEdgeType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Edge[ProgramModel]] =
+  def ProgramEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Edge[ProgramModel]] =
     EdgeType(
       "ProgramEdge",
       "A Program node and its cursor",
       ProgramType[F]
     )
 
-  def ProgramConnectionType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Connection[ProgramModel]] =
+  def ProgramConnectionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Connection[ProgramModel]] =
     ConnectionType(
       "ProgramConnection",
       "Programs in the current page",

@@ -79,6 +79,8 @@ lazy val core = project
       "dev.optics"                 %% "monocle-macro"             % monocleVersion,
       "org.sangria-graphql"        %% "sangria"                   % sangriaVersion,
       "org.sangria-graphql"        %% "sangria-circe"             % sangriaCirceVersion,
+      "edu.gemini"                 %% "clue-core"                 % clueVersion,
+      "edu.gemini"                 %% "clue-http4s-jdk-client"    % clueVersion,
       "edu.gemini"                 %% "clue-model"                % clueVersion,
       "edu.gemini"                 %% "lucuma-core"               % lucumaCoreVersion,
       "org.tpolecat"               %% "atto-core"                 % attoVersion,

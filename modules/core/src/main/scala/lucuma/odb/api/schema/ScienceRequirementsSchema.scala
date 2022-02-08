@@ -8,7 +8,6 @@ import lucuma.core.enum.FocalPlane
 import lucuma.core.enum.SpectroscopyCapabilities
 import lucuma.core.enum.ScienceMode
 import lucuma.odb.api.model.{FocalPlaneAngleInput, ScienceRequirements, SpectroscopyScienceRequirements}
-import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.all._
 import sangria.schema._
 import sangria.macros.derive._
@@ -38,7 +37,7 @@ object ScienceRequirementsSchema {
       InputObjectTypeDescription("Focal plane angle source angle in appropriate units"),
     )
 
-  def FocalPlaneAngleType[F[_]]: ObjectType[OdbRepo[F], Angle]=
+  val FocalPlaneAngleType: ObjectType[Any, Angle]=
     ObjectType(
       name     = "focalPlaneAngle",
       fieldsFn = () => fields(
@@ -67,7 +66,7 @@ object ScienceRequirementsSchema {
       )
     )
 
-  def SpectroscopyRequirementsType[F[_]]: ObjectType[OdbRepo[F], SpectroscopyScienceRequirements] =
+  val SpectroscopyRequirementsType: ObjectType[Any, SpectroscopyScienceRequirements] =
     ObjectType(
       name     = "SpectroscopyScienceRequirements",
       fieldsFn = () =>
@@ -116,7 +115,7 @@ object ScienceRequirementsSchema {
 
           Field(
             name        = "focalPlaneAngle",
-            fieldType   = OptionType(FocalPlaneAngleType[F]),
+            fieldType   = OptionType(FocalPlaneAngleType),
             description = Some("Focal plane angle"),
             resolve     = _.value.focalPlaneAngle
           ),
@@ -131,7 +130,7 @@ object ScienceRequirementsSchema {
         )
     )
 
-  def ScienceRequirementsType[F[_]]: ObjectType[OdbRepo[F], ScienceRequirements] =
+  def ScienceRequirementsType[F[_]]: ObjectType[Any, ScienceRequirements] =
     ObjectType(
       name     = "ScienceRequirements",
       fieldsFn = () =>
@@ -145,7 +144,7 @@ object ScienceRequirementsSchema {
 
           Field(
             name        = "spectroscopy",
-            fieldType   = SpectroscopyRequirementsType[F],
+            fieldType   = SpectroscopyRequirementsType,
             description = Some("Spectroscopy requirements"),
             resolve     = _.value.spectroscopy
           ),
