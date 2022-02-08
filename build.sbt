@@ -29,26 +29,11 @@ val singletonOpsVersion         = "0.5.2"
 val munitVersion                = "0.7.29"
 val disciplineMunitVersion      = "1.0.9"
 
-
-inThisBuild(
-  Seq(
-    homepage := Some(url("https://github.com/gemini-hlsw")),
-    addCompilerPlugin(
-      ("org.typelevel" % "kind-projector" % kindProjectorVersion).cross(CrossVersion.full)
-    )
-  ) ++ lucumaPublishSettings
-)
-
 lazy val commonSettings = Seq(
   libraryDependencies ++= Seq(
     "org.typelevel"     %% "cats-testkit"           % catsVersion                 % "test",
     "org.typelevel"     %% "cats-testkit-scalatest" % catsTestkitScalaTestVersion % "test"
   ),
-  scalacOptions --= Seq("-Xfatal-warnings").filterNot(_ => insideCI.value)
-)
-
-lazy val noPublishSettings = Seq(
-  publish / skip := true
 )
 
 lazy val modules: List[ProjectReference] = List(
@@ -57,8 +42,7 @@ lazy val modules: List[ProjectReference] = List(
 )
 
 lazy val `gem-odb-api` = project.in(file("."))
-  .settings(commonSettings)
-  .settings(noPublishSettings)
+  .enablePlugins(NoPublishPlugin)
   .aggregate(modules:_*)
   .disablePlugins(RevolverPlugin)
 
@@ -104,12 +88,10 @@ lazy val core = project
       "org.scalameta"              %% "munit"                     % munitVersion           % Test,
       "org.typelevel"              %% "discipline-munit"          % disciplineMunitVersion % Test
     ),
-    testFrameworks += new TestFramework("munit.Framework")
   )
 
 lazy val service = project
   .in(file("modules/service"))
-  .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(core % "compile->compile;test->test")
   .settings(commonSettings)
   .settings(
@@ -146,6 +128,5 @@ lazy val service = project
 //      "edu.gemini"                 %% "lucuma-sso-backend-client"     % lucumaSsoVersion,
       "edu.gemini"                 %% "lucuma-graphql-routes-sangria" % lucumaGraphQLRoutesVersion,
     ),
-    testFrameworks += new TestFramework("munit.Framework"),
     Test / parallelExecution := false, // tests run fine in parallel but output is nicer this way
   ).enablePlugins(JavaAppPackaging)
