@@ -27,7 +27,8 @@ class ItcClient[F[_]: Async: Logger](
 
   def query(
     o: ObservationModel,
-    t: Target
+    t: Target,
+    useCache: Boolean
   ): F[Option[ItcSpectroscopyResult]] = {
 
     def callItc(in: ItcSpectroscopyInput): F[Option[ItcSpectroscopyResult]] = {
@@ -41,7 +42,7 @@ class ItcClient[F[_]: Async: Logger](
     for {
       inp  <- Async[F].pure(ItcSpectroscopyInput.fromObservation(o, t))
       _    <- Logger[F].error(s"input:\n${inp.asJson.spaces2}")
-      cval <- inp.flatTraverse { in => cache.get.map(_.get(in)) }
+      cval <- if (useCache) inp.flatTraverse { in => cache.get.map(_.get(in)) } else Async[F].pure(None)
       res  <- cval.fold(inp.flatTraverse(callItc))(Async[F].pure)
       _    <- Logger[F].error(s"result:\n$res")
     } yield res

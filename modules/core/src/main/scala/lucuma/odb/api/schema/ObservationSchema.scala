@@ -67,6 +67,14 @@ object ObservationSchema {
       description  = "Observation IDs"
     )
 
+  val UseItcCacheArgument: Argument[Boolean] =
+    Argument(
+      name         = "useCache",
+      argumentType = BooleanType,
+      description  = "Whether to use cached results (true) or ignore the cache and make a remote ITC call (false).",
+      defaultValue = true
+    )
+
   def ObservationType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], ObservationModel] =
     ObjectType(
       name     = "Observation",
@@ -156,10 +164,11 @@ object ObservationSchema {
           name        = "itc",
           fieldType   = OptionType(ItcSuccessType),
           description = "ITC execution results".some,
+          arguments   = List(UseItcCacheArgument),
           resolve     = c => c.unsafeToFuture {
             for {
               ts <- c.value.targetEnvironment.asterism.toList.traverse(tid => c.ctx.odbRepo.target.unsafeSelectTarget(tid))
-              rs <- ts.traverse(t => c.ctx.itcClient.query(c.value, t.target))
+              rs <- ts.traverse(t => c.ctx.itcClient.query(c.value, t.target, c.args.arg(UseItcCacheArgument)))
 
               results   = rs.flatMap(_.toList).traverse(_.itc.toEither)
               maxResult = results.map(_.maxByOption(s => (s.exposureTime.getSeconds, s.exposureTime.getNano)))
