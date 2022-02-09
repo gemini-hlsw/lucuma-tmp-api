@@ -15,6 +15,7 @@ import org.typelevel.log4cats.Logger
 
 class ItcClient[F[_]: Async: Logger](
   uri:   Uri,
+  // For now, we'll just cache results forever (i.e., until the next restart)
   cache: Ref[F, Map[ItcSpectroscopyInput, Option[ItcSpectroscopyResult]]]
 ) {
 
@@ -39,10 +40,10 @@ class ItcClient[F[_]: Async: Logger](
 
     for {
       inp  <- Async[F].pure(ItcSpectroscopyInput.fromObservation(o, t))
-      _    <- Logger[F].info(inp.asJson.spaces2)                   // inp   /  lookup / search result
-      cval <- inp.flatTraverse { in => cache.get.map(_.get(in)) }  // option[option[option[result]]]
+      _    <- Logger[F].error(s"input:\n${inp.asJson.spaces2}")
+      cval <- inp.flatTraverse { in => cache.get.map(_.get(in)) }
       res  <- cval.fold(inp.flatTraverse(callItc))(Async[F].pure)
-//        inp.traverse(in => resource.use(_.request(ItcQuery)(in))).map(_.flatMap(_.headOption))
+      _    <- Logger[F].error(s"result:\n$res")
     } yield res
   }
 
