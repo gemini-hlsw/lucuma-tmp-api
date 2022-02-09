@@ -14,6 +14,7 @@
   <logger name="test.MutationSuite" level="OFF" />
   <logger name="test.targets.ScienceTargetMutationSuite" level="OFF" />
   <logger name="test.targets.ScienceTargetsMutationSuite" level="OFF" />
+  <logger name="test.targets.TargetEnvironmentMutationSuite" level="OFF" />
   <logger name="test.targets.TargetRenameMutationSuite" level="OFF" />
 
   <root level="WARN">
