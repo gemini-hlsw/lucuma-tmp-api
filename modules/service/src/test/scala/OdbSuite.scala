@@ -54,12 +54,17 @@ trait OdbSuite extends CatsEffectSuite {
 //      def collect[B](f: PartialFunction[User,B]): SsoClient[IO,B] = ???
 //    }
 
-  private val httpApp: Resource[IO, WebSocketBuilder2[IO] => HttpApp[IO]] =
-    Resource.eval(OdbRepo.create[IO].flatTap(TestInit.initialize(_)))
-      .flatMap { repo =>
-        val ctx = OdbCtx.create(ItcClient( uri"https://itc-staging.herokuapp.com/itc"), repo)
+  private val httpApp: Resource[IO, WebSocketBuilder2[IO] => HttpApp[IO]] = {
+    val setupContext: IO[OdbCtx[IO]] =
+      for {
+        itc <- ItcClient.create[IO](uri"https://itc-staging.herokuapp.com/itc")
+        rpo <- OdbRepo.create[IO].flatTap(TestInit.initialize(_))
+      } yield OdbCtx.create(itc, rpo)
+
+    Resource.eval(setupContext).flatMap { ctx =>
         Main.httpApp(ctx) //, ssoClient))  // TODO: SSO
-      }
+    }
+  }
 
   private val server: Resource[IO, Server] =
     // Resource.make(IO.println("  • Server starting..."))(_ => IO.println("  • Server stopped.")) *>
