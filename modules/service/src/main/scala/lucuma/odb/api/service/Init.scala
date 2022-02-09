@@ -49,7 +49,7 @@ object Init {
     "point": {
       "bandNormalized": {
         "sed": {
-          "stellarLibrary": "O5_V"
+          "galaxy": "SPIRAL"
         },
         "brightnesses": [
           {
