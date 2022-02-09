@@ -3,9 +3,8 @@
 
 package lucuma.itc.client
 
-import cats.data.OptionT
 import cats.syntax.all._
-import cats.effect.{Async, Resource}
+import cats.effect.{Async, Ref, Resource}
 import clue.TransactionalClient
 import clue.http4sjdk.Http4sJDKBackend
 import io.circe.syntax._
@@ -14,8 +13,9 @@ import lucuma.odb.api.model.ObservationModel
 import org.http4s.Uri
 import org.typelevel.log4cats.Logger
 
-final case class ItcClient[F[_]: Async: Logger](
-  uri: Uri
+class ItcClient[F[_]: Async: Logger](
+  uri:   Uri,
+  cache: Ref[F, Map[ItcSpectroscopyInput, Option[ItcSpectroscopyResult]]]
 ) {
 
   val resource: Resource[F, TransactionalClient[F, Unit]] =
@@ -27,11 +27,34 @@ final case class ItcClient[F[_]: Async: Logger](
   def query(
     o: ObservationModel,
     t: Target
-  ): F[Option[ItcSpectroscopyResult]] =
-    (for {
-      inp <- OptionT(Async[F].pure(ItcSpectroscopyInput.fromObservation(o, t)))
-      _   <- OptionT(Logger[F].info(inp.asJson.spaces2).map(_.some))
-      res <- OptionT(resource.use(_.request(ItcQuery)(inp)).map(_.headOption))
-    } yield res).value
+  ): F[Option[ItcSpectroscopyResult]] = {
+
+    def callItc(in: ItcSpectroscopyInput): F[Option[ItcSpectroscopyResult]] = {
+      for {
+        x <- resource.use(_.request(ItcQuery)(in))
+        r  = x.headOption
+        _ <- cache.update(_ + (in -> r))
+      } yield r
+    }
+
+    for {
+      inp  <- Async[F].pure(ItcSpectroscopyInput.fromObservation(o, t))
+      _    <- Logger[F].info(inp.asJson.spaces2)                   // inp   /  lookup / search result
+      cval <- inp.flatTraverse { in => cache.get.map(_.get(in)) }  // option[option[option[result]]]
+      res  <- cval.fold(inp.flatTraverse(callItc))(Async[F].pure)
+//        inp.traverse(in => resource.use(_.request(ItcQuery)(in))).map(_.flatMap(_.headOption))
+    } yield res
+  }
+
+}
+
+object ItcClient {
+
+  def create[F[_]: Async: Logger](
+    uri: Uri
+  ): F[ItcClient[F]] =
+    Ref.of[F, Map[ItcSpectroscopyInput, Option[ItcSpectroscopyResult]]](Map.empty).map { cache =>
+      new ItcClient[F](uri, cache)
+    }
 
 }
