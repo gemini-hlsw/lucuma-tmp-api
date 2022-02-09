@@ -31,20 +31,20 @@ class ItcClient[F[_]: Async: Logger](
     useCache: Boolean
   ): F[Option[ItcSpectroscopyResult]] = {
 
-    def callItc(in: ItcSpectroscopyInput): F[Option[ItcSpectroscopyResult]] = {
+    def callItc(in: ItcSpectroscopyInput): F[Option[ItcSpectroscopyResult]] =
       for {
         x <- resource.use(_.request(ItcQuery)(in))
         r  = x.headOption
         _ <- cache.update(_ + (in -> r))
       } yield r
-    }
+
+    val input: Option[ItcSpectroscopyInput] = ItcSpectroscopyInput.fromObservation(o, t)
 
     for {
-      inp  <- Async[F].pure(ItcSpectroscopyInput.fromObservation(o, t))
-      _    <- Logger[F].error(s"input:\n${inp.asJson.spaces2}")
-      cval <- if (useCache) inp.flatTraverse { in => cache.get.map(_.get(in)) } else Async[F].pure(None)
-      res  <- cval.fold(inp.flatTraverse(callItc))(Async[F].pure)
-      _    <- Logger[F].error(s"result:\n$res")
+      _    <- Logger[F].info(s"ITC Input:\n${input.asJson.spaces2}")
+      cval <- if (useCache) input.flatTraverse { in => cache.get.map(_.get(in)) } else Async[F].pure(None)
+      res  <- cval.fold(input.flatTraverse(callItc))(Async[F].pure)
+      _    <- Logger[F].info(s"ITC Result (${cval.fold("from ITC")(_ => "from cache")}):\n$res")
     } yield res
   }
 
