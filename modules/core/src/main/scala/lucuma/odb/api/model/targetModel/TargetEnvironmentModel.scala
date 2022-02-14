@@ -16,7 +16,8 @@ import clue.data.syntax._
 import io.circe.Decoder
 import lucuma.core.model.{Program, Target}
 import lucuma.core.util.Gid
-import lucuma.odb.api.model.{CoordinatesModel, DatabaseState, EditorInput, EitherInput, InputError, ValidatedInput}
+import lucuma.odb.api.model.gc.DatabaseState
+import lucuma.odb.api.model.{CoordinatesModel, EditorInput, EitherInput, InputError, ValidatedInput}
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.validatedinput._

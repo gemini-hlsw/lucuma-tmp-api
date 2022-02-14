@@ -7,7 +7,6 @@ import lucuma.odb.api.model.{Event, Existence, InputError, Sharing, TopLevelMode
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.core.util.Gid
-
 import cats._
 import cats.data._
 import cats.effect.Ref
@@ -16,6 +15,7 @@ import cats.syntax.all._
 import monocle.Lens
 import monocle.function.At
 import lucuma.core.optics.state.all._
+import lucuma.odb.api.repo.gc.Tables
 
 import scala.collection.immutable.SortedMap
 

@@ -15,6 +15,7 @@ import io.circe.refined._
 import lucuma.odb.api.model.syntax.input._
 import lucuma.core.model.Program
 import lucuma.core.optics.syntax.lens._
+import lucuma.odb.api.model.gc.DatabaseState
 import monocle.Lens
 
 

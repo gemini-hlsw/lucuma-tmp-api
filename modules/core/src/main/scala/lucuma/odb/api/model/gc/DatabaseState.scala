@@ -1,10 +1,11 @@
 // Copyright (c) 2016-2022 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
-package lucuma.odb.api.model
+package lucuma.odb.api.model.gc
 
 import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target}
 import lucuma.odb.api.model.targetModel.TargetModel
+import lucuma.odb.api.model.{AtomModel, ExecutionEventModel, ObservationModel, ProgramModel, StepModel}
 
 trait DatabaseState[T] extends DatabaseReader[T] {
 

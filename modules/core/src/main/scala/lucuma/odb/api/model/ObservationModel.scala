@@ -25,6 +25,7 @@ import eu.timepit.refined.types.string._
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
+import lucuma.odb.api.model.gc.DatabaseState
 import monocle.{Focus, Lens}
 
 import scala.collection.immutable.SortedSet

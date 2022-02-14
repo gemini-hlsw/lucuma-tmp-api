@@ -14,6 +14,7 @@ import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import io.circe.refined._
 import eu.timepit.refined.auto._
+import lucuma.odb.api.model.gc.DatabaseState
 
 import java.time.Instant
 

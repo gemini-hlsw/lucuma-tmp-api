@@ -17,7 +17,8 @@ import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
 import lucuma.core.model.{Program, SourceProfile, Target}
-import lucuma.odb.api.model.{DatabaseState, EitherInput, Event, Existence, TopLevelModel, ValidatedInput}
+import lucuma.odb.api.model.gc.DatabaseState
+import lucuma.odb.api.model.{EitherInput, Event, Existence, TopLevelModel, ValidatedInput}
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.validatedinput._

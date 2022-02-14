@@ -3,15 +3,11 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{
-  InputError,
-  ObservationModel,
-  ProgramModel,
-  ValidatedInput
-}
-import lucuma.core.model.{ Observation, Program }
+import lucuma.odb.api.model.{InputError, ObservationModel, ProgramModel, ValidatedInput}
+import lucuma.core.model.{Observation, Program}
 import lucuma.core.util.Gid
 import cats.implicits._
+import lucuma.odb.api.repo.gc.Tables
 
 import scala.collection.immutable.SortedMap
 

@@ -6,12 +6,12 @@ package lucuma.odb.api.repo
 import lucuma.odb.api.model.{Sharing, TopLevelModel}
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.repo.arb._
-
 import cats.effect.{Async, IO, Sync}
 import cats.effect.unsafe.implicits.global
 import cats.syntax.all._
 import eu.timepit.refined.types.all.PosInt
 import fs2.Stream
+import lucuma.odb.api.repo.gc.Tables
 import munit.Assertions.assertEquals
 import org.scalacheck.Prop
 import org.scalacheck.Prop.forAll

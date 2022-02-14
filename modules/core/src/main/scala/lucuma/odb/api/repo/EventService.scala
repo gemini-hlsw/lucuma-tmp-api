@@ -6,10 +6,9 @@ package lucuma.odb.api.repo
 import lucuma.odb.api.model.Event
 import cats.effect.{Concurrent, Ref}
 import cats.implicits._
-
-
 import fs2.Stream
 import fs2.concurrent.Topic
+import lucuma.odb.api.repo.gc.{TableState, Tables}
 
 /**
  *

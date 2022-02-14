@@ -4,11 +4,11 @@
 package lucuma.odb.api.repo
 
 import lucuma.odb.api.model.{ObservationModel, ProgramModel}
-
 import cats.syntax.all._
 import cats.kernel.instances.order._
 import clue.data.Input
 import eu.timepit.refined.types.string.NonEmptyString
+import lucuma.odb.api.repo.gc.Tables
 import org.scalacheck.Prop.forAll
 import munit.ScalaCheckSuite
 

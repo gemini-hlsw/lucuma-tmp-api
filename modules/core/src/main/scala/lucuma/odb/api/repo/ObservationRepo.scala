@@ -13,6 +13,7 @@ import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.odb.api.model.targetModel.{EditAsterismInput, TargetEnvironmentInput, TargetEnvironmentModel, TargetModel}
+import lucuma.odb.api.repo.gc.{TableState, Tables}
 
 import scala.collection.immutable.SortedSet
 

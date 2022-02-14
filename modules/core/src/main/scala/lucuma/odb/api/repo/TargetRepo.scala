@@ -21,6 +21,7 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
 import lucuma.odb.api.model.{Event, InputError, ValidatedInput}
+import lucuma.odb.api.repo.gc.{TableState, Tables}
 
 import scala.collection.immutable.SortedSet
 

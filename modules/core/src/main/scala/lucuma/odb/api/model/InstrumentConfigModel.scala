@@ -5,12 +5,12 @@ package lucuma.odb.api.model
 
 import lucuma.core.`enum`.Instrument
 import lucuma.core.model.Atom
-
 import cats.{Eq, Monad}
 import cats.mtl.Stateful
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
+import lucuma.odb.api.model.gc.{DatabaseReader, DatabaseState}
 
 sealed trait InstrumentConfigModel extends Product with Serializable {
 

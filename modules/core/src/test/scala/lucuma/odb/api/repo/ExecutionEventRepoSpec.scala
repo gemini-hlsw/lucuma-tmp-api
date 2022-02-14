@@ -10,6 +10,7 @@ import lucuma.odb.api.model.ExecutionEventModel.StepStageType.EndStep
 import lucuma.odb.api.model.SequenceModel.SequenceType.Science
 import cats.syntax.all._
 import cats.implicits.catsKernelOrderingForOrder
+import lucuma.odb.api.repo.gc.Tables
 import munit.ScalaCheckSuite
 import org.scalacheck.Gen
 import org.scalacheck.Prop.forAll

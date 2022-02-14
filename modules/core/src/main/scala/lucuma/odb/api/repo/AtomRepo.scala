@@ -5,10 +5,10 @@ package lucuma.odb.api.repo
 
 import lucuma.core.model.Atom
 import lucuma.odb.api.model.AtomModel
-
 import cats.Functor
 import cats.effect.Ref
 import cats.syntax.all._
+import lucuma.odb.api.repo.gc.Tables
 
 sealed trait AtomRepo[F[_]] {
 

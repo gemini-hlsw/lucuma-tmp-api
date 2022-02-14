@@ -5,13 +5,13 @@ package lucuma.odb.api.model
 
 import lucuma.core.model.{Atom, Step}
 import lucuma.odb.api.model.StepConfig.CreateStepConfig
-
 import cats.{Applicative, Eq, Eval, Monad, Traverse}
 import cats.data.{Nested, NonEmptyList}
 import cats.mtl.Stateful
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
+import lucuma.odb.api.model.gc.{DatabaseReader, DatabaseState}
 
 final case class AtomModel[A](
   id:    Atom.Id,

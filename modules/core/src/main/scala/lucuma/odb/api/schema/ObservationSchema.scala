@@ -4,13 +4,13 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.ObservationModel
-import lucuma.odb.api.repo.{TableState, Tables}
 import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.Observation
 import cats.data.State
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
+import lucuma.odb.api.repo.gc.{TableState, Tables}
 import lucuma.odb.api.schema.TargetSchema.TargetEnvironmentType
 import org.typelevel.log4cats.Logger
 import sangria.schema._

@@ -8,6 +8,7 @@ import lucuma.core.model.Step
 import lucuma.odb.api.model.StepModel
 import cats.effect.Ref
 import cats.syntax.all._
+import lucuma.odb.api.repo.gc.Tables
 
 sealed trait StepRepo[F[_]] {
 

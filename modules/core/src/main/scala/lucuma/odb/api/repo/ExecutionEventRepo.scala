@@ -4,7 +4,7 @@
 package lucuma.odb.api.repo
 
 import cats.MonadError
-import lucuma.odb.api.model.{AtomModel, DatabaseState, DatasetModel, ExecutedStepModel, ExecutionEventModel, InputError, SequenceModel, ValidatedInput}
+import lucuma.odb.api.model.{AtomModel, DatasetModel, ExecutedStepModel, ExecutionEventModel, InputError, SequenceModel, ValidatedInput}
 import lucuma.odb.api.model.ExecutionEventModel.{DatasetEvent, SequenceEvent, StepEvent}
 import lucuma.core.model.{Atom, ExecutionEvent, Observation, Step}
 import cats.data.{EitherT, State}
@@ -13,6 +13,8 @@ import cats.syntax.all._
 import cats.effect.{Clock, Ref}
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.all.PosInt
+import lucuma.odb.api.model.gc.DatabaseState
+import lucuma.odb.api.repo.gc.{TableState, Tables}
 
 import java.time.Instant
 

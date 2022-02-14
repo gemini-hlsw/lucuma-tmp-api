@@ -14,6 +14,8 @@ import cats.data.{Nested, State}
 import cats.kernel.instances.order._
 import cats.syntax.all._
 import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
+import lucuma.odb.api.repo.gc
+import lucuma.odb.api.repo.gc.{TableState, Tables}
 import org.scalacheck._
 import org.scalacheck.cats.implicits._
 import org.scalacheck.Arbitrary.arbitrary
@@ -123,7 +125,7 @@ trait ArbTables extends SplitSetHelper {
           lastGid[Step.Id](SortedMap.empty[Step.Id, StepModel[_]]),
           lastGid[Target.Id](ts)
         )
-      } yield Tables(ids, SortedMap.empty, SortedMap.empty, os, ps, SortedMap.empty, ts)
+      } yield gc.Tables(ids, SortedMap.empty, SortedMap.empty, os, ps, SortedMap.empty, ts)
     }
 
   /**

@@ -10,6 +10,7 @@ import org.scalacheck.Prop.forAll
 import eu.timepit.refined.types.all.PosInt
 import eu.timepit.refined.scalacheck.numeric._
 import lucuma.core.model.Program
+import lucuma.odb.api.repo.gc.Tables
 
 import scala.collection.immutable.SortedSet
 

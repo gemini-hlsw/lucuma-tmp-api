@@ -12,6 +12,7 @@ import cats.implicits._
 import cats.MonadError
 import cats.data.{EitherT, State}
 import cats.effect.Ref
+import lucuma.odb.api.repo.gc.{TableState, Tables}
 
 
 trait ProgramRepo[F[_]] extends TopLevelRepo[F, Program.Id, ProgramModel] {

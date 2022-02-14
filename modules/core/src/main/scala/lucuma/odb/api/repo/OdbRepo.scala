@@ -5,6 +5,7 @@ package lucuma.odb.api.repo
 
 import cats.implicits._
 import cats.effect.{Async, Ref}
+import lucuma.odb.api.repo.gc.Tables
 
 /**
  * The main "repository" for the API server.  It is simply a collection of

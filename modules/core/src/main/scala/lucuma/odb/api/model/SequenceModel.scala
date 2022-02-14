@@ -10,6 +10,7 @@ import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import lucuma.core.util.Enumerated
+import lucuma.odb.api.model.gc.{DatabaseReader, DatabaseState}
 
 /**
  * Sequence representation.

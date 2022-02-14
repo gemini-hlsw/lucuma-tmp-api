@@ -10,6 +10,7 @@ import cats.mtl.Stateful
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
+import lucuma.odb.api.model.gc.{DatabaseReader, DatabaseState}
 
 final case class StepModel[A](
   id:         Step.Id,

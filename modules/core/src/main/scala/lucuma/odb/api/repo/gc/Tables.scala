@@ -1,12 +1,13 @@
 // Copyright (c) 2016-2022 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
-package lucuma.odb.api.repo
+package lucuma.odb.api.repo.gc
 
-import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target}
-import lucuma.odb.api.model.{AtomModel, ExecutionEventModel, ObservationModel, ProgramModel, StepModel}
-import lucuma.odb.api.model.targetModel.TargetModel
 import cats.instances.order._
+import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target}
+import lucuma.odb.api.model.targetModel.TargetModel
+import lucuma.odb.api.model.{AtomModel, ExecutionEventModel, ObservationModel, ProgramModel, StepModel}
+import lucuma.odb.api.repo.Ids
 import monocle.Lens
 import monocle.function.At
 
