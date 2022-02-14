@@ -22,7 +22,7 @@ val log4catsVersion             = "2.2.0"
 val monocleVersion              = "3.1.0"
 val munitCatsEffectVersion      = "1.0.7"
 val refinedVersion              = "0.9.28"
-val sangriaVersion              = "2.1.6"
+val sangriaVersion              = "3.0.0"
 val sangriaCirceVersion         = "1.3.2"
 val singletonOpsVersion         = "0.5.2"
 
