@@ -3,14 +3,13 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.ObservationModel
-import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
-import lucuma.core.model.Observation
-import cats.data.State
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
-import lucuma.odb.api.repo.gc.{TableState, Tables}
+import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
+import lucuma.core.model.Observation
+import lucuma.odb.api.model.ObservationModel
+import lucuma.odb.api.model.syntax.eitherinput._
 import lucuma.odb.api.schema.TargetSchema.TargetEnvironmentType
 import org.typelevel.log4cats.Logger
 import sangria.schema._
@@ -184,10 +183,10 @@ object ObservationSchema {
           fieldType   = OptionType(InstrumentConfigSchema.ConfigType[F]),
           description = Some("Manual instrument configuration"),
           resolve     = c => c.unsafeToFuture {
-            c.ctx.odbRepo.tables.get.map { tables =>
-              c.value.config.flatMap { icm =>
-                icm.dereference[State[Tables, *], Tables](TableState).runA(tables).value
-              }
+            c.ctx.odbRepo.database.get.flatMap { db =>
+              c.value.config.traverse { icm =>
+                icm.dereference.runA(db)
+              }.map(_.flatten).liftTo[F]
             }
           }
         ),

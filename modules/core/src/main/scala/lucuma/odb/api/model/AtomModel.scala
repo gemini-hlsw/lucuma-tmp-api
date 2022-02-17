@@ -5,13 +5,11 @@ package lucuma.odb.api.model
 
 import lucuma.core.model.{Atom, Step}
 import lucuma.odb.api.model.StepConfig.CreateStepConfig
-import cats.{Applicative, Eq, Eval, Monad, Traverse}
-import cats.data.{Nested, NonEmptyList, StateT}
-import cats.mtl.Stateful
+import cats.{Applicative, Eq, Eval, Traverse}
+import cats.data.{NonEmptyList, StateT}
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
-import lucuma.odb.api.model.gc.{DatabaseReader, DatabaseState}
 
 final case class AtomModel[A](
   id:    Atom.Id,
@@ -44,16 +42,17 @@ object AtomModel {
         fa.steps.foldRight(lb)(f)
     }
 
-  def dereference[F[_]: Monad, T, D](db: DatabaseReader[T], id: Atom.Id)(f: StepConfig[_] => Option[D])(implicit S: Stateful[F, T]): F[Option[AtomModel[StepModel[D]]]] =
-      db.atom
-        .lookupOption[F](id)
-        .flatMap(_.flatTraverse(_.dereference[F, T, D](db)(f)))
+  def dereference[D](id: Atom.Id)(f: StepConfig[_] => Option[D]): StateT[EitherInput, Database, Option[AtomModel[StepModel[D]]]] =
+      Database
+        .atom
+        .lookupOption(id)
+        .flatMap(_.flatTraverse(_.dereference[D](f)))
 
   implicit class ReferenceExtensions(a: AtomModel[Step.Id]) {
 
-    def dereference[F[_]: Applicative, T, D](db: DatabaseReader[T])(f: StepConfig[_] => Option[D])(implicit S: Stateful[F, T]): F[Option[AtomModel[StepModel[D]]]] =
+    def dereference[D](f: StepConfig[_] => Option[D]): StateT[EitherInput, Database, Option[AtomModel[StepModel[D]]]] =
       a.steps
-       .traverse(i => StepModel.dereference[F, T, D](db, i)(f))
+       .traverse(i => StepModel.dereference[D](i)(f))
        .map(_.sequence.map(AtomModel(a.id, _)))
 
   }
@@ -63,26 +62,6 @@ object AtomModel {
     id:    Option[Atom.Id],
     steps: List[StepModel.Create[A]]
   ) {
-
-    def create[F[_]: Monad, T, B](db: DatabaseState[T])(implicit V: InputValidator[A, B], S: Stateful[F, T]): F[ValidatedInput[AtomModel[StepModel[B]]]] =
-      steps match {
-        case Nil    =>
-          Monad[F].pure[ValidatedInput[AtomModel[StepModel[B]]]](
-            InputError.fromMessage("Cannot create an emptySequence atom").invalidNec
-          )
-
-        case h :: t =>
-          for {
-            i  <- db.atom.getUnusedId(id)
-            hʹ <- h.create[F, T, B](db)
-            tʹ <- t.traverse(_.create[F, T, B](db))
-            a   = (i, hʹ, tʹ.sequence).mapN { (iʹʹ, hʹʹ, tʹʹ) =>
-              AtomModel.ofSteps(iʹʹ, hʹʹ, tʹʹ: _*)
-            }
-            _  <- db.atom.saveNewIfValid(Nested(a).map(_.id).value)(_.id)
-          } yield a
-
-      }
 
     def create2[B](implicit V: InputValidator[A, B]): StateT[EitherInput, Database, AtomModel[StepModel[B]]] =
       steps match {

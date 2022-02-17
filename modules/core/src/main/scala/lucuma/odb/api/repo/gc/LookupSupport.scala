@@ -1,13 +1,12 @@
 // Copyright (c) 2016-2022 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
-package lucuma.odb.api.repo
+package lucuma.odb.api.repo.gc
 
-import lucuma.odb.api.model.{InputError, ObservationModel, ProgramModel, ValidatedInput}
+import cats.implicits._
 import lucuma.core.model.{Observation, Program}
 import lucuma.core.util.Gid
-import cats.implicits._
-import lucuma.odb.api.repo.gc.Tables
+import lucuma.odb.api.model.{InputError, ObservationModel, ProgramModel, ValidatedInput}
 
 import scala.collection.immutable.SortedMap
 

@@ -4,11 +4,10 @@
 package lucuma.odb.api.repo
 
 import lucuma.core.model.Atom
-import lucuma.odb.api.model.AtomModel
+import lucuma.odb.api.model.{AtomModel, Database}
 import cats.Functor
 import cats.effect.Ref
 import cats.syntax.all._
-import lucuma.odb.api.repo.gc.Tables
 
 sealed trait AtomRepo[F[_]] {
 
@@ -25,14 +24,14 @@ sealed trait AtomRepo[F[_]] {
 object AtomRepo {
 
   def create[F[_]: Functor](
-    tablesRef: Ref[F, Tables]
+    databaseRef: Ref[F, Database]
   ): AtomRepo[F] =
 
     new AtomRepo[F] {
       override def selectAtom(
         aid: Atom.Id
       ): F[Option[AtomModel[_]]] =
-        tablesRef.get.map(Tables.atom(aid).get)
+        databaseRef.get.map(_.atoms.rows.get(aid))
 
       override def unsafeSelectAtom(
         aid: Atom.Id

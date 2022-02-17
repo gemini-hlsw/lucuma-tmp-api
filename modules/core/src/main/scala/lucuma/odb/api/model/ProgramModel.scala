@@ -4,8 +4,7 @@
 package lucuma.odb.api.model
 
 import cats.data.StateT
-import cats.{Eq, Monad}
-import cats.mtl.Stateful
+import cats.Eq
 import cats.syntax.all._
 import clue.data.Input
 import eu.timepit.refined.cats._
@@ -16,7 +15,6 @@ import io.circe.refined._
 import lucuma.odb.api.model.syntax.input._
 import lucuma.core.model.Program
 import lucuma.core.optics.syntax.lens._
-import lucuma.odb.api.model.gc.DatabaseState
 import monocle.Lens
 
 
@@ -44,15 +42,6 @@ object ProgramModel extends ProgramOptics {
     programId: Option[Program.Id],
     name:      Option[NonEmptyString]
   ) {
-
-    def create[F[_]: Monad, T](db: DatabaseState[T])(implicit S: Stateful[F, T]): F[ValidatedInput[ProgramModel]] = {
-
-      for {
-        i <- db.program.getUnusedId[F](programId)
-        p  = i.map { pid => ProgramModel(pid, Existence.Present, name) }
-        _ <- db.program.saveNewIfValid[F](p)(_.id)
-      } yield p
-    }
 
     val create2: StateT[EitherInput, Database, ProgramModel] =
       for {

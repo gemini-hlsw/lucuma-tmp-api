@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{Event, Existence, InputError, Sharing, TopLevelModel, ValidatedInput}
+import lucuma.odb.api.model.{Database, Event, Existence, InputError, Sharing, TopLevelModel, ValidatedInput}
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.core.util.Gid
@@ -15,7 +15,6 @@ import cats.syntax.all._
 import monocle.Lens
 import monocle.function.At
 import lucuma.core.optics.state.all._
-import lucuma.odb.api.repo.gc.Tables
 
 import scala.collection.immutable.SortedMap
 
@@ -52,7 +51,7 @@ trait TopLevelRepo[F[_], I, T] {
     afterGid:       Option[I]   = None,
     includeDeleted: Boolean     = false
   )(
-    ids: Tables => scala.collection.immutable.SortedSet[I]
+    ids: Database => scala.collection.immutable.SortedSet[I]
   ): F[ResultPage[T]]
 
   /**
@@ -76,20 +75,20 @@ trait TopLevelRepo[F[_], I, T] {
 }
 
 abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, *]: Eq](
-  tablesRef:    Ref[F, Tables],
+  databaseRef:  Ref[F, Database],
   eventService: EventService[F],
-  idLens:       Lens[Tables, I],
-  mapLens:      Lens[Tables, SortedMap[I, T]],
+  idLens:       Lens[Database, I],
+  mapLens:      Lens[Database, SortedMap[I, T]],
   edited:       (Event.EditType, T) => Long => Event.Edit[T]
 )(implicit M: MonadError[F, Throwable]) extends TopLevelRepo[F, I, T] {
 
   def nextId: F[I] =
-    tablesRef.modifyState(idLens.mod(BoundedEnumerable[I].cycleNext))
+    databaseRef.modifyState(idLens.mod(BoundedEnumerable[I].cycleNext))
 
   def deletionFilter[FF[_]: FunctorFilter](includeDeleted: Boolean)(ff: FF[T]): FF[T] =
     ff.filter(t => includeDeleted || t.isPresent)
 
-  def focusOn(id: I): Lens[Tables, Option[T]] =
+  def focusOn(id: I): Lens[Database, Option[T]] =
     mapLens.andThen(At.at(id))
 
   def select(id: I, includeDeleted: Boolean = false): F[Option[T]] =
@@ -102,7 +101,7 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, *]: Eq](
     }
 
   def selectUnconditional(id: I): F[Option[T]] =
-    tablesRef.get.map(focusOn(id).get)
+    databaseRef.get.map(focusOn(id).get)
 
   override def selectAll(
     includeDeleted: Boolean
@@ -121,7 +120,7 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, *]: Eq](
     predicate: T => Boolean
   ): F[ResultPage[T]] =
 
-    tablesRef.get.map { tables =>
+    databaseRef.get.map { tables =>
       val all = mapLens.get(tables)
 
       ResultPage.select(
@@ -138,10 +137,10 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, *]: Eq](
     afterGid:       Option[I],
     includeDeleted: Boolean
   )(
-    ids: Tables => scala.collection.immutable.SortedSet[I]
+    ids: Database => scala.collection.immutable.SortedSet[I]
   ): F[ResultPage[T]] =
 
-    tablesRef.get.map { tables =>
+    databaseRef.get.map { tables =>
       ResultPage.select(
         count,
         afterGid,
@@ -152,10 +151,10 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, *]: Eq](
     }
 
   def constructAndPublish[U <: T](
-    cons: Tables => ValidatedInput[State[Tables, U]]
+    cons: Database => ValidatedInput[State[Database, U]]
   ): F[U] = {
     val fu = EitherT(
-      tablesRef.modify { tables =>
+      databaseRef.modify { tables =>
         cons(tables).fold(
           err => (tables, InputError.Exception(err).asLeft[U]),
           _.run(tables).value.map(_.asRight)
@@ -177,7 +176,7 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, *]: Eq](
     val lens = focusOn(id)
 
     val doUpdate: F[Either[T, T]] =
-      tablesRef.modify { oldTables =>
+      databaseRef.modify { oldTables =>
 
         val item   = lens.get(oldTables).toValidNec(InputError.missingReference("id", Gid[I].show(id)))
         val result = (item, editor).mapN { (oldT, state) =>
@@ -212,13 +211,13 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, *]: Eq](
     name:    String,
     one:     I,
     many:    G[J],
-    findM:   J => State[Tables, ValidatedInput[M]],
+    findM:   J => State[Database, ValidatedInput[M]],
     editedM: M => Long => Event.Edit[M]
   )(
-    update:  ValidatedInput[(T, G[M])] => State[Tables, ValidatedInput[Unit]],
+    update:  ValidatedInput[(T, G[M])] => State[Database, ValidatedInput[Unit]],
   ): F[T] = {
 
-    val link = tablesRef.modifyState {
+    val link = databaseRef.modifyState {
       for {
         vo  <- focusOn(one).st.map(_.toValidNec(InputError.missingReference(name, Gid[I].show(one))))
         vm  <- many.traverse(findM).map(_.sequence)
@@ -239,8 +238,8 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, *]: Eq](
   protected def shareLeft[J, M](
     name:     String,
     input:    Sharing[I, J],
-    findM:    J => State[Tables, ValidatedInput[M]],
-    linkLens: Lens[Tables, ManyToMany[J, I]],
+    findM:    J => State[Database, ValidatedInput[M]],
+    linkLens: Lens[Database, ManyToMany[J, I]],
     editedM:  M => Long => Event.Edit[M]
  )(
     update:   (ManyToMany[J, I], IterableOnce[(J, I)]) => ManyToMany[J, I]
@@ -252,8 +251,8 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, *]: Eq](
   protected def shareRight[J, M](
     name:     String,
     input:    Sharing[I, J],
-    findM:    J => State[Tables, ValidatedInput[M]],
-    linkLens: Lens[Tables, ManyToMany[I, J]],
+    findM:    J => State[Database, ValidatedInput[M]],
+    linkLens: Lens[Database, ManyToMany[I, J]],
     editedM:  M => Long => Event.Edit[M]
   )(
     update:   (ManyToMany[I, J], IterableOnce[(I, J)]) => ManyToMany[I, J]
@@ -266,8 +265,8 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, *]: Eq](
     name: String,
     id: I,
     oneId: J,
-    findM: J => State[Tables, ValidatedInput[M]],
-    linkLens: Lens[Tables, OneToMany[J, I]],
+    findM: J => State[Database, ValidatedInput[M]],
+    linkLens: Lens[Database, OneToMany[J, I]],
     editedM: M => Long => Event.Edit[M]
   )(
     update: (OneToMany[J, I], (J, I)) => OneToMany[J, I]
@@ -279,8 +278,8 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, *]: Eq](
   protected def shareOneWithMany[J, M](
     name:     String,
     input:    Sharing[I, J],
-    findM:    J => State[Tables, ValidatedInput[M]],
-    linkLens: Lens[Tables, OneToMany[I, J]],
+    findM:    J => State[Database, ValidatedInput[M]],
+    linkLens: Lens[Database, OneToMany[I, J]],
     editedM:  M => Long => Event.Edit[M]
   )(
     update:   (OneToMany[I, J], IterableOnce[(I, J)]) => OneToMany[I, J]

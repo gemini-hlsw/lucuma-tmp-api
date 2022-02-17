@@ -4,17 +4,17 @@
 package lucuma.odb.api.repo
 
 import cats.MonadError
-import lucuma.odb.api.model.{AtomModel, DatasetModel, ExecutedStepModel, ExecutionEventModel, InputError, SequenceModel, ValidatedInput}
+import lucuma.odb.api.model.{AtomModel, Database, DatasetModel, EitherInput, ExecutedStepModel, ExecutionEventModel, SequenceModel}
 import lucuma.odb.api.model.ExecutionEventModel.{DatasetEvent, SequenceEvent, StepEvent}
+import lucuma.odb.api.model.syntax.databasestate._
+import lucuma.odb.api.model.syntax.eitherinput._
 import lucuma.core.model.{Atom, ExecutionEvent, Observation, Step}
-import cats.data.{EitherT, State}
+import cats.data.StateT
 import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.all._
 import cats.effect.{Clock, Ref}
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.all.PosInt
-import lucuma.odb.api.model.gc.DatabaseState
-import lucuma.odb.api.repo.gc.{TableState, Tables}
 
 import java.time.Instant
 
@@ -114,19 +114,20 @@ object ExecutionEventRepo {
   }
 
   def create[F[_]: Clock](
-    tablesRef: Ref[F, Tables]
+    databaseRef: Ref[F, Database]
   )(implicit E: MonadError[F, Throwable]): ExecutionEventRepo[F] =
     new ExecutionEventRepo[F] {
 
       override def selectEvent(
         eid: ExecutionEvent.Id
       ): F[Option[ExecutionEventModel]] =
-        tablesRef.get.map(Tables.executionEvent(eid).get)
+        databaseRef.get.map(_.executionEvents.rows.get(eid))
 
       // Sort events by generation timestamp + event id
-      private def sortedEvents(tables: Tables, oid: Observation.Id): List[ExecutionEventModel] =
-        tables
+      private def sortedEvents(db: Database, oid: Observation.Id): List[ExecutionEventModel] =
+        db
          .executionEvents
+         .rows
          .values
          .filter(_.observationId === oid)
          .toList
@@ -134,14 +135,14 @@ object ExecutionEventRepo {
 
 
       // Map of steps to the atoms that contain them.
-      private def stepAtoms(tables: Tables): Map[Step.Id, Atom.Id] =
-        tables.atoms.values.foldLeft(Map.empty[Step.Id, Atom.Id]) { (m, a) =>
+      private def stepAtoms(db: Database): Map[Step.Id, Atom.Id] =
+        db.atoms.rows.values.foldLeft(Map.empty[Step.Id, Atom.Id]) { (m, a) =>
           a.steps.foldLeft(m) { (m2, sid) => m2 + (sid -> a.id) }
         }
 
-      private def executedStepsForObservation(tables: Tables, oid: Observation.Id): List[ExecutedStepModel] = {
-        val as = stepAtoms(tables)
-        val es = sortedEvents(tables, oid)
+      private def executedStepsForObservation(db: Database, oid: Observation.Id): List[ExecutedStepModel] = {
+        val as = stepAtoms(db)
+        val es = sortedEvents(db, oid)
 
         // Steps and their associated dataset and step events.
         val byStep = es.foldRight(SortedMap.empty[Step.Id, EventsPair]) { (e, m) =>
@@ -169,14 +170,14 @@ object ExecutionEventRepo {
       }
 
       override def selectExecutedStepsForObservation(oid: Observation.Id): F[List[ExecutedStepModel]] =
-        tablesRef.get.map(executedStepsForObservation(_, oid))
+        databaseRef.get.map(executedStepsForObservation(_, oid))
 
       override def selectEventsPageForObservation(
         oid:      Observation.Id,
         count:    Option[Int],
         afterGid: Option[ExecutionEvent.Id]
       ): F[ResultPage[ExecutionEventModel]] =
-        tablesRef.get.map { tables =>
+        databaseRef.get.map { tables =>
           ResultPage.fromSeq(sortedEvents(tables, oid), count, afterGid, _.id)
         }
 
@@ -186,8 +187,8 @@ object ExecutionEventRepo {
         after: Option[(Step.Id, PosInt)] = None
       ): F[ResultPage[DatasetModel]] =
 
-        tablesRef.get.map { tables =>
-          tables.executionEvents.values.collect {
+        databaseRef.get.map { db =>
+          db.executionEvents.rows.values.collect {
             case de: DatasetEvent if de.observationId === oid => de.toDataset
           }.toList.flattenOption.distinct.sortBy(dm => (dm.stepId, dm.index))
         }.map { all =>
@@ -207,8 +208,8 @@ object ExecutionEventRepo {
         after: Option[PosInt] = None
       ): F[ResultPage[DatasetModel]] =
 
-        tablesRef.get.map { tables =>
-          tables.executionEvents.values.collect {
+        databaseRef.get.map { db =>
+          db.executionEvents.rows.values.collect {
             case de: DatasetEvent if de.stepId === sid => de.toDataset
           }.toList.flattenOption.distinct.sortBy(_.index)
         }.map { all =>
@@ -243,7 +244,7 @@ object ExecutionEventRepo {
       }
 
       private def remainingAtoms(
-        tables:   Tables,
+        db:       Database,
         oid:      Observation.Id,
         seqType:  SequenceModel.SequenceType,
         executed: List[ExecutedStepModel]
@@ -252,8 +253,9 @@ object ExecutionEventRepo {
         val isExecutedStep: Set[Step.Id] =
           executed.map(_.stepId).toSet
 
-        tables
+        db
           .observations
+          .rows
           .get(oid)
           .flatMap(_.config)
           .map { ref =>
@@ -266,7 +268,7 @@ object ExecutionEventRepo {
           .flatMap { seq =>
             seq
               .atoms
-              .map(tables.atoms(_))
+              .map(db.atoms.rows(_))
               .filter(a => !a.steps.forall(isExecutedStep))
           }
 
@@ -276,48 +278,36 @@ object ExecutionEventRepo {
         oid: Observation.Id,
         seqType: SequenceModel.SequenceType
       ): F[List[AtomModel[Step.Id]]] =
-        tablesRef.get.map { tables =>
+        databaseRef.get.map { tables =>
           remainingAtoms(tables, oid, seqType, executedStepsForObservation(tables, oid))
         }
 
       private def received: F[Instant] =
         Clock[F].realTime.map(d => Instant.ofEpochMilli(d.toMillis))
 
-      private def runState[T](
-        s: State[Tables, ValidatedInput[T]]
-      ): F[T] =
-        EitherT(
-          tablesRef.modify { tables =>
-            val (tablesʹ, e) = s.run(tables).value
-            e.fold(
-              err => (tables, InputError.Exception(err).asLeft),
-              evt => (tablesʹ, evt.asRight)
-            )
-          }
-        ).rethrowT
 
       private def insertEvent[A](
-        f: (DatabaseState[Tables], Instant) => State[Tables, ValidatedInput[A]]
+        f: Instant => StateT[EitherInput, Database, A]
       ): F[A] =
         for {
           w <- received
-          e <- runState(f(TableState, w))
+          e <- databaseRef.modifyState(f(w).flipF).flatMap(_.liftTo[F])
         } yield e
 
       override def insertSequenceEvent(
         event: SequenceEvent.Add
       ): F[SequenceEvent] =
-        insertEvent(event.add[State[Tables, *], Tables])
+        insertEvent(event.add)
 
       override def insertStepEvent(
         event: StepEvent.Add
       ): F[StepEvent] =
-        insertEvent(event.add[State[Tables, *], Tables])
+        insertEvent(event.add)
 
       override def insertDatasetEvent(
         event: DatasetEvent.Add
       ): F[DatasetEvent] =
-        insertEvent(event.add[State[Tables, *], Tables])
+        insertEvent(event.add)
 
     }
 

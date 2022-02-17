@@ -7,7 +7,6 @@ import cats.instances.order._
 import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target}
 import lucuma.odb.api.model.targetModel.TargetModel
 import lucuma.odb.api.model.{AtomModel, ExecutionEventModel, ObservationModel, ProgramModel, StepModel}
-import lucuma.odb.api.repo.Ids
 import monocle.Lens
 import monocle.function.At
 

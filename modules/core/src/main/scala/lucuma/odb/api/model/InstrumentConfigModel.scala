@@ -6,12 +6,10 @@ package lucuma.odb.api.model
 import cats.data.StateT
 import lucuma.core.`enum`.Instrument
 import lucuma.core.model.Atom
-import cats.{Eq, Monad}
-import cats.mtl.Stateful
+import cats.Eq
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
-import lucuma.odb.api.model.gc.{DatabaseReader, DatabaseState}
 
 sealed trait InstrumentConfigModel extends Product with Serializable {
 
@@ -42,23 +40,20 @@ object InstrumentConfigModel {
 
     def science:     SequenceModel[Atom.Id]
 
-    protected def dereferenceSequences[F[_]: Monad, T, D, R](
-      db: DatabaseReader[T],
+    protected def dereferenceSequences[D, R](
       f: StepConfig[_] => Option[D],
       g: (DereferencedSequence[D], DereferencedSequence[D]) => R
-    )(
-      implicit S: Stateful[F, T]
-    ): F[Option[R]] =
+    ): StateT[EitherInput, Database, Option[R]] =
       for {
-        a <- acquisition.dereference(db)(f)
-        s <- science.dereference(db)(f)
+        a <- acquisition.dereference(f)
+        s <- science.dereference(f)
       } yield (a, s).mapN { case (a, s) => g(a, s) }
 
-    def dereference[F[_]: Monad, T](db: DatabaseReader[T])(implicit S: Stateful[F, T]): F[Option[InstrumentConfigModel]] =
+    lazy val dereference: StateT[EitherInput, Database, Option[InstrumentConfigModel]] =
       this match {
-        case r: Reference.GmosNorthReference => r.dereferenceGmosNorth(db).map(_.widen[InstrumentConfigModel])
-        case r: Reference.GmosSouthReference => r.dereferenceGmosSouth(db).map(_.widen[InstrumentConfigModel])
-        case _                               => Monad[F].pure[Option[InstrumentConfigModel]](None)
+        case r: Reference.GmosNorthReference => r.dereferenceGmosNorth.map(_.widen[InstrumentConfigModel])
+        case r: Reference.GmosSouthReference => r.dereferenceGmosSouth.map(_.widen[InstrumentConfigModel])
+        case _                               => StateT.pure(None)
       }
   }
 
@@ -70,8 +65,8 @@ object InstrumentConfigModel {
       science:     SequenceModel[Atom.Id]
     ) extends Reference(Instrument.GmosNorth) {
 
-      def dereferenceGmosNorth[F[_]: Monad, T](db: DatabaseReader[T])(implicit S: Stateful[F, T]): F[Option[InstrumentConfigModel.GmosNorth]] =
-        dereferenceSequences(db, _.gmosNorth, (acq, sci) => GmosNorth(static, acq, sci))
+      val dereferenceGmosNorth: StateT[EitherInput, Database, Option[InstrumentConfigModel.GmosNorth]] =
+        dereferenceSequences(_.gmosNorth, (acq, sci) => GmosNorth(static, acq, sci))
 
     }
 
@@ -86,8 +81,8 @@ object InstrumentConfigModel {
       science:     SequenceModel[Atom.Id]
     ) extends Reference(Instrument.GmosSouth) {
 
-      def dereferenceGmosSouth[F[_]: Monad, T](db: DatabaseReader[T])(implicit S: Stateful[F, T]): F[Option[InstrumentConfigModel.GmosSouth]] =
-        dereferenceSequences(db, _.gmosSouth, (acq, sci) => GmosSouth(static, acq, sci))
+      val dereferenceGmosSouth: StateT[EitherInput, Database, Option[InstrumentConfigModel.GmosSouth]] =
+        dereferenceSequences(_.gmosSouth, (acq, sci) => GmosSouth(static, acq, sci))
 
     }
 
@@ -136,15 +131,6 @@ object InstrumentConfigModel {
     acquisition: SequenceModel.Create[GmosModel.CreateNorthDynamic],
     science:     SequenceModel.Create[GmosModel.CreateNorthDynamic]
   ) {
-
-    def create[F[_]: Monad, T](db: DatabaseState[T])(implicit S: Stateful[F, T]): F[ValidatedInput[GmosNorth]] =
-      for {
-        aq <- acquisition.create[F, T, GmosModel.NorthDynamic](db)
-        sc <- science.create[F, T, GmosModel.NorthDynamic](db)
-        gn  = (static.create, aq, sc).mapN { (stʹ, aqʹ, scʹ) =>
-          GmosNorth(stʹ, aqʹ, scʹ)
-        }
-      } yield gn
 
     val create2: StateT[EitherInput, Database, GmosNorth] =
       for {
@@ -195,15 +181,6 @@ object InstrumentConfigModel {
     science:     SequenceModel.Create[GmosModel.CreateSouthDynamic]
   ) {
 
-    def create[F[_]: Monad, T](db: DatabaseState[T])(implicit S: Stateful[F, T]): F[ValidatedInput[GmosSouth]] =
-      for {
-        aq <- acquisition.create[F, T, GmosModel.SouthDynamic](db)
-        sc <- science.create[F, T, GmosModel.SouthDynamic](db)
-        gs  = (static.create, aq, sc).mapN { (stʹ, aqʹ, scʹ) =>
-          GmosSouth(stʹ, aqʹ, scʹ)
-        }
-      } yield gs
-
     val create2: StateT[EitherInput, Database, GmosSouth] =
       for {
         st <- StateT.liftF(static.create.toEither)
@@ -234,16 +211,6 @@ object InstrumentConfigModel {
     gmosNorth: Option[CreateGmosNorth],
     gmosSouth: Option[CreateGmosSouth]
   ) {
-
-    def create[F[_]: Monad, T](db: DatabaseState[T])(implicit S: Stateful[F, T]): F[ValidatedInput[InstrumentConfigModel]] =
-      for {
-        gn <- gmosNorth.traverse(_.create(db))
-        gs <- gmosSouth.traverse(_.create(db))
-      } yield ValidatedInput.requireOne[InstrumentConfigModel](
-        "instrument",
-        gn,
-        gs
-      )
 
     val create2: StateT[EitherInput, Database, InstrumentConfigModel] =
       for {

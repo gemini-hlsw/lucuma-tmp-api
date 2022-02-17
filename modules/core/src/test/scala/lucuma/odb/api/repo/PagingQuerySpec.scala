@@ -10,19 +10,19 @@ import org.scalacheck.Prop.forAll
 import eu.timepit.refined.types.all.PosInt
 import eu.timepit.refined.scalacheck.numeric._
 import lucuma.core.model.Program
-import lucuma.odb.api.repo.gc.Tables
+import lucuma.odb.api.model.Database
 
 import scala.collection.immutable.SortedSet
 
 
 final class PagingQuerySpec extends ScalaCheckSuite with OdbRepoTest {
 
-  import arb.ArbTables._
+  import arb.ArbDatabase._
 
   property("selectAll") {
-    forAll {  (t: Tables, pageSize: PosInt) =>
+    forAll {  (db: Database, pageSize: PosInt) =>
 
-      val (a, b) = runTest(t) { odb =>
+      val (a, b) = runTest(db) { odb =>
         val pages = allPages(pageSize, None, odb.program).map(flattenToNodes)
         val all   = odb.program.selectAll()
         (pages, all).tupled
@@ -33,9 +33,9 @@ final class PagingQuerySpec extends ScalaCheckSuite with OdbRepoTest {
   }
 
   property("totalCount same on all result pages") {
-    forAll {  (t: Tables, pageSize: PosInt) =>
+    forAll {  (db: Database, pageSize: PosInt) =>
 
-      val sizes = runTest(t) { odb =>
+      val sizes = runTest(db) { odb =>
         val pages = allPages(pageSize, None, odb.program)
         pages.map(_.map(_.totalCount).toSet)
       }
@@ -45,9 +45,9 @@ final class PagingQuerySpec extends ScalaCheckSuite with OdbRepoTest {
   }
 
   property("totalCount includes all matching items") {
-    forAll {  (t: Tables, pageSize: PosInt) =>
+    forAll {  (db: Database, pageSize: PosInt) =>
 
-      val (a, b) = runTest(t) { odb =>
+      val (a, b) = runTest(db) { odb =>
         val pages = allPages(pageSize, None, odb.program)
         (pages.map(_.map(_.totalCount).toSet.headOption.getOrElse(0)),
          pages.map(_.map(_.nodes.size).sum)
@@ -59,9 +59,9 @@ final class PagingQuerySpec extends ScalaCheckSuite with OdbRepoTest {
   }
 
   property("filter") {
-    forAll {  (t: Tables, pageSize: PosInt) =>
+    forAll {  (db: Database, pageSize: PosInt) =>
 
-      val (evens, all) = runTest(t) { odb =>
+      val (evens, all) = runTest(db) { odb =>
         val pages = allPagesFiltered(pageSize, None, odb.program) { p =>
           p.id.value.value % 2 === 0
         }.map(idSet(_.id))
@@ -74,9 +74,9 @@ final class PagingQuerySpec extends ScalaCheckSuite with OdbRepoTest {
   }
 
   property("hasNextPage") {
-    forAll { (t: Tables, pageSize: PosInt) =>
+    forAll { (db: Database, pageSize: PosInt) =>
 
-      val res = runTest(t) { odb => allPages(pageSize, None, odb.program) }
+      val res = runTest(db) { odb => allPages(pageSize, None, odb.program) }
 
       assert(res.init.forall(_.hasNextPage))
       assert(res.lastOption.forall(!_.hasNextPage))
@@ -84,9 +84,9 @@ final class PagingQuerySpec extends ScalaCheckSuite with OdbRepoTest {
   }
 
   property("pageSize") {
-    forAll { (t: Tables, pageSize: PosInt) =>
+    forAll { (db: Database, pageSize: PosInt) =>
 
-      val res = runTest(t) { odb => allPages(pageSize, None, odb.program) }
+      val res = runTest(db) { odb => allPages(pageSize, None, odb.program) }
 
       assert(res.init.forall(_.nodes.size == pageSize.value))
       assert(res.lastOption.forall(_.nodes.size <= pageSize.value))
@@ -94,12 +94,12 @@ final class PagingQuerySpec extends ScalaCheckSuite with OdbRepoTest {
   }
 
   property("afterGid") {
-    forAll { (t: Tables, pageSize: PosInt, index: PosInt) =>
+    forAll { (db: Database, pageSize: PosInt, index: PosInt) =>
 
-      val keys         = t.programs.filter { case (_, p) => p.existence.isPresent }.keys
+      val keys         = db.programs.rows.filter { case (_, p) => p.existence.isPresent }.keys
       val afterGid     = if (keys.isEmpty) Option.empty[Program.Id] else keys.toVector.get((index.value % keys.size).toLong)
 
-      val (all, after) = runTest(t) { odb =>
+      val (all, after) = runTest(db) { odb =>
         (allPages(PosInt.MaxValue, None, odb.program).map(idSet(_.id)),
           allPages(pageSize, afterGid, odb.program).map(idSet(_.id))
         ).tupled

@@ -5,7 +5,7 @@ package lucuma.odb.api.repo
 
 import cats.implicits._
 import cats.effect.{Async, Ref}
-import lucuma.odb.api.repo.gc.Tables
+import lucuma.odb.api.model.Database
 
 /**
  * The main "repository" for the API server.  It is simply a collection of
@@ -13,7 +13,7 @@ import lucuma.odb.api.repo.gc.Tables
  */
 trait OdbRepo[F[_]] {
 
-  def tables: Ref[F, Tables]
+  def database: Ref[F, Database]
 
   def eventService: EventService[F]
 
@@ -37,18 +37,18 @@ object OdbRepo {
    * Creates an empty ODB repository backed by a `Ref` containing `Tables`.
    */
   def create[F[_]: Async]: F[OdbRepo[F]] =
-    fromTables[F](Tables.empty)
+    fromDatabase[F](Database.empty)
 
   /**
    * Creates an ODB repository backed by a `Ref` containing the given `Tables`.
    */
-  def fromTables[F[_]: Async](t: Tables): F[OdbRepo[F]] =
+  def fromDatabase[F[_]: Async](d: Database): F[OdbRepo[F]] =
     for {
-      r <- Ref.of[F, Tables](t)
+      r <- Ref.of[F, Database](d)
       s <- EventService(r)
     } yield new OdbRepo[F] {
 
-      override def tables: Ref[F, Tables] =
+      override def database: Ref[F, Database] =
         r
 
       override def eventService: EventService[F] =

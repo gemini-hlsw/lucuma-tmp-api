@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{Sharing, TopLevelModel}
+import lucuma.odb.api.model.{Database, Sharing, TopLevelModel}
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.repo.arb._
 import cats.effect.{Async, IO, Sync}
@@ -11,7 +11,6 @@ import cats.effect.unsafe.implicits.global
 import cats.syntax.all._
 import eu.timepit.refined.types.all.PosInt
 import fs2.Stream
-import lucuma.odb.api.repo.gc.Tables
 import munit.Assertions.assertEquals
 import org.scalacheck.Prop
 import org.scalacheck.Prop.forAll
@@ -20,10 +19,10 @@ import scala.collection.immutable.SortedMap
 
 trait OdbRepoTest {
 
-  import ArbTables._
+  import ArbDatabase._
 
-  def makeRepo(t: Tables): IO[OdbRepo[IO]] =
-    OdbRepo.fromTables[IO](t)(Async[IO])
+  def makeRepo(db: Database): IO[OdbRepo[IO]] =
+    OdbRepo.fromDatabase[IO](db)(Async[IO])
 
   protected def allPages[F[_]: Sync, I, T: TopLevelModel[I, *]](
     pageSize: PosInt,
@@ -77,10 +76,10 @@ trait OdbRepoTest {
     implicit ev0: TopLevelModel[I, A], ev1: TopLevelModel[J, B]
   ): Prop =
 
-    forAll { (t: Tables, is: List[Int]) =>
+    forAll { (db: Database, is: List[Int]) =>
 
       val (initial, shared, unshared, some) =
-        runTest(t) { odb =>
+        runTest(db) { odb =>
           val (repoA, repoB, share, unshare, lookup) = config(odb)
           for {
             as <- repoA.selectAll()
@@ -107,15 +106,15 @@ trait OdbRepoTest {
       (shared == initial ++ some) && (unshared == initial -- some)
     }
 
-  def attemptAndRunTest[A](t: Tables)(f: OdbRepo[IO] => IO[A]): Either[Throwable, A] =
+  def attemptAndRunTest[A](db: Database)(f: OdbRepo[IO] => IO[A]): Either[Throwable, A] =
     (for {
-      o <- makeRepo(t)
+      o <- makeRepo(db)
       a <- f(o)
     } yield a).attempt.unsafeRunSync()
 
-  def runTest[A](t: Tables)(f: OdbRepo[IO] => IO[A]): A =
+  def runTest[A](db: Database)(f: OdbRepo[IO] => IO[A]): A =
     (for {
-      o <- makeRepo(t)
+      o <- makeRepo(db)
       a <- f(o)
     } yield a).unsafeRunSync()
 

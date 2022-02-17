@@ -3,25 +3,23 @@
 
 package lucuma.odb.api.repo
 
-import cats.data.{EitherT, State}
-import lucuma.core.model.{Observation, Program, Target}
-import lucuma.core.optics.state.all._
-import lucuma.core.util.Gid
-import lucuma.odb.api.model.targetModel._
-import lucuma.odb.api.model.targetModel.TargetModel.TargetEvent
-import lucuma.odb.api.model.syntax.toplevel._
-import lucuma.odb.api.model.syntax.validatedinput._
+import cats.data.{EitherT, StateT}
 import cats.Order.catsKernelOrderingForOrder
 import cats.effect.{Async, Ref}
 import cats.syntax.applicative._
-import cats.syntax.apply._
 import cats.syntax.either._
 import cats.syntax.eq._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
-import lucuma.odb.api.model.{Event, InputError, ValidatedInput}
-import lucuma.odb.api.repo.gc.{TableState, Tables}
+import lucuma.core.model.{Observation, Program, Target}
+import lucuma.core.util.Gid
+import lucuma.odb.api.model.{Database, EitherInput, Event, InputError, Table}
+import lucuma.odb.api.model.targetModel._
+import lucuma.odb.api.model.targetModel.TargetModel.TargetEvent
+import lucuma.odb.api.model.syntax.toplevel._
+import lucuma.odb.api.model.syntax.databasestate._
+import lucuma.odb.api.model.syntax.eitherinput._
 
 import scala.collection.immutable.SortedSet
 
@@ -132,15 +130,15 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
 object TargetRepo {
 
   def create[F[_]: Async](
-    tablesRef:    Ref[F, Tables],
+    databaseRef:  Ref[F, Database],
     eventService: EventService[F]
   ): TargetRepo[F] =
 
     new TopLevelRepoBase[F, Target.Id, TargetModel](
-      tablesRef,
+      databaseRef,
       eventService,
-      Tables.lastTargetId,
-      Tables.targets,
+      Database.lastTargetId,
+      Database.targets.andThen(Table.rows),
       (editType, model) => TargetEvent(_, editType, model)
     ) with TargetRepo[F] {
 
@@ -160,9 +158,9 @@ object TargetRepo {
         pid:            Program.Id,
         includeDeleted: Boolean
       ): F[SortedSet[TargetModel]] =
-        tablesRef.get.map { tab =>
+        databaseRef.get.map { db =>
           SortedSet.from {
-            tab.targets.values.filter(t => t.programId === pid && (includeDeleted || t.isPresent))
+            db.targets.rows.values.filter(t => t.programId === pid && (includeDeleted || t.isPresent))
           }
         }
 
@@ -183,6 +181,7 @@ object TargetRepo {
         selectPageFromIds(count, afterGid, includeDeleted) { tab =>
           tab
             .observations
+            .rows
             .values
             .filter(o => o.programId === pid && (includeDeleted || o.isPresent))
             .map(_.targetEnvironment.asterism)
@@ -200,6 +199,7 @@ object TargetRepo {
           oids.map { oid =>
             tab
               .observations
+              .rows
               .get(oid)
               .map(_.targetEnvironment.asterism)
               .getOrElse(SortedSet.empty[Target.Id])
@@ -233,15 +233,16 @@ object TargetRepo {
         pid:            Program.Id,
         includeDeleted: Boolean
       ): F[List[SortedSet[TargetModel]]] =
-        tablesRef.get.map { tab =>
+        databaseRef.get.map { tab =>
           tab
             .observations
+            .rows
             .values
             .filter(o => o.programId === pid && (includeDeleted || o.isPresent))
             .map(_.targetEnvironment.asterism)
             .toList
             .distinct
-            .map(_.map(tab.targets.apply).filter(t => includeDeleted || t.isPresent))
+            .map(_.map(tab.targets.rows.apply).filter(t => includeDeleted || t.isPresent))
         }
 
       override def selectObservationFirstTarget(
@@ -253,7 +254,7 @@ object TargetRepo {
       override def selectObservationTargetEnvironment(
         id: Observation.Id
       ): F[Option[TargetEnvironmentModel]] =
-        tablesRef.get.map(_.observations.get(id).map(_.targetEnvironment))
+        databaseRef.get.map(_.observations.rows.get(id).map(_.targetEnvironment))
 
       override def unsafeSelectObservationTargetEnvironment(
         id: Observation.Id
@@ -267,12 +268,14 @@ object TargetRepo {
 
         val create: F[TargetModel] =
           EitherT(
-            tablesRef.modify { tables =>
-              val (tablesʹ, t) = newTarget.create[State[Tables, *], Tables](programId, TableState).run(tables).value
-              t.fold(
-                err => (tables, InputError.Exception(err).asLeft),
-                t   => (tablesʹ, t.asRight)
-              )
+            databaseRef.modify { db =>
+              newTarget
+                .create2(programId)
+                .run(db)
+                .fold(
+                  err => (db, InputError.Exception(err).asLeft),
+                  _.map(_.asRight)
+                )
             }
           ).rethrowT
 
@@ -286,20 +289,15 @@ object TargetRepo {
         targetEditor: TargetModel.Edit
       ): F[TargetModel] = {
 
-        val update: State[Tables, ValidatedInput[TargetModel]] =
+        val update: StateT[EitherInput, Database, TargetModel] =
           for {
-            initial <- TableState.target.lookupValidated[State[Tables, *]](targetEditor.targetId)
-            edited   = initial.andThen { t =>
-              targetEditor.editor.runS(t).toValidated
-            }
-            _       <- edited.fold(
-              _ => State.get[Tables].void,
-              t => Tables.targets.mod_(m => m + (t.id -> t))
-            )
+            initial <- Database.target.lookup(targetEditor.targetId)
+            edited  <- StateT.liftF(targetEditor.editor.runS(initial))
+            _       <- Database.target.update(targetEditor.targetId, edited)
           } yield edited
 
         for {
-          t <- tablesRef.modifyState(update).flatMap(_.liftTo[F])
+          t <- databaseRef.modifyState(update.flipF).flatMap(_.liftTo[F])
           _ <- eventService.publish(TargetEvent.updated(t))
         } yield t
 
@@ -310,19 +308,16 @@ object TargetRepo {
         suggestedTid: Option[Target.Id]
       ): F[TargetModel] = {
 
-        val update: State[Tables, ValidatedInput[TargetModel]] =
+        val update: StateT[EitherInput, Database, TargetModel] =
           for {
-            t <- TableState.target.lookupValidated[State[Tables, *]](existingTid)
-            i <- TableState.target.getUnusedId[State[Tables, *]](suggestedTid)
-            c  = (t, i).mapN((tʹ, iʹ) => tʹ.clone(iʹ))
-            _ <- c.fold(
-              _ => State.get[Tables].void,
-              c => Tables.targets.mod_(m => m + (c.id -> c))
-            )
+            t <- Database.target.lookup(existingTid)
+            i <- Database.target.getUnusedKey(suggestedTid)
+            c  = t.clone(i)
+            _ <- Database.target.saveNew(i, c)
           } yield c
 
         for {
-          t <- tablesRef.modifyState(update).flatMap(_.liftTo[F])
+          t <- databaseRef.modifyState(update.flipF).flatMap(_.liftTo[F])
           _ <- eventService.publish(TargetEvent.created(t))
         } yield t
 

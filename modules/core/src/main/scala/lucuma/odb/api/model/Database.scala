@@ -7,7 +7,10 @@ import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Targ
 import lucuma.odb.api.model.targetModel.TargetModel
 import monocle.{Focus, Lens}
 
+import scala.collection.immutable.SortedMap
+
 final case class Database(
+  lastEventId:     Long,
   atoms:           Table[Atom.Id, AtomModel[Step.Id]],
   executionEvents: Table[ExecutionEvent.Id, ExecutionEventModel],
   observations:    Table[Observation.Id, ObservationModel],
@@ -20,6 +23,7 @@ object Database extends DatabaseOptics {
 
   val empty: Database =
     Database(
+      lastEventId     = 0L,
       atoms           = Table.empty,
       executionEvents = Table.empty,
       observations    = Table.empty,
@@ -50,6 +54,9 @@ object Database extends DatabaseOptics {
 
 sealed trait DatabaseOptics { self: Database.type =>
 
+  val lastEventId: Lens[Database, Long] =
+    Focus[Database](_.lastEventId)
+
   val atoms: Lens[Database, Table[Atom.Id, AtomModel[Step.Id]]] =
     Focus[Database](_.atoms)
 
@@ -64,6 +71,9 @@ sealed trait DatabaseOptics { self: Database.type =>
 
   val observations: Lens[Database, Table[Observation.Id, ObservationModel]] =
     Focus[Database](_.observations)
+
+  val observationRows: Lens[Database, SortedMap[Observation.Id, ObservationModel]] =
+    observations.andThen(Table.rows)
 
   val lastObservationId: Lens[Database, Observation.Id] =
     observations.andThen(Table.lastKey)
