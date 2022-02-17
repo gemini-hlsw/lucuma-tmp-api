@@ -8,16 +8,17 @@ import cats.{Eq, Monad}
 import cats.Order.catsKernelOrderingForOrder
 import cats.data.{NonEmptyChain, StateT}
 import cats.mtl.Stateful
-import cats.syntax.eq._
-import cats.syntax.functor._
-import cats.syntax.traverse._
+//import cats.syntax.eq._
+//import cats.syntax.functor._
+//import cats.syntax.traverse._
+import cats.syntax.all._
 import clue.data.Input
 import clue.data.syntax._
 import io.circe.Decoder
 import lucuma.core.model.{Program, Target}
 import lucuma.core.util.Gid
 import lucuma.odb.api.model.gc.DatabaseState
-import lucuma.odb.api.model.{CoordinatesModel, EditorInput, EitherInput, InputError, ValidatedInput}
+import lucuma.odb.api.model.{CoordinatesModel, Database, EditorInput, EitherInput, InputError, ValidatedInput}
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.validatedinput._
@@ -43,6 +44,17 @@ final case class TargetEnvironmentModel(
       .lookupAllValidated(asterism.toList)
       .map(_.ensure(err)(_.forall(_.programId === pid)))
   }
+
+  def validate2(
+    pid: Program.Id
+  ): StateT[EitherInput, Database, List[TargetModel]] =
+    Database
+      .target
+      .lookupAll(asterism.toList)
+      .flatMapF { ts =>
+        if (ts.forall(_.programId === pid)) ts.rightNec[InputError]
+        else InputError.fromMessage(s"Cannot assign targets from programs other than ${Gid[Program.Id].show(pid)}").leftNec
+      }
 
 }
 

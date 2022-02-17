@@ -18,7 +18,7 @@ import io.circe.generic.semiauto._
 import io.circe.refined._
 import lucuma.core.model.{Program, SourceProfile, Target}
 import lucuma.odb.api.model.gc.DatabaseState
-import lucuma.odb.api.model.{EitherInput, Event, Existence, TopLevelModel, ValidatedInput}
+import lucuma.odb.api.model.{Database, EitherInput, Event, Existence, TopLevelModel, ValidatedInput}
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.validatedinput._
@@ -89,6 +89,23 @@ object TargetModel extends TargetModelOptics {
         }
         _ <- db.target.saveNewIfValid(tm)(_.id)
       } yield tm
+
+    def create2(
+      programId: Program.Id
+    ): StateT[EitherInput, Database, TargetModel] =
+
+      for {
+        i <- Database.target.getUnusedKey(targetId)
+        _ <- Database.program.lookup(programId)
+        t  = ValidatedInput.requireOne(
+          "target",
+          sidereal.map(_.createTarget(name, sourceProfile)),
+          nonsidereal.map(_.createTarget(name, sourceProfile))
+        )
+        tm = t.map(TargetModel(i, Existence.Present, programId, _, observed = false))
+        _ <- Database.target.saveNewIfValid(tm)(_.id)
+        r <- Database.target.lookup(i)
+      } yield r
 
   }
 

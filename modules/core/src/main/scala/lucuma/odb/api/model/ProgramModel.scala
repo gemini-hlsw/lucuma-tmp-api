@@ -3,6 +3,7 @@
 
 package lucuma.odb.api.model
 
+import cats.data.StateT
 import cats.{Eq, Monad}
 import cats.mtl.Stateful
 import cats.syntax.all._
@@ -52,6 +53,13 @@ object ProgramModel extends ProgramOptics {
         _ <- db.program.saveNewIfValid[F](p)(_.id)
       } yield p
     }
+
+    val create2: StateT[EitherInput, Database, ProgramModel] =
+      for {
+        i <- Database.program.getUnusedKey(programId)
+        _ <- Database.program.saveNew(i, ProgramModel(i, Existence.Present, name))
+        p <- Database.program.lookup(i)
+      } yield p
 
   }
 

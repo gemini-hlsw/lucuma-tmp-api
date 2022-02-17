@@ -6,7 +6,7 @@ package lucuma.odb.api.model
 import lucuma.core.model.{Atom, Step}
 import lucuma.odb.api.model.StepConfig.CreateStepConfig
 import cats.{Applicative, Eq, Eval, Monad, Traverse}
-import cats.data.{Nested, NonEmptyList}
+import cats.data.{Nested, NonEmptyList, StateT}
 import cats.mtl.Stateful
 import cats.syntax.all._
 import io.circe.Decoder
@@ -80,6 +80,25 @@ object AtomModel {
               AtomModel.ofSteps(iʹʹ, hʹʹ, tʹʹ: _*)
             }
             _  <- db.atom.saveNewIfValid(Nested(a).map(_.id).value)(_.id)
+          } yield a
+
+      }
+
+    def create2[B](implicit V: InputValidator[A, B]): StateT[EitherInput, Database, AtomModel[StepModel[B]]] =
+      steps match {
+
+        case Nil    =>
+          StateT.liftF[EitherInput, Database, AtomModel[StepModel[B]]](
+            InputError.fromMessage("Cannot create an emptySequence atom").leftNec[AtomModel[StepModel[B]]]
+          )
+
+        case h :: t =>
+          for {
+            i  <- Database.atom.getUnusedKey(id)
+            hʹ <- h.create2
+            tʹ <- t.traverse(_.create2[B])
+            a   = AtomModel.ofSteps(i, hʹ, tʹ: _*)
+            _  <- Database.atom.saveNew(i, a.map(_.id))
           } yield a
 
       }

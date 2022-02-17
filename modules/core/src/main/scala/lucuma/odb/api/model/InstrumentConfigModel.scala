@@ -3,6 +3,7 @@
 
 package lucuma.odb.api.model
 
+import cats.data.StateT
 import lucuma.core.`enum`.Instrument
 import lucuma.core.model.Atom
 import cats.{Eq, Monad}
@@ -145,6 +146,12 @@ object InstrumentConfigModel {
         }
       } yield gn
 
+    val create2: StateT[EitherInput, Database, GmosNorth] =
+      for {
+        st <- StateT.liftF(static.create.toEither)
+        aq <- acquisition.create2[GmosModel.NorthDynamic]
+        sc <- science.create2[GmosModel.NorthDynamic]
+      } yield GmosNorth(st, aq, sc)
   }
 
   object CreateGmosNorth {
@@ -197,6 +204,13 @@ object InstrumentConfigModel {
         }
       } yield gs
 
+    val create2: StateT[EitherInput, Database, GmosSouth] =
+      for {
+        st <- StateT.liftF(static.create.toEither)
+        aq <- acquisition.create2[GmosModel.SouthDynamic]
+        sc <- science.create2[GmosModel.SouthDynamic]
+      } yield GmosSouth(st, aq, sc)
+
   }
 
   object CreateGmosSouth {
@@ -231,6 +245,17 @@ object InstrumentConfigModel {
         gs
       )
 
+    val create2: StateT[EitherInput, Database, InstrumentConfigModel] =
+      for {
+        gn <- gmosNorth.traverse(_.create2)
+        gs <- gmosSouth.traverse(_.create2)
+        g  <- (gn, gs) match {
+          case (Some(n), None) => StateT.pure[EitherInput, Database, InstrumentConfigModel](n)
+          case (None, Some(s)) => StateT.pure[EitherInput, Database, InstrumentConfigModel](s)
+          case (None,    None) => StateT.liftF[EitherInput, Database, InstrumentConfigModel](InputError.fromMessage("").leftNec[InstrumentConfigModel])
+          case _               => StateT.liftF[EitherInput, Database, InstrumentConfigModel](InputError.fromMessage("").leftNec[InstrumentConfigModel])
+        }
+      } yield g
   }
 
   object Create {

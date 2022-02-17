@@ -3,6 +3,7 @@
 
 package lucuma.odb.api.model
 
+import cats.data.StateT
 import lucuma.core.model.Atom
 import cats.{Applicative, Eq, Eval, Monad, Traverse}
 import cats.mtl.Stateful
@@ -55,6 +56,9 @@ object SequenceModel {
 
     def create[F[_]: Monad, T, D](db: DatabaseState[T])(implicit ev: InputValidator[CD, D], S: Stateful[F, T]): F[ValidatedInput[DereferencedSequence[D]]] =
       atoms.traverse(_.create[F, T, D](db)).map(_.sequence.map(SequenceModel(_)))
+
+    def create2[D](implicit ev: InputValidator[CD, D]): StateT[EitherInput, Database, DereferencedSequence[D]] =
+      atoms.traverse(_.create2[D]).map(SequenceModel(_))
   }
 
   object Create {

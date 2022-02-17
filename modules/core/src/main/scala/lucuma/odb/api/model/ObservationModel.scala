@@ -51,6 +51,9 @@ final case class ObservationModel(
   )(implicit S: Stateful[F, T]): F[ValidatedInput[ObservationModel]] =
     targetEnvironment.validate[F, T](db, programId).map(_.as(this))
 
+  val validate2: StateT[EitherInput, Database, ObservationModel] =
+    targetEnvironment.validate2(programId).as(this)
+
 }
 
 
@@ -122,6 +125,37 @@ object ObservationModel extends ObservationOptics {
         _  <- db.observation.saveNewIfValid(oʹ)(_.id)
       } yield oʹ
 
+    def create2(
+      s: PlannedTimeSummaryModel
+    ): StateT[EitherInput, Database, ObservationModel] =
+      for {
+        i <- Database.observation.getUnusedKey(observationId)
+        _ <- Database.program.lookup(programId)
+        t  = targetEnvironment.getOrElse(TargetEnvironmentInput.Empty).create
+        c  = constraintSet.traverse(_.create)
+        q  = scienceRequirements.traverse(_.create)
+        u  = scienceConfiguration.traverse(_.create)
+        g <- config.traverse(_.create2)
+        o  = (t, c, q, u).mapN { (tʹ, cʹ, qʹ, uʹ) =>
+          ObservationModel(
+            id                   = i,
+            existence            = Present,
+            programId            = programId,
+            name                 = name,
+            status               = status.getOrElse(ObsStatus.New),
+            activeStatus         = activeStatus.getOrElse(ObsActiveStatus.Active),
+            targetEnvironment    = tʹ,
+            constraintSet        = cʹ.getOrElse(ConstraintSetModel.Default),
+            scienceRequirements  = qʹ.getOrElse(ScienceRequirements.Default),
+            scienceConfiguration = uʹ,
+            config               = g.map(_.toReference),
+            plannedTimeSummary   = s
+          )
+        }
+        oʹ <- o.traverse(_.validate2)
+        _  <- Database.observation.saveNewIfValid(oʹ)(_.id)
+        v  <- Database.observation.lookup(i)
+      } yield v
   }
 
   object Create {

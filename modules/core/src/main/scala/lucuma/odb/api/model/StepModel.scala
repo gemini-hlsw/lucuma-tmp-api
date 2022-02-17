@@ -3,6 +3,7 @@
 
 package lucuma.odb.api.model
 
+import cats.data.StateT
 import lucuma.core.model.Step
 import lucuma.odb.api.model.StepConfig.CreateStepConfig
 import cats.{Applicative, Eq, Eval, Functor, Monad, Traverse}
@@ -68,6 +69,15 @@ object StepModel {
         _ <- db.step.saveNewIfValid(o)(_.id)
       } yield o
 
+    def create2[B](implicit V: InputValidator[A, B]): StateT[EitherInput, Database, StepModel[B]] =
+      for {
+        i <- Database.step.getUnusedKey(id)
+        o  = config.create[B].map(StepModel(i, breakpoint, _))
+        s <- o.fold(
+               nec => StateT.liftF[EitherInput, Database, StepModel[B]](nec.asLeft[StepModel[B]]),
+               v   => Database.step.saveNew(i, v).as(v)
+             )
+      } yield s
   }
 
   object Create {

@@ -28,6 +28,24 @@ object Database extends DatabaseOptics {
       targets         = Table.empty
     )
 
+  val atom: DatabaseState[Atom.Id, AtomModel[Step.Id]] =
+    DatabaseState(atoms)
+
+  val executionEvent: DatabaseState[ExecutionEvent.Id, ExecutionEventModel] =
+    DatabaseState(executionEvents)
+
+  val observation: DatabaseState[Observation.Id, ObservationModel] =
+    DatabaseState(observations)
+
+  val program: DatabaseState[Program.Id, ProgramModel] =
+    DatabaseState(programs)
+
+  val step: DatabaseState[Step.Id, StepModel[_]] =
+    DatabaseState(steps)
+
+  val target: DatabaseState[Target.Id, TargetModel] =
+    DatabaseState(targets)
+
 }
 
 sealed trait DatabaseOptics { self: Database.type =>
