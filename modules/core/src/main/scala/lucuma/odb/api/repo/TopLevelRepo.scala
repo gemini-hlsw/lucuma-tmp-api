@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{Database, Event, Existence, InputError, Sharing, TopLevelModel, ValidatedInput}
+import lucuma.odb.api.model.{Database, Event, Existence, InputError, TopLevelModel, ValidatedInput}
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.core.util.Gid
@@ -206,86 +206,5 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, *]: Eq](
 
   def undelete(id: I): F[T] =
     setExistence(id, Existence.Present)
-
-  private def share[G[_] : Traverse, J, M](
-    name:    String,
-    one:     I,
-    many:    G[J],
-    findM:   J => State[Database, ValidatedInput[M]],
-    editedM: M => Long => Event.Edit[M]
-  )(
-    update:  ValidatedInput[(T, G[M])] => State[Database, ValidatedInput[Unit]],
-  ): F[T] = {
-
-    val link = databaseRef.modifyState {
-      for {
-        vo  <- focusOn(one).st.map(_.toValidNec(InputError.missingReference(name, Gid[I].show(one))))
-        vm  <- many.traverse(findM).map(_.sequence)
-        vtm  = (vo, vm).tupled
-        r   <- update(vtm)
-      } yield (vtm, r)
-    }
-
-    for {
-      tm      <- link.flatMap(_._1.liftTo[F])
-      _       <- link.flatMap(_._2.liftTo[F])  // this would be a duplicate error if tm was a failure
-      (t, gm)  = tm
-      _       <- eventService.publish(edited(Event.EditType.Updated, t)) // publish one
-      _       <- gm.traverse_(m => eventService.publish(editedM(m)))     // publish many
-    } yield t
-  }
-
-  protected def shareLeft[J, M](
-    name:     String,
-    input:    Sharing[I, J],
-    findM:    J => State[Database, ValidatedInput[M]],
-    linkLens: Lens[Database, ManyToMany[J, I]],
-    editedM:  M => Long => Event.Edit[M]
- )(
-    update:   (ManyToMany[J, I], IterableOnce[(J, I)]) => ManyToMany[J, I]
- ): F[T] =
-    share(name, input.one, input.many, findM, editedM) { vtm =>
-      vtm.traverse_ { _ => linkLens.mod_(links => update(links, input.tupleRight)) }.map(_.validNec[InputError].void)
-    }
-
-  protected def shareRight[J, M](
-    name:     String,
-    input:    Sharing[I, J],
-    findM:    J => State[Database, ValidatedInput[M]],
-    linkLens: Lens[Database, ManyToMany[I, J]],
-    editedM:  M => Long => Event.Edit[M]
-  )(
-    update:   (ManyToMany[I, J], IterableOnce[(I, J)]) => ManyToMany[I, J]
-  ): F[T] =
-    share(name, input.one, input.many, findM, editedM) { vtm =>
-      vtm.traverse_ { _ => linkLens.mod_(links => update(links, input.tupleLeft)) }.map(_.validNec[InputError].void)
-    }
-
-  protected def shareWithOne[J, M](
-    name: String,
-    id: I,
-    oneId: J,
-    findM: J => State[Database, ValidatedInput[M]],
-    linkLens: Lens[Database, OneToMany[J, I]],
-    editedM: M => Long => Event.Edit[M]
-  )(
-    update: (OneToMany[J, I], (J, I)) => OneToMany[J, I]
-  ): F[T] =
-    share[Id, J, M](name, id, oneId, findM, editedM) { vtm =>
-      vtm.traverse_ { _ => linkLens.mod_(links => update(links, (oneId, id))) }.map(_.validNec[InputError].void)
-    }
-
-  protected def shareOneWithMany[J, M](
-    name:     String,
-    input:    Sharing[I, J],
-    findM:    J => State[Database, ValidatedInput[M]],
-    linkLens: Lens[Database, OneToMany[I, J]],
-    editedM:  M => Long => Event.Edit[M]
-  )(
-    update:   (OneToMany[I, J], IterableOnce[(I, J)]) => OneToMany[I, J]
-  ): F[T] =
-    share(name, input.one, input.many, findM, editedM) { vtm =>
-      vtm.traverse_ { _ => linkLens.mod_(links => update(links, input.tupleLeft)) }.map(_.validNec[InputError].void)
-    }
 
 }
