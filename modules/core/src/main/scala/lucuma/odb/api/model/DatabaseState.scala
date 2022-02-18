@@ -3,21 +3,62 @@
 
 package lucuma.odb.api.model
 
-import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target}
-import lucuma.odb.api.model.targetModel.TargetModel
+import cats.data.StateT
+import lucuma.core.util.Gid
+import monocle.Lens
 
-trait DatabaseState[T] extends DatabaseReader[T] {
+final case class DatabaseState[K, V](
+  lens: Lens[Database, Table[K, V]]
+) {
 
-  def atom:              RepoState[T, Atom.Id, AtomModel[Step.Id]]
+  object table extends TableState[K, V]
 
-  def executionEvent:    RepoState[T, ExecutionEvent.Id, ExecutionEventModel]
+  def transform[A](s: StateT[EitherInput, Table[K, V], A]): StateT[EitherInput, Database, A] =
+    s.transformS(lens.get, (d, t) => lens.replace(t)(d))
 
-  def observation:       RepoState[T, Observation.Id, ObservationModel]
+  def isDefinedAt(k: K): StateT[EitherInput, Database, Boolean] =
+    transform(table.isDefinedAt(k))
 
-  def program:           RepoState[T, Program.Id, ProgramModel]
+  def isEmptyAt(k: K): StateT[EitherInput, Database, Boolean] =
+    transform(table.isEmptyAt(k))
 
-  def step:              RepoState[T, Step.Id, StepModel[_]]
+  def lookup(k: K)(implicit G: Gid[K]): StateT[EitherInput, Database, V] =
+    transform(table.lookup(k))
 
-  def target:            RepoState[T, Target.Id, TargetModel]
+  def lookupValidated(k: K)(implicit G: Gid[K]): StateT[EitherInput, Database, ValidatedInput[V]] =
+    transform(table.lookupValidated(k))
+
+  def lookupOption(k: K): StateT[EitherInput, Database, Option[V]] =
+    transform(table.lookupOption(k))
+
+  def lookupAll(ks: List[K])(implicit G: Gid[K]): StateT[EitherInput, Database, List[V]] =
+    transform(table.lookupAll(ks))
+
+  def lookupAllValidated(ks: List[K])(implicit G: Gid[K]): StateT[EitherInput, Database, ValidatedInput[List[V]]] =
+    transform(table.lookupAllValidated(ks))
+
+  def findAll(f: ((K, V)) => Boolean): StateT[EitherInput, Database, List[V]] =
+    transform(table.findAll(f))
+
+  def cycleNextUnused(implicit G: Gid[K]): StateT[EitherInput, Database, K] =
+    transform(table.cycleNextUnused)
+
+  def getUnusedKey(suggestion: Option[K])(implicit G: Gid[K]): StateT[EitherInput, Database, K] =
+    transform(table.getUnusedKey(suggestion))
+
+  def getUnusedKeyValidated(suggestion: Option[K])(implicit G: Gid[K]): StateT[EitherInput, Database, ValidatedInput[K]] =
+    transform(table.getUnusedKeyValidated(suggestion))
+
+  def saveNew(k: K, v: V)(implicit G: Gid[K]): StateT[EitherInput, Database, Unit] =
+    transform(table.saveNew(k, v))
+
+  def saveNewIfValid(v: ValidatedInput[V])(key: V => K)(implicit G: Gid[K]): StateT[EitherInput, Database, Unit] =
+    transform(table.saveNewIfValid(v)(key))
+
+  def update(k: K, v: V): StateT[EitherInput, Database, Unit] =
+    transform(table.update(k, v))
+
+  def delete(k: K): StateT[EitherInput, Database, Unit] =
+    transform(table.delete(k))
 
 }

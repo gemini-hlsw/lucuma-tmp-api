@@ -3,10 +3,10 @@
 
 package lucuma.odb.api.model
 
+import cats.data.StateT
 import lucuma.core.model.Step
 import lucuma.odb.api.model.StepConfig.CreateStepConfig
-import cats.{Applicative, Eq, Eval, Functor, Monad, Traverse}
-import cats.mtl.Stateful
+import cats.{Applicative, Eq, Eval, Traverse}
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
@@ -42,10 +42,8 @@ object StepModel {
         fa.config.foldRight(lb)(f)
     }
 
-  def dereference[F[_]: Functor, T, D](db: DatabaseReader[T], id: Step.Id)(f: StepConfig[_] => Option[D])(implicit S: Stateful[F, T]): F[Option[StepModel[D]]] =
-    db.step
-      .lookupOption[F](id)
-      .map(_.flatMap(_.to(f)))
+  def dereference[D](id: Step.Id)(f: StepConfig[_] => Option[D]): StateT[EitherInput, Database, Option[StepModel[D]]] =
+    Database.step.lookupOption(id).map(_.flatMap(_.to(f)))
 
   implicit def EqStepModel[A: Eq]: Eq[StepModel[A]] =
     Eq.by { a => (
@@ -60,13 +58,15 @@ object StepModel {
     config:     CreateStepConfig[A]
   ) {
 
-    def create[F[_]: Monad, T, B](db: DatabaseState[T])(implicit V: InputValidator[A, B], S: Stateful[F, T]): F[ValidatedInput[StepModel[B]]] =
+    def create[B](implicit V: InputValidator[A, B]): StateT[EitherInput, Database, StepModel[B]] =
       for {
-        i <- db.step.getUnusedId(id)
-        o  = (i, config.create[B]).mapN { (i, c) => StepModel(i, breakpoint, c) }
-        _ <- db.step.saveNewIfValid(o)(_.id)
-      } yield o
-
+        i <- Database.step.getUnusedKey(id)
+        o  = config.create[B].map(StepModel(i, breakpoint, _))
+        s <- o.fold(
+               nec => StateT.liftF[EitherInput, Database, StepModel[B]](nec.asLeft),
+               v   => Database.step.saveNew(i, v).as(v)
+             )
+      } yield s
   }
 
   object Create {

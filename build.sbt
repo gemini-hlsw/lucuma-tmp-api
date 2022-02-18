@@ -1,6 +1,5 @@
 val attoVersion                 = "0.9.5"
 val catsEffectVersion           = "3.3.5"
-val catsMtlVersion              = "1.2.1"
 val catsTestkitScalaTestVersion = "2.1.5"
 val catsVersion                 = "2.7.0"
 val catsScalacheckVersion       = "0.3.1"
@@ -86,7 +85,6 @@ lazy val core = project
       "org.tpolecat"               %% "atto-core"                 % attoVersion,
       "org.typelevel"              %% "cats-core"                 % catsVersion,
       "org.typelevel"              %% "cats-effect"               % catsEffectVersion,
-      "org.typelevel"              %% "cats-mtl"                  % catsMtlVersion,
       "org.typelevel"              %% "cats-time"                 % catsTimeVersion,
       "io.circe"                   %% "circe-core"                % circeVersion,
       "io.circe"                   %% "circe-literal"             % circeVersion,

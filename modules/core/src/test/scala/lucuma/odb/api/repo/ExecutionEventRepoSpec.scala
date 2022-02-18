@@ -4,7 +4,7 @@
 package lucuma.odb.api.repo
 
 import lucuma.core.model.{Atom, Observation, Step}
-import lucuma.odb.api.model.{AtomModel, ExecutionEventModel}
+import lucuma.odb.api.model.{AtomModel, Database, ExecutionEventModel}
 import lucuma.odb.api.model.ExecutionEventModel.{StepEvent, StepStageType}
 import lucuma.odb.api.model.ExecutionEventModel.StepStageType.EndStep
 import lucuma.odb.api.model.SequenceModel.SequenceType.Science
@@ -16,16 +16,16 @@ import org.scalacheck.Prop.forAll
 
 final class ExecutionEventRepoSpec extends ScalaCheckSuite with OdbRepoTest {
 
-  import arb.ArbTables._
+  import arb.ArbDatabase._
 
-  val genTables: Gen[Tables] = arbTablesWithSequencesAndEvents.arbitrary
+  val genDatabase: Gen[Database] = arbDatabaseWithSequencesAndEvents.arbitrary
 
   property("selectExecutedStepsForObservation") {
 
-    forAll(genTables) { (t: Tables) =>
+    forAll(genDatabase) { (db: Database) =>
 
-      val actual = runTest(t) { repo =>
-        t.observations.keys.toList.traverse { oid =>
+      val actual = runTest(db) { repo =>
+        db.observations.rows.keys.toList.traverse { oid =>
           repo
             .executionEvent
             .selectExecutedStepsForObservation(oid)
@@ -37,7 +37,7 @@ final class ExecutionEventRepoSpec extends ScalaCheckSuite with OdbRepoTest {
        .mapValues(_.flatMap(_._2).map(_.stepId).toSet)
        .toMap
 
-      val expected = t.executionEvents.values.toList.collect {
+      val expected = db.executionEvents.rows.values.toList.collect {
         case StepEvent(_, observationId, _, _, stepId, _, stage) if stage == StepStageType.EndStep =>
           (observationId, stepId)
       }.groupBy(_._1)
@@ -52,10 +52,10 @@ final class ExecutionEventRepoSpec extends ScalaCheckSuite with OdbRepoTest {
 
   property("selectExecutedStepsForObservation is ordered") {
 
-    forAll(genTables) { (t: Tables) =>
+    forAll(genDatabase) { (db: Database) =>
 
-      val actual = runTest(t) { repo =>
-        t.observations.keys.toList.traverse { oid =>
+      val actual = runTest(db) { repo =>
+        db.observations.rows.keys.toList.traverse { oid =>
           repo
             .executionEvent
             .selectExecutedStepsForObservation(oid)
@@ -71,10 +71,10 @@ final class ExecutionEventRepoSpec extends ScalaCheckSuite with OdbRepoTest {
 
   property("selectRemainingAtoms") {
 
-    forAll(genTables) { (t: Tables) =>
+    forAll(genDatabase) { (db: Database) =>
 
       val isExecutedStep: Set[Step.Id] =
-        t.executionEvents.values.collect {
+        db.executionEvents.rows.values.collect {
           case ExecutionEventModel.StepEvent(_, _, _, _, sid, Science, EndStep) => sid
         }.toSet
 
@@ -82,8 +82,8 @@ final class ExecutionEventRepoSpec extends ScalaCheckSuite with OdbRepoTest {
         a.steps.forall(isExecutedStep)
 
       val remaining: Map[Observation.Id, Set[Atom.Id]] =
-        runTest(t) { repo =>
-          t.observations.keys.toList.traverse { oid =>
+        runTest(db) { repo =>
+          db.observations.rows.keys.toList.traverse { oid =>
             repo
               .executionEvent
               .selectRemainingAtoms(oid, Science)
@@ -92,9 +92,9 @@ final class ExecutionEventRepoSpec extends ScalaCheckSuite with OdbRepoTest {
           }
         }.toMap
 
-      t.observations.view.values.forall { om =>
+      db.observations.rows.view.values.forall { om =>
         om.config.toList.flatMap(_.science.atoms).forall { aid =>
-          remaining.get(om.id).forall(_.contains(aid)) === !isExecutedAtom(t.atoms(aid))
+          remaining.get(om.id).forall(_.contains(aid)) === !isExecutedAtom(db.atoms.rows(aid))
         }
       }
 

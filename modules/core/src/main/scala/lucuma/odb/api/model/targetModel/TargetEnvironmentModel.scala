@@ -4,19 +4,16 @@
 package lucuma.odb.api.model.targetModel
 
 import lucuma.core.math.Coordinates
-import cats.{Eq, Monad}
+import cats.Eq
 import cats.Order.catsKernelOrderingForOrder
-import cats.data.{NonEmptyChain, StateT}
-import cats.mtl.Stateful
-import cats.syntax.eq._
-import cats.syntax.functor._
-import cats.syntax.traverse._
+import cats.data.StateT
+import cats.syntax.all._
 import clue.data.Input
 import clue.data.syntax._
 import io.circe.Decoder
 import lucuma.core.model.{Program, Target}
 import lucuma.core.util.Gid
-import lucuma.odb.api.model.{CoordinatesModel, DatabaseState, EditorInput, EitherInput, InputError, ValidatedInput}
+import lucuma.odb.api.model.{CoordinatesModel, Database, EditorInput, EitherInput, InputError, ValidatedInput}
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.validatedinput._
@@ -29,19 +26,16 @@ final case class TargetEnvironmentModel(
   explicitBase: Option[Coordinates]
 ) {
 
-  def validate[F[_]: Monad, T](
-    db: DatabaseState[T],
+  def validate(
     pid: Program.Id
-  )(implicit S: Stateful[F, T]): F[ValidatedInput[List[TargetModel]]] = {
-    def err: NonEmptyChain[InputError] =
-      NonEmptyChain.one(
-        InputError.fromMessage(s"Cannot assign targets from programs other than ${Gid[Program.Id].show(pid)}")
-      )
-
-    db.target
-      .lookupAllValidated(asterism.toList)
-      .map(_.ensure(err)(_.forall(_.programId === pid)))
-  }
+  ): StateT[EitherInput, Database, List[TargetModel]] =
+    Database
+      .target
+      .lookupAll(asterism.toList)
+      .flatMapF { ts =>
+        if (ts.forall(_.programId === pid)) ts.rightNec[InputError]
+        else InputError.fromMessage(s"Cannot assign targets from programs other than ${Gid[Program.Id].show(pid)}").leftNec
+      }
 
 }
 
@@ -99,7 +93,7 @@ object TargetEnvironmentInput {
     TargetEnvironmentInput(Input.ignore, c.assign)
 
   def asterism(tids: Target.Id*): TargetEnvironmentInput =
-    asterism((tids.toList))
+    asterism(tids.toList)
 
   def asterism(tids: List[Target.Id]): TargetEnvironmentInput =
     TargetEnvironmentInput(tids.assign, Input.ignore)
