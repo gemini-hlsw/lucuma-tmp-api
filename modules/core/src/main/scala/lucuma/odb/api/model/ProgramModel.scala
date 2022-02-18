@@ -43,7 +43,7 @@ object ProgramModel extends ProgramOptics {
     name:      Option[NonEmptyString]
   ) {
 
-    val create2: StateT[EitherInput, Database, ProgramModel] =
+    val create: StateT[EitherInput, Database, ProgramModel] =
       for {
         i <- Database.program.getUnusedKey(programId)
         _ <- Database.program.saveNew(i, ProgramModel(i, Existence.Present, name))

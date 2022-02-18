@@ -26,7 +26,7 @@ final case class TargetEnvironmentModel(
   explicitBase: Option[Coordinates]
 ) {
 
-  def validate2(
+  def validate(
     pid: Program.Id
   ): StateT[EitherInput, Database, List[TargetModel]] =
     Database

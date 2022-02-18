@@ -63,7 +63,7 @@ object AtomModel {
     steps: List[StepModel.Create[A]]
   ) {
 
-    def create2[B](implicit V: InputValidator[A, B]): StateT[EitherInput, Database, AtomModel[StepModel[B]]] =
+    def create[B](implicit V: InputValidator[A, B]): StateT[EitherInput, Database, AtomModel[StepModel[B]]] =
       steps match {
 
         case Nil    =>
@@ -74,8 +74,8 @@ object AtomModel {
         case h :: t =>
           for {
             i  <- Database.atom.getUnusedKey(id)
-            hʹ <- h.create2
-            tʹ <- t.traverse(_.create2[B])
+            hʹ <- h.create
+            tʹ <- t.traverse(_.create[B])
             a   = AtomModel.ofSteps(i, hʹ, tʹ: _*)
             _  <- Database.atom.saveNew(i, a.map(_.id))
           } yield a

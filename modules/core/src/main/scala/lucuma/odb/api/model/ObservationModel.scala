@@ -43,8 +43,8 @@ final case class ObservationModel(
   plannedTimeSummary:   PlannedTimeSummaryModel
 ) {
 
-  val validate2: StateT[EitherInput, Database, ObservationModel] =
-    targetEnvironment.validate2(programId).as(this)
+  val validate: StateT[EitherInput, Database, ObservationModel] =
+    targetEnvironment.validate(programId).as(this)
 
 }
 
@@ -84,7 +84,7 @@ object ObservationModel extends ObservationOptics {
     config:               Option[InstrumentConfigModel.Create]
   ) {
 
-    def create2(
+    def create(
       s: PlannedTimeSummaryModel
     ): StateT[EitherInput, Database, ObservationModel] =
       for {
@@ -94,7 +94,7 @@ object ObservationModel extends ObservationOptics {
         c  = constraintSet.traverse(_.create)
         q  = scienceRequirements.traverse(_.create)
         u  = scienceConfiguration.traverse(_.create)
-        g <- config.traverse(_.create2)
+        g <- config.traverse(_.create)
         o  = (t, c, q, u).mapN { (tʹ, cʹ, qʹ, uʹ) =>
           ObservationModel(
             id                   = i,
@@ -111,7 +111,7 @@ object ObservationModel extends ObservationOptics {
             plannedTimeSummary   = s
           )
         }
-        oʹ <- o.traverse(_.validate2)
+        oʹ <- o.traverse(_.validate)
         _  <- Database.observation.saveNewIfValid(oʹ)(_.id)
         v  <- Database.observation.lookup(i)
       } yield v

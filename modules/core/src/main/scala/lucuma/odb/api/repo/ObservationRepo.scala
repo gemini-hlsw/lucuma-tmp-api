@@ -151,7 +151,7 @@ object ObservationRepo {
           EitherT(
             databaseRef.modify { db =>
               newObs
-                .create2(s)
+                .create(s)
                 .run(db)
                 .fold(
                   err => (db, InputError.Exception(err).asLeft),
@@ -175,7 +175,7 @@ object ObservationRepo {
           for {
             initial   <- Database.observation.lookup(edit.observationId)
             edited    <- StateT.liftF(edit.edit.runS(initial))
-            validated <- edited.validate2
+            validated <- edited.validate
             _         <- Database.observation.update(edit.observationId, validated)
           } yield validated
 
@@ -332,7 +332,7 @@ object ObservationRepo {
           for {
             ini  <- selectObservations(be.selectProgram, be.selectObservations)
             osʹ  <- StateT.liftF(ini.traverse(ObservationModel.targetEnvironment.modifyA(ed.runS)))
-            vos  <- osʹ.traverse(_.validate2)
+            vos  <- osʹ.traverse(_.validate)
             _    <- vos.traverse(o => Database.observation.update(o.id, o))
           } yield vos
 

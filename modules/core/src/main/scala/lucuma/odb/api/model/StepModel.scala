@@ -58,7 +58,7 @@ object StepModel {
     config:     CreateStepConfig[A]
   ) {
 
-    def create2[B](implicit V: InputValidator[A, B]): StateT[EitherInput, Database, StepModel[B]] =
+    def create[B](implicit V: InputValidator[A, B]): StateT[EitherInput, Database, StepModel[B]] =
       for {
         i <- Database.step.getUnusedKey(id)
         o  = config.create[B].map(StepModel(i, breakpoint, _))

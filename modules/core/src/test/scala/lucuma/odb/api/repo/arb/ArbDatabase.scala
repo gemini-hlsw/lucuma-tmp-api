@@ -134,7 +134,7 @@ trait ArbDatabase extends SplitSetHelper {
     def dbWithSequences(db: Database, c: List[Option[InstrumentConfigModel.Create]]): Database = {
       // Create an option random sequence for each observation.
       val update = for {
-        icms <- Nested(c).traverse(_.create2).map(_.value)
+        icms <- Nested(c).traverse(_.create).map(_.value)
         _    <- db.observations.rows.toList.zip(icms).traverse { case ((oid, o), icm) =>
           Database.observation.update(oid, ObservationModel.config.replace(icm.map(_.toReference))(o))
         }

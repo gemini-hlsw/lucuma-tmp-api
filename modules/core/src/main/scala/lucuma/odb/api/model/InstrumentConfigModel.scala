@@ -132,11 +132,11 @@ object InstrumentConfigModel {
     science:     SequenceModel.Create[GmosModel.CreateNorthDynamic]
   ) {
 
-    val create2: StateT[EitherInput, Database, GmosNorth] =
+    val create: StateT[EitherInput, Database, GmosNorth] =
       for {
         st <- StateT.liftF(static.create.toEither)
-        aq <- acquisition.create2[GmosModel.NorthDynamic]
-        sc <- science.create2[GmosModel.NorthDynamic]
+        aq <- acquisition.create[GmosModel.NorthDynamic]
+        sc <- science.create[GmosModel.NorthDynamic]
       } yield GmosNorth(st, aq, sc)
   }
 
@@ -181,11 +181,11 @@ object InstrumentConfigModel {
     science:     SequenceModel.Create[GmosModel.CreateSouthDynamic]
   ) {
 
-    val create2: StateT[EitherInput, Database, GmosSouth] =
+    val create: StateT[EitherInput, Database, GmosSouth] =
       for {
         st <- StateT.liftF(static.create.toEither)
-        aq <- acquisition.create2[GmosModel.SouthDynamic]
-        sc <- science.create2[GmosModel.SouthDynamic]
+        aq <- acquisition.create[GmosModel.SouthDynamic]
+        sc <- science.create[GmosModel.SouthDynamic]
       } yield GmosSouth(st, aq, sc)
 
   }
@@ -212,10 +212,10 @@ object InstrumentConfigModel {
     gmosSouth: Option[CreateGmosSouth]
   ) {
 
-    val create2: StateT[EitherInput, Database, InstrumentConfigModel] =
+    val create: StateT[EitherInput, Database, InstrumentConfigModel] =
       for {
-        gn <- gmosNorth.traverse(_.create2)
-        gs <- gmosSouth.traverse(_.create2)
+        gn <- gmosNorth.traverse(_.create)
+        gs <- gmosSouth.traverse(_.create)
         g  <- (gn, gs) match {
           case (Some(n), None) => StateT.pure[EitherInput, Database, InstrumentConfigModel](n)
           case (None, Some(s)) => StateT.pure[EitherInput, Database, InstrumentConfigModel](s)

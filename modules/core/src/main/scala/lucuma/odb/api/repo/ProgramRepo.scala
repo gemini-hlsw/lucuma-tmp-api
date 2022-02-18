@@ -59,7 +59,7 @@ object ProgramRepo {
         val create = EitherT(
           databaseRef.modify { db =>
             input
-              .create2
+              .create
               .run(db)
               .fold(
                 err => (db, InputError.Exception(err).asLeft),

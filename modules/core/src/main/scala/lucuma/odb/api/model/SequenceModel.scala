@@ -52,8 +52,8 @@ object SequenceModel {
     atoms: List[AtomModel.Create[CD]]
   ) {
 
-    def create2[D](implicit ev: InputValidator[CD, D]): StateT[EitherInput, Database, DereferencedSequence[D]] =
-      atoms.traverse(_.create2[D]).map(SequenceModel(_))
+    def create[D](implicit ev: InputValidator[CD, D]): StateT[EitherInput, Database, DereferencedSequence[D]] =
+      atoms.traverse(_.create[D]).map(SequenceModel(_))
   }
 
   object Create {

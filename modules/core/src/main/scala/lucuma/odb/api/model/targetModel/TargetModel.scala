@@ -68,7 +68,7 @@ object TargetModel extends TargetModelOptics {
     sourceProfile: SourceProfileInput
   ) {
 
-    def create2(
+    def create(
       programId: Program.Id
     ): StateT[EitherInput, Database, TargetModel] =
 

@@ -270,7 +270,7 @@ object TargetRepo {
           EitherT(
             databaseRef.modify { db =>
               newTarget
-                .create2(programId)
+                .create(programId)
                 .run(db)
                 .fold(
                   err => (db, InputError.Exception(err).asLeft),
