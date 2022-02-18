@@ -68,7 +68,7 @@ object AtomModel {
 
         case Nil    =>
           StateT.liftF[EitherInput, Database, AtomModel[StepModel[B]]](
-            InputError.fromMessage("Cannot create an emptySequence atom").leftNec[AtomModel[StepModel[B]]]
+            InputError.fromMessage("Cannot create an emptySequence atom").leftNec
           )
 
         case h :: t =>

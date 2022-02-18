@@ -63,7 +63,7 @@ object StepModel {
         i <- Database.step.getUnusedKey(id)
         o  = config.create[B].map(StepModel(i, breakpoint, _))
         s <- o.fold(
-               nec => StateT.liftF[EitherInput, Database, StepModel[B]](nec.asLeft[StepModel[B]]),
+               nec => StateT.liftF[EitherInput, Database, StepModel[B]](nec.asLeft),
                v   => Database.step.saveNew(i, v).as(v)
              )
       } yield s
