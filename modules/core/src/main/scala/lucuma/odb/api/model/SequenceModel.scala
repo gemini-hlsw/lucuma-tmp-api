@@ -3,9 +3,9 @@
 
 package lucuma.odb.api.model
 
+import cats.data.StateT
 import lucuma.core.model.Atom
-import cats.{Applicative, Eq, Eval, Monad, Traverse}
-import cats.mtl.Stateful
+import cats.{Applicative, Eq, Eval, Traverse}
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
@@ -42,9 +42,9 @@ object SequenceModel {
 
   implicit class ReferenceExtensions(s: SequenceModel[Atom.Id]) {
 
-    def dereference[F[_]: Monad, T, D](db: DatabaseReader[T])(f: StepConfig[_] => Option[D])(implicit S: Stateful[F, T]): F[Option[DereferencedSequence[D]]] =
+    def dereference[D](f: StepConfig[_] => Option[D]): StateT[EitherInput, Database, Option[DereferencedSequence[D]]] =
       s.atoms
-       .traverse(AtomModel.dereference[F, T, D](db, _)(f))
+       .traverse(AtomModel.dereference[D](_)(f))
        .map(_.sequence.map(SequenceModel(_)))
   }
 
@@ -52,8 +52,8 @@ object SequenceModel {
     atoms: List[AtomModel.Create[CD]]
   ) {
 
-    def create[F[_]: Monad, T, D](db: DatabaseState[T])(implicit ev: InputValidator[CD, D], S: Stateful[F, T]): F[ValidatedInput[DereferencedSequence[D]]] =
-      atoms.traverse(_.create[F, T, D](db)).map(_.sequence.map(SequenceModel(_)))
+    def create[D](implicit ev: InputValidator[CD, D]): StateT[EitherInput, Database, DereferencedSequence[D]] =
+      atoms.traverse(_.create[D]).map(SequenceModel(_))
   }
 
   object Create {

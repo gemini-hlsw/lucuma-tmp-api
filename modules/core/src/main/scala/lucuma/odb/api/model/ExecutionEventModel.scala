@@ -3,10 +3,10 @@
 
 package lucuma.odb.api.model
 
-import cats.mtl.Stateful
+import cats.data.StateT
 import lucuma.core.model.{ExecutionEvent, Observation, Step}
 import lucuma.core.util.Enumerated
-import cats.{Eq, Monad, Order}
+import cats.{Eq, Order}
 import cats.syntax.all._
 import eu.timepit.refined.types.numeric._
 import org.typelevel.cats.time.instances.instant._
@@ -112,15 +112,15 @@ object ExecutionEventModel {
       command:       SequenceCommandType
     ) {
 
-      def add[F[_]: Monad, T](
-        db:       DatabaseState[T],
+      def add(
         received: Instant
-      )(implicit S: Stateful[F, T]): F[ValidatedInput[SequenceEvent]] =
+      ): StateT[EitherInput, Database, SequenceEvent] =
+
         for {
-          i <- db.executionEvent.getUnusedId(eventId)
-          o <- db.observation.lookupValidated[F](observationId)
-          e  = (i, o).mapN((iʹ, _) => SequenceEvent(iʹ, observationId, generated, received, command))
-          _ <- db.executionEvent.saveNewIfValid(e)(_.id)
+          i <- Database.executionEvent.getUnusedKey(eventId)
+          _ <- Database.observation.lookup(observationId)
+          e  = SequenceEvent(i, observationId, generated, received, command)
+          _ <- Database.executionEvent.saveNew(i, e)
         } yield e
 
     }
@@ -222,19 +222,17 @@ object ExecutionEventModel {
       stage:         StepStageType
     ) {
 
-      def add[F[_]: Monad, T](
-        db:           DatabaseState[T],
+      def add(
         received:     Instant
-      )(implicit S: Stateful[F, T]): F[ValidatedInput[StepEvent]] =
+      ): StateT[EitherInput, Database, StepEvent] =
 
         for {
-          i <- db.executionEvent.getUnusedId(eventId)
-          o <- db.observation.lookupValidated(observationId)
-          s <- db.step.lookupValidated(stepId)
-          e  = (i, o, s).mapN { (iʹ, _, _) =>
-
+          i <- Database.executionEvent.getUnusedKey(eventId)
+          _ <- Database.observation.lookup(observationId)
+          _ <- Database.step.lookup(stepId)
+          e  =
             StepEvent(
-              iʹ,
+              i,
               observationId,
               generated,
               received,
@@ -242,8 +240,7 @@ object ExecutionEventModel {
               sequenceType,
               stage
             )
-          }
-          _ <- db.executionEvent.saveNewIfValid(e)(_.id)
+          _ <- Database.executionEvent.saveNew(i, e)
         } yield e
 
     }
@@ -356,19 +353,17 @@ object ExecutionEventModel {
       stageType:     DatasetStageType
     ) {
 
-      def add[F[_]: Monad, T](
-        db:           DatabaseState[T],
-        received:     Instant
-      )(implicit S: Stateful[F, T]): F[ValidatedInput[DatasetEvent]] =
+      def add(
+        received: Instant
+      ): StateT[EitherInput, Database, DatasetEvent] =
 
         for {
-          i <- db.executionEvent.getUnusedId(eventId)
-          o <- db.observation.lookupValidated(observationId)
-          s <- db.step.lookupValidated(stepId)
-          e  = (i, o, s).mapN { (iʹ, _, _) =>
-
+          i <- Database.executionEvent.getUnusedKey(eventId)
+          _ <- Database.observation.lookup(observationId)
+          _ <- Database.step.lookup(stepId)
+          e  =
             DatasetEvent(
-              iʹ,
+              i,
               observationId,
               generated,
               received,
@@ -377,9 +372,7 @@ object ExecutionEventModel {
               filename,
               stageType
             )
-
-          }
-          _ <- db.executionEvent.saveNewIfValid(e)(_.id)
+          _ <- Database.executionEvent.saveNew(i, e)
         } yield e
 
     }

@@ -5,7 +5,7 @@ package lucuma.odb.api.repo
 
 import cats.Functor
 import lucuma.core.model.Step
-import lucuma.odb.api.model.StepModel
+import lucuma.odb.api.model.{Database, StepModel}
 import cats.effect.Ref
 import cats.syntax.all._
 
@@ -24,14 +24,15 @@ sealed trait StepRepo[F[_]] {
 object StepRepo {
 
   def create[F[_]: Functor](
-    tablesRef: Ref[F, Tables]
+    databaseRef: Ref[F, Database]
   ): StepRepo[F] =
 
     new StepRepo[F] {
+
       override def selectStep(
         sid: Step.Id
       ): F[Option[StepModel[_]]] =
-        tablesRef.get.map(Tables.step(sid).get)
+        databaseRef.get.map(_.steps.rows.get(sid))
 
       override def unsafeSelectStep(
         sid: Step.Id

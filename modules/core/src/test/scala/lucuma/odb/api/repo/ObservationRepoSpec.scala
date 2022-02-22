@@ -3,8 +3,7 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{ObservationModel, ProgramModel}
-
+import lucuma.odb.api.model.{Database, ObservationModel, ProgramModel}
 import cats.syntax.all._
 import cats.kernel.instances.order._
 import clue.data.Input
@@ -14,36 +13,36 @@ import munit.ScalaCheckSuite
 
 final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
 
-  import arb.ArbTables._
+  import arb.ArbDatabase._
 
   private def randomSelect(
-    tables: Tables,
-    indices: List[Int]
+    database: Database,
+    indices:  List[Int]
   ): List[ObservationModel] = {
       val size: Int =
-        tables.observations.size
+        database.observations.rows.size
 
       val keep: Set[Int]            =
         if (size === 0) Set.empty[Int] else indices.map(i => (i % size).abs).toSet
 
-      tables.observations.zipWithIndex.collect {
+      database.observations.rows.zipWithIndex.collect {
         case ((_, o), i) if keep(i) => o
       }.toList.sortBy(_.id)
 
   }
 
   property("selectPageForObservations") {
-    forAll { (t: Tables, indices: List[Int]) =>
+    forAll { (db: Database, indices: List[Int]) =>
 
-      val expected = randomSelect(t, indices).filter(_.existence.isPresent).map(_.id)
-      val obtained = runTest(t) { _.observation.selectPageForObservations(expected.toSet) }.nodes.map(_.id)
+      val expected = randomSelect(db, indices).filter(_.existence.isPresent).map(_.id)
+      val obtained = runTest(db) { _.observation.selectPageForObservations(expected.toSet) }.nodes.map(_.id)
 
       assertEquals(obtained, expected)
     }
   }
 
   property("selectPageForObservations with deleted") {
-    forAll { (t: Tables, indices: List[Int]) =>
+    forAll { (t: Database, indices: List[Int]) =>
 
       val expected = randomSelect(t, indices).map(_.id)
       val obtained = runTest(t) { _.observation.selectPageForObservations(expected.toSet, includeDeleted = true) }.nodes.map(_.id)
@@ -53,9 +52,9 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
   }
 
   property("selectPageForObservations with first") {
-    forAll { (t: Tables, indices: List[Int], first: Int) =>
+    forAll { (t: Database, indices: List[Int], first: Int) =>
 
-      val limitedFirst = if (t.observations.size === 0) 0 else (first % t.observations.size).abs
+      val limitedFirst = if (t.observations.rows.size === 0) 0 else (first % t.observations.rows.size).abs
 
       val expected = randomSelect(t, indices).filter(_.existence.isPresent).map(_.id)
       val obtained = runTest(t) { _.observation.selectPageForObservations(expected.toSet, count = limitedFirst.some ) }.nodes.map(_.id)
@@ -65,7 +64,7 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
   }
 
   private def runEditTest(
-    t: Tables
+    t: Database
   )(
     f: ObservationModel => ObservationModel.Edit
   ): (ObservationModel, ObservationModel) =
@@ -77,8 +76,8 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
         _  <- odb.observation.insert(ObservationModel.Create.empty(p.id))
 
         // Pick whatever the first observation may be
-        tʹ    <- odb.tables.get
-        before = tʹ.observations.values.head
+        tʹ    <- odb.database.get
+        before = tʹ.observations.rows.values.head
 
         // Do the prescribed edit.
         after <- odb.observation.edit(f(before))
@@ -87,7 +86,7 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
 
   property("simple edit") {
 
-    forAll { (t: Tables) =>
+    forAll { (t: Database) =>
       val (_, obs) = runEditTest(t) { o =>
         ObservationModel.Edit(o.id, name = Input(NonEmptyString.unsafeFrom("Biff")))
       }
@@ -97,7 +96,7 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
   }
 
   property("simple non-edit") {
-    forAll { (t: Tables) =>
+    forAll { (t: Database) =>
       val (before, after) = runEditTest(t) { o =>
         ObservationModel.Edit(o.id, name = o.name.fold(Input.ignore[NonEmptyString])(n => Input(n)))
       }

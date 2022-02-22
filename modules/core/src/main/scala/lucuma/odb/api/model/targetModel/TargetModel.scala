@@ -3,12 +3,9 @@
 
 package lucuma.odb.api.model.targetModel
 
-import cats.{Eq, Monad, Order}
+import cats.{Eq, Order}
 import cats.data.StateT
-import cats.mtl.Stateful
 import cats.syntax.apply._
-import cats.syntax.flatMap._
-import cats.syntax.functor._
 import cats.syntax.option._
 import clue.data.Input
 import eu.timepit.refined.cats._
@@ -17,7 +14,7 @@ import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
 import lucuma.core.model.{Program, SourceProfile, Target}
-import lucuma.odb.api.model.{DatabaseState, EitherInput, Event, Existence, TopLevelModel, ValidatedInput}
+import lucuma.odb.api.model.{Database, EitherInput, Event, Existence, TopLevelModel, ValidatedInput}
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.validatedinput._
@@ -71,23 +68,22 @@ object TargetModel extends TargetModelOptics {
     sourceProfile: SourceProfileInput
   ) {
 
-    def create[F[_]: Monad, T](
-      programId: Program.Id,
-      db:        DatabaseState[T]
-    )(implicit S: Stateful[F, T]): F[ValidatedInput[TargetModel]] =
+    def create(
+      programId: Program.Id
+    ): StateT[EitherInput, Database, TargetModel] =
 
       for {
-        i  <- db.target.getUnusedId(targetId)
-        p  <- db.program.lookupValidated(programId)
-        t  = ValidatedInput.requireOne("target",
+        i <- Database.target.getUnusedKey(targetId)
+        _ <- Database.program.lookup(programId)
+        t  = ValidatedInput.requireOne(
+          "target",
           sidereal.map(_.createTarget(name, sourceProfile)),
           nonsidereal.map(_.createTarget(name, sourceProfile))
         )
-        tm = (i, p, t).mapN { (iʹ, _, tʹ) =>
-          TargetModel(iʹ, Existence.Present, programId, tʹ, observed = false)
-        }
-        _ <- db.target.saveNewIfValid(tm)(_.id)
-      } yield tm
+        tm = t.map(TargetModel(i, Existence.Present, programId, _, observed = false))
+        _ <- Database.target.saveNewIfValid(tm)(_.id)
+        r <- Database.target.lookup(i)
+      } yield r
 
   }
 

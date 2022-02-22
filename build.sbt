@@ -1,6 +1,5 @@
 val attoVersion                 = "0.9.5"
 val catsEffectVersion           = "3.3.5"
-val catsMtlVersion              = "1.2.1"
 val catsTestkitScalaTestVersion = "2.1.5"
 val catsVersion                 = "2.7.0"
 val catsScalacheckVersion       = "0.3.1"
@@ -8,15 +7,15 @@ val catsTimeVersion             = "0.5.0"
 val circeOpticsVersion          = "0.14.1"
 val circeVersion                = "0.14.1"
 val cirisVersion                = "2.3.2"
-val clueVersion                 = "0.20.0"
+val clueVersion                 = "0.18.6"
 val http4sVersion               = "0.23.10"
 val http4sJdkHttpClientVersion  = "0.5.0"
-val fs2Version                  = "3.2.4"
+val fs2Version                  = "3.2.5"
 val jawnVersion                 = "1.3.2"
 val kindProjectorVersion        = "0.13.2"
 val logbackVersion              = "1.2.10"
 val lucumaCoreVersion           = "0.24.0"
-val lucumaGraphQLRoutesVersion  = "0.1.2"
+val lucumaGraphQLRoutesVersion  = "0.2.0"
 //val lucumaSsoVersion            = "0.0.11"
 val log4catsVersion             = "2.2.0"
 val monocleVersion              = "3.1.0"
@@ -86,7 +85,6 @@ lazy val core = project
       "org.tpolecat"               %% "atto-core"                 % attoVersion,
       "org.typelevel"              %% "cats-core"                 % catsVersion,
       "org.typelevel"              %% "cats-effect"               % catsEffectVersion,
-      "org.typelevel"              %% "cats-mtl"                  % catsMtlVersion,
       "org.typelevel"              %% "cats-time"                 % catsTimeVersion,
       "io.circe"                   %% "circe-core"                % circeVersion,
       "io.circe"                   %% "circe-literal"             % circeVersion,
