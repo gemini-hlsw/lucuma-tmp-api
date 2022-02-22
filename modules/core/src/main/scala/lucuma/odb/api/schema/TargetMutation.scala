@@ -107,7 +107,7 @@ trait TargetMutation extends TargetScalars {
 
   implicit val InputObjectParallax: InputObjectType[ParallaxModel.Input] =
     deriveInputObjectType[ParallaxModel.Input](
-      InputObjectTypeName("ParallaxModelInput"),
+      InputObjectTypeName("ParallaxInput"),
       InputObjectTypeDescription("Parallax, choose one of the available units")
     )
 
