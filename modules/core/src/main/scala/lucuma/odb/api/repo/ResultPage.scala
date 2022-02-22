@@ -52,7 +52,7 @@ object ResultPage {
     include: B => Boolean
   ): ResultPage[B] =
 
-    ResultPage.fromIterator(
+    fromIterator(
       count,
       after
         .fold(keys.iterator)(a => keys.iteratorFrom(a).dropWhile(_ === a))

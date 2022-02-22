@@ -22,7 +22,7 @@ object ProgramSchema {
   import context._
 
   implicit val ProgramIdType: ScalarType[Program.Id] =
-    ObjectIdSchema.idType[Program.Id]("ProgramId")
+    ObjectIdSchema.gidType[Program.Id]("ProgramId")
 
   val ProgramIdArgument: Argument[Program.Id] =
     Argument(

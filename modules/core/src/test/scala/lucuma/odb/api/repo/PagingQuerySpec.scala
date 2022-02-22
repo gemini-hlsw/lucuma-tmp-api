@@ -11,13 +11,14 @@ import eu.timepit.refined.types.all.PosInt
 import eu.timepit.refined.scalacheck.numeric._
 import lucuma.core.model.Program
 import lucuma.odb.api.model.Database
+import lucuma.odb.api.model.arb.ArbDatabase
 
 import scala.collection.immutable.SortedSet
 
 
 final class PagingQuerySpec extends ScalaCheckSuite with OdbRepoTest {
 
-  import arb.ArbDatabase._
+  import ArbDatabase._
 
   property("selectAll") {
     forAll {  (db: Database, pageSize: PosInt) =>

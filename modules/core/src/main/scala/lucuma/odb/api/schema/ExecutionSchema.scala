@@ -3,8 +3,8 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.core.model.{ExecutionEvent, Observation, Step}
-import lucuma.odb.api.model.{DatasetModel, ExecutedStepModel, ExecutionEventModel, InstrumentConfigModel}
+import lucuma.core.model.{ExecutionEvent, Observation}
+import lucuma.odb.api.model.{DatasetModel, ExecutionEventModel, InstrumentConfigModel, Step}
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
@@ -17,7 +17,6 @@ object ExecutionSchema {
   import context._
   import DatasetSchema._
   import ExecutionEventSchema._
-  import ExecutedStepSchema._
   import Paging._
 
   def ExecutionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Observation.Id] =
@@ -35,8 +34,8 @@ object ExecutionSchema {
           ),
           resolve     = c =>
             unsafeSelectPageFuture[F, (Step.Id, PosInt), DatasetModel](
-              c.pagingCursor("(step-id, index)")(StepAndIndexCursor.getOption),
-              dm => StepAndIndexCursor.reverseGet((dm.stepId, dm.index)),
+              c.pagingCursor("(step-id, index)")(s => StepAndIndexCursor.getOption(s).flatMap(StepAndIndex.unapply)),
+              dm => StepAndIndexCursor.reverseGet(StepAndIndex(dm.stepId, dm.index)),
               o  => c.ctx.odbRepo.executionEvent.selectDatasetsPageForObservation(c.value, c.pagingFirst, o)
             )
         ),
@@ -54,22 +53,6 @@ object ExecutionSchema {
               c.pagingExecutionEventId,
               (e: ExecutionEventModel) => Cursor.gid[ExecutionEvent.Id].reverseGet(e.id),
               eid => c.ctx.odbRepo.executionEvent.selectEventsPageForObservation(c.value, c.pagingFirst, eid)
-            )
-        ),
-
-        Field(
-          name        = "executedSteps",
-          fieldType   = ExecutedStepConnectionType[F],
-          description = "Executed steps associated with the observation".some,
-          arguments   = List(
-            ArgumentPagingFirst,
-            ArgumentPagingCursor
-          ),
-          resolve     = c =>
-            unsafeSelectPageFuture[F, Step.Id, ExecutedStepModel](
-              c.pagingStepId,
-              (s: ExecutedStepModel) => Cursor.gid[Step.Id].reverseGet(s.stepId),
-              sid => c.ctx.odbRepo.executionEvent.selectExecutedStepsPageForObservation(c.value, c.pagingFirst, sid)
             )
         ),
 

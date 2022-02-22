@@ -3,17 +3,18 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.odb.api.model.{Database, ObservationModel, ProgramModel}
 import cats.syntax.all._
 import cats.kernel.instances.order._
 import clue.data.Input
 import eu.timepit.refined.types.string.NonEmptyString
+import lucuma.odb.api.model.{Database, ObservationModel, ProgramModel}
+import lucuma.odb.api.model.arb.ArbDatabase
 import org.scalacheck.Prop.forAll
 import munit.ScalaCheckSuite
 
 final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
 
-  import arb.ArbDatabase._
+  import ArbDatabase._
 
   private def randomSelect(
     database: Database,

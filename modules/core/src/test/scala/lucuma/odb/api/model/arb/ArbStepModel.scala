@@ -4,20 +4,28 @@
 package lucuma.odb.api.model
 package arb
 
-import lucuma.core.model.Step
 import lucuma.core.math.Offset
 import lucuma.core.math.arb.ArbOffset
-import lucuma.core.util.arb.{ArbEnumerated, ArbGid}
+import lucuma.core.util.arb.ArbEnumerated
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
+
+import java.util.UUID
 
 trait ArbStepModel {
 
   import ArbEnumerated._
   import ArbGcalModel._
-  import ArbGid._
   import ArbOffset._
   import ArbOffsetModel._
+
+  implicit val arbStepId: Arbitrary[Step.Id] =
+    Arbitrary {
+      arbitrary[UUID].map(Step.Id.fromUuid)
+    }
+
+  implicit val cogStepId: Cogen[Step.Id] =
+    Cogen[UUID].contramap(_.toUuid)
 
   implicit def arbBias[A: Arbitrary]: Arbitrary[StepConfig.Bias[A]] =
     Arbitrary {
@@ -178,10 +186,9 @@ trait ArbStepModel {
   implicit def arbStepModelCreate[A: Arbitrary]: Arbitrary[StepModel.Create[A]] =
     Arbitrary {
       for {
-        i <- arbitrary[Option[Step.Id]]
         b <- arbitrary[Breakpoint]
         s <- arbitrary[StepConfig.CreateStepConfig[A]]
-      } yield StepModel.Create(i, b, s)
+      } yield StepModel.Create(b, s)
     }
 
   def arbValidStepModelCreate[A: Arbitrary]: Arbitrary[StepModel.Create[A]] =
@@ -189,13 +196,12 @@ trait ArbStepModel {
       for {
         b <- arbitrary[Breakpoint]
         s <- arbValidCreateStepConfig[A].arbitrary
-      } yield StepModel.Create(None, b, s)
+      } yield StepModel.Create(b, s)
     }
 
 
   implicit def cogStepModelCreate[A: Cogen]: Cogen[StepModel.Create[A]] =
-    Cogen[(Option[Step.Id], Breakpoint, StepConfig.CreateStepConfig[A])].contramap { in => (
-      in.id,
+    Cogen[(Breakpoint, StepConfig.CreateStepConfig[A])].contramap { in => (
       in.breakpoint,
       in.config
     )}

@@ -4,6 +4,7 @@
 package lucuma.odb.api.schema
 
 import lucuma.core.optics.Format
+import lucuma.odb.api.model.FiniteDurationModel
 import lucuma.odb.api.model.format.ScalarFormat
 import lucuma.odb.api.schema.syntax.scalar._
 import sangria.schema._
@@ -68,6 +69,19 @@ object TimeSchema {
           description = Some("Duration in hours"),
           resolve     = v => BigDecimal(v.value.toMicros, 6) / 3600
         )
+      )
+    )
+
+  val InputObjectTypeDuration: InputObjectType[FiniteDurationModel.Input] =
+    InputObjectType[FiniteDurationModel.Input](
+      "DurationInput",
+      "Time duration input",
+      List(
+        InputField("microseconds", OptionInputType(LongType),       "Time duration in µs"),
+        InputField("milliseconds", OptionInputType(BigDecimalType), "Time duration in ms"),
+        InputField("seconds",      OptionInputType(BigDecimalType), "Time duration in seconds"),
+        InputField("minutes",      OptionInputType(BigDecimalType), "Time duration in minutes"),
+        InputField("hours",        OptionInputType(BigDecimalType), "Time duration in hours")
       )
     )
 

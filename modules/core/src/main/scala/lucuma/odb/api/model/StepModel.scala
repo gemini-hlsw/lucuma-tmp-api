@@ -3,13 +3,13 @@
 
 package lucuma.odb.api.model
 
-import cats.data.StateT
-import lucuma.core.model.Step
-import lucuma.odb.api.model.StepConfig.CreateStepConfig
 import cats.{Applicative, Eq, Eval, Traverse}
+import cats.effect.Sync
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
+import lucuma.odb.api.model.StepConfig.CreateStepConfig
+
 
 final case class StepModel[A](
   id:         Step.Id,
@@ -42,9 +42,6 @@ object StepModel {
         fa.config.foldRight(lb)(f)
     }
 
-  def dereference[D](id: Step.Id)(f: StepConfig[_] => Option[D]): StateT[EitherInput, Database, Option[StepModel[D]]] =
-    Database.step.lookupOption(id).map(_.flatMap(_.to(f)))
-
   implicit def EqStepModel[A: Eq]: Eq[StepModel[A]] =
     Eq.by { a => (
       a.id,
@@ -53,33 +50,28 @@ object StepModel {
     )}
 
   final case class Create[A](
-    id:         Option[Step.Id],
     breakpoint: Breakpoint,
     config:     CreateStepConfig[A]
   ) {
 
-    def create[B](implicit V: InputValidator[A, B]): StateT[EitherInput, Database, StepModel[B]] =
-      for {
-        i <- Database.step.getUnusedKey(id)
-        o  = config.create[B].map(StepModel(i, breakpoint, _))
-        s <- o.fold(
-               nec => StateT.liftF[EitherInput, Database, StepModel[B]](nec.asLeft),
-               v   => Database.step.saveNew(i, v).as(v)
-             )
-      } yield s
+    def create[F[_]: Sync, B](implicit V: InputValidator[A, B]): F[ValidatedInput[StepModel[B]]] =
+      Step.Id.random[F].map { sid =>
+        config.create[B].map { c =>
+          StepModel(sid, breakpoint, c)
+        }
+      }
   }
 
   object Create {
 
     def stopBefore[A](s: CreateStepConfig[A]): Create[A] =
-      Create(None, Breakpoint.enabled, s)
+      Create(Breakpoint.enabled, s)
 
     def continueTo[A](s: CreateStepConfig[A]): Create[A] =
-      Create(None, Breakpoint.disabled, s)
+      Create(Breakpoint.disabled, s)
 
     implicit def EqCreate[A: Eq]: Eq[Create[A]] =
       Eq.by { a => (
-        a.id,
         a.breakpoint,
         a.config
       )}

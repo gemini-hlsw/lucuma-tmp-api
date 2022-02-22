@@ -22,3 +22,5 @@ trait Helper {
     Gen.chooseNum(0, 6)
 
 }
+
+object Helper extends Helper

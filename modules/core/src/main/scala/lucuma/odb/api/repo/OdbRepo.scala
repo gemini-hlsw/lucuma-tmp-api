@@ -17,15 +17,11 @@ trait OdbRepo[F[_]] {
 
   def eventService: EventService[F]
 
-  def atom: AtomRepo[F]
-
   def executionEvent: ExecutionEventRepo[F]
 
   def observation: ObservationRepo[F]
 
   def program: ProgramRepo[F]
-
-  def step: StepRepo[F]
 
   def target: TargetRepo[F]
 
@@ -54,9 +50,6 @@ object OdbRepo {
       override def eventService: EventService[F] =
         s
 
-      override def atom: AtomRepo[F] =
-        AtomRepo.create(r)
-
       override def executionEvent: ExecutionEventRepo[F] =
         ExecutionEventRepo.create(r)
 
@@ -65,9 +58,6 @@ object OdbRepo {
 
       override def program: ProgramRepo[F] =
         ProgramRepo.create(r, s)
-
-      override def step: StepRepo[F] =
-        StepRepo.create[F](r)
 
       override def target: TargetRepo[F] =
         TargetRepo.create[F](r, s)

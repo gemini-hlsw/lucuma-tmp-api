@@ -26,7 +26,7 @@ object TargetSchema extends TargetScalars {
   import context._
 
   implicit val TargetIdType: ScalarType[Target.Id] =
-    ObjectIdSchema.idType[Target.Id]("TargetId")
+    ObjectIdSchema.gidType[Target.Id]("TargetId")
 
   val ArgumentTargetId: Argument[Target.Id] =
     Argument(

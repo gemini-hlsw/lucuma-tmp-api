@@ -17,7 +17,7 @@ trait ArbFiniteDurationModel {
   import ArbEnumerated._
   import GenNumericUnitsInput._
 
-  private[this] val c_µs = 1000L
+  private[this] val c_µs = 1L
   private[this] val c_ms = c_µs * 1000L
   private[this] val c_s  = c_ms * 1000L
   private[this] val c_m  = c_s  * 60L
@@ -32,10 +32,9 @@ trait ArbFiniteDurationModel {
     } yield BigDecimal(h) + BigDecimal(f)/1000
   }
 
-  private[this] val nanoseconds: Gen[Long] =
+  private[this] val microseconds: Gen[Long]       =
     Gen.chooseNum[Long](-Long.MaxValue, Long.MaxValue)
 
-  private[this] val microseconds: Gen[BigDecimal] = genBigDecimal(c_µs)
   private[this] val milliseconds: Gen[BigDecimal] = genBigDecimal(c_ms)
   private[this] val seconds: Gen[BigDecimal]      = genBigDecimal(c_s)
   private[this] val minutes: Gen[BigDecimal]      = genBigDecimal(c_m)
@@ -44,7 +43,6 @@ trait ArbFiniteDurationModel {
 
   val genFiniteDurationModelInputFromLong: Gen[Input] =
     Gen.oneOf(
-      genLongInput(nanoseconds,  Units.nanoseconds),
       genLongInput(microseconds, Units.microseconds),
       genLongInput(milliseconds, Units.milliseconds),
       genLongInput(seconds,      Units.seconds),
@@ -55,8 +53,7 @@ trait ArbFiniteDurationModel {
 
   val genFiniteDurationModelInputFromDecimal: Gen[Input] =
     Gen.oneOf(
-      genLongDecimalInput(nanoseconds,  Units.nanoseconds),
-      genDecimalInput(microseconds, Units.microseconds),
+      genLongDecimalInput(microseconds, Units.microseconds),
       genDecimalInput(milliseconds, Units.milliseconds),
       genDecimalInput(seconds,      Units.seconds),
       genDecimalInput(minutes,      Units.minutes),
@@ -68,7 +65,6 @@ trait ArbFiniteDurationModel {
   implicit val arbFiniteDurationModelInput: Arbitrary[FiniteDurationModel.Input] =
     Arbitrary {
       Gen.oneOf(
-        nanoseconds.map(Input.fromNanoseconds),
         microseconds.map(Input.fromMicroseconds),
         milliseconds.map(Input.fromMilliseconds),
         seconds.map(Input.fromSeconds),
@@ -82,8 +78,7 @@ trait ArbFiniteDurationModel {
 
   implicit val cogFiniteDurationModelInput: Cogen[FiniteDurationModel.Input] =
     Cogen[(
-      Option[Long],        // ns
-      Option[BigDecimal],  // µs
+      Option[Long],        // µs
       Option[BigDecimal],  // ms
       Option[BigDecimal],  // s
       Option[BigDecimal],  // m
@@ -93,7 +88,6 @@ trait ArbFiniteDurationModel {
       Option[DecimalInput[Units]]
     )].contramap { in =>
       (
-        in.nanoseconds,
         in.microseconds,
         in.milliseconds,
         in.seconds,

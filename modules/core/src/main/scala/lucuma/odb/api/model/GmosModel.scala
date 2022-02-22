@@ -140,52 +140,6 @@ object GmosModel {
   }
 
 
-
-  /*
-
-  Not clear how to do an editor for a hierarchy.  For example if the config has
-  no NodAndShuffle to edit then what do you do?
-
-  final case class EditCommonStatic(
-    detector:      Input[GmosDetector]                                   = Input.ignore,
-    mosPreImaging: Input[MosPreImaging]                                  = Input.ignore,
-    nodAndShuffle: Input[Either[CreateNodAndShuffle, EditNodAndShuffle]] = Input.ignore
-  ) {
-
-    val editor: ValidatedInput[State[CommonStatic, Unit]] =
-      (detector     .validateIsNotNull("detector"),
-       mosPreImaging.validateIsNotNull("mosPreImaging"),
-       nodAndShuffle.validateNullable {
-         _.fold(
-           _.create.map(_.asLeft[State[NodAndShuffle, Unit]]), // ValidatedInput[Either[NodAndShuffle, State[NodAndShuffle, Unit]]
-           _.editor.map(_.asRight[NodAndShuffle])              // ValidatedInput[Either[NodAndShuffle, State[NodAndShuffle, Unit]]
-         )
-       }
-      ).mapN { (d, p, e) =>
-        for {
-          _ <- CommonStatic.detector      := d
-          _ <- CommonStatic.mosPreImaging := p
-          _ <- CommonStatic.nodAndShuffle.mod_ { nso => ??? }
-        } yield ()
-      }
-
-  }
-
-  object EditCommonStatic {
-
-    implicit val DecoderEditCommonStatic: Decoder[EditCommonStatic] =
-      deriveDecoder[EditCommonStatic]
-
-    implicit val EqEditCommonStatic: Eq[EditCommonStatic] =
-      Eq.by { e => (
-        e.detector,
-        e.mosPreImaging,
-        e.nodAndShuffle
-      )}
-
-  }
-   */
-
   sealed trait Static[S, D] {
     def mosPreImaging: MosPreImaging
     def nodAndShuffle: Option[NodAndShuffle]
@@ -403,6 +357,38 @@ object GmosModel {
 
   }
 
+  final case class CreateFpu[U](
+    customMask: Option[CreateCustomMask],
+    builtin:    Option[U]
+  ) {
+
+    val create: ValidatedInput[Either[CustomMask, U]] =
+      ValidatedInput.requireOne("fpu",
+        customMask.map(_.create.map(_.asLeft[U])),
+        builtin.map(_.asRight[CustomMask].validNec[InputError])
+      )
+
+  }
+
+  object CreateFpu {
+
+    def customMask[U](m: CreateCustomMask): CreateFpu[U] =
+      CreateFpu(m.some, None)
+
+    def builtin[U](u: U): CreateFpu[U] =
+      CreateFpu(None, u.some)
+
+    implicit def DecoderCreateFpu[U: Decoder]: Decoder[CreateFpu[U]] =
+      deriveDecoder[CreateFpu[U]]
+
+    implicit def EqCreateFpu[U: Eq]: Eq[CreateFpu[U]] =
+      Eq.by { a => (
+        a.customMask,
+        a.builtin
+      )}
+
+  }
+
 
   final case class Grating[D](
     disperser:  D,
@@ -508,26 +494,34 @@ object GmosModel {
 
   }
 
+  sealed trait CreateDynamic[D, L, U] {
 
-  implicit val DecoderNorthFpu: Decoder[Either[CreateCustomMask, GmosNorthFpu]] =
-    Decoder[CreateCustomMask].either(Decoder[GmosNorthFpu])
+    def exposure: FiniteDurationModel.Input
+    def readout:  CreateCcdReadout
+    def dtax:     GmosDtax
+    def roi:      GmosRoi
+    def grating:  Option[CreateGrating[D]]
+    def filter:   Option[L]
+    def fpu:      Option[CreateFpu[U]]
+
+  }
 
   final case class CreateNorthDynamic(
     exposure: FiniteDurationModel.Input,
-    readout:  CreateCcdReadout                               = CreateCcdReadout(),
-    dtax:     GmosDtax                                       = GmosDtax.Zero,
-    roi:      GmosRoi                                        = GmosRoi.FullFrame,
-    grating:  Option[CreateGrating[GmosNorthDisperser]]      = None,
-    filter:   Option[GmosNorthFilter]                        = None,
-    fpu:      Option[Either[CreateCustomMask, GmosNorthFpu]] = None
-  ) {
+    readout:  CreateCcdReadout                          = CreateCcdReadout(),
+    dtax:     GmosDtax                                  = GmosDtax.Zero,
+    roi:      GmosRoi                                   = GmosRoi.FullFrame,
+    grating:  Option[CreateGrating[GmosNorthDisperser]] = None,
+    filter:   Option[GmosNorthFilter]                   = None,
+    fpu:      Option[CreateFpu[GmosNorthFpu]]           = None
+  ) extends CreateDynamic[GmosNorthDisperser, GmosNorthFilter, GmosNorthFpu] {
 
     val create: ValidatedInput[NorthDynamic] =
       (
         exposure.toFiniteDuration("exposure"),
         readout.create,
         grating.traverse(_.create),
-        fpu.traverse(_.fold(_.create.map(_.asLeft[GmosNorthFpu]), _.asRight[CustomMask].validNec[InputError]))
+        fpu.traverse(_.create)
       ).mapN { (e, r, g, u) => NorthDynamic(e, r, dtax, roi, g, filter, u) }
 
   }
@@ -558,20 +552,20 @@ object GmosModel {
 
   final case class CreateSouthDynamic(
     exposure: FiniteDurationModel.Input,
-    readout:  CreateCcdReadout                               = CreateCcdReadout(),
-    dtax:     GmosDtax                                       = GmosDtax.Zero,
-    roi:      GmosRoi                                        = GmosRoi.FullFrame,
-    grating:  Option[CreateGrating[GmosSouthDisperser]]      = None,
-    filter:   Option[GmosSouthFilter]                        = None,
-    fpu:      Option[Either[CreateCustomMask, GmosSouthFpu]] = None
-  ) {
+    readout:  CreateCcdReadout                          = CreateCcdReadout(),
+    dtax:     GmosDtax                                  = GmosDtax.Zero,
+    roi:      GmosRoi                                   = GmosRoi.FullFrame,
+    grating:  Option[CreateGrating[GmosSouthDisperser]] = None,
+    filter:   Option[GmosSouthFilter]                   = None,
+    fpu:      Option[CreateFpu[GmosSouthFpu]]           = None
+  ) extends CreateDynamic[GmosSouthDisperser, GmosSouthFilter, GmosSouthFpu] {
 
     val create: ValidatedInput[SouthDynamic] =
       (
         exposure.toFiniteDuration("exposure"),
         readout.create,
         grating.traverse(_.create),
-        fpu.traverse(_.fold(_.create.map(_.asLeft[GmosSouthFpu]), _.asRight[CustomMask].validNec[InputError]))
+        fpu.traverse(_.create)
       ).mapN { (e, r, g, u) => SouthDynamic(e, r, dtax, roi, g, filter, u) }
 
   }
@@ -592,7 +586,7 @@ object GmosModel {
     val filter: Lens[CreateSouthDynamic, Option[GmosSouthFilter]] =
       GenLens[CreateSouthDynamic](_.filter)
 
-    val fpu: Lens[CreateSouthDynamic, Option[Either[CreateCustomMask, GmosSouthFpu]]] =
+    val fpu: Lens[CreateSouthDynamic, Option[CreateFpu[GmosSouthFpu]]] =
       GenLens[CreateSouthDynamic](_.fpu)
 
     implicit def EqCreateSouthDynamic: Eq[CreateSouthDynamic] =

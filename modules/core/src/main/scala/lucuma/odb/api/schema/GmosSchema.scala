@@ -3,9 +3,11 @@
 
 package lucuma.odb.api.schema
 
+import cats.syntax.option._
 import lucuma.core.`enum`._
 import lucuma.core.util.Enumerated
 import lucuma.odb.api.model.GmosModel
+import sangria.marshalling.circe._
 import sangria.schema._
 
 import scala.reflect.ClassTag
@@ -86,7 +88,7 @@ object GmosSchema {
 
   implicit val EnumTypeGmosNorthFpu: EnumType[GmosNorthFpu] =
     EnumType.fromEnumerated(
-      "GmosNorthFpu",
+      "GmosNorthBuiltinFpu",
       "GMOS North FPU"
     )
 
@@ -126,7 +128,7 @@ object GmosSchema {
 
   implicit val EnumTypeGmosSouthFpu: EnumType[GmosSouthFpu] =
     EnumType.fromEnumerated(
-      "GmosSouthFpu",
+      "GmosSouthBuiltinFpu",
       "GMOS South FPU"
     )
 
@@ -190,15 +192,29 @@ object GmosSchema {
       )
     )
 
+  val InputObjectTypeGmosNodAndShuffleInput: InputObjectType[GmosModel.CreateNodAndShuffle] =
+
+    InputObjectType[GmosModel.CreateNodAndShuffle](
+      "GmosNodAndShuffleInput",
+      "Creation input parameters for GMOS nod and shuffle",
+      List(
+        InputField("posA", InputObjectTypeOffsetInput, "Offset position A"),
+        InputField("posB", InputObjectTypeOffsetInput, "Offset position B"),
+        InputField("eOffset", EnumTypeGmosEOffsetting, "Electronic offsetting"),
+        InputField("shuffleOffset", IntType, "Shuffle offset"),
+        InputField("shuffleCycles", IntType, "Suffle cycles")
+      )
+    )
+
   private def gmos(s: Site): Instrument =
     s match {
       case Site.GN => Instrument.GmosNorth
       case Site.GS => Instrument.GmosSouth
     }
 
-  def GmosStaticConfig[F[_], S: EnumType, D: EnumType, G <: GmosModel.Static[S, D]: ClassTag](
+  def GmosStaticConfig[S: EnumType, D: EnumType, G <: GmosModel.Static[S, D]: ClassTag](
     site: Site
-  ): ObjectType[OdbCtx[F], G] =
+  ): ObjectType[Any, G] =
     ObjectType(
       name        = s"${gmos(site).tag}Static",
       description = "Unchanging (over the course of the sequence) configuration values",
@@ -235,11 +251,36 @@ object GmosSchema {
       )
     )
 
-  def GmosNorthStaticConfigType[F[_]]: ObjectType[OdbCtx[F], GmosModel.NorthStatic] =
-    GmosStaticConfig[F, GmosNorthStageMode, GmosNorthDetector, GmosModel.NorthStatic](Site.GN)
+  val GmosNorthStaticConfigType: ObjectType[Any, GmosModel.NorthStatic] =
+    GmosStaticConfig[GmosNorthStageMode, GmosNorthDetector, GmosModel.NorthStatic](Site.GN)
 
-  def GmosSouthStaticConfigType[F[_]]: ObjectType[OdbCtx[F], GmosModel.SouthStatic] =
-    GmosStaticConfig[F, GmosSouthStageMode, GmosSouthDetector, GmosModel.SouthStatic](Site.GS)
+  val GmosSouthStaticConfigType: ObjectType[Any, GmosModel.SouthStatic] =
+    GmosStaticConfig[GmosSouthStageMode, GmosSouthDetector, GmosModel.SouthStatic](Site.GS)
+
+
+  val InputObjectGmosNorthStaticInput: InputObjectType[GmosModel.CreateNorthStatic] =
+    InputObjectType[GmosModel.CreateNorthStatic](
+      "GmosNorthStaticInput",
+      "GMOS North static configuration input parameters",
+      List(
+        InputField("detector", EnumTypeGmosNorthDetector, "GMOS North Detector option", GmosNorthDetector.Hamamatsu: GmosNorthDetector),
+        InputField("mosPreImaging", EnumTypeMosPreImaging, "Whether this is a MOS pre-imaging observation", MosPreImaging.IsNotMosPreImaging: MosPreImaging),
+        InputField("nodAndShuffle", OptionInputType(InputObjectTypeGmosNodAndShuffleInput), "GMOS Nod And Shuffle configuration"),
+        InputField("stageMode", EnumTypeGmosNorthStageMode, "GMOS North Stage Mode", GmosNorthStageMode.FollowXy: GmosNorthStageMode)
+      )
+    )
+
+  val InputObjectGmosSouthStaticInput: InputObjectType[GmosModel.CreateSouthStatic] =
+    InputObjectType[GmosModel.CreateSouthStatic](
+      "GmosSouthStaticInput",
+      "GMOS South static configuration input parameters",
+      List(
+        InputField("detector", EnumTypeGmosNorthDetector, "GMOS North Detector option", GmosSouthDetector.Hamamatsu: GmosSouthDetector),
+        InputField("mosPreImaging", EnumTypeMosPreImaging, "Whether this is a MOS pre-imaging observation", MosPreImaging.IsNotMosPreImaging: MosPreImaging),
+        InputField("nodAndShuffle", OptionInputType(InputObjectTypeGmosNodAndShuffleInput), "GMOS Nod And Shuffle configuration"),
+        InputField("stageMode", EnumTypeGmosSouthStageMode, "GMOS North Stage Mode", GmosSouthStageMode.FollowXy: GmosSouthStageMode)
+      )
+    )
 
   val GmosCcdReadoutType: ObjectType[Any, GmosModel.CcdReadout] =
     ObjectType(
@@ -284,27 +325,17 @@ object GmosSchema {
       )
     )
 
-  val GmosCustomMaskType: ObjectType[Any, GmosModel.CustomMask] =
-    ObjectType(
-      name        = "GmosCustomMask",
-      description = "GMOS Custom Mask",
-      fieldsFn    = () => fields(
+  val InputObjectTypeGmosCcdReadoutInput: InputObjectType[GmosModel.CreateCcdReadout] =
 
-        // TODO: I think these are supposed to be constrained to a pattern?
-        Field(
-          name        = "filename",
-          fieldType   = StringType,
-          description = Some("Custom Mask Filename"),
-          resolve     = _.value.filename.value
-        ),
-
-        Field(
-          name        = "slitWidth",
-          fieldType   = EnumTypeGmosCustomSlitWidth,
-          description = Some("Custom Slit Width"),
-          resolve     = _.value.slitWidth
-        )
-
+    InputObjectType[GmosModel.CreateCcdReadout](
+      "GmosCcdReadoutInput",
+      "GMOS CCD readout input parameters",
+      List(
+        InputField("xBin", EnumTypeGmosXBinning, "X Binning", GmosXBinning.One: GmosXBinning),
+        InputField("yBin", EnumTypeGmosYBinning, "Y Binning", GmosYBinning.One: GmosYBinning),
+        InputField("ampCount", EnumTypeGmosAmpCount, "Amp Count", GmosAmpCount.Twelve: GmosAmpCount),
+        InputField("ampGain",  EnumTypeGmosAmpGain,  "Amp Gain",  GmosAmpGain.Low: GmosAmpGain),
+        InputField("ampRead",  EnumTypeGmosAmpReadMode, "Amp Read Mode", GmosAmpReadMode.Slow: GmosAmpReadMode)
       )
     )
 
@@ -340,40 +371,96 @@ object GmosSchema {
       )
     )
 
-  def GmosBuiltinFpuType[U: EnumType: ClassTag](
-    site: Site
-  ): ObjectType[Any, U] =
+  def InputObjectTypeGratingInput[D: EnumType](
+    site: Site,
+  ): InputObjectType[GmosModel.CreateGrating[D]] =
+
+    InputObjectType[GmosModel.CreateGrating[D]](
+      s"Gmos${gmos(site).tag}GratingInput",
+      s"GMOS ${gmos(site).longName} grating input parameters",
+      List(
+        InputField("disperser", implicitly[EnumType[D]], s"Gmos${gmos(site).tag} disperser"),
+        InputField("order", EnumTypeGmosDisperserOrder, "GMOS disperser order"),
+        InputField("wavelength", InputWavelength, "Grating wavelength")
+      )
+    )
+
+  val GmosCustomMaskType: ObjectType[Any, GmosModel.CustomMask] =
     ObjectType(
-      name        = s"${gmos(site).tag}BuiltinFpu",
-      description = s"${gmos(site).longName} builtin-in FPU",
+      name        = "GmosCustomMask",
+      description = "GMOS Custom Mask",
+      fieldsFn    = () => fields(
+
+        // TODO: I think these are supposed to be constrained to a pattern?
+        Field(
+          name        = "filename",
+          fieldType   = StringType,
+          description = Some("Custom Mask Filename"),
+          resolve     = _.value.filename.value
+        ),
+
+        Field(
+          name        = "slitWidth",
+          fieldType   = EnumTypeGmosCustomSlitWidth,
+          description = Some("Custom Slit Width"),
+          resolve     = _.value.slitWidth
+        )
+
+      )
+    )
+
+  val InputObjectTypeGmosCustomMask: InputObjectType[GmosModel.CreateCustomMask] =
+
+    InputObjectType[GmosModel.CreateCustomMask](
+      "GmosCustomMaskInput",
+      "GMOS custom mask input parameters",
+      List(
+        InputField("filename", StringType, "Custom mask file name"),
+        InputField("slitWidth", EnumTypeGmosCustomSlitWidth, "Custom mask slit width")
+      )
+    )
+
+  def GmosFpuType[U: EnumType](
+    site: Site
+  ): ObjectType[Any, Either[GmosModel.CustomMask, U]] =
+    ObjectType(
+      name        = s"${gmos(site).tag}Fpu",
+      description = s"${gmos(site).longName} FPU option, either builtin or custom mask",
       fieldsFn    = () => fields(
 
         Field(
+          name        = "customMask",
+          fieldType   = OptionType(GmosCustomMaskType),
+          description = "The custom mask, if in use".some,
+          resolve     = _.value.swap.toOption
+        ),
+
+        Field(
           name        = "builtin",
-          fieldType   = implicitly[EnumType[U]],
-          description = Some(s"${gmos(site).longName} builtin-fpu"),
-          resolve     = _.value
+          fieldType   = OptionType(implicitly[EnumType[U]]),
+          description = s"${gmos(site).longName} builtin FPU, if in use".some,
+          resolve     = _.value.toOption
         )
       )
+
     )
 
-  def GmosFpuUnionType[F[_], U: EnumType: ClassTag](
-    site: Site
-  ): OutputType[Either[GmosModel.CustomMask, U]] =
-    UnionType(
-      name        = s"${gmos(site).tag}FpuUnion",
-      description = Some("Either custom mask or builtin-FPU"),
-      types       = List(GmosCustomMaskType, GmosBuiltinFpuType[U](site))
-    ).mapValue[Either[GmosModel.CustomMask, U]](
-      _.fold(
-        cm => cm: Any,
-        u  =>  u: Any
+  def InputObjectFpuInput[U: EnumType](
+    site: Site,
+  ): InputObjectType[GmosModel.CreateFpu[U]] =
+
+    InputObjectType[GmosModel.CreateFpu[U]](
+      s"Gmos${gmos(site).tag}FpuInput",
+      s"GMOS ${gmos(site).longName} FPU input parameters (choose custom or builtin).",
+      List(
+        InputField("customMask", InputObjectTypeGmosCustomMask, "Custom mask FPU option"),
+        InputField("builtin", implicitly[EnumType[U]], "Builtin FPU option")
       )
     )
 
-  def GmosDynamicType[F[_], D: EnumType, L: EnumType, U: EnumType: ClassTag, G <: GmosModel.Dynamic[D, L, U] : ClassTag](
+  def GmosDynamicType[D: EnumType, L: EnumType, U: EnumType, G <: GmosModel.Dynamic[D, L, U] : ClassTag](
     site: Site
-  ): ObjectType[OdbCtx[F], G] =
+  ): ObjectType[Any, G] =
     ObjectType(
       name        = s"${gmos(site).tag}Dynamic",
       description = s"${gmos(site).longName} dynamic step configuration",
@@ -423,17 +510,43 @@ object GmosSchema {
 
         Field(
           name        = "fpu",
-          fieldType   = OptionType(GmosFpuUnionType[F, U](site)),
+          fieldType   = OptionType(GmosFpuType[U](site)),
           description = Some(s"${gmos(site).longName} FPU"),
           resolve     = _.value.fpu
         )
       )
     )
 
-  def GmosNorthDynamicType[F[_]]: ObjectType[OdbCtx[F], GmosModel.NorthDynamic] =
-    GmosDynamicType[F, GmosNorthDisperser, GmosNorthFilter, GmosNorthFpu, GmosModel.NorthDynamic](Site.GN)
+  val GmosNorthDynamicType: ObjectType[Any, GmosModel.NorthDynamic] =
+    GmosDynamicType[GmosNorthDisperser, GmosNorthFilter, GmosNorthFpu, GmosModel.NorthDynamic](Site.GN)
 
-  def GmosSouthDynamicType[F[_]]: ObjectType[OdbCtx[F], GmosModel.SouthDynamic] =
-    GmosDynamicType[F, GmosSouthDisperser, GmosSouthFilter, GmosSouthFpu, GmosModel.SouthDynamic](Site.GS)
+  val GmosSouthDynamicType: ObjectType[Any, GmosModel.SouthDynamic] =
+    GmosDynamicType[GmosSouthDisperser, GmosSouthFilter, GmosSouthFpu, GmosModel.SouthDynamic](Site.GS)
+
+  def InputObjectTypeGmosDynamicInput[D: EnumType, L: EnumType, U: EnumType, G <: GmosModel.CreateDynamic[D, L, U]](
+    site: Site
+  ): InputObjectType[G] =
+
+    InputObjectType[G](
+      s"${gmos(site).tag.capitalize}DynamicInput",
+      s"${gmos(site).longName} instrument configuration input",
+      List(
+        InputField("exposure", InputObjectTypeDuration,            "Exposure time"),
+        InputField("readout",  InputObjectTypeGmosCcdReadoutInput, "GMOS CCD readout"),
+        InputField("dtax",     EnumTypeGmosDtax,                   "GMOS detector x offset"),
+        InputField("roi",      EnumTypeGmosRoi,                    "GMOS region of interest"),
+        InputField("grating",  OptionInputType(InputObjectTypeGratingInput[D](site)), s"${gmos(site).longName} grating"),
+        InputField("filter",   OptionInputType(implicitly[EnumType[L]]),              s"${gmos(site).longName} filter"),
+        InputField("fpu",      OptionInputType(InputObjectFpuInput[U](site)),         s"${gmos(site).longName} FPU")
+      )
+    )
+
+  val InputObjectTypeGmosNorthDynamic: InputObjectType[GmosModel.CreateNorthDynamic] =
+    InputObjectTypeGmosDynamicInput[GmosNorthDisperser, GmosNorthFilter, GmosNorthFpu, GmosModel.CreateNorthDynamic](Site.GN)
+
+  val InputObjectTypeGmosSouthDynamic: InputObjectType[GmosModel.CreateSouthDynamic] =
+    InputObjectTypeGmosDynamicInput[GmosSouthDisperser, GmosSouthFilter, GmosSouthFpu, GmosModel.CreateSouthDynamic](Site.GS)
+
+
 
 }

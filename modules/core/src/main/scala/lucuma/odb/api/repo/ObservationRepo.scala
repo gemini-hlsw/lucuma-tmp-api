@@ -34,7 +34,8 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
   ): F[ResultPage[ObservationModel]]
 
   def selectManualConfig(
-    oid: Observation.Id
+    oid:            Observation.Id,
+    includeDeleted: Boolean                = false
   ): F[Option[InstrumentConfigModel]]
 
   def insert(input: Create): F[ObservationModel]
@@ -128,36 +129,26 @@ object ObservationRepo {
         selectPageFiltered(count, afterGid, includeDeleted) { _.programId === pid }
 
       override def selectManualConfig(
-        oid: Observation.Id
-      ): F[Option[InstrumentConfigModel]] = {
-
-        val deref =
-          for {
-            o <- Database.observation.lookup(oid)
-            c  = o.config
-            m <- c.flatTraverse(_.dereference)
-          } yield m
-
-        databaseRef.get.flatMap { db =>
-          deref.runA(db).liftTo[F]
-        }
-
-      }
+        oid:            Observation.Id,
+        includeDeleted: Boolean
+      ): F[Option[InstrumentConfigModel]] =
+        select(oid, includeDeleted).map(_.flatMap(_.config))
 
       override def insert(newObs: Create): F[ObservationModel] = {
 
         // Create the observation
         def create(s: PlannedTimeSummaryModel): F[ObservationModel] =
           EitherT(
-            databaseRef.modify { db =>
-              newObs
-                .create(s)
-                .run(db)
-                .fold(
-                  err => (db, InputError.Exception(err).asLeft),
-                  _.map(_.asRight)
-                )
-            }
+            for {
+              st <- newObs.create[F](s)
+              o  <- databaseRef.modify { db =>
+                st.run(db)
+                  .fold(
+                    err => (db, InputError.Exception(err).asLeft),
+                    _.map(_.asRight)
+                  )
+              }
+            } yield o
           ).rethrowT
 
         for {

@@ -337,6 +337,26 @@ trait ArbGmosModel {
       )
     }
 
+
+  implicit def arbCreateFpu[U: Arbitrary]: Arbitrary[GmosModel.CreateFpu[U]] =
+    Arbitrary {
+      Gen.oneOf(
+        arbitrary[U].map(GmosModel.CreateFpu.builtin),
+        arbitrary[GmosModel.CreateCustomMask].map(GmosModel.CreateFpu.customMask[U])
+      )
+    }
+
+  implicit def cogCreateFpu[U: Cogen]: Cogen[GmosModel.CreateFpu[U]] =
+    Cogen[(
+      Option[GmosModel.CreateCustomMask],
+      Option[U]
+    )].contramap { in =>
+      (
+        in.customMask,
+        in.builtin
+      )
+    }
+
   implicit val arbNorthDynamic: Arbitrary[GmosModel.NorthDynamic] =
     Arbitrary {
       for {
@@ -380,7 +400,7 @@ trait ArbGmosModel {
         r <- arbitrary[GmosRoi]
         g <- arbitrary[Option[GmosModel.CreateGrating[GmosNorthDisperser]]]
         f <- arbitrary[Option[GmosNorthFilter]]
-        u <- arbitrary[Option[Either[GmosModel.CreateCustomMask, GmosNorthFpu]]]
+        u <- arbitrary[Option[GmosModel.CreateFpu[GmosNorthFpu]]]
       } yield GmosModel.CreateNorthDynamic(e, c, x, r, g, f, u)
     }
 
@@ -392,7 +412,7 @@ trait ArbGmosModel {
       GmosRoi,
       Option[GmosModel.CreateGrating[GmosNorthDisperser]],
       Option[GmosNorthFilter],
-      Option[Either[GmosModel.CreateCustomMask, GmosNorthFpu]]
+      Option[GmosModel.CreateFpu[GmosNorthFpu]]
     )].contramap { in =>
       (
         in.exposure,
@@ -448,7 +468,7 @@ trait ArbGmosModel {
         r <- arbitrary[GmosRoi]
         g <- arbitrary[Option[GmosModel.CreateGrating[GmosSouthDisperser]]]
         f <- arbitrary[Option[GmosSouthFilter]]
-        u <- arbitrary[Option[Either[GmosModel.CreateCustomMask, GmosSouthFpu]]]
+        u <- arbitrary[Option[GmosModel.CreateFpu[GmosSouthFpu]]]
       } yield GmosModel.CreateSouthDynamic(e, c, x, r, g, f, u)
     }
 
@@ -460,7 +480,7 @@ trait ArbGmosModel {
       GmosRoi,
       Option[GmosModel.CreateGrating[GmosSouthDisperser]],
       Option[GmosSouthFilter],
-      Option[Either[GmosModel.CreateCustomMask, GmosSouthFpu]]
+      Option[GmosModel.CreateFpu[GmosSouthFpu]]
     )].contramap { in =>
       (
         in.exposure,

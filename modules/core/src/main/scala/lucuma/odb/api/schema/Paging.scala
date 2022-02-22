@@ -5,8 +5,7 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.repo.ResultPage
 import lucuma.core.util.Gid
-import lucuma.odb.api.model.{InputError, TopLevelModel}
-
+import lucuma.odb.api.model.{InputError, TopLevelModel, Uid}
 import cats.{ApplicativeError, Eq, Order}
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
@@ -53,6 +52,9 @@ object Paging {
 
     def gid[A: Gid]: Prism[Cursor, A] =
       Prism.apply[Cursor, A](c => Gid[A].fromString.getOption(c.toString))(a => new Cursor(Gid[A].show(a)))
+
+    def uid[A: Uid]: Prism[Cursor, A] =
+      Prism.apply[Cursor, A](c => Uid[A].fromString.getOption(c.toString))(a => new Cursor(Uid[A].show(a)))
 
   }
 

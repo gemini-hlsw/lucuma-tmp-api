@@ -9,7 +9,6 @@ import cats.syntax.all._
 import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.Observation
 import lucuma.odb.api.model.ObservationModel
-import lucuma.odb.api.model.syntax.eitherinput._
 import lucuma.odb.api.schema.TargetSchema.TargetEnvironmentType
 import org.typelevel.log4cats.Logger
 import sangria.schema._
@@ -31,7 +30,7 @@ object ObservationSchema {
   import syntax.`enum`._
 
   implicit val ObservationIdType: ScalarType[Observation.Id] =
-    ObjectIdSchema.idType[Observation.Id](name = "ObservationId")
+    ObjectIdSchema.gidType[Observation.Id](name = "ObservationId")
 
   implicit val ObsStatusType: EnumType[ObsStatus] =
     EnumType.fromEnumerated(
@@ -182,13 +181,7 @@ object ObservationSchema {
           name        = "manualConfig",
           fieldType   = OptionType(InstrumentConfigSchema.ConfigType[F]),
           description = Some("Manual instrument configuration"),
-          resolve     = c => c.unsafeToFuture {
-            c.ctx.odbRepo.database.get.flatMap { db =>
-              c.value.config.traverse { icm =>
-                icm.dereference.runA(db)
-              }.map(_.flatten).liftTo[F]
-            }
-          }
+          resolve     = _.value.config
         ),
 
         Field(

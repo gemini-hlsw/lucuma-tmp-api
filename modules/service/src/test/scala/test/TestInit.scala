@@ -310,7 +310,7 @@ object TestInit {
         _ <- step.instrumentConfig.andThen(readout).andThen(xBin) := GmosXBinning.One
         _ <- step.instrumentConfig.andThen(readout).andThen(yBin) := GmosYBinning.One
         _ <- step.instrumentConfig.andThen(roi)                   := GmosRoi.CentralStamp
-        _ <- step.instrumentConfig.andThen(fpu)                   := GmosSouthFpu.LongSlit_1_00.asRight.some
+        _ <- step.instrumentConfig.andThen(fpu)                   := GmosModel.CreateFpu.builtin[GmosSouthFpu](GmosSouthFpu.LongSlit_1_00).some
       } yield ()
     }
 
@@ -345,7 +345,7 @@ object TestInit {
         _ <- roi                      := GmosRoi.CentralSpectrum
         _ <- grating                  := GmosModel.CreateGrating[GmosSouthDisperser](GmosSouthDisperser.B600_G5323, GmosDisperserOrder.One, WavelengthModel.Input.fromNanometers(520.0)).some
         _ <- filter                   := Option.empty[GmosSouthFilter]
-        _ <- fpu                      := GmosSouthFpu.LongSlit_1_00.asRight.some
+        _ <- fpu                      := GmosModel.CreateFpu.builtin[GmosSouthFpu](GmosSouthFpu.LongSlit_1_00).some
       } yield ()
     }
 
@@ -392,7 +392,7 @@ object TestInit {
       ).map(StepModel.Create.continueTo)
        .grouped(2) // pairs flat and science steps
        .toList
-       .map(AtomModel.Create(None, _))
+       .map(AtomModel.Create(_))
     )
 
   def obs(
