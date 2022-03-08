@@ -4,11 +4,11 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.ProgramModel
-import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.inputtype._
-import cats.MonadError
+import cats.effect.Async
 import cats.effect.std.Dispatcher
 import lucuma.odb.api.schema.ProgramSchema.ProgramType
+import org.typelevel.log4cats.Logger
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -46,7 +46,7 @@ trait ProgramMutation {
       "Edit program"
     )
 
-  def create[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def create[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name      = "createProgram",
       fieldType = OptionType(ProgramType[F]),
@@ -54,7 +54,7 @@ trait ProgramMutation {
       resolve   = c => c.program(_.insert(c.arg(ArgumentProgramCreate)))
     )
 
-  def update[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def update[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name      = "updateProgram",
       fieldType = ProgramType[F],
@@ -62,7 +62,7 @@ trait ProgramMutation {
       resolve   = c => c.program(_.edit(c.arg(ArgumentProgramEdit)))
     )
 
-  def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
+  def allFields[F[_]: Dispatcher: Async: Logger]: List[Field[OdbCtx[F], Unit]] =
     List(
       create,
       update

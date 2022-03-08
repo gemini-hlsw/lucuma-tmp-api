@@ -4,13 +4,15 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.{ConstraintSetModel, InputError, ObservationModel, ScienceRequirements}
-import lucuma.odb.api.repo.{OdbRepo, ResultPage}
+import lucuma.odb.api.repo.ResultPage
 import cats.MonadError
+import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import lucuma.core.model.{Observation, Target}
 import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
 import lucuma.odb.api.schema.TargetSchema.TargetEnvironmentType
+import org.typelevel.log4cats.Logger
 import sangria.schema._
 
 trait ObservationQuery {
@@ -24,7 +26,7 @@ trait ObservationQuery {
   import ScienceRequirementsSchema.ScienceRequirementsType
   import TargetSchema.TargetType
 
-  def observations[F[_]: Dispatcher](implicit E: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def observations[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "observations",
       fieldType   = ObservationConnectionType[F],
@@ -40,22 +42,22 @@ trait ObservationQuery {
         unsafeSelectTopLevelPageFuture(c.pagingObservationId) { gid =>
           (c.arg(OptionalListObservationIdArgument), c.arg(OptionalProgramIdArgument)) match {
             case (Some(_), Some(_)) =>
-              E.raiseError[ResultPage[ObservationModel]](
+              MonadError[F, Throwable].raiseError[ResultPage[ObservationModel]](
                 InputError.fromMessage(
                   s"Specify only one of `${OptionalListObservationIdArgument.name}` or `${OptionalProgramIdArgument.name}`"
                 ).toException
               )
             case (Some(oids), None) =>
-              c.ctx.observation.selectPageForObservations(oids.toSet, c.pagingFirst, gid, c.includeDeleted)
+              c.ctx.odbRepo.observation.selectPageForObservations(oids.toSet, c.pagingFirst, gid, c.includeDeleted)
             case (None, Some(pid))  =>
-              c.ctx.observation.selectPageForProgram(pid, c.pagingFirst, gid, c.includeDeleted)
+              c.ctx.odbRepo.observation.selectPageForProgram(pid, c.pagingFirst, gid, c.includeDeleted)
             case (None, None)       =>
-              c.ctx.observation.selectPage(c.pagingFirst, gid, c.includeDeleted)
+              c.ctx.odbRepo.observation.selectPage(c.pagingFirst, gid, c.includeDeleted)
           }
         }
     )
 
-  def forId[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def forId[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "observation",
       fieldType   = OptionType(ObservationType[F]),
@@ -64,7 +66,7 @@ trait ObservationQuery {
       resolve     = c => c.observation(_.select(c.observationId, c.includeDeleted))
     )
 
-  def groupByTarget[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def groupByTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
 
     ObservationGroupSchema.groupingField[F, TargetModel, Target.Id](
       "target",
@@ -75,7 +77,7 @@ trait ObservationQuery {
       _.value.id
     )
 
-  def groupByAsterism[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def groupByAsterism[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
 
     ObservationGroupSchema.groupingField[F, Seq[TargetModel], Observation.Id](
       "asterism",
@@ -86,7 +88,7 @@ trait ObservationQuery {
       _.observationIds.head
     )
 
-  def groupByTargetEnvironment[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def groupByTargetEnvironment[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
 
     ObservationGroupSchema.groupingField[F, TargetEnvironmentModel, Observation.Id](
       "targetEnvironment",
@@ -97,18 +99,18 @@ trait ObservationQuery {
       _.observationIds.head
     )
 
-  def groupByConstraintSet[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def groupByConstraintSet[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
 
     ObservationGroupSchema.groupingField[F, ConstraintSetModel, Observation.Id](
       "constraintSet",
       "Observations grouped by commonly held constraints",
-      ConstraintSetType[F],
+      ConstraintSetType,
       (repo, pid, includeDeleted) => repo.groupByConstraintSet(pid, includeDeleted),
       _.pagingObservationId,
       _.observationIds.head
     )
 
-  def groupByScienceRequirements[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def groupByScienceRequirements[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
 
     ObservationGroupSchema.groupingField[F, ScienceRequirements, Observation.Id](
       "scienceRequirements",
@@ -119,7 +121,7 @@ trait ObservationQuery {
       _.observationIds.head
     )
 
-  def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
+  def allFields[F[_]: Dispatcher: Async: Logger]: List[Field[OdbCtx[F], Unit]] =
     List(
       observations,
       forId,

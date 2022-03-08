@@ -6,11 +6,11 @@ package arb
 
 import lucuma.core.arb.ArbTime
 import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target}
-import lucuma.odb.api.model.{AtomModel, ExecutionEventModel, InstrumentConfigModel, ObservationModel, ProgramModel, StepModel}
+import lucuma.odb.api.model.{AtomModel, Database, EitherInput, ExecutionEventModel, InstrumentConfigModel, ObservationModel, ProgramModel, StepModel, Table}
 import lucuma.core.util.Gid
 import lucuma.odb.api.model.SequenceModel.SequenceType.{Acquisition, Science}
 import lucuma.odb.api.model.arb._
-import cats.data.{Nested, State}
+import cats.data.{Nested, StateT}
 import cats.kernel.instances.order._
 import cats.syntax.all._
 import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
@@ -22,7 +22,7 @@ import java.time.Instant
 
 import scala.collection.immutable.{SortedMap, SortedSet}
 
-trait ArbTables extends SplitSetHelper {
+trait ArbDatabase extends SplitSetHelper {
 
   import ArbExecutionEventModel._
   import ArbInstrumentConfigModel._
@@ -105,63 +105,62 @@ trait ArbTables extends SplitSetHelper {
       (m, pid) => m.copy(programId = pid)
     )
 
-  private def lastGid[I: Gid](ms: SortedMap[I, _]): I =
-    if (ms.isEmpty) Gid[I].minBound else ms.lastKey
+  private def table[K: Gid, V](ms: SortedMap[K, V]): Table[K, V] =
+    Table(if (ms.isEmpty) Gid[K].minBound else ms.lastKey, ms)
 
-  implicit val arbTables: Arbitrary[Tables] =
+  implicit val arbDatabase: Arbitrary[Database] =
     Arbitrary {
       for {
         ps <- mapPrograms
         ts <- mapTargets(ps.keys.toList)
         os <- mapObservations(ps.keys.toList, ts)
-        ids = Ids(
-          0L,
-          lastGid[Atom.Id](SortedMap.empty[Atom.Id, AtomModel[_]]),
-          lastGid[ExecutionEvent.Id](SortedMap.empty[ExecutionEvent.Id, ExecutionEventModel]),
-          lastGid[Observation.Id](os),
-          lastGid[Program.Id](ps),
-          lastGid[Step.Id](SortedMap.empty[Step.Id, StepModel[_]]),
-          lastGid[Target.Id](ts)
-        )
-      } yield Tables(ids, SortedMap.empty, SortedMap.empty, os, ps, SortedMap.empty, ts)
+      } yield Database(
+        0L,
+        table(SortedMap.empty[Atom.Id, AtomModel[Step.Id]]),
+        table(SortedMap.empty[ExecutionEvent.Id, ExecutionEventModel]),
+        table(os),
+        table(ps),
+        table(SortedMap.empty[Step.Id, StepModel[_]]),
+        table(ts)
+      )
     }
 
   /**
    * Arbitrary tables with sequences is slow and since sequences are not always
    * needed for testing, I've made it not implicit.
    */
-  val arbTablesWithSequences: Arbitrary[Tables] = {
+  val arbDatabaseWithSequences: Arbitrary[Database] = {
 
-    def tablesWithSequences(t: Tables, c: List[Option[InstrumentConfigModel.Create]]): Tables = {
-        // Create an option random sequence for each observation.
-        val (tʹ, a) = Nested(c).traverse(_.create[State[Tables, *], Tables](TableState)).run(t).value
-        val icms    = a.value.map(_.flatMap(_.toOption))
+    def dbWithSequences(db: Database, c: List[Option[InstrumentConfigModel.Create]]): Database = {
+      // Create an option random sequence for each observation.
+      val update = for {
+        icms <- Nested(c).traverse(_.create).map(_.value)
+        _    <- db.observations.rows.toList.zip(icms).traverse { case ((oid, o), icm) =>
+          Database.observation.update(oid, ObservationModel.config.replace(icm.map(_.toReference))(o))
+        }
+      } yield ()
 
-        // Update the observations to contain the random sequence.
-        Tables.observations.modify { obsMap =>
-          val icmMap = obsMap.keys.zip(icms).toMap
-          obsMap.transform((id, o) => o.copy(config = icmMap.get(id).flatten.map(_.toReference)))
-        }(tʹ)
+      update.runS(db).getOrElse(db)
     }
 
     Arbitrary {
       for {
-        t <- arbTables.arbitrary
+        d <- arbDatabase.arbitrary
         c <- Gen.listOfN[Option[InstrumentConfigModel.Create]](
-               t.observations.size,
+               d.observations.rows.size,
                Gen.option(arbValidInstrumentConfigModelCreate.arbitrary)
              )
-      } yield tablesWithSequences(t, c)
+      } yield dbWithSequences(d, c)
     }
   }
 
-  val arbTablesWithSequencesAndEvents: Arbitrary[Tables] = {
+  val arbDatabaseWithSequencesAndEvents: Arbitrary[Database] = {
 
-    def addEventsForObservation(t: Tables)(o: ObservationModel): Gen[State[Tables, Unit]] = {
+    def addEventsForObservation(db: Database)(o: ObservationModel): Gen[StateT[EitherInput, Database, Unit]] = {
       val acqAtoms = o.config.toList.flatMap(_.acquisition.atoms)
       val sciAtoms = o.config.toList.flatMap(_.science.atoms)
-      val acqSteps = acqAtoms.flatMap(aid => t.atoms(aid).steps.toList)
-      val sciSteps = sciAtoms.flatMap(aid => t.atoms(aid).steps.toList)
+      val acqSteps = acqAtoms.flatMap(aid => db.atoms.rows(aid).steps.toList)
+      val sciSteps = sciAtoms.flatMap(aid => db.atoms.rows(aid).steps.toList)
 
       for {
         seqCnt        <- smallSize
@@ -185,21 +184,21 @@ trait ArbTables extends SplitSetHelper {
         received      <- arbitrary[Instant]
       } yield
         for {
-          _ <- seqEvents.traverse(_.add[State[Tables, *], Tables](TableState, received)).void
-          _ <- acqStepEvents.traverse(_.add[State[Tables, *], Tables](TableState, received)).void
-          _ <- sciStepEvents.traverse(_.add[State[Tables, *], Tables](TableState, received)).void
-          _ <- dstEvents.traverse(_.add[State[Tables, *], Tables](TableState, received)).void
+          _ <- seqEvents.traverse(_.add(received)).void
+          _ <- acqStepEvents.traverse(_.add(received)).void
+          _ <- sciStepEvents.traverse(_.add(received)).void
+          _ <- dstEvents.traverse(_.add(received)).void
         } yield ()
     }
 
     Arbitrary {
       for {
-        t <- arbTablesWithSequences.arbitrary
-        add = addEventsForObservation(t)(_)
-        e <- t.observations.values.toList.traverse(add).map(_.sequence_)
-      } yield e.runS(t).value
+        db <- arbDatabaseWithSequences.arbitrary
+        add = addEventsForObservation(db)(_)
+        e  <- db.observations.rows.values.toList.traverse(add).map(_.sequence_)
+      } yield e.runS(db).getOrElse(db)
     }
   }
 }
 
-object ArbTables extends ArbTables
+object ArbDatabase extends ArbDatabase

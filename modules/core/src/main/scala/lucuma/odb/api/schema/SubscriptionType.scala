@@ -8,9 +8,8 @@ import lucuma.odb.api.model.Event
 import lucuma.odb.api.model.{ObservationModel, ProgramModel}
 import lucuma.odb.api.model.ObservationModel.ObservationEvent
 import lucuma.odb.api.model.ProgramModel.ProgramEvent
-import lucuma.odb.api.repo.OdbRepo
 import lucuma.core.model.{Observation, Program, Target}
-import cats.{Applicative, Eq, MonadError}
+import cats.{Applicative, Eq}
 import cats.effect.std.Dispatcher
 import cats.syntax.applicative._
 import cats.syntax.apply._
@@ -19,6 +18,7 @@ import cats.syntax.functor._
 import fs2.Stream
 import lucuma.odb.api.model.targetModel.TargetModel.TargetEvent
 import lucuma.odb.api.model.targetModel.TargetModel
+import org.typelevel.log4cats.Logger
 import sangria.schema._
 import sangria.streaming.SubscriptionStream
 import sangria.streaming.SubscriptionStreamLike._
@@ -34,13 +34,13 @@ object SubscriptionType {
   import syntax.`enum`._
   import context._
 
-  implicit def observationType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], ObservationModel] =
+  implicit def observationType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], ObservationModel] =
     ObservationSchema.ObservationType[F]
 
-  implicit def programType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], ProgramModel] =
+  implicit def programType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], ProgramModel] =
     ProgramSchema.ProgramType[F]
 
-  implicit def targetType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], TargetModel] =
+  implicit def targetType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], TargetModel] =
     TargetSchema.TargetType[F]
 
   implicit val EditTypeEnum: EnumType[Event.EditType] =
@@ -49,23 +49,23 @@ object SubscriptionType {
       "Type of edit that triggered an event"
     )
 
-  def EventType[F[_]]: InterfaceType[OdbRepo[F], Event]  =
-    InterfaceType[OdbRepo[F], Event](
+  def EventType[F[_]]: InterfaceType[OdbCtx[F], Event]  =
+    InterfaceType[OdbCtx[F], Event](
       "Event",
       "Common fields shared by all events",
-      fields[OdbRepo[F], Event](
+      fields[OdbCtx[F], Event](
         Field("id",      LongType, resolve = _.value.id)
       )
     )
 
   def EditEventType[F[_], T: OutputType, E <: Event.Edit[T]: ClassTag](
     name: String
-  ): ObjectType[OdbRepo[F], E] =
-    ObjectType[OdbRepo[F], E](
+  ): ObjectType[OdbCtx[F], E] =
+    ObjectType[OdbCtx[F], E](
       name        = name,
       description = "Event sent when a new object is created or updated",
-      interfaces  = List(PossibleInterface.apply[OdbRepo[F], E](EventType)),
-      fields      = fields[OdbRepo[F], E](
+      interfaces  = List(PossibleInterface.apply[OdbCtx[F], E](EventType)),
+      fields      = fields[OdbCtx[F], E](
 
         Field(
           name        = "editType",
@@ -86,11 +86,11 @@ object SubscriptionType {
   def subscriptionField[F[_]: Dispatcher: Async, E <: Event](
     fieldName:   String,
     description: String,
-    tpe:         ObjectType[OdbRepo[F], E],
+    tpe:         ObjectType[OdbCtx[F], E],
     arguments:   List[Argument[_]]
   )(
-    predicate: (Context[OdbRepo[F], Unit], E) => F[Boolean]
-  ): Field[OdbRepo[F], Unit] = {
+    predicate: (Context[OdbCtx[F], Unit], E) => F[Boolean]
+  ): Field[OdbCtx[F], Unit] = {
 
     implicit val subStream: SubscriptionStream[Stream[F, *]] =
       fs2SubscriptionStream[F](
@@ -103,8 +103,9 @@ object SubscriptionType {
       description = Some(description),
       fieldType   = tpe,
       arguments   = arguments,
-      resolve     = (c: Context[OdbRepo[F], Unit]) => {
+      resolve     = (c: Context[OdbCtx[F], Unit]) => {
         c.ctx
+          .odbRepo
           .eventService
           .subscribe
           .collect {
@@ -112,7 +113,7 @@ object SubscriptionType {
               event.asInstanceOf[E]
           }
           .evalFilter(e => predicate(c, e))
-          .map(event => Action[OdbRepo[F], E](event))
+          .map(event => Action[OdbCtx[F], E](event))
       }
     )
   }
@@ -121,8 +122,8 @@ object SubscriptionType {
   // the event is associated with the program id provided as an argument to the
   // subscription field.
   private def pidMatcher[F[_]: Applicative, E](
-    pidsExtractor: (Context[OdbRepo[F], Unit], E) => F[Set[Program.Id]]
-  ): (Context[OdbRepo[F], Unit], E) => F[Boolean] = (c, e) =>
+    pidsExtractor: (Context[OdbCtx[F], Unit], E) => F[Set[Program.Id]]
+  ): (Context[OdbCtx[F], Unit], E) => F[Boolean] = (c, e) =>
     c.optionalProgramId.fold(true.pure[F]) { pid =>
       pidsExtractor(c, e).map(_.contains(pid))
     }
@@ -132,8 +133,8 @@ object SubscriptionType {
     idArg: Argument[Option[I]],
     id:    E => I
   )(
-    pids: (Context[OdbRepo[F], Unit], E) => F[Set[Program.Id]]
-  ): Field[OdbRepo[F], Unit] =
+    pids: (Context[OdbCtx[F], Unit], E) => F[Set[Program.Id]]
+  ): Field[OdbCtx[F], Unit] =
     subscriptionField[F, E](
       s"${name}Edit",
       s"""
@@ -150,7 +151,7 @@ object SubscriptionType {
         .mapN(_ && _)
     }
 
-  def apply[F[_]: Dispatcher: Async]: ObjectType[OdbRepo[F], Unit] = {
+  def apply[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Unit] = {
 
     ObjectType(
       name   = "Subscription",

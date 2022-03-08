@@ -5,12 +5,12 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.{ConstraintSetInput, ObservationModel, ScienceRequirementsInput}
 import lucuma.odb.api.model.ObservationModel.BulkEdit
-import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.inputtype._
-import cats.MonadError
+import cats.effect.Async
 import cats.effect.std.Dispatcher
 import io.circe.Decoder
 import lucuma.odb.api.model.targetModel.{EditAsterismInput, TargetEnvironmentInput}
+import org.typelevel.log4cats.Logger
 import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -104,7 +104,7 @@ trait ObservationMutation {
       InputObjectTypeScienceRequirements
     )
 
-  def create[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def create[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name      = "createObservation",
       fieldType = OptionType(ObservationType[F]),
@@ -112,7 +112,7 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.insert(c.arg(ArgumentObservationCreate)))
     )
 
-  def update[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def update[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name      = "updateObservation",
       fieldType = ObservationType[F],
@@ -120,7 +120,7 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.edit(c.arg(ArgumentObservationEdit)))
     )
 
-  def updateAsterism[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def updateAsterism[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name      = "updateAsterism",
       fieldType = ListType(ObservationType[F]),
@@ -128,7 +128,7 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.bulkEditAsterism(c.arg(ArgumentAsterismBulkEdit)))
     )
 
-  def updateTargetEnvironment[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def updateTargetEnvironment[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name      = "updateTargetEnvironment",
       fieldType = ListType(ObservationType[F]),
@@ -136,7 +136,7 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.bulkEditTargetEnvironment(c.arg(ArgumentTargetEnvironmentBulkEdit)))
     )
 
-  def updateConstraintSet[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def updateConstraintSet[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name      = "updateConstraintSet",
       fieldType = ListType(ObservationType[F]),
@@ -144,7 +144,7 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.bulkEditConstraintSet(c.arg(ArgumentConstraintSetBulkEdit)))
     )
 
-  def updateScienceRequirements[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def updateScienceRequirements[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name      = "updateScienceRequirements",
       fieldType = ListType(ObservationType[F]),
@@ -152,7 +152,7 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.bulkEditScienceRequirements(c.arg(ArgumentScienceRequirementsBulkEdit)))
     )
 
-  def delete[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def delete[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name      = "deleteObservation",
       fieldType = ObservationType[F],
@@ -160,7 +160,7 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.delete(c.observationId))
     )
 
-  def undelete[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): Field[OdbRepo[F], Unit] =
+  def undelete[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name      = "undeleteObservation",
       fieldType = ObservationType[F],
@@ -168,7 +168,7 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.undelete(c.observationId))
     )
 
-  def allFields[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): List[Field[OdbRepo[F], Unit]] =
+  def allFields[F[_]: Dispatcher: Async: Logger]: List[Field[OdbCtx[F], Unit]] =
     List(
       create,
       update,

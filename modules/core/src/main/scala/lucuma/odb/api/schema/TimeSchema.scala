@@ -6,7 +6,6 @@ package lucuma.odb.api.schema
 import lucuma.core.optics.Format
 import lucuma.odb.api.model.format.ScalarFormat
 import lucuma.odb.api.schema.syntax.scalar._
-import lucuma.odb.api.repo.OdbRepo
 import sangria.schema._
 
 import java.time.Instant
@@ -29,7 +28,7 @@ object TimeSchema {
       scalarFormat =  ScalarFormat(InstantFormat, "2011-12-03T10:15:30Z")
     )
 
-  def DurationType[F[_]]: ObjectType[OdbRepo[F], FiniteDuration] =
+  val DurationType: ObjectType[Any, FiniteDuration] =
     ObjectType(
       name        = "Duration",
       description = "Equivalent time amount in several unit options (e.g., 120 seconds or 2 minutes)",

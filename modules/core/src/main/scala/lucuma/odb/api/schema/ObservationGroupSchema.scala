@@ -4,13 +4,14 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.{InputError, ObservationModel}
-import lucuma.odb.api.repo.{ObservationRepo, OdbRepo, ResultPage}
-import cats.MonadError
+import lucuma.odb.api.repo.{ObservationRepo, ResultPage}
 import cats.Order.catsKernelOrderingForOrder
+import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import lucuma.core.model.Program
 import lucuma.core.util.Gid
+import org.typelevel.log4cats.Logger
 import sangria.schema._
 
 
@@ -22,11 +23,11 @@ object ObservationGroupSchema {
   import Paging._
   import ProgramSchema.ProgramIdArgument
 
-  def ObservationGroupType[F[_]: Dispatcher, A](
+  def ObservationGroupType[F[_]: Dispatcher: Async: Logger, A](
     prefix:      String,
     valueName:   String,
     outType:     OutputType[A]
-  )(implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], ObservationModel.Group[A]] =
+  ): ObjectType[OdbCtx[F], ObservationModel.Group[A]] =
 
     ObjectType(
       name     = s"${prefix}Group",
@@ -50,7 +51,7 @@ object ObservationGroupSchema {
           ),
           resolve     = c =>
             unsafeSelectTopLevelPageFuture(c.pagingObservationId) { gid =>
-              c.ctx.observation.selectPageFromIds(c.pagingFirst, gid, c.includeDeleted) { _ =>
+              c.ctx.odbRepo.observation.selectPageFromIds(c.pagingFirst, gid, c.includeDeleted) { _ =>
                 c.value.observationIds
               }
             }
@@ -67,8 +68,8 @@ object ObservationGroupSchema {
     )
 
   def ObservationGroupEdgeType[F[_], A](
-    groupType: ObjectType[OdbRepo[F], ObservationModel.Group[A]]
-  ): ObjectType[OdbRepo[F], Paging.Edge[ObservationModel.Group[A]]] =
+    groupType: ObjectType[OdbCtx[F], ObservationModel.Group[A]]
+  ): ObjectType[OdbCtx[F], Paging.Edge[ObservationModel.Group[A]]] =
 
     Paging.EdgeType[F, ObservationModel.Group[A]](
       s"${groupType.name}Edge",
@@ -77,9 +78,9 @@ object ObservationGroupSchema {
     )
 
   def ObservationGroupConnectionType[F[_], A](
-    groupType: ObjectType[OdbRepo[F], ObservationModel.Group[A]],
-    edgeType:  ObjectType[OdbRepo[F], Paging.Edge[ObservationModel.Group[A]]]
-  ): ObjectType[OdbRepo[F], Paging.Connection[ObservationModel.Group[A]]] =
+    groupType: ObjectType[OdbCtx[F], ObservationModel.Group[A]],
+    edgeType:  ObjectType[OdbCtx[F], Paging.Edge[ObservationModel.Group[A]]]
+  ): ObjectType[OdbCtx[F], Paging.Connection[ObservationModel.Group[A]]] =
 
     Paging.ConnectionType[F, ObservationModel.Group[A]](
       s"${groupType.name}Connection",
@@ -88,16 +89,14 @@ object ObservationGroupSchema {
       edgeType
     )
 
-  def groupingField[F[_]: Dispatcher, A, G: Gid](
+  def groupingField[F[_]: Dispatcher: Async: Logger, A, G: Gid](
     name:        String,
     description: String,
     outType:     OutputType[A],
     lookupAll:   (ObservationRepo[F], Program.Id, Boolean) => F[List[ObservationModel.Group[A]]],
-    cursor:      Context[OdbRepo[F], Unit] => Either[InputError, Option[G]],
+    cursor:      Context[OdbCtx[F], Unit] => Either[InputError, Option[G]],
     gid:         ObservationModel.Group[A] => G
-  )(
-    implicit ev: MonadError[F, Throwable]
-  ): Field[OdbRepo[F], Unit] = {
+  ): Field[OdbCtx[F], Unit] = {
 
     val groupType =
       ObservationGroupSchema.ObservationGroupType[F, A](
@@ -131,7 +130,7 @@ object ObservationGroupSchema {
         Paging.unsafeSelectPageFuture[F, G, ObservationModel.Group[A]](
           cursor(c),
           grp   => Cursor.gid[G].reverseGet(gid(grp)),
-          after => lookupAll(c.ctx.observation, c.programId, c.includeDeleted).map { gs =>
+          after => lookupAll(c.ctx.odbRepo.observation, c.programId, c.includeDeleted).map { gs =>
             ResultPage.fromSeq(gs.sortBy(gid), c.arg(ArgumentPagingFirst), after, gid)
           }
         )

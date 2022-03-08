@@ -15,9 +15,10 @@ import org.typelevel.log4cats.{Logger => Log4CatsLogger}
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import lucuma.graphql.routes.SangriaGraphQLService
 import lucuma.graphql.routes.GraphQLService
-import lucuma.odb.api.schema.OdbSchema
+import lucuma.odb.api.schema.{OdbCtx, OdbSchema}
 import cats.effect.std.Dispatcher
 import lucuma.graphql.routes.Routes
+import lucuma.itc.client.ItcClient
 import org.http4s.HttpRoutes
 // TODO: SSO
 //import lucuma.sso.client.SsoClient
@@ -30,7 +31,7 @@ import cats.data.OptionT
 object Main extends IOApp {
 
   def httpApp[F[_]: Log4CatsLogger: Async](
-    odb:        OdbRepo[F],
+    ctx:        OdbCtx[F],
 // TODO: SSO
 //    userClient: SsoClient[F, User],
   ): Resource[F, WebSocketBuilder2[F] => HttpApp[F]] =
@@ -49,7 +50,7 @@ object Main extends IOApp {
               // TODO: SSO
 //              .flatMap(a => OptionT(userClient.get(a)))
               .value
-              .as(new SangriaGraphQLService(schema, odb, OdbSchema.exceptionHandler).some)
+              .as(new SangriaGraphQLService(schema, ctx, OdbSchema.exceptionHandler).some)
 
               // TODO: SSO
 //              .flatMap { ou =>
@@ -71,7 +72,7 @@ object Main extends IOApp {
 
 
   def stream[F[_]: Log4CatsLogger: Async](
-    odb: OdbRepo[F],
+    ctx: OdbCtx[F],
     cfg: Config
   ): Stream[F, Nothing] = {
     // Spin up the server ...
@@ -79,7 +80,7 @@ object Main extends IOApp {
       // TODO: SSO
 //      sso       <- Stream.resource(cfg.ssoClient[F])
 //      userClient = sso.map(_.user)
-      httpApp   <- Stream.resource(httpApp(odb)) //, userClient)) // TODO: SSO
+      httpApp   <- Stream.resource(httpApp(ctx)) //, userClient)) // TODO: SSO
       exitCode  <- BlazeServerBuilder[F]
         .bindHttp(cfg.port, "0.0.0.0")
         .withHttpWebSocketApp(httpApp)
@@ -91,9 +92,11 @@ object Main extends IOApp {
     for {
       cfg  <- Config.fromCiris.load(Async[IO])
       log  <- Slf4jLogger.create[IO]
-      odb  <- OdbRepo.create[IO]
-      _    <- Init.initialize(odb)
-      _    <- stream(odb, cfg)(log, Async[IO]).compile.drain
+      itc  <- ItcClient.create(cfg.itc)(Async[IO], log)
+      rpo  <- OdbRepo.create[IO]
+      _    <- Init.initialize(rpo)
+      ctx   = OdbCtx.create[IO](itc, rpo)
+      _    <- stream(ctx, cfg)(log, Async[IO]).compile.drain
     } yield ExitCode.Success
 }
 

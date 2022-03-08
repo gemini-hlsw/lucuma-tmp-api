@@ -3,15 +3,15 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.ObservationModel
-import lucuma.odb.api.repo.{OdbRepo, TableState, Tables}
-import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
-import lucuma.core.model.Observation
-import cats.MonadError
-import cats.data.State
+import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
+import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
+import lucuma.core.model.Observation
+import lucuma.odb.api.model.ObservationModel
+import lucuma.odb.api.model.syntax.eitherinput._
 import lucuma.odb.api.schema.TargetSchema.TargetEnvironmentType
+import org.typelevel.log4cats.Logger
 import sangria.schema._
 
 import scala.collection.immutable.Seq
@@ -22,6 +22,7 @@ object ObservationSchema {
   import ConstraintSetSchema.ConstraintSetType
   import ScienceConfigurationSchema._
   import ExecutionSchema.ExecutionType
+  import ItcSchema.ItcSuccessType
   import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, NonEmptyStringType, PlannedTimeSummaryType}
   import ProgramSchema.ProgramType
   import ScienceRequirementsSchema.ScienceRequirementsType
@@ -65,7 +66,15 @@ object ObservationSchema {
       description  = "Observation IDs"
     )
 
-  def ObservationType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], ObservationModel] =
+  val UseItcCacheArgument: Argument[Boolean] =
+    Argument(
+      name         = "useCache",
+      argumentType = BooleanType,
+      description  = "Whether to use cached results (true) or ignore the cache and make a remote ITC call (false).",
+      defaultValue = true
+    )
+
+  def ObservationType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], ObservationModel] =
     ObjectType(
       name     = "Observation",
       fieldsFn = () => fields(
@@ -107,7 +116,7 @@ object ObservationSchema {
 
         Field(
           name        = "plannedTime",
-          fieldType   = PlannedTimeSummaryType[F],
+          fieldType   = PlannedTimeSummaryType,
           description = Some("Observation planned time calculation."),
           resolve     = _.value.plannedTimeSummary
         ),
@@ -129,7 +138,7 @@ object ObservationSchema {
 
         Field(
           name        = "constraintSet",
-          fieldType   = ConstraintSetType[F],
+          fieldType   = ConstraintSetType,
           description = Some("The constraint set for the observation"),
           resolve     = c => c.value.constraintSet
         ),
@@ -144,10 +153,29 @@ object ObservationSchema {
 
         Field(
           name        = "scienceConfiguration",
-          fieldType   = OptionType(ScienceConfigurationType[F]),
+          fieldType   = OptionType(ScienceConfigurationType),
           description = Some("The science configuration"),
           arguments   = List(ArgumentIncludeDeleted),
           resolve     = c => c.value.scienceConfiguration
+        ),
+
+        Field(
+          name        = "itc",
+          fieldType   = OptionType(ItcSuccessType),
+          description = "ITC execution results".some,
+          arguments   = List(UseItcCacheArgument),
+          resolve     = c => c.unsafeToFuture {
+            for {
+              ts <- c.value.targetEnvironment.asterism.toList.traverse(tid => c.ctx.odbRepo.target.unsafeSelectTarget(tid))
+              rs <- ts.traverse(t => c.ctx.itcClient.query(c.value, t.target, c.args.arg(UseItcCacheArgument)))
+
+              results   = rs.flatMap(_.toList).traverse(_.itc.toEither)
+              maxResult = results.map(_.maxByOption(s => (s.exposureTime.getSeconds, s.exposureTime.getNano)))
+                                 .leftMap(e => new Exception(e.msg))
+
+              s  <- maxResult.liftTo[F]
+            } yield s
+          }
         ),
 
         Field(
@@ -155,10 +183,10 @@ object ObservationSchema {
           fieldType   = OptionType(InstrumentConfigSchema.ConfigType[F]),
           description = Some("Manual instrument configuration"),
           resolve     = c => c.unsafeToFuture {
-            c.ctx.tables.get.map { tables =>
-              c.value.config.flatMap { icm =>
-                icm.dereference[State[Tables, *], Tables](TableState).runA(tables).value
-              }
+            c.ctx.odbRepo.database.get.flatMap { db =>
+              c.value.config.traverse { icm =>
+                icm.dereference.runA(db)
+              }.map(_.flatten).liftTo[F]
             }
           }
         ),
@@ -173,14 +201,14 @@ object ObservationSchema {
       )
     )
 
-  def ObservationEdgeType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Edge[ObservationModel]] =
+  def ObservationEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Edge[ObservationModel]] =
     Paging.EdgeType[F, ObservationModel](
       "ObservationEdge",
       "An observation and its cursor",
       ObservationType[F]
     )
 
-  def ObservationConnectionType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Connection[ObservationModel]] =
+  def ObservationConnectionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Connection[ObservationModel]] =
     Paging.ConnectionType[F, ObservationModel](
       "ObservationConnection",
       "Matching observations",

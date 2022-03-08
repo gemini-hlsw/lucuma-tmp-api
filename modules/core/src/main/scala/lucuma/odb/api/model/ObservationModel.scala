@@ -10,12 +10,10 @@ import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.odb.api.model.targetModel.{TargetEnvironmentInput, TargetEnvironmentModel}
 import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.{Observation, Program}
-import cats.{Eq, Functor, Monad}
+import cats.{Eq, Functor}
 import cats.data.StateT
 import cats.implicits.catsKernelOrderingForOrder
-import cats.mtl.Stateful
 import cats.syntax.apply._
-import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
 import cats.syntax.traverse._
@@ -45,10 +43,8 @@ final case class ObservationModel(
   plannedTimeSummary:   PlannedTimeSummaryModel
 ) {
 
-  def validate[F[_]: Monad, T](
-    db: DatabaseState[T]
-  )(implicit S: Stateful[F, T]): F[ValidatedInput[ObservationModel]] =
-    targetEnvironment.validate[F, T](db, programId).map(_.as(this))
+  val validate: StateT[EitherInput, Database, ObservationModel] =
+    targetEnvironment.validate(programId).as(this)
 
 }
 
@@ -88,39 +84,37 @@ object ObservationModel extends ObservationOptics {
     config:               Option[InstrumentConfigModel.Create]
   ) {
 
-    def create[F[_]: Monad, T](
-      db: DatabaseState[T],
-      s:  PlannedTimeSummaryModel
-    )(implicit S: Stateful[F, T]): F[ValidatedInput[ObservationModel]] =
-
+    def create(
+      s: PlannedTimeSummaryModel
+    ): StateT[EitherInput, Database, ObservationModel] =
       for {
-        i <- db.observation.getUnusedId(observationId)
-        p <- db.program.lookupValidated(programId)
+        i <- Database.observation.getUnusedKey(observationId)
+        _ <- Database.program.lookup(programId)
         t  = targetEnvironment.getOrElse(TargetEnvironmentInput.Empty).create
         c  = constraintSet.traverse(_.create)
         q  = scienceRequirements.traverse(_.create)
         u  = scienceConfiguration.traverse(_.create)
-        g <- config.traverse(_.create(db)).map(_.sequence)
-        o  = (i, p, t, c, q, u, g).mapN { (iʹ, _, tʹ, cʹ, qʹ, uʹ,  gʹ) =>
+        g <- config.traverse(_.create)
+        o  = (t, c, q, u).mapN { (tʹ, cʹ, qʹ, uʹ) =>
           ObservationModel(
-            iʹ,
-            Present,
-            programId,
-            name,
-            status.getOrElse(ObsStatus.New),
-            activeStatus.getOrElse(ObsActiveStatus.Active),
-            tʹ,
-            cʹ.getOrElse(ConstraintSetModel.Default),
-            qʹ.getOrElse(ScienceRequirements.Default),
-            uʹ,
-            gʹ.map(_.toReference),
-            s
+            id                   = i,
+            existence            = Present,
+            programId            = programId,
+            name                 = name,
+            status               = status.getOrElse(ObsStatus.New),
+            activeStatus         = activeStatus.getOrElse(ObsActiveStatus.Active),
+            targetEnvironment    = tʹ,
+            constraintSet        = cʹ.getOrElse(ConstraintSetModel.Default),
+            scienceRequirements  = qʹ.getOrElse(ScienceRequirements.Default),
+            scienceConfiguration = uʹ,
+            config               = g.map(_.toReference),
+            plannedTimeSummary   = s
           )
         }
-        oʹ <- o.traverse(_.validate[F, T](db)).map(_.andThen(identity))
-        _  <- db.observation.saveNewIfValid(oʹ)(_.id)
-      } yield oʹ
-
+        oʹ <- o.traverse(_.validate)
+        _  <- Database.observation.saveNewIfValid(oʹ)(_.id)
+        v  <- Database.observation.lookup(i)
+      } yield v
   }
 
   object Create {

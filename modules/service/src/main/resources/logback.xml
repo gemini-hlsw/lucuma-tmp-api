@@ -14,7 +14,10 @@
   <logger name="test.MutationSuite" level="OFF" />
   <logger name="test.targets.ScienceTargetMutationSuite" level="OFF" />
   <logger name="test.targets.ScienceTargetsMutationSuite" level="OFF" />
+  <logger name="test.targets.TargetEnvironmentMutationSuite" level="OFF" />
   <logger name="test.targets.TargetRenameMutationSuite" level="OFF" />
+
+  <logger name="lucuma.odb.api.service.Main" level="INFO"/>
 
   <root level="WARN">
     <appender-ref ref="STDOUT" />

@@ -1,6 +1,5 @@
 val attoVersion                 = "0.9.5"
 val catsEffectVersion           = "3.3.5"
-val catsMtlVersion              = "1.2.1"
 val catsTestkitScalaTestVersion = "2.1.5"
 val catsVersion                 = "2.7.0"
 val catsScalacheckVersion       = "0.3.1"
@@ -8,21 +7,21 @@ val catsTimeVersion             = "0.5.0"
 val circeOpticsVersion          = "0.14.1"
 val circeVersion                = "0.14.1"
 val cirisVersion                = "2.3.2"
-val clueVersion                 = "0.20.0"
-val http4sVersion               = "0.23.9"
+val clueVersion                 = "0.20.3"
+val http4sVersion               = "0.23.10"
 val http4sJdkHttpClientVersion  = "0.5.0"
-val fs2Version                  = "3.2.4"
+val fs2Version                  = "3.2.5"
 val jawnVersion                 = "1.3.2"
 val kindProjectorVersion        = "0.13.2"
 val logbackVersion              = "1.2.10"
 val lucumaCoreVersion           = "0.24.0"
-val lucumaGraphQLRoutesVersion  = "0.1.2"
+val lucumaGraphQLRoutesVersion  = "0.3.0"
 //val lucumaSsoVersion            = "0.0.11"
 val log4catsVersion             = "2.2.0"
 val monocleVersion              = "3.1.0"
 val munitCatsEffectVersion      = "1.0.7"
 val refinedVersion              = "0.9.28"
-val sangriaVersion              = "2.1.6"
+val sangriaVersion              = "3.0.0"
 val sangriaCirceVersion         = "1.3.2"
 val singletonOpsVersion         = "0.5.2"
 
@@ -63,12 +62,13 @@ lazy val core = project
       "dev.optics"                 %% "monocle-macro"             % monocleVersion,
       "org.sangria-graphql"        %% "sangria"                   % sangriaVersion,
       "org.sangria-graphql"        %% "sangria-circe"             % sangriaCirceVersion,
+      "edu.gemini"                 %% "clue-core"                 % clueVersion,
+      "edu.gemini"                 %% "clue-http4s-jdk-client"    % clueVersion,
       "edu.gemini"                 %% "clue-model"                % clueVersion,
       "edu.gemini"                 %% "lucuma-core"               % lucumaCoreVersion,
       "org.tpolecat"               %% "atto-core"                 % attoVersion,
       "org.typelevel"              %% "cats-core"                 % catsVersion,
       "org.typelevel"              %% "cats-effect"               % catsEffectVersion,
-      "org.typelevel"              %% "cats-mtl"                  % catsMtlVersion,
       "org.typelevel"              %% "cats-time"                 % catsTimeVersion,
       "io.circe"                   %% "circe-core"                % circeVersion,
       "io.circe"                   %% "circe-literal"             % circeVersion,

@@ -9,7 +9,6 @@ import lucuma.core.math.Angle
 import lucuma.odb.api.model.ConfigurationMode
 import lucuma.odb.api.model.ScienceConfigurationModel
 import lucuma.odb.api.model.ScienceConfigurationModel.Modes
-import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.syntax.all._
 
 import sangria.schema._
@@ -37,7 +36,7 @@ object ScienceConfigurationSchema {
       InputObjectTypeDescription("Slit width in appropriate units"),
     )
 
-  def SlitWidthType[F[_]]: ObjectType[OdbRepo[F], Angle]=
+  val SlitWidthType: ObjectType[Any, Angle]=
     ObjectType(
       name     = "slitWidth",
       fieldsFn = () => fields(
@@ -65,11 +64,12 @@ object ScienceConfigurationSchema {
 
       )
     )
-  def ScienceConfigurationType[F[_]]: ObjectType[OdbRepo[F], ScienceConfigurationModel] =
-    ObjectType[OdbRepo[F], ScienceConfigurationModel](
+
+  def ScienceConfigurationType: ObjectType[Any, ScienceConfigurationModel] =
+    ObjectType[Any, ScienceConfigurationModel](
       name         = "ScienceConfiguration",
       description  = "Base science configuration",
-      fields[OdbRepo[F], ScienceConfigurationModel](
+      fields[Any, ScienceConfigurationModel](
 
         Field(
           name        = "instrument",
@@ -87,26 +87,26 @@ object ScienceConfigurationSchema {
 
         Field(
           name        = "gmosNorthLongSlit",
-          fieldType   = OptionType(GmosNLongSlitType[F]),
+          fieldType   = OptionType(GmosNLongSlitType),
           description = "GMOS North Long Slit configuration".some,
           resolve     = _.value.fold(_.some, _ => Option.empty)
         ),
 
         Field(
           name        = "gmosSouthLongSlit",
-          fieldType   = OptionType(GmosSLongSlitType[F]),
+          fieldType   = OptionType(GmosSLongSlitType),
           description = "GMOS South Long Slit configuration".some,
           resolve     = _.value.fold(_ => Option.empty, _.some)
         )
       )
     )
 
-  def GmosNLongSlitType[F[_]]: ObjectType[OdbRepo[F], Modes.GmosNorthLongSlit] =
-    ObjectType[OdbRepo[F], Modes.GmosNorthLongSlit](
+  val GmosNLongSlitType: ObjectType[Any, Modes.GmosNorthLongSlit] =
+    ObjectType[Any, Modes.GmosNorthLongSlit](
       name        = "GmosNorthLongSlit",
       description = "Basic configuration for GMOS North Long Slit",
 
-      fields[OdbRepo[F], Modes.GmosNorthLongSlit](
+      fields[Any, Modes.GmosNorthLongSlit](
         Field(
           name        = "filter",
           fieldType   = OptionType(EnumTypeGmosNorthFilter),
@@ -130,19 +130,19 @@ object ScienceConfigurationSchema {
 
         Field(
           name        = "slitWidth",
-          fieldType   = SlitWidthType[F],
+          fieldType   = SlitWidthType,
           description = Some("Slit width in appropriate units"),
           resolve     = _.value.slitWidth
         ),
       )
     )
 
-  def GmosSLongSlitType[F[_]]: ObjectType[OdbRepo[F], Modes.GmosSouthLongSlit] =
-    ObjectType[OdbRepo[F], Modes.GmosSouthLongSlit](
+  val GmosSLongSlitType: ObjectType[Any, Modes.GmosSouthLongSlit] =
+    ObjectType[Any, Modes.GmosSouthLongSlit](
       name        = "GmosSouthLongSlit",
       description = "Basic configuration for GMOS South Long Slit",
 
-      fields[OdbRepo[F], Modes.GmosSouthLongSlit](
+      fields[Any, Modes.GmosSouthLongSlit](
         Field(
           name        = "filter",
           fieldType   = OptionType(EnumTypeGmosSouthFilter),
@@ -166,7 +166,7 @@ object ScienceConfigurationSchema {
 
         Field(
           name        = "slitWidth",
-          fieldType   = SlitWidthType[F],
+          fieldType   = SlitWidthType,
           description = Some("Slit width in appropriate units"),
           resolve     = _.value.slitWidth
         ),

@@ -3,9 +3,9 @@
 
 package lucuma.odb.api.model
 
+import cats.data.StateT
 import lucuma.core.model.{Atom, Observation, Step}
-import cats.{Eq, Functor}
-import cats.mtl.Stateful
+import cats.Eq
 import org.typelevel.cats.time._
 
 import java.time.Instant
@@ -45,15 +45,11 @@ final case class ExecutedStepModel(
   /**
    * Extracts the step configuration.
    */
-  def dereference[F[_]: Functor, T, D](
-    db: DatabaseReader[T]
-  )(
+  def dereference[D](
     f: StepConfig[_] => Option[D]
-  )(
-    implicit S: Stateful[F, T]
-  ): F[Option[StepModel[D]]] =
+  ): StateT[EitherInput, Database, Option[StepModel[D]]] =
 
-    StepModel.dereference[F, T, D](db, stepId)(f)
+    StepModel.dereference[D](stepId)(f)
 
 }
 

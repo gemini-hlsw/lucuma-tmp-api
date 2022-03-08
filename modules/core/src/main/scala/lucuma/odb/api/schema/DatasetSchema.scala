@@ -7,15 +7,14 @@ import lucuma.core.model.Step
 import lucuma.core.util.Gid
 import lucuma.odb.api.model.{DatasetFilename, DatasetModel}
 import lucuma.odb.api.model.format.ScalarFormat
-import lucuma.odb.api.repo.OdbRepo
 import lucuma.odb.api.schema.Paging.Cursor
 import lucuma.odb.api.schema.syntax.scalar._
-
-import cats.MonadError
+import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import eu.timepit.refined.types.all.PosInt
 import monocle.Prism
+import org.typelevel.log4cats.Logger
 import sangria.schema._
 
 import scala.util.matching.Regex
@@ -61,7 +60,7 @@ object DatasetSchema {
       scalarFormat = ScalarFormat(DatasetFilename.fromString, "N20210519S0001.fits")
     )
 
-  def DatasetType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], DatasetModel] =
+  def DatasetType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], DatasetModel] =
     ObjectType(
       name     = "Dataset",
       fieldsFn = () => fields(
@@ -97,14 +96,14 @@ object DatasetSchema {
       )
     )
 
-  def DatasetEdgeType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Edge[DatasetModel]] =
+  def DatasetEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Edge[DatasetModel]] =
     Paging.EdgeType(
       "DatasetEdge",
       "A Dataset and its cursor",
       DatasetType[F]
     )
 
-  def DatasetConnectionType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Connection[DatasetModel]] =
+  def DatasetConnectionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Connection[DatasetModel]] =
     Paging.ConnectionType(
       "DatasetConnection",
       "Datasets in the current page",

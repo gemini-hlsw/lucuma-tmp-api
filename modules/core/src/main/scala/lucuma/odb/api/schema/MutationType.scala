@@ -3,10 +3,9 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.repo.OdbRepo
-
-import cats.MonadError
+import cats.effect.Async
 import cats.effect.std.Dispatcher
+import org.typelevel.log4cats.Logger
 import sangria.schema._
 
 /**
@@ -14,7 +13,7 @@ import sangria.schema._
  */
 object MutationType {
 
-  def apply[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Unit] =
+  def apply[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Unit] =
     ObjectType(
       name   = "Mutation",
       fields =

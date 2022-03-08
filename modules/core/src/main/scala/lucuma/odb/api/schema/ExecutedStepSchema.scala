@@ -4,12 +4,11 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.{DatasetModel, ExecutedStepModel}
-import lucuma.odb.api.repo.OdbRepo
-
-import cats.MonadError
+import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import eu.timepit.refined.types.all.PosInt
+import org.typelevel.log4cats.Logger
 import sangria.schema._
 
 object ExecutedStepSchema {
@@ -21,7 +20,7 @@ object ExecutedStepSchema {
   import AtomSchema.AtomInterfaceType
   import StepSchema.{StepIdType, StepInterfaceType}
 
-  def ExecutedStepType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], ExecutedStepModel] = {
+  def ExecutedStepType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], ExecutedStepModel] = {
     ObjectType(
       name        = "ExecutedStep",
       description = s"Executed step",
@@ -60,7 +59,7 @@ object ExecutedStepSchema {
             unsafeSelectPageFuture[F, PosInt, DatasetModel](
               c.pagingCursor("index")(IndexCursor.getOption),
               dm => IndexCursor.reverseGet(dm.index),
-              o  => c.ctx.executionEvent.selectDatasetsPageForStep(c.value.stepId, c.pagingFirst, o)
+              o  => c.ctx.odbRepo.executionEvent.selectDatasetsPageForStep(c.value.stepId, c.pagingFirst, o)
             )
         )
 
@@ -68,14 +67,14 @@ object ExecutedStepSchema {
     )
   }
 
-  def ExecutedStepEdgeType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Edge[ExecutedStepModel]] =
+  def ExecutedStepEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Edge[ExecutedStepModel]] =
     Paging.EdgeType(
       "ExecutedStepEdge",
       "An executed step and its cursor",
       ExecutedStepType[F]
     )
 
-  def ExecutedStepConnectionType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Connection[ExecutedStepModel]] =
+  def ExecutedStepConnectionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Connection[ExecutedStepModel]] =
     Paging.ConnectionType(
       "ExecutedStepConnection",
       "Executed steps in the current page",

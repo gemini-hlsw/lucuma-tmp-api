@@ -3,16 +3,16 @@
 
 package lucuma.odb.api.repo
 
-import lucuma.core.model.Program
-import lucuma.core.optics.state.all._
-import lucuma.odb.api.model.{Event, InputError, ProgramModel, ValidatedInput}
-import lucuma.odb.api.model.ProgramModel.ProgramEvent
-import lucuma.odb.api.model.syntax.validatedinput._
 import cats.implicits._
 import cats.MonadError
-import cats.data.{EitherT, State}
+import cats.data.{EitherT, StateT}
 import cats.effect.Ref
-
+import lucuma.core.model.Program
+import lucuma.odb.api.model.{Database, EitherInput, Event, InputError, ProgramModel, Table}
+import lucuma.odb.api.model.ProgramModel.ProgramEvent
+import lucuma.odb.api.model.syntax.databasestate._
+import lucuma.odb.api.model.syntax.eitherinput._
+import lucuma.odb.api.model.syntax.validatedinput._
 
 trait ProgramRepo[F[_]] extends TopLevelRepo[F, Program.Id, ProgramModel] {
 
@@ -31,18 +31,17 @@ trait ProgramRepo[F[_]] extends TopLevelRepo[F, Program.Id, ProgramModel] {
 object ProgramRepo {
 
   def create[F[_]](
-    tablesRef:    Ref[F, Tables],
+    databaseRef:  Ref[F, Database],
     eventService: EventService[F]
   )(implicit M: MonadError[F, Throwable]): ProgramRepo[F] =
 
     new TopLevelRepoBase[F, Program.Id, ProgramModel](
-      tablesRef,
+      databaseRef,
       eventService,
-      Tables.lastProgramId,
-      Tables.programs,
+      Database.lastProgramId,
+      Database.programs.andThen(Table.rows),
       (editType, model) => ProgramEvent(_, editType, model)
-    ) with ProgramRepo[F]
-      with LookupSupport {
+    ) with ProgramRepo[F] {
 
       override def selectPageForPrograms(
         pids:           Set[Program.Id],
@@ -58,13 +57,14 @@ object ProgramRepo {
       ): F[ProgramModel] = {
 
         val create = EitherT(
-          tablesRef.modify { tables =>
-            val (tablesʹ, p) = input.create[State[Tables, *], Tables](TableState).run(tables).value
-
-            p.fold(
-              err => (tables,  InputError.Exception(err).asLeft),
-              pm  => (tablesʹ, pm.asRight)
-            )
+          databaseRef.modify { db =>
+            input
+              .create
+              .run(db)
+              .fold(
+                err => (db, InputError.Exception(err).asLeft),
+                _.map(_.asRight)
+              )
           }
         ).rethrowT
 
@@ -78,18 +78,15 @@ object ProgramRepo {
         input: ProgramModel.Edit
       ): F[ProgramModel] = {
 
-        val update: State[Tables, ValidatedInput[ProgramModel]] =
+        val update: StateT[EitherInput, Database, ProgramModel] =
           for {
-            initial <- TableState.program.lookupValidated[State[Tables, *]](input.programId)
-            edited   = initial.andThen(input.edit)
-            _       <- edited.fold(
-              _ => State.get[Tables].void,
-              p => Tables.programs.mod_(progMap => progMap + (p.id -> p))
-            )
+            initial <- Database.program.lookup(input.programId)
+            edited  <- input.edit(initial).liftState
+            _       <- Database.program.update(input.programId, edited)
           } yield edited
 
         for {
-          p <- tablesRef.modifyState(update).flatMap(_.liftTo[F])
+          p <- databaseRef.modifyState(update.flipF).flatMap(_.liftTo[F])
           _ <- eventService.publish(ProgramModel.ProgramEvent.updated(p))
         } yield p
       }

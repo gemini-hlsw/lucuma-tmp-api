@@ -5,10 +5,9 @@ package lucuma.odb.api.schema
 
 import lucuma.core.model.ExecutionEvent
 import lucuma.odb.api.model.ExecutionEventModel
-import lucuma.odb.api.repo.OdbRepo
-
-import cats.MonadError
+import cats.effect.Async
 import cats.effect.std.Dispatcher
+import org.typelevel.log4cats.Logger
 import sangria.schema._
 
 
@@ -55,11 +54,11 @@ object ExecutionEventSchema {
       "Execution stage or phase of an individual dataset"
     )
 
-  def ExecutionEventType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): InterfaceType[OdbRepo[F], ExecutionEventModel] =
-    InterfaceType[OdbRepo[F], ExecutionEventModel](
+  def ExecutionEventType[F[_]: Dispatcher: Async: Logger]: InterfaceType[OdbCtx[F], ExecutionEventModel] =
+    InterfaceType[OdbCtx[F], ExecutionEventModel](
       name         = "ExecutionEvent",
       description  = "Execution event (sequence, step, or dataset events)",
-      fields[OdbRepo[F], ExecutionEventModel](
+      fields[OdbCtx[F], ExecutionEventModel](
 
         Field(
           name        = "id",
@@ -91,17 +90,17 @@ object ExecutionEventSchema {
 
       )
     ).withPossibleTypes(() => List(
-      PossibleObject[OdbRepo[F], ExecutionEventModel](SequenceEventType[F]),
-      PossibleObject[OdbRepo[F], ExecutionEventModel](StepEventType[F]),
-      PossibleObject[OdbRepo[F], ExecutionEventModel](DatasetEventType[F])
+      PossibleObject[OdbCtx[F], ExecutionEventModel](SequenceEventType[F]),
+      PossibleObject[OdbCtx[F], ExecutionEventModel](StepEventType[F]),
+      PossibleObject[OdbCtx[F], ExecutionEventModel](DatasetEventType[F])
     ))
 
-  def SequenceEventType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], SequenceEvent] =
-    ObjectType[OdbRepo[F], SequenceEvent](
+  def SequenceEventType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], SequenceEvent] =
+    ObjectType[OdbCtx[F], SequenceEvent](
       name        = "SequenceEvent",
       description = "Sequence-level events",
-      interfaces  = List(PossibleInterface.apply[OdbRepo[F], SequenceEvent](ExecutionEventType[F])),
-      fields      = List[Field[OdbRepo[F], SequenceEvent]](
+      interfaces  = List(PossibleInterface.apply[OdbCtx[F], SequenceEvent](ExecutionEventType[F])),
+      fields      = List[Field[OdbCtx[F], SequenceEvent]](
 
         Field(
           name        = "command",
@@ -113,12 +112,12 @@ object ExecutionEventSchema {
       )
     )
 
-  def StepEventType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], StepEvent] =
-    ObjectType[OdbRepo[F], StepEvent](
+  def StepEventType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], StepEvent] =
+    ObjectType[OdbCtx[F], StepEvent](
       name        = "StepEvent",
       description = "Step-level events",
-      interfaces  = List(PossibleInterface.apply[OdbRepo[F], StepEvent](ExecutionEventType[F])),
-      fields      = List[Field[OdbRepo[F], StepEvent]](
+      interfaces  = List(PossibleInterface.apply[OdbCtx[F], StepEvent](ExecutionEventType[F])),
+      fields      = List[Field[OdbCtx[F], StepEvent]](
 
         Field(
           name        = "step",
@@ -144,12 +143,12 @@ object ExecutionEventSchema {
       )
     )
 
-  def DatasetEventType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], DatasetEvent] =
-    ObjectType[OdbRepo[F], DatasetEvent](
+  def DatasetEventType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], DatasetEvent] =
+    ObjectType[OdbCtx[F], DatasetEvent](
       name        = "DatasetEvent",
       description = "Dataset-level events",
-      interfaces  = List(PossibleInterface.apply[OdbRepo[F], DatasetEvent](ExecutionEventType[F])),
-      fields      = List[Field[OdbRepo[F], DatasetEvent]](
+      interfaces  = List(PossibleInterface.apply[OdbCtx[F], DatasetEvent](ExecutionEventType[F])),
+      fields      = List[Field[OdbCtx[F], DatasetEvent]](
 
         Field(
           name        = "step",
@@ -174,14 +173,14 @@ object ExecutionEventSchema {
       )
     )
 
-  def ExecutionEventEdgeType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Edge[ExecutionEventModel]] =
+  def ExecutionEventEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Edge[ExecutionEventModel]] =
     Paging.EdgeType(
       "ExecutionEventEdge",
       "An ExecutionEvent and its cursor",
       ExecutionEventType[F]
     )
 
-  def ExecutionEventConnectionType[F[_]: Dispatcher](implicit ev: MonadError[F, Throwable]): ObjectType[OdbRepo[F], Paging.Connection[ExecutionEventModel]] =
+  def ExecutionEventConnectionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Connection[ExecutionEventModel]] =
     Paging.ConnectionType(
       "ExecutionEventConnection",
       "ExecutionEvents in the current page",
