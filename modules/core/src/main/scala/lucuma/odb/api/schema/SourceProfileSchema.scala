@@ -23,7 +23,7 @@ import sangria.macros.derive._
 object SourceProfileSchema {
 
   import AngleSchema.{AngleType, InputObjectAngle}
-  import GeneralSchema.{PosBigDecimalType, PosIntType}
+  import RefinedSchema.{PosBigDecimalType, PosIntType}
   import syntax.`enum`._
   import WavelengthSchema._
 
