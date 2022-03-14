@@ -5,7 +5,7 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.{Existence, PlannedTimeSummaryModel}
 import cats.syntax.all._
-import eu.timepit.refined.types.all.{NonEmptyString, PosBigDecimal}
+import eu.timepit.refined.types.all.{NonEmptyString, PosBigDecimal, PosInt}
 import sangria.schema._
 import sangria.validation.ValueCoercionViolation
 
@@ -57,6 +57,16 @@ object GeneralSchema {
       BigDecimalType,
       _.value,
       bd => PosBigDecimal.from(bd).leftMap(_ => PosBigDecimalViolation)
+    )
+
+  val PosIntViolation: ValueCoercionViolation =
+    refinedViolation("positive int")
+
+  implicit val PosIntType: ScalarAlias[PosInt, Int] =
+    ScalarAlias(
+      IntType,
+      _.value,
+      i => PosInt.from(i).leftMap(_ => PosIntViolation)
     )
 
   val PlannedTimeSummaryType: ObjectType[Any, PlannedTimeSummaryModel] =
