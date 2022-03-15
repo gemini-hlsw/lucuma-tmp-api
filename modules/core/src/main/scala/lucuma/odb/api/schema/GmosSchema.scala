@@ -376,8 +376,8 @@ object GmosSchema {
   ): InputObjectType[GmosModel.CreateGrating[D]] =
 
     InputObjectType[GmosModel.CreateGrating[D]](
-      s"Gmos${gmos(site).tag}GratingInput",
-      s"GMOS ${gmos(site).longName} grating input parameters",
+      s"${gmos(site).tag}GratingInput",
+      s"${gmos(site).longName} grating input parameters",
       List(
         InputField("disperser", implicitly[EnumType[D]], s"Gmos${gmos(site).tag} disperser"),
         InputField("order", EnumTypeGmosDisperserOrder, "GMOS disperser order"),
@@ -450,8 +450,8 @@ object GmosSchema {
   ): InputObjectType[GmosModel.CreateFpu[U]] =
 
     InputObjectType[GmosModel.CreateFpu[U]](
-      s"Gmos${gmos(site).tag}FpuInput",
-      s"GMOS ${gmos(site).longName} FPU input parameters (choose custom or builtin).",
+      s"${gmos(site).tag}FpuInput",
+      s"${gmos(site).longName} FPU input parameters (choose custom or builtin).",
       List(
         InputField("customMask", InputObjectTypeGmosCustomMask, "Custom mask FPU option"),
         InputField("builtin", implicitly[EnumType[U]], "Builtin FPU option")
