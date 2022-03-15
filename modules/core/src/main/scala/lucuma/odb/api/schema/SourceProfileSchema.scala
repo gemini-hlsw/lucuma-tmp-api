@@ -23,7 +23,7 @@ import sangria.macros.derive._
 object SourceProfileSchema {
 
   import AngleSchema.{AngleType, InputObjectAngle}
-  import GeneralSchema.PosBigDecimalType
+  import RefinedSchema.{PosBigDecimalType, PosIntType}
   import syntax.`enum`._
   import WavelengthSchema._
 
@@ -147,7 +147,7 @@ object SourceProfileSchema {
 
         Field(
           name      = "blackBodyTempK",
-          fieldType = OptionType(PosBigDecimalType),
+          fieldType = OptionType(PosIntType),
           resolve   = c => blackBody.getOption(c.value).map(_.temperature.value)
         ),
 

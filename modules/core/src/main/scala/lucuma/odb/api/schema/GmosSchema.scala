@@ -4,6 +4,7 @@
 package lucuma.odb.api.schema
 
 import lucuma.core.`enum`._
+import lucuma.core.util.Enumerated
 import lucuma.odb.api.model.GmosModel
 import sangria.schema._
 
@@ -102,10 +103,20 @@ object GmosSchema {
     )
 
   implicit val EnumTypeGmosSouthDisperser: EnumType[GmosSouthDisperser] =
-    EnumType.fromEnumerated(
+    // GmosSouthDisperser.all is haunted.  B600_G5323 is inexplicably null in the list.
+    // Fixed with marking it `lazy` in core but for now ....
+    EnumType.fromEnumerated[GmosSouthDisperser](
       "GmosSouthDisperser",
       "GMOS South Disperser"
-    )
+    )(Enumerated.of(
+      GmosSouthDisperser.B1200_G5321,
+      GmosSouthDisperser.R831_G5322,
+      GmosSouthDisperser.B600_G5323,
+      GmosSouthDisperser.R600_G5324,
+      GmosSouthDisperser.B480_G5327,
+      GmosSouthDisperser.R400_G5325,
+      GmosSouthDisperser.R150_G5326
+    ))
 
   implicit val EnumTypeGmosSouthFilter: EnumType[GmosSouthFilter] =
     EnumType.fromEnumerated(

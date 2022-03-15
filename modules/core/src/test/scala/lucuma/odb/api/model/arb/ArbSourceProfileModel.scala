@@ -5,7 +5,7 @@ package lucuma.odb.api.model
 package arb
 
 import clue.data.Input
-import eu.timepit.refined.types.all.PosBigDecimal
+import eu.timepit.refined.types.all.{PosBigDecimal, PosInt}
 import lucuma.core.`enum`.{Band, CoolStarTemperature, GalaxySpectrum, HIIRegionSpectrum, PlanetSpectrum, PlanetaryNebulaSpectrum, StellarLibrarySpectrum}
 import lucuma.core.math.BrightnessUnits.{Brightness, FluxDensityContinuum, Integrated, LineFlux, Surface}
 import lucuma.core.math.arb.ArbRefined
@@ -51,7 +51,7 @@ trait ArbSourceProfileModel {
         arbitrary[HIIRegionSpectrum].map(UnnormalizedSedInput.hiiRegionSpectrum),
         arbitrary[PlanetaryNebulaSpectrum].map(UnnormalizedSedInput.planetaryNebula),
         arbitrary[BigDecimal].map(UnnormalizedSedInput.powerLaw),
-        arbitrary[PosBigDecimal].map(UnnormalizedSedInput.blackBody),
+        arbitrary[Int].map(i => UnnormalizedSedInput.blackBody(PosInt.from(i.abs).getOrElse(PosInt.unsafeFrom(1)))),
         arbitrary[List[FluxDensityInput]].map(UnnormalizedSedInput.userDefined)
       )
     }
@@ -65,7 +65,7 @@ trait ArbSourceProfileModel {
       Option[HIIRegionSpectrum],
       Option[PlanetaryNebulaSpectrum],
       Option[BigDecimal],
-      Option[PosBigDecimal],
+      Option[Int],
       Option[List[FluxDensityInput]]
     )].contramap { in => (
       in.stellarLibrary,
@@ -75,7 +75,7 @@ trait ArbSourceProfileModel {
       in.hiiRegion,
       in.planetaryNebula,
       in.powerLaw,
-      in.blackBodyTempK,
+      in.blackBodyTempK.map(_.value),
       in.fluxDensities
     )}
 

@@ -17,7 +17,7 @@ import clue.data.syntax._
 import coulomb.Quantity
 import coulomb.si.Kelvin
 import eu.timepit.refined.cats._
-import eu.timepit.refined.types.all.PosBigDecimal
+import eu.timepit.refined.types.all.{PosBigDecimal, PosInt}
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import io.circe.refined._
@@ -99,7 +99,7 @@ object SourceProfileModel {
     hiiRegion:       Option[HIIRegionSpectrum],
     planetaryNebula: Option[PlanetaryNebulaSpectrum],
     powerLaw:        Option[BigDecimal],
-    blackBodyTempK:  Option[PosBigDecimal],
+    blackBodyTempK:  Option[PosInt],
     fluxDensities:   Option[List[FluxDensityInput]]
   ) {
 
@@ -134,7 +134,7 @@ object SourceProfileModel {
           hiiRegion      .map(UnnormalizedSED.HIIRegion(_)),
           planetaryNebula.map(UnnormalizedSED.PlanetaryNebula(_)),
           powerLaw       .map(UnnormalizedSED.PowerLaw(_)),
-          blackBodyTempK .map(k => UnnormalizedSED.BlackBody(Quantity[PosBigDecimal, Kelvin](k))),
+          blackBodyTempK .map(k => UnnormalizedSED.BlackBody(Quantity[PosInt, Kelvin](k))),
         )).map(_.validNec[InputError]).value :+ toUserDefined
       )
   }
@@ -182,7 +182,7 @@ object SourceProfileModel {
     def powerLaw(d: BigDecimal): UnnormalizedSedInput =
       Empty.copy(powerLaw = d.some)
 
-    def blackBody(t: PosBigDecimal): UnnormalizedSedInput =
+    def blackBody(t: PosInt): UnnormalizedSedInput =
       Empty.copy(blackBodyTempK = t.some)
 
     def userDefined(lst: List[FluxDensityInput]): UnnormalizedSedInput =
