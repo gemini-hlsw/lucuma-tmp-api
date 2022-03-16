@@ -453,8 +453,8 @@ object GmosSchema {
       s"${gmos(site).tag}FpuInput",
       s"${gmos(site).longName} FPU input parameters (choose custom or builtin).",
       List(
-        InputField("customMask", InputObjectTypeGmosCustomMask, "Custom mask FPU option"),
-        InputField("builtin", implicitly[EnumType[U]], "Builtin FPU option")
+        InputField("customMask", OptionInputType(InputObjectTypeGmosCustomMask), "Custom mask FPU option"),
+        InputField("builtin", OptionInputType(implicitly[EnumType[U]]), "Builtin FPU option")
       )
     )
 
