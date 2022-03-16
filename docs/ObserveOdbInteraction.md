@@ -64,7 +64,7 @@ query Observe {
 }
 ```
 
-Notice that the `static` configuration is separated from the steps themselves and that the `acquisition` and `science` steps are segregated.  Observe would start by executing the acquisition steps and once accomplished switch to the science steps.  Within a sequence, the `nextAtom` (if any) is the one that Observe should execute while the `possibleFuture` shows what we expect to happen for the remainder of the sequence.
+Notice that the `static` configuration is separated from the steps themselves and that the `acquisition` and `science` steps are segregated.  Observe would start by executing the acquisition steps and once accomplished switch to the science steps.  Within a sequence, the `nextAtom` (if any) is the one that Observe should execute while the `possibleFuture` shows what we expect to happen for the remainder of the sequence.  Because the possible future is uncertain, after finishing the `nextAtom`, Observe would repeat the query to obtain the latest `nextAtom` and latest `possibleFuture`.  This would continue until no `nextAtom` is forthcoming or until the observer decides to stop the observation.
 
 ## Starting a Visit
 
@@ -174,7 +174,7 @@ mutation RecordStep($stepInput: GmosSouthStepRecordInput!) {
 }
 ```
 
-This step ID in the record is needed for sending step and dataset events.
+The step ID in the record is needed for sending step and dataset events.
 
 ```
 {
@@ -232,5 +232,5 @@ enum DatasetStage {
 }
 ```
 
-
+Events are used to determine when steps and atoms have completed. Their presence thereby potentially changes the results of subsequent `nextAtom` calls.  Events must refer to valid visits and steps that have been previously recorded via `recordGmosSouthVisit` (for example) and `recordGmosSouthStep` or they will be rejected.
 
