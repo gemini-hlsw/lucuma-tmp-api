@@ -28,6 +28,7 @@ trait ExecutionEventMutation {
   import ObservationSchema.ObservationIdType
   import RefinedSchema.InputObjectPosInt
   import SequenceSchema.EnumTypeSequenceType
+  import StepMutation.InputObjectTypeCreateStepConfig
   import StepSchema.StepIdType
   import StepRecordSchema.StepRecordType
   import VisitRecordSchema.{VisitIdType, VisitRecordType}
@@ -106,7 +107,7 @@ trait ExecutionEventMutation {
       List(
         InputField("observationId", ObservationIdType),
         InputField("visitId",       VisitIdType),
-        InputField("stepConfig",    stepType)
+        InputField("stepConfig",    InputObjectTypeCreateStepConfig(typePrefix, stepType))
       )
     )
 
