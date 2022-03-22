@@ -12,6 +12,7 @@ import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.{Observation, Program}
 import cats.{Eq, Functor}
 import cats.data.StateT
+import cats.effect.Sync
 import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.apply._
 import cats.syntax.functor._
@@ -39,7 +40,7 @@ final case class ObservationModel(
   constraintSet:        ConstraintSetModel,
   scienceRequirements:  ScienceRequirements,
   scienceConfiguration: Option[ScienceConfigurationModel],
-  config:               Option[InstrumentConfigModel.Reference],
+  config:               Option[InstrumentConfigModel],
   plannedTimeSummary:   PlannedTimeSummaryModel
 ) {
 
@@ -84,37 +85,38 @@ object ObservationModel extends ObservationOptics {
     config:               Option[InstrumentConfigModel.Create]
   ) {
 
-    def create(
+    def create[F[_]: Sync](
       s: PlannedTimeSummaryModel
-    ): StateT[EitherInput, Database, ObservationModel] =
-      for {
-        i <- Database.observation.getUnusedKey(observationId)
-        _ <- Database.program.lookup(programId)
-        t  = targetEnvironment.getOrElse(TargetEnvironmentInput.Empty).create
-        c  = constraintSet.traverse(_.create)
-        q  = scienceRequirements.traverse(_.create)
-        u  = scienceConfiguration.traverse(_.create)
-        g <- config.traverse(_.create)
-        o  = (t, c, q, u).mapN { (tʹ, cʹ, qʹ, uʹ) =>
-          ObservationModel(
-            id                   = i,
-            existence            = Present,
-            programId            = programId,
-            name                 = name,
-            status               = status.getOrElse(ObsStatus.New),
-            activeStatus         = activeStatus.getOrElse(ObsActiveStatus.Active),
-            targetEnvironment    = tʹ,
-            constraintSet        = cʹ.getOrElse(ConstraintSetModel.Default),
-            scienceRequirements  = qʹ.getOrElse(ScienceRequirements.Default),
-            scienceConfiguration = uʹ,
-            config               = g.map(_.toReference),
-            plannedTimeSummary   = s
-          )
-        }
-        oʹ <- o.traverse(_.validate)
-        _  <- Database.observation.saveNewIfValid(oʹ)(_.id)
-        v  <- Database.observation.lookup(i)
-      } yield v
+    ): F[StateT[EitherInput, Database, ObservationModel]] =
+      config.traverse(_.create).map { g =>
+        for {
+          i <- Database.observation.getUnusedKey(observationId)
+          _ <- Database.program.lookup(programId)
+          t  = targetEnvironment.getOrElse(TargetEnvironmentInput.Empty).create
+          c  = constraintSet.traverse(_.create)
+          q  = scienceRequirements.traverse(_.create)
+          u  = scienceConfiguration.traverse(_.create)
+          o  = (t, c, q, u, g.sequence).mapN { (tʹ, cʹ, qʹ, uʹ, gʹ) =>
+            ObservationModel(
+              id                   = i,
+              existence            = Present,
+              programId            = programId,
+              name                 = name,
+              status               = status.getOrElse(ObsStatus.New),
+              activeStatus         = activeStatus.getOrElse(ObsActiveStatus.Active),
+              targetEnvironment    = tʹ,
+              constraintSet        = cʹ.getOrElse(ConstraintSetModel.Default),
+              scienceRequirements  = qʹ.getOrElse(ScienceRequirements.Default),
+              scienceConfiguration = uʹ,
+              config               = gʹ,
+              plannedTimeSummary   = s
+            )
+          }
+          oʹ <- o.traverse(_.validate)
+          _  <- Database.observation.saveNewIfValid(oʹ)(_.id)
+          v  <- Database.observation.lookup(i)
+        } yield v
+      }
   }
 
   object Create {
@@ -313,7 +315,7 @@ trait ObservationOptics { self: ObservationModel.type =>
   val scienceConfiguration: Lens[ObservationModel, Option[ScienceConfigurationModel]] =
     Focus[ObservationModel](_.scienceConfiguration)
 
-  val config: Lens[ObservationModel, Option[InstrumentConfigModel.Reference]] =
+  val config: Lens[ObservationModel, Option[InstrumentConfigModel]] =
     Focus[ObservationModel](_.config)
 
 }

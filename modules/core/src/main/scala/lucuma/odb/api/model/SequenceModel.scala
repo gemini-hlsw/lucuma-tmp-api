@@ -3,8 +3,7 @@
 
 package lucuma.odb.api.model
 
-import cats.data.StateT
-import lucuma.core.model.Atom
+import cats.effect.Sync
 import cats.{Applicative, Eq, Eval, Traverse}
 import cats.syntax.all._
 import io.circe.Decoder
@@ -40,20 +39,13 @@ object SequenceModel {
   implicit def EqSequenceModel[A: Eq]: Eq[SequenceModel[A]] =
     Eq.by { _.atoms }
 
-  implicit class ReferenceExtensions(s: SequenceModel[Atom.Id]) {
-
-    def dereference[D](f: StepConfig[_] => Option[D]): StateT[EitherInput, Database, Option[DereferencedSequence[D]]] =
-      s.atoms
-       .traverse(AtomModel.dereference[D](_)(f))
-       .map(_.sequence.map(SequenceModel(_)))
-  }
 
   final case class Create[CD](
     atoms: List[AtomModel.Create[CD]]
   ) {
 
-    def create[D](implicit ev: InputValidator[CD, D]): StateT[EitherInput, Database, DereferencedSequence[D]] =
-      atoms.traverse(_.create[D]).map(SequenceModel(_))
+    def create[F[_]: Sync, D](implicit ev: InputValidator[CD, D]): F[ValidatedInput[Sequence[D]]] =
+      atoms.traverse(_.create).map(_.sequence.map(SequenceModel(_)))
   }
 
   object Create {

@@ -140,7 +140,7 @@ object PlannedTime {
   def estimateAtom[D](a: AtomModel[StepModel[D]]): CategorizedTime =
     a.steps.map(s => estimateStep(s.config)).reduce
 
-  def estimateSequence[D](s:DereferencedSequence[D]): CategorizedTime =
+  def estimateSequence[D](s: Sequence[D]): CategorizedTime =
     NonEmptyList(CategorizedTime.Zero, s.atoms.map(estimateAtom)).reduce
 
   def estimate(config: InstrumentConfigModel): PlannedTime = {

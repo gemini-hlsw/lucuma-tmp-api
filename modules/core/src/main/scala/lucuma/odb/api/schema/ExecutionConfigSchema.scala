@@ -4,19 +4,25 @@
 package lucuma.odb.api.schema
 
 import cats.Functor
+import cats.effect.Async
 import cats.effect.std.Dispatcher
 import lucuma.core.model.Observation
-import lucuma.odb.api.model.{DereferencedSequence, GmosModel, SequenceModel}
+import lucuma.odb.api.model.{GmosModel, InstrumentConfigModel, Sequence, SequenceModel, Visit, VisitRecord, VisitRecords}
 import lucuma.odb.api.model.SequenceModel.SequenceType.{Acquisition, Science}
 import cats.syntax.all._
 import lucuma.core.`enum`.Instrument
+import lucuma.odb.api.schema.Paging.unsafeSelectPageFuture
+import org.typelevel.log4cats.Logger
 import sangria.schema.{Field, _}
+
+import scala.collection.immutable.ListMap
 
 object ExecutionConfigSchema {
 
   import context._
   import AtomSchema.AtomConcreteType
   import InstrumentConfigSchema.EnumTypeInstrument
+  import Paging.{ArgumentPagingCursor, ArgumentPagingFirst, Cursor}
 
   sealed trait ExecutionContext[S, D] extends Product with Serializable {
     def oid: Observation.Id
@@ -25,11 +31,11 @@ object ExecutionConfigSchema {
 
     def static: S
 
-    def acquisition: DereferencedSequence[D]
+    def acquisition: Sequence[D]
 
-    def science: DereferencedSequence[D]
+    def science: Sequence[D]
 
-    def sequence(sequenceType: SequenceModel.SequenceType): DereferencedSequence[D] =
+    def sequence(sequenceType: SequenceModel.SequenceType): Sequence[D] =
       sequenceType match {
         case Acquisition => acquisition
         case Science     => science
@@ -40,16 +46,16 @@ object ExecutionConfigSchema {
     oid:         Observation.Id,
     instrument:  Instrument,
     static:      GmosModel.NorthStatic,
-    acquisition: DereferencedSequence[GmosModel.NorthDynamic],
-    science:     DereferencedSequence[GmosModel.NorthDynamic]
+    acquisition: Sequence[GmosModel.NorthDynamic],
+    science:     Sequence[GmosModel.NorthDynamic]
   ) extends ExecutionContext[GmosModel.NorthStatic, GmosModel.NorthDynamic]
 
   final case class GmosSouthExecutionContext(
     oid:         Observation.Id,
     instrument:  Instrument,
     static:      GmosModel.SouthStatic,
-    acquisition: DereferencedSequence[GmosModel.SouthDynamic],
-    science:     DereferencedSequence[GmosModel.SouthDynamic]
+    acquisition: Sequence[GmosModel.SouthDynamic],
+    science:     Sequence[GmosModel.SouthDynamic]
   ) extends ExecutionContext[GmosModel.SouthStatic, GmosModel.SouthDynamic]
 
   def ExecutionConfigType[F[_]]: InterfaceType[OdbCtx[F], ExecutionContext[_, _]] =
@@ -68,16 +74,17 @@ object ExecutionConfigSchema {
       )
     )
 
-  def implementations[F[_]: Functor: Dispatcher]: List[Type with Named] =
+  def implementations[F[_]: Dispatcher: Async: Logger]: List[Type with Named] =
     List(
       GmosNorthExecutionConfigType[F],
       GmosSouthExecutionConfigType[F]
     )
 
-  def executionSequence[F[_]: Functor: Dispatcher, D](
-    instrument:   Instrument,
-    dynamicType:  OutputType[D],
-    sequenceType: SequenceModel.SequenceType
+  def executionSequence[F[_]: Functor: Dispatcher, S, D](
+    instrument:  Instrument,
+    dynamicType: OutputType[D],
+    recs:        VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]],
+    seq:         InstrumentConfigModel => Option[Sequence[D]]
   ): ObjectType[OdbCtx[F], ExecutionContext[_, D]] =
     ObjectType(
       name        = s"${instrument.tag}ExecutionSequence",
@@ -90,12 +97,8 @@ object ExecutionConfigSchema {
           description = "Next atom to execute, if any".some,
           resolve     = c =>
             c.executionEvent(
-              _.selectRemainingAtoms(c.value.oid, sequenceType)
-               .map(
-                 _.headOption.flatMap { atom =>
-                   c.value.sequence(sequenceType).atoms.find(_.id === atom.id)
-                 }
-               )
+              _.selectRemainingAtoms(c.value.oid, recs, seq)
+               .map(_.atoms.headOption)
             )
         ),
 
@@ -103,25 +106,21 @@ object ExecutionConfigSchema {
           name        = "possibleFuture",
           fieldType   = ListType(AtomConcreteType[F, D](instrument.tag, dynamicType)),
           description = "Remaining atoms to execute, if any".some,
-          resolve     = c => {
-            val allDeref = c.value.sequence(sequenceType).atoms.fproductLeft(_.id).toMap
-
+          resolve     = c =>
             c.executionEvent(
-              _.selectRemainingAtoms(c.value.oid, sequenceType)
-               .map(
-                 _.drop(1).flatMap { atom => allDeref.get(atom.id).toList }
-               )
+              _.selectRemainingAtoms(c.value.oid, recs, seq).map(_.atoms.drop(1))
             )
-
-          }
         )
       )
     )
 
-  def executionConfigFields[F[_]: Functor: Dispatcher, S, D, E <: ExecutionContext[S, D]](
+  def executionConfigFields[F[_]: Dispatcher: Async: Logger, S, D, E <: ExecutionContext[S, D]](
     instrument:  Instrument,
     staticType:  OutputType[S],
-    dynamicType: OutputType[D]
+    dynamicType: OutputType[D],
+    recs:        VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]],
+    acquisition: InstrumentConfigModel => Option[Sequence[D]],
+    science:     InstrumentConfigModel => Option[Sequence[D]]
   ): List[Field[OdbCtx[F], E]] =
 
     List(
@@ -134,17 +133,38 @@ object ExecutionConfigSchema {
 
       Field(
         name        = "acquisition",
-        fieldType   = executionSequence[F, D](instrument, dynamicType, Acquisition),
+        fieldType   = executionSequence[F, S, D](instrument, dynamicType, recs, acquisition),
         description = s"${instrument.longName} acquisition execution".some,
         resolve     = _.value
       ),
 
       Field(
         name        = "science",
-        fieldType   = executionSequence[F, D](instrument, dynamicType, Science),
+        fieldType   = executionSequence[F, S, D](instrument, dynamicType, recs, science),
         description = s"${instrument.longName} science execution".some,
         resolve     = _.value
+      ),
+
+      Field(
+        name        = "visits",
+        fieldType   = VisitRecordSchema.visitRecordConnectionType[F, S, D](instrument.tag, staticType, dynamicType),
+        arguments   = List(
+          ArgumentPagingFirst,
+          ArgumentPagingCursor
+        ),
+        resolve     = c =>
+          unsafeSelectPageFuture[F, Visit.Id, VisitRecord.Output[S, D]](
+            c.pagingVisitId,
+            (r: VisitRecord.Output[S, D]) => Cursor.uid[Visit.Id].reverseGet(r.visitId),
+            vid => c.ctx.odbRepo.executionEvent.selectVisitsPageForObservation[S, D](
+              c.value.oid,
+              recs,
+              c.pagingFirst,
+              vid
+            )
+          )
       )
+
     )
 
   private def executionConfigName(instrument: Instrument): String =
@@ -153,27 +173,33 @@ object ExecutionConfigSchema {
   private def executionConfigDescription(instrument: Instrument): String =
     s"${instrument.longName} Execution Config"
 
-  def GmosNorthExecutionConfigType[F[_]: Functor: Dispatcher]: ObjectType[OdbCtx[F], GmosNorthExecutionContext] =
+  def GmosNorthExecutionConfigType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], GmosNorthExecutionContext] =
     ObjectType(
       name        = executionConfigName(Instrument.GmosNorth),
       description = executionConfigDescription(Instrument.GmosNorth),
       interfaces  = List(PossibleInterface.apply[OdbCtx[F], GmosNorthExecutionContext](ExecutionConfigType[F])),
       fields      = executionConfigFields(
         Instrument.GmosNorth,
-        GmosSchema.GmosNorthStaticConfigType[F],
-        GmosSchema.GmosNorthDynamicType[F]
+        GmosSchema.GmosNorthStaticConfigType,
+        GmosSchema.GmosNorthDynamicType,
+        VisitRecords.gmosNorthVisits.getOption,
+        _.gmosNorth.map(_.acquisition),
+        _.gmosNorth.map(_.science)
       )
     )
 
-  def GmosSouthExecutionConfigType[F[_]: Functor: Dispatcher]: ObjectType[OdbCtx[F], GmosSouthExecutionContext] =
+  def GmosSouthExecutionConfigType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], GmosSouthExecutionContext] =
     ObjectType(
       name        = executionConfigName(Instrument.GmosSouth),
       description = executionConfigDescription(Instrument.GmosSouth),
       interfaces  = List(PossibleInterface.apply[OdbCtx[F], GmosSouthExecutionContext](ExecutionConfigType[F])),
       fields      = executionConfigFields(
         Instrument.GmosSouth,
-        GmosSchema.GmosSouthStaticConfigType[F],
-        GmosSchema.GmosSouthDynamicType[F]
+        GmosSchema.GmosSouthStaticConfigType,
+        GmosSchema.GmosSouthDynamicType,
+        VisitRecords.gmosSouthVisits.getOption,
+        _.gmosSouth.map(_.acquisition),
+        _.gmosSouth.map(_.science)
       )
     )
 }

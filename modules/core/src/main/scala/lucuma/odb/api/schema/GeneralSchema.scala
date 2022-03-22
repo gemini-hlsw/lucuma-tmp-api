@@ -9,6 +9,10 @@ import eu.timepit.refined.types.all.NonEmptyString
 import sangria.schema._
 import sangria.validation.ValueCoercionViolation
 
+import java.util.UUID
+
+import scala.util.Try
+
 object GeneralSchema {
 
   import TimeSchema._
@@ -43,6 +47,16 @@ object GeneralSchema {
         case sangria.ast.StringValue(s, _, _, _, _) => NonEmptyString.from(s).leftMap(_ => EmptyStringViolation)
         case _                                      => Left(EmptyStringViolation)
       }
+    )
+
+  val UuidViolation: ValueCoercionViolation =
+    new ValueCoercionViolation("Expected a valid UUID") {}
+
+  implicit val UuidType: ScalarAlias[UUID, String] =
+    ScalarAlias(
+      StringType,
+      _.toString,
+      uuid => Try(UUID.fromString(uuid)).toEither.leftMap(_ => UuidViolation)
     )
 
   val PlannedTimeSummaryType: ObjectType[Any, PlannedTimeSummaryModel] =

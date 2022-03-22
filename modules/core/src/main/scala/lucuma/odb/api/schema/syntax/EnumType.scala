@@ -7,7 +7,7 @@ import lucuma.core.syntax.display._
 import lucuma.core.syntax.enumerated._
 import lucuma.core.syntax.string._
 import lucuma.core.util.{Display, Enumerated}
-import sangria.schema.{EnumType, EnumValue, InputType, OptionInputType}
+import sangria.schema.{EnumType, EnumValue, InputType, ListInputType, OptionInputType}
 
 final class EnumTypeCompanionOps(val self: EnumType.type) {
 
@@ -56,6 +56,9 @@ final class EnumTypeOps[A](val self: EnumType[A]) extends AnyVal {
 
   def optional: InputType[Option[A]] =
     OptionInputType(self)
+
+  def list: InputType[Seq[A]] =
+    ListInputType(self)
 
 }
 

@@ -3,23 +3,25 @@
 
 package lucuma.odb.api.repo
 
-import cats.MonadError
-import lucuma.odb.api.model.{AtomModel, Database, DatasetModel, EitherInput, ExecutedStepModel, ExecutionEventModel, SequenceModel}
+import cats.data.{State, StateT}
+import cats.implicits.catsKernelOrderingForOrder
+import cats.syntax.all._
+import cats.effect.{Clock, Ref, Sync}
+import eu.timepit.refined.cats._
+import eu.timepit.refined.types.all.PosInt
+import lucuma.core.`enum`.Instrument
+import lucuma.odb.api.model.{AtomModel, Database, DatasetModel, EitherInput, ExecutionEventModel, InputValidator, InstrumentConfigModel, Sequence, SequenceModel, StepConfig, Step, StepModel, StepRecord, ValidatedInput, Visit, VisitRecord, VisitRecords}
 import lucuma.odb.api.model.ExecutionEventModel.{DatasetEvent, SequenceEvent, StepEvent}
 import lucuma.odb.api.model.syntax.databasestate._
 import lucuma.odb.api.model.syntax.eitherinput._
-import lucuma.core.model.{Atom, ExecutionEvent, Observation, Step}
-import cats.data.StateT
-import cats.implicits.catsKernelOrderingForOrder
-import cats.syntax.all._
-import cats.effect.{Clock, Ref}
-import eu.timepit.refined.cats._
-import eu.timepit.refined.types.all.PosInt
+import lucuma.odb.api.model.syntax.lens._
+import lucuma.odb.api.model.syntax.optional._
+import lucuma.core.model.{ExecutionEvent, Observation}
+import monocle.Prism
 
 import java.time.Instant
 
-import scala.collection.immutable.SortedMap
-
+import scala.collection.immutable.ListMap
 
 sealed trait ExecutionEventRepo[F[_]] {
 
@@ -34,6 +36,18 @@ sealed trait ExecutionEventRepo[F[_]] {
     afterGid: Option[ExecutionEvent.Id] = None
   ): F[ResultPage[ExecutionEventModel]]
 
+  def selectStepEventsPageForObservation(
+    oid:      Observation.Id,
+    count:    Option[Int],
+    afterGid: Option[ExecutionEvent.Id] = None
+  ): F[ResultPage[StepEvent]]
+
+  def selectDatasetEventsPageForObservation(
+    oid:      Observation.Id,
+    count:    Option[Int],
+    afterGid: Option[ExecutionEvent.Id] = None
+  ): F[ResultPage[DatasetEvent]]
+
   /** Page datasets associated with an observation  */
   def selectDatasetsPageForObservation(
     oid:   Observation.Id,
@@ -43,32 +57,60 @@ sealed trait ExecutionEventRepo[F[_]] {
 
   /** Page datasets associated with an individual step. */
   def selectDatasetsPageForStep(
-    sid:   Step.Id,
+    stepId: Step.Id,
     count: Option[Int],
     after: Option[PosInt] = None
   ): F[ResultPage[DatasetModel]]
 
-  /** Page executed steps associated with an observation. */
-  def selectExecutedStepsPageForObservation(
+  def selectStepForId[S, D](
+    oid:    Observation.Id,
+    stepId: Step.Id,
+    recs:   VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]]
+  ): F[Option[StepRecord.Output[D]]]
+
+  /** Page executed visits associated with an observation. */
+  def selectVisitsPageForObservation[S, D](
     oid:   Observation.Id,
+    recs:  VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]],
+    count: Option[Int],
+    after: Option[Visit.Id] = None
+  ): F[ResultPage[VisitRecord.Output[S, D]]]
+
+  /** Page executed steps associated with an observation. */
+  def selectStepsPageForObservation[S, D](
+    oid:   Observation.Id,
+    recs:  VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]],
     count: Option[Int],
     after: Option[Step.Id] = None
-  ): F[ResultPage[ExecutedStepModel]]
+  ): F[ResultPage[StepRecord.Output[D]]]
 
-  /** Select all executed steps for an observation at once. */
-  def selectExecutedStepsForObservation(
-    oid: Observation.Id
-  ): F[List[ExecutedStepModel]]
+  /** Select all recorded steps for an observation at once. */
+  def selectStepsForObservation[S, D](
+    oid:  Observation.Id,
+    recs: VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]]
+  ): F[List[StepRecord.Output[D]]]
 
-  /**
-   * Select all not-completely-executed atoms after the last executed atom. A
-   * step is considered executed if we've received an end step event.  An atom
-   * is executed if all steps are executed.
-   */
-  def selectRemainingAtoms(
-    oid:     Observation.Id,
-    seqType: SequenceModel.SequenceType
-  ): F[List[AtomModel[Step.Id]]]
+  def selectExistentialStepsForObservation(
+    oid:  Observation.Id,
+   ): F[List[StepRecord.Output[_]]]
+
+  def selectRemainingAtoms[S, D](
+    oid:  Observation.Id,
+    recs: VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]],
+    seq:  InstrumentConfigModel => Option[Sequence[D]]
+  ): F[Sequence[D]]
+
+  def insertVisit[SI, S, D](
+    visitId:       Visit.Id,
+    visit:         VisitRecord.Input[SI],
+    prism:         Prism[VisitRecords, ListMap[Visit.Id, VisitRecord[S, D]]]
+  )(implicit ev: InputValidator[SI, S]): F[VisitRecord.Output[S, D]]
+
+  def insertStep[DI, S, D](
+    stepId: Step.Id,
+    step:   StepRecord.Input[DI],
+    prism:  Prism[VisitRecords, ListMap[Visit.Id, VisitRecord[S, D]]]
+  )(implicit ev: InputValidator[DI, D]): F[StepRecord.Output[D]]
 
   def insertSequenceEvent(
     event: SequenceEvent.Add
@@ -86,36 +128,9 @@ sealed trait ExecutionEventRepo[F[_]] {
 
 object ExecutionEventRepo {
 
-  /**
-   * Groups step and dataset events associated with a particular step.
-   */
-  private final case class EventsPair(
-    datasetEvents: List[DatasetEvent],
-    stepEvents:    List[StepEvent]
-  ) {
-
-    def addDatasetEvent(de: DatasetEvent): EventsPair =
-      copy(datasetEvents = de :: datasetEvents)
-
-    def addStepEvent(se: StepEvent): EventsPair =
-      copy(stepEvents = se :: stepEvents)
-
-    def isExecuted: Boolean =
-      stepEvents.exists(_.stage === ExecutionEventModel.StepStageType.EndStep)
-
-  }
-
-  private object EventsPair {
-    def fromDatasetEvent(de: DatasetEvent): EventsPair =
-      EventsPair(List(de), Nil)
-
-    def fromStepEvent(se: StepEvent): EventsPair =
-      EventsPair(Nil, List(se))
-  }
-
-  def create[F[_]: Clock](
+  def create[F[_]: Sync](
     databaseRef: Ref[F, Database]
-  )(implicit E: MonadError[F, Throwable]): ExecutionEventRepo[F] =
+  ): ExecutionEventRepo[F] =
     new ExecutionEventRepo[F] {
 
       override def selectEvent(
@@ -123,62 +138,199 @@ object ExecutionEventRepo {
       ): F[Option[ExecutionEventModel]] =
         databaseRef.get.map(_.executionEvents.rows.get(eid))
 
-      // Sort events by generation timestamp + event id
-      private def sortedEvents(db: Database, oid: Observation.Id): List[ExecutionEventModel] =
+      // Sort events by timestamp + event id
+
+      private def sortedEvents(
+        db: Database
+      )(
+        p: ExecutionEventModel => Boolean
+      ): List[ExecutionEventModel] =
         db
          .executionEvents
          .rows
          .values
-         .filter(_.observationId === oid)
+         .filter(p)
          .toList
-         .sortBy(e => (e.generated, e.id))
+         .sortBy(e => (e.received, e.id))
 
+      private def addEventsToSteps[D](
+        oid:    Observation.Id,
+        events: List[ExecutionEventModel],
+        recs:   List[(Visit.Id, (Step.Id, StepRecord[D]))]
+      ): List[StepRecord.Output[D]] = {
 
-      // Map of steps to the atoms that contain them.
-      private def stepAtoms(db: Database): Map[Step.Id, Atom.Id] =
-        db.atoms.rows.values.foldLeft(Map.empty[Step.Id, Atom.Id]) { (m, a) =>
-          a.steps.foldLeft(m) { (m2, sid) => m2 + (sid -> a.id) }
-        }
-
-      private def executedStepsForObservation(db: Database, oid: Observation.Id): List[ExecutedStepModel] = {
-        val as = stepAtoms(db)
-        val es = sortedEvents(db, oid)
+        val stepMap = recs.map { case (vid, (sid, r)) =>
+          sid -> StepRecord.Output.init(oid, vid, sid, r.created, r.stepConfig)
+        }.toMap
 
         // Steps and their associated dataset and step events.
-        val byStep = es.foldRight(SortedMap.empty[Step.Id, EventsPair]) { (e, m) =>
+        val byStep = events.foldRight(stepMap) { (e, m) =>
           e match {
             case _: SequenceEvent => m
-            case d: DatasetEvent  => m.updatedWith(d.stepId)(_.fold(EventsPair.fromDatasetEvent(d))(_.addDatasetEvent(d)).some)
-            case s: StepEvent     => m.updatedWith(s.stepId)(_.fold(EventsPair.fromStepEvent(s))(_.addStepEvent(s)).some)
+            case d: DatasetEvent  => m.updatedWith(d.stepId)(_.map(x => StepRecord.Output.datasetEvents.modify(_ :+ d)(x)))
+            case s: StepEvent     => m.updatedWith(s.stepId)(_.map(x => StepRecord.Output.stepEvents.modify(_ :+ s)(x)))
           }
         }
 
         // Create executed steps from the event information.
-        byStep.toList.collect { case (sid, ep: EventsPair) if ep.isExecuted =>
-          ExecutedStepModel(
-            sid,
-            as(sid),
-            oid,
-            ep.stepEvents,
-            ep.datasetEvents,
-            ep.datasetEvents.flatMap(_.toDataset).distinct,
-            ep.stepEvents.head.generated,
-            ep.stepEvents.last.generated
-          )
-        }.sortBy(s => (s.endTime, s.stepId))
+        byStep.values.toList.sortBy(s => (s.startTime, s.stepId))
+      }
+
+      private def recordedStep[S, D](
+        db:     Database,
+        oid:    Observation.Id,
+        stepId: Step.Id,
+        recs:   VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]]
+      ): Option[StepRecord.Output[D]] = {
+
+        val events  = sortedEvents(db) {
+          case SequenceEvent(_, o, _, _, _)         => o === oid
+          case StepEvent(_, o, _, s, _, _, _)       => o === oid && s === stepId
+          case DatasetEvent(_, o, _, s, _, _, _, _) => o === oid && s === stepId
+        }
+
+        val stepRec = Database.visitRecordsAt(oid).get(db).toList.flatMap { vrs =>
+          recs(vrs).toList.flatMap(_.toList).flatMap { case (vid, vr) =>
+            vr.steps.get(stepId).tupleLeft(stepId).toList.tupleLeft(vid)
+          }
+        }
+
+        addEventsToSteps(oid, events, stepRec).headOption
 
       }
 
-      override def selectExecutedStepsForObservation(oid: Observation.Id): F[List[ExecutedStepModel]] =
-        databaseRef.get.map(executedStepsForObservation(_, oid))
+      override def selectStepForId[S, D](
+        oid:    Observation.Id,
+        stepId: Step.Id,
+        recs:   VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]]
+      ): F[Option[StepRecord.Output[D]]] =
+        databaseRef.get.map(recordedStep(_, oid, stepId, recs))
+
+      private def recordedSteps[S, D](
+        db:   Database,
+        oid:  Observation.Id,
+        recs: Option[ListMap[Visit.Id, VisitRecord[S, D]]]
+      ): List[StepRecord.Output[D]] = {
+
+        val events   = sortedEvents(db)(_.observationId === oid)
+        val stepRecs = recs.toList.flatMap(_.toList).flatMap { case (vid, vr) => vr.steps.toList.tupleLeft(vid) }
+        addEventsToSteps(oid, events, stepRecs)
+      }
+
+      private def recordedSteps[S, D](
+        db:   Database,
+        oid:  Observation.Id,
+        recs: VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]]
+      ): List[StepRecord.Output[D]] =
+        recordedSteps[S, D](db, oid, Database.visitRecordsAt(oid).get(db).flatMap(recs))
+
+      override def selectStepsForObservation[S, D](
+        oid:  Observation.Id,
+        recs: VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]]
+      ): F[List[StepRecord.Output[D]]] =
+        databaseRef.get.map(recordedSteps(_, oid, recs))
+
+      override def selectExistentialStepsForObservation(
+        oid:  Observation.Id,
+      ): F[List[StepRecord.Output[_]]] =
+        databaseRef.get.map { db =>
+          db.observations.rows.get(oid).flatMap(_.config).map(_.instrument match {
+            // How do you do this without breaking out the various cases?
+            case Instrument.GmosNorth => recordedSteps(db, oid, VisitRecords.gmosNorthVisits.getOption _)
+            case Instrument.GmosSouth => recordedSteps(db, oid, VisitRecords.gmosSouthVisits.getOption _)
+            case _                    => List.empty[StepRecord.Output[_]]
+          }).toList.flatten
+        }
+
+      def selectVisitsPageForObservation[S, D](
+        oid:   Observation.Id,
+        recs:  VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]],
+        count: Option[Int],
+        after: Option[Visit.Id] = None
+      ): F[ResultPage[VisitRecord.Output[S, D]]] =
+
+        databaseRef.get.map { db =>
+
+          val vMap      = Database.visitRecordsAt(oid).get(db).flatMap(recs).getOrElse(ListMap.empty)
+          val events    = sortedEvents(db)(_.observationId === oid)
+          val stepRecs  = vMap.toList.flatMap { case (vid, vr) => vr.steps.toList.tupleLeft(vid) }
+          val soMap     = addEventsToSteps(oid, events, stepRecs).fproductLeft(_.stepId).toMap
+
+          val seqEvents = events.collect {
+            case e@SequenceEvent(_,_,_,_,_) => e
+          }
+
+          val allVisits = vMap.toList.map { case (vid, vr) =>
+            VisitRecord.Output[S,D](
+              oid,
+              vid,
+              vr.created,
+              vr.static,
+              vr.steps.keys.toList.flatMap { sid =>
+                soMap.get(sid).toList
+              }.sortBy(so => so.startTime.getOrElse(so.created)),
+              seqEvents
+            )
+          }
+
+          ResultPage.fromSeq(
+            allVisits,
+            count,
+            after,
+            _.visitId
+          )
+        }
+
+
+      override def selectStepsPageForObservation[S, D](
+        oid:   Observation.Id,
+        recs:  VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]],
+        count: Option[Int],
+        after: Option[Step.Id] = None
+      ): F[ResultPage[StepRecord.Output[D]]] =
+
+        selectStepsForObservation(oid, recs).map { steps =>
+          ResultPage.fromSeq(
+            steps,
+            count,
+            after,
+            _.stepId
+          )
+        }
+
 
       override def selectEventsPageForObservation(
         oid:      Observation.Id,
         count:    Option[Int],
         afterGid: Option[ExecutionEvent.Id]
       ): F[ResultPage[ExecutionEventModel]] =
-        databaseRef.get.map { tables =>
-          ResultPage.fromSeq(sortedEvents(tables, oid), count, afterGid, _.id)
+        databaseRef.get.map { db =>
+          ResultPage.fromSeq(sortedEvents(db)(_.observationId === oid), count, afterGid, _.id)
+        }
+
+      override def selectStepEventsPageForObservation(
+        oid:      Observation.Id,
+        count:    Option[Int],
+        afterGid: Option[ExecutionEvent.Id] = None
+      ): F[ResultPage[StepEvent]] =
+        databaseRef.get.map { db =>
+          val events = sortedEvents(db)(_.observationId === oid).collect {
+            case s @ StepEvent(_, _, _, _, _, _, _) => s
+          }
+          ResultPage.fromSeq(events, count, afterGid, _.id)
+        }
+
+
+      override def selectDatasetEventsPageForObservation(
+        oid:      Observation.Id,
+        count:    Option[Int],
+        afterGid: Option[ExecutionEvent.Id] = None
+      ): F[ResultPage[DatasetEvent]] =
+        databaseRef.get.map { db =>
+          val events = sortedEvents(db)(_.observationId === oid).collect {
+            case d @ DatasetEvent(_, _, _, _, _, _, _, _) => d
+          }
+          ResultPage.fromSeq(events, count, afterGid, _.id)
         }
 
       override def selectDatasetsPageForObservation(
@@ -203,14 +355,14 @@ object ExecutionEventRepo {
         }
 
       override def selectDatasetsPageForStep(
-        sid:   Step.Id,
-        count: Option[Int],
-        after: Option[PosInt] = None
+        stepId: Step.Id,
+        count:  Option[Int],
+        after:  Option[PosInt] = None
       ): F[ResultPage[DatasetModel]] =
 
         databaseRef.get.map { db =>
           db.executionEvents.rows.values.collect {
-            case de: DatasetEvent if de.stepId === sid => de.toDataset
+            case de: DatasetEvent if de.stepId === stepId => de.toDataset
           }.toList.flattenOption.distinct.sortBy(_.index)
         }.map { all =>
 
@@ -224,67 +376,102 @@ object ExecutionEventRepo {
         }
 
 
-      override def selectExecutedStepsPageForObservation(
-        oid:   Observation.Id,
-        count: Option[Int],
-        after: Option[Step.Id] = None
-      ): F[ResultPage[ExecutedStepModel]] = {
+      private def remainingAtoms[S, D](
+        db:   Database,
+        oid:  Observation.Id,
+        recs: VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]],
+        seq:  InstrumentConfigModel => Option[Sequence[D]]
+      ): Sequence[D] = {
 
-        selectExecutedStepsForObservation(oid).map { steps =>
+        val recorded: List[(StepConfig[D], Boolean)] =
+          recordedSteps(db, oid, recs).map(r => (r.stepConfig, r.isExecuted))
 
-          ResultPage.fromSeq(
-            steps,
-            count,
-            after,
-            _.stepId
-          )
+        val wholeSequence: List[AtomModel[StepModel[D]]] =
+          db.observations.rows.get(oid).flatMap(_.config).flatMap(seq).toList.flatMap(_.atoms)
 
-        }
+        // We remove atoms from the wholeSequence when a matching, contiguous,
+        // executed series of steps is found in the recorded list.  This is
+        // still too simplistic since "contiguous" could be separated by days
+        // of time. TBD.
 
-      }
+        // Also, we need to filter out any steps that were taken under different
+        // static configurations.
 
-      private def remainingAtoms(
-        db:       Database,
-        oid:      Observation.Id,
-        seqType:  SequenceModel.SequenceType,
-        executed: List[ExecutedStepModel]
-      ): List[AtomModel[Step.Id]] = {
+        def isExecuted(a: AtomModel[StepModel[D]]): State[List[(StepConfig[D], Boolean)], Boolean] = {
+          val steps = a.steps.map(s => (s.config, true)).toList
 
-        val isExecutedStep: Set[Step.Id] =
-          executed.map(_.stepId).toSet
-
-        db
-          .observations
-          .rows
-          .get(oid)
-          .flatMap(_.config)
-          .map { ref =>
-            seqType match {
-              case SequenceModel.SequenceType.Acquisition => ref.acquisition
-              case SequenceModel.SequenceType.Science     => ref.science
+          for {
+            rs <- State.get[List[(StepConfig[D], Boolean)]]
+            i   = rs.indexOfSlice(steps, 0)
+            _  <- State.set[List[(StepConfig[D], Boolean)]] {
+              if (i < 0) rs else rs.patch(i, Nil, steps.length)
             }
-          }
-          .toList
-          .flatMap { seq =>
-            seq
-              .atoms
-              .map(db.atoms.rows(_))
-              .filter(a => !a.steps.forall(isExecutedStep))
-          }
+          } yield i > -1
+        }
 
+        SequenceModel(
+          // Filter the sequence, removing any atoms we consider executed.
+          wholeSequence
+            .zip(wholeSequence.traverse(isExecuted).runA(recorded).value)
+            .filterNot(_._2)
+            .map(_._1)
+        )
       }
 
-      def selectRemainingAtoms(
-        oid: Observation.Id,
-        seqType: SequenceModel.SequenceType
-      ): F[List[AtomModel[Step.Id]]] =
-        databaseRef.get.map { tables =>
-          remainingAtoms(tables, oid, seqType, executedStepsForObservation(tables, oid))
-        }
+      override def selectRemainingAtoms[S, D](
+        oid:  Observation.Id,
+        recs: VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]],
+        seq:  InstrumentConfigModel => Option[Sequence[D]]
+      ): F[Sequence[D]] =
+        databaseRef.get.map(remainingAtoms(_, oid, recs, seq))
 
       private def received: F[Instant] =
         Clock[F].realTime.map(d => Instant.ofEpochMilli(d.toMillis))
 
+      override def insertVisit[SI, S, D](
+        visitId:       Visit.Id,
+        visit:         VisitRecord.Input[SI],
+        prism:         Prism[VisitRecords, ListMap[Visit.Id, VisitRecord[S, D]]]
+      )(implicit ev: InputValidator[SI, S]): F[VisitRecord.Output[S, D]] = {
+
+        def record(in: ValidatedInput[VisitRecord[S, D]]): StateT[EitherInput, Database, VisitRecord[S, D]] =
+          for {
+            vr <- StateT.liftF(in.toEither)
+            _  <- Database.visitRecordsAt(visit.observationId).mod_ { ovr =>
+              prism.reverseGet(ovr.fold(ListMap(visitId -> vr)) { vrs =>
+                prism.getOption(vrs).fold(ListMap(visitId -> vr))(_.updated(visitId, vr))
+              }).some
+            }
+          } yield vr
+
+        for {
+          i <- Sync[F].delay(Instant.now)
+          v  = visit.create[S, D](i)
+          r <- databaseRef.modifyState(record(v).flipF).flatMap(_.liftTo[F])
+        } yield VisitRecord.Output.init[S, D](visit.observationId, visitId, i, r.static)
+      }
+
+      override def insertStep[DI, S, D](
+        stepId: Step.Id,
+        step:   StepRecord.Input[DI],
+        prism:  Prism[VisitRecords, ListMap[Visit.Id, VisitRecord[S, D]]]
+      )(implicit ev: InputValidator[DI, D]): F[StepRecord.Output[D]] = {
+
+        def record(in: ValidatedInput[StepRecord[D]]): StateT[EitherInput, Database, StepRecord[D]] =
+          for {
+            sr  <- StateT.liftF(in.toEither)
+            _   <- Database.visitRecordAt(step.observationId, step.visitId, prism)
+                    .andThen(VisitRecord.steps[S, D].asOptional)
+                    .mod_(_.updated(stepId, sr))
+          } yield sr
+
+        for {
+          i <- Sync[F].delay(Instant.now)
+          s  = step.create[D](i)
+          r <- databaseRef.modifyState(record(s).flipF).flatMap(_.liftTo[F])
+        } yield StepRecord.Output.init[D](step.observationId, step.visitId, stepId, i, r.stepConfig)
+
+      }
 
       private def insertEvent[A](
         f: Instant => StateT[EitherInput, Database, A]

@@ -4,23 +4,29 @@
 package lucuma.odb.api.schema
 
 import lucuma.core.`enum`._
-import lucuma.core.model.Step
-import lucuma.odb.api.model.{Breakpoint, PlannedTime, StepConfig, StepModel}
-
-import lucuma.odb.api.schema.PlannedTimeSchema.CategorizedTimeType
+import lucuma.odb.api.model
+import lucuma.odb.api.model.{PlannedTime, Step, StepConfig, StepModel}
 import sangria.schema._
 
 
 object StepSchema {
 
   import OffsetSchema._
+  import PlannedTimeSchema.CategorizedTimeType
   import syntax.`enum`._
 
   implicit val StepIdType: ScalarType[Step.Id] =
-    ObjectIdSchema.idType[Step.Id](name = "StepId")
+    ObjectIdSchema.uidType[Step.Id]("StepId")
 
-  implicit val EnumTypeBreakpoint: EnumType[Breakpoint] =
-    EnumType.fromEnumerated[Breakpoint](
+  val ArgumentStepId: Argument[Step.Id] =
+    Argument(
+      name         = "stepId",
+      argumentType = StepIdType,
+      description  = "Step ID"
+    )
+
+  implicit val EnumTypeBreakpoint: EnumType[model.Breakpoint] =
+    EnumType.fromEnumerated[model.Breakpoint](
       "Breakpoint",
       "Stopping point in a series of steps"
     )

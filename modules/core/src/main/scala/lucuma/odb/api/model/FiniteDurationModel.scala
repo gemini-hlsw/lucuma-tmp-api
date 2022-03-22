@@ -42,7 +42,6 @@ object FiniteDurationModel {
   }
 
   object Units {
-    case object Nanoseconds  extends Units(NANOSECONDS)
     case object Microseconds extends Units(MICROSECONDS)
     case object Milliseconds extends Units(MILLISECONDS)
     case object Seconds      extends Units(SECONDS)
@@ -50,7 +49,6 @@ object FiniteDurationModel {
     case object Hours        extends Units(HOURS)
     case object Days         extends Units(DAYS)
 
-    val nanoseconds: Units  = Nanoseconds
     val microseconds: Units = Microseconds
     val milliseconds: Units = Milliseconds
     val seconds: Units      = Seconds
@@ -60,7 +58,6 @@ object FiniteDurationModel {
 
     implicit val EnumeratedUnits: Enumerated[Units] =
       Enumerated.of(
-        Nanoseconds,
         Microseconds,
         Milliseconds,
         Seconds,
@@ -77,8 +74,7 @@ object FiniteDurationModel {
     NumericUnits.fromRead(_.readLong(_), _.readDecimal(_))
 
   final case class Input(
-    nanoseconds:  Option[Long],
-    microseconds: Option[BigDecimal],
+    microseconds: Option[Long],
     milliseconds: Option[BigDecimal],
     seconds:      Option[BigDecimal],
     minutes:      Option[BigDecimal],
@@ -92,8 +88,7 @@ object FiniteDurationModel {
 
     def toFiniteDuration(n: String): ValidatedInput[FiniteDuration] =
       ValidatedInput.requireOne(n,
-        nanoseconds .map(Nanoseconds.readLong),
-        microseconds.map(Microseconds.readDecimal),
+        microseconds.map(Microseconds.readLong),
         milliseconds.map(Milliseconds.readDecimal),
         seconds     .map(Seconds.readDecimal),
         minutes     .map(Minutes.readDecimal),
@@ -108,15 +103,12 @@ object FiniteDurationModel {
   object Input {
 
     val Empty: Input =
-      Input(None, None, None, None, None, None, None, None, None)
+      Input(None, None, None, None, None, None, None, None)
 
     def apply(fd: FiniteDuration): Input =
-      fromNanoseconds(fd.toNanos)
+      fromMicroseconds(fd.toMicros)
 
-    def fromNanoseconds(value: Long): Input =
-      Empty.copy(nanoseconds = Some(value))
-
-    def fromMicroseconds(value: BigDecimal): Input =
+    def fromMicroseconds(value: Long): Input =
       Empty.copy(microseconds = Some(value))
 
     def fromMilliseconds(value: BigDecimal): Input =
@@ -145,7 +137,6 @@ object FiniteDurationModel {
 
     implicit val EqInput: Eq[Input] =
       Eq.by(in => (
-        in.nanoseconds,
         in.microseconds,
         in.milliseconds,
         in.seconds,

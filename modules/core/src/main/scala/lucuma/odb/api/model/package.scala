@@ -11,6 +11,6 @@ package object model {
 
   type ValidatedInput[A] = ValidatedNec[InputError, A]
 
-  type DereferencedSequence[D] = SequenceModel[AtomModel[StepModel[D]]]
+  type Sequence[D] = SequenceModel[AtomModel[StepModel[D]]]
 
 }

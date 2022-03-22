@@ -20,7 +20,7 @@ object ExecutionEventSchema {
   import syntax.`enum`._
 
   implicit val ExecutionEventIdType: ScalarType[ExecutionEvent.Id] =
-    ObjectIdSchema.idType[ExecutionEvent.Id](name = "ExecutionEventId")
+    ObjectIdSchema.gidType[ExecutionEvent.Id](name = "ExecutionEventId")
 
   val ExecutionEventArgument: Argument[ExecutionEvent.Id] =
     Argument(
@@ -29,7 +29,7 @@ object ExecutionEventSchema {
       description  = "Execution Event ID"
     )
 
-  val OptionalExecutionEventArgument: Argument[Option[ExecutionEvent.Id]] =
+  val OptionalExecutionEventIdArgument: Argument[Option[ExecutionEvent.Id]] =
     Argument(
       name         = "executionEventId",
       argumentType = OptionInputType(ExecutionEventIdType),
@@ -75,13 +75,6 @@ object ExecutionEventSchema {
         ),
 
         Field(
-          name        = "generated",
-          fieldType   = InstantScalar,
-          description = Some("Time at which this event was generated, according to the caller (e.g., Observe)"),
-          resolve     = _.value.generated
-        ),
-
-        Field(
           name        = "received",
           fieldType   = InstantScalar,
           description = Some("Time at which this event was received"),
@@ -120,13 +113,6 @@ object ExecutionEventSchema {
       fields      = List[Field[OdbCtx[F], StepEvent]](
 
         Field(
-          name        = "step",
-          fieldType   = StepSchema.StepInterfaceType[F],
-          description = Some("Step to which the event applies"),
-          resolve     = c => c.step(_.unsafeSelectStep(c.value.stepId))
-        ),
-
-        Field(
           name        = "sequenceType",
           fieldType   = SequenceSchema.EnumTypeSequenceType,
           description = Some("Sequence type"),
@@ -151,13 +137,6 @@ object ExecutionEventSchema {
       fields      = List[Field[OdbCtx[F], DatasetEvent]](
 
         Field(
-          name        = "step",
-          fieldType   = StepSchema.StepInterfaceType[F],
-          description = Some("Step from which the dataset comes"),
-          resolve     = c => c.step(_.unsafeSelectStep(c.value.stepId))
-        ),
-
-        Field(
           name        = "filename",
           fieldType   = OptionType(DatasetSchema.DatasetFilenameScalar),
           description = Some("Dataset filename, when known"),
@@ -171,6 +150,51 @@ object ExecutionEventSchema {
           resolve     = _.value.stageType
         )
       )
+    )
+
+  def SequenceEventEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Edge[SequenceEvent]] =
+    Paging.EdgeType(
+      "SequenceEventEdge",
+      "A sequence ExecutionEvent and its cursor",
+      SequenceEventType[F]
+    )
+
+  def SequenceEventConnectionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Connection[SequenceEvent]] =
+    Paging.ConnectionType(
+      "SequenceEventConnection",
+      "Sequence ExecutionEvents in the current page",
+      SequenceEventType[F],
+      SequenceEventEdgeType[F]
+    )
+
+  def StepEventEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Edge[StepEvent]] =
+    Paging.EdgeType(
+      "StepEventEdge",
+      "A step ExecutionEvent and its cursor",
+      StepEventType[F]
+    )
+
+  def StepEventConnectionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Connection[StepEvent]] =
+    Paging.ConnectionType(
+      "StepEventConnection",
+      "Step ExecutionEvents in the current page",
+      StepEventType[F],
+      StepEventEdgeType[F]
+    )
+
+  def DatasetEventEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Edge[DatasetEvent]] =
+    Paging.EdgeType(
+      "DatasetEventEdge",
+      "A dataset ExecutionEvent and its cursor",
+      DatasetEventType[F]
+    )
+
+  def DatasetEventConnectionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Connection[DatasetEvent]] =
+    Paging.ConnectionType(
+      "DatasetEventConnection",
+      "Dataset ExecutionEvents in the current page",
+      DatasetEventType[F],
+      DatasetEventEdgeType[F]
     )
 
   def ExecutionEventEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Edge[ExecutionEventModel]] =

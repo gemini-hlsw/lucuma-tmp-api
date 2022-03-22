@@ -4,7 +4,7 @@
 package lucuma.odb.api.schema
 
 import lucuma.core.`enum`.Instrument
-import lucuma.odb.api.model.{DereferencedSequence, InstrumentConfigModel, PlannedTime}
+import lucuma.odb.api.model.{Sequence, InstrumentConfigModel, PlannedTime}
 import lucuma.odb.api.schema.TimeSchema.DurationType
 import sangria.schema._
 
@@ -63,8 +63,8 @@ object InstrumentConfigSchema {
     staticType:  OutputType[S],
     dynamicType: OutputType[D],
     static:       I => S,
-    acquisition:  I => DereferencedSequence[D],
-    science:      I => DereferencedSequence[D]
+    acquisition:  I => Sequence[D],
+    science:      I => Sequence[D]
   ): List[Field[OdbCtx[F], I]] =
 
     List(
@@ -98,8 +98,8 @@ object InstrumentConfigSchema {
       interfaces  = List(PossibleInterface.apply[OdbCtx[F], InstrumentConfigModel.GmosNorth](ConfigType[F])),
       fields      = instrumentConfigFields(
         "GmosNorth",
-        GmosNorthStaticConfigType[F],
-        GmosNorthDynamicType[F],
+        GmosNorthStaticConfigType,
+        GmosNorthDynamicType,
         _.static,
         _.acquisition,
         _.science
@@ -113,8 +113,8 @@ object InstrumentConfigSchema {
       interfaces  = List(PossibleInterface.apply[OdbCtx[F], InstrumentConfigModel.GmosSouth](ConfigType)),
       fields      = instrumentConfigFields(
         "GmosSouth",
-        GmosSouthStaticConfigType[F],
-        GmosSouthDynamicType[F],
+        GmosSouthStaticConfigType,
+        GmosSouthDynamicType,
         _.static,
         _.acquisition,
         _.science

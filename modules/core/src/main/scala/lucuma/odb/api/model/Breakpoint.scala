@@ -3,11 +3,9 @@
 
 package lucuma.odb.api.model
 
-import lucuma.core.util.Enumerated
-
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
-
+import lucuma.core.util.Enumerated
 import monocle.Iso
 
 

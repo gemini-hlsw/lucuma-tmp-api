@@ -3,9 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.core.model.Atom
-import lucuma.odb.api.model.{AtomModel, PlannedTime, StepModel}
-
+import lucuma.odb.api.model.{Atom, AtomModel, PlannedTime, StepModel}
 import cats.syntax.all._
 import sangria.schema._
 
@@ -15,7 +13,15 @@ object AtomSchema {
   import StepSchema.StepConcreteType
 
   implicit val AtomIdType: ScalarType[Atom.Id] =
-    ObjectIdSchema.idType[Atom.Id](name = "AtomId")
+    ObjectIdSchema.uidType[Atom.Id]("AtomId")
+
+  val ArgumentAtomId: Argument[Atom.Id] =
+    Argument(
+      name         = "atomId",
+      argumentType = AtomIdType,
+      description  = "Atom ID"
+    )
+
 
   def AtomInterfaceType[F[_]]: InterfaceType[OdbCtx[F], AtomModel[_]] =
     InterfaceType[OdbCtx[F], AtomModel[_]](

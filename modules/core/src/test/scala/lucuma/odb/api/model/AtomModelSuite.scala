@@ -4,7 +4,6 @@
 package lucuma.odb.api.model
 
 import lucuma.odb.api.model.arb._
-
 import cats.kernel.laws.discipline.EqTests
 import munit.DisciplineSuite
 

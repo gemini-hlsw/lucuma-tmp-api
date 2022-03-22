@@ -4,9 +4,8 @@
 package lucuma.odb.api.model
 package arb
 
-import lucuma.core.model.{Observation, Step}
+import lucuma.core.model.Observation
 import lucuma.core.util.arb.ArbGid
-
 import eu.timepit.refined.types.numeric.PosInt
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
@@ -16,6 +15,7 @@ trait ArbDatasetModel {
 
   import ArbDatasetFilename._
   import ArbGid._
+  import ArbStepModel.{arbStepId, cogStepId}
 
   implicit val arbDatasetModel: Arbitrary[DatasetModel] =
     Arbitrary {

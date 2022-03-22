@@ -18,6 +18,7 @@ import eu.timepit.refined.types.numeric.PosBigDecimal
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.parser.decode
 import lucuma.core.model.Program
+import lucuma.odb.api.model.GmosModel.CreateFpu
 import lucuma.odb.api.model.OffsetModel.ComponentInput
 import lucuma.odb.api.model.ScienceConfigurationModel.Modes.GmosSouthLongSlitInput
 import lucuma.odb.api.model.ScienceConfigurationModel.SlitWidthInput
@@ -269,7 +270,7 @@ object Init {
         _ <- step.instrumentConfig.andThen(readout).andThen(xBin) := GmosXBinning.One
         _ <- step.instrumentConfig.andThen(readout).andThen(yBin) := GmosYBinning.One
         _ <- step.instrumentConfig.andThen(roi)                   := GmosRoi.CentralStamp
-        _ <- step.instrumentConfig.andThen(fpu)                   := GmosSouthFpu.LongSlit_1_00.asRight.some
+        _ <- step.instrumentConfig.andThen(fpu)                   := CreateFpu.builtin[GmosSouthFpu](GmosSouthFpu.LongSlit_1_00).some
       } yield ()
     }
 
@@ -304,7 +305,7 @@ object Init {
         _ <- roi                      := GmosRoi.CentralSpectrum
         _ <- grating                  := GmosModel.CreateGrating[GmosSouthDisperser](GmosSouthDisperser.B600_G5323, GmosDisperserOrder.One, WavelengthModel.Input.fromNanometers(520.0)).some
         _ <- filter                   := Option.empty[GmosSouthFilter]
-        _ <- fpu                      := GmosSouthFpu.LongSlit_1_00.asRight.some
+        _ <- fpu                      := CreateFpu.builtin[GmosSouthFpu](GmosSouthFpu.LongSlit_1_00).some
       } yield ()
     }
 
@@ -351,7 +352,7 @@ object Init {
       ).map(StepModel.Create.continueTo)
        .grouped(2) // pairs flat and science steps
        .toList
-       .map(AtomModel.Create(None, _))
+       .map(AtomModel.Create(_))
     )
 
   def obs(

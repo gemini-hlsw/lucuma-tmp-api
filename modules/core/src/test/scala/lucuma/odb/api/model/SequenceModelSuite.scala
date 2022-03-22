@@ -12,7 +12,7 @@ final class SequenceModelSuite extends DisciplineSuite {
 
   import ArbSequenceModel._
 
-  checkAll("Sequence",        EqTests[DereferencedSequence[String]].eqv)
-  checkAll("Sequence.Create", EqTests[DereferencedSequence[String]].eqv)
+  checkAll("Sequence",        EqTests[Sequence[String]].eqv)
+  checkAll("Sequence.Create", EqTests[Sequence[String]].eqv)
 
 }

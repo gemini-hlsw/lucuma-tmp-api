@@ -1,26 +1,26 @@
 // Copyright (c) 2016-2022 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
-package lucuma.odb.api.repo
+package lucuma.odb.api.model
 package arb
 
-import lucuma.core.arb.ArbTime
-import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target}
-import lucuma.odb.api.model.{AtomModel, Database, EitherInput, ExecutionEventModel, InstrumentConfigModel, ObservationModel, ProgramModel, StepModel, Table}
-import lucuma.core.util.Gid
-import lucuma.odb.api.model.SequenceModel.SequenceType.{Acquisition, Science}
-import lucuma.odb.api.model.arb._
 import cats.data.{Nested, StateT}
+import cats.effect.IO
+import cats.effect.unsafe.implicits.global
 import cats.kernel.instances.order._
 import cats.syntax.all._
+import lucuma.core.arb.ArbTime
+import lucuma.core.model.{ExecutionEvent, Observation, Program, Target}
+import lucuma.core.util.Gid
+import lucuma.odb.api.model.SequenceModel.SequenceType.Science
 import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
+import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck._
 import org.scalacheck.cats.implicits._
-import org.scalacheck.Arbitrary.arbitrary
 
 import java.time.Instant
 
-import scala.collection.immutable.{SortedMap, SortedSet}
+import scala.collection.immutable.{ListMap, SortedMap, SortedSet}
 
 trait ArbDatabase extends SplitSetHelper {
 
@@ -29,20 +29,21 @@ trait ArbDatabase extends SplitSetHelper {
   import ArbObservationModel._
   import ArbProgramModel._
   import ArbTargetModel._
+  import ArbVisitRecords._
   import ArbTime._
 
   private def map[I: Gid, M: Arbitrary](updateId: (M, I) => M): Gen[SortedMap[I, M]] =
-    arbitrary[List[M]]
-      .map { lst =>
+    for {
+      c <- Gen.chooseNum(0, 10)
+      l <- Gen.listOfN(c, arbitrary[M])
+    } yield
         SortedMap.from(
-          lst
-            .zipWithIndex
-            .map { case (m, i) =>
-              val gid = Gid[I].fromLong.getOption(i.toLong + 1).get
-              (gid, updateId(m, gid))
-            }
+          l.zipWithIndex
+           .map { case (m, i) =>
+             val gid = Gid[I].fromLong.getOption(i.toLong + 1).get
+             (gid, updateId(m, gid))
+           }
         )
-      }
 
   private def mapWithValidPid[I: Gid, M: Arbitrary](
     pids: List[Program.Id],
@@ -114,13 +115,13 @@ trait ArbDatabase extends SplitSetHelper {
         ps <- mapPrograms
         ts <- mapTargets(ps.keys.toList)
         os <- mapObservations(ps.keys.toList, ts)
+        vs <- Gen.listOfN(os.size, arbitrary[VisitRecords])
       } yield Database(
         0L,
-        table(SortedMap.empty[Atom.Id, AtomModel[Step.Id]]),
+        SortedMap.from(os.keys.zip(vs)),
         table(SortedMap.empty[ExecutionEvent.Id, ExecutionEventModel]),
         table(os),
         table(ps),
-        table(SortedMap.empty[Step.Id, StepModel[_]]),
         table(ts)
       )
     }
@@ -133,11 +134,12 @@ trait ArbDatabase extends SplitSetHelper {
 
     def dbWithSequences(db: Database, c: List[Option[InstrumentConfigModel.Create]]): Database = {
       // Create an option random sequence for each observation.
-      val update = for {
-        icms <- Nested(c).traverse(_.create).map(_.value)
-        _    <- db.observations.rows.toList.zip(icms).traverse { case ((oid, o), icm) =>
-          Database.observation.update(oid, ObservationModel.config.replace(icm.map(_.toReference))(o))
-        }
+      val update =
+        for {
+          icms <- StateT.liftF(Nested(c).traverse(_.create[IO]).unsafeRunSync().sequence.map(_.value).toEither)
+          _    <- db.observations.rows.toList.zip(icms).traverse { case ((oid, o), icm) =>
+            Database.observation.update(oid, ObservationModel.config.replace(icm)(o))
+          }
       } yield ()
 
       update.runS(db).getOrElse(db)
@@ -156,47 +158,49 @@ trait ArbDatabase extends SplitSetHelper {
 
   val arbDatabaseWithSequencesAndEvents: Arbitrary[Database] = {
 
-    def addEventsForObservation(db: Database)(o: ObservationModel): Gen[StateT[EitherInput, Database, Unit]] = {
-      val acqAtoms = o.config.toList.flatMap(_.acquisition.atoms)
-      val sciAtoms = o.config.toList.flatMap(_.science.atoms)
-      val acqSteps = acqAtoms.flatMap(aid => db.atoms.rows(aid).steps.toList)
-      val sciSteps = sciAtoms.flatMap(aid => db.atoms.rows(aid).steps.toList)
+    def addEvents[S, D](
+      oid: Observation.Id,
+      visits: ListMap[Visit.Id, VisitRecord[S, D]]
+    ): Gen[StateT[EitherInput, Database, Unit]] =
 
-      for {
-        seqCnt        <- smallSize
-        seqEvents     <- Gen.listOfN(seqCnt, arbSequenceEventAdd(o.id).arbitrary)
-
-        acqIdSize     <- tinyPositiveSize
-        acqIds        <- Gen.someOf[Step.Id](acqSteps).map(_.toList.take(acqIdSize))
-
-        sciIdSize     <- tinyPositiveSize
-        sciIds        <- Gen.someOf[Step.Id](sciSteps).map(_.toList.take(sciIdSize))
-
-        acqCnts       <- acqIds.traverse(sid => tinySize.map(i => (i, sid)))
-        acqStepEvents <- acqCnts.flatTraverse { case (cnt, sid) => Gen.listOfN(cnt, arbStepEventAdd(o.id, sid, Acquisition).arbitrary) }
-
-        sciCnts       <- sciIds.traverse(sid => tinySize.map(i => (i, sid)))
-        sciStepEvents <- sciCnts.flatTraverse { case (cnt, sid) => Gen.listOfN(cnt, arbStepEventAdd(o.id, sid, Science).arbitrary) }
-
-        dstCnts       <- (acqIds ++ sciIds).traverse(sid => tinySize.map(i => (i, sid)))
-        dstEvents     <- dstCnts.flatTraverse { case (cnt, sid) => Gen.listOfN(cnt, arbDatasetEventAdd(o.id, sid).arbitrary) }
-
-        received      <- arbitrary[Instant]
-      } yield
+      if (visits.keys.isEmpty)
+        Gen.const(StateT.pure[EitherInput, Database, Unit](()))
+      else
         for {
+          vid           <- Gen.oneOf(visits.keys)
+
+          seqCnt        <- smallSize
+          seqEvents     <- Gen.listOfN(seqCnt, arbSequenceEventAdd(oid, vid).arbitrary)
+
+          sidsSize      <- tinyPositiveSize
+          sids           = visits(vid).steps.keys.take(sidsSize).toList
+
+          stpCnts       <- sids.traverse(tinySize.tupleRight)
+          stpEvents     <- stpCnts.flatTraverse { case (cnt, sid) => Gen.listOfN(cnt, arbStepEventAdd(oid, vid, sid, Science).arbitrary) }
+
+          dstCnts       <- sids.traverse(tinySize.tupleRight)
+          dstEvents     <- dstCnts.flatTraverse { case (cnt, sid) => Gen.listOfN(cnt, arbDatasetEventAdd(oid, vid, sid).arbitrary) }
+
+          received      <- arbitrary[Instant]
+
+        } yield
+          for {
           _ <- seqEvents.traverse(_.add(received)).void
-          _ <- acqStepEvents.traverse(_.add(received)).void
-          _ <- sciStepEvents.traverse(_.add(received)).void
+          _ <- stpEvents.traverse(_.add(received)).void
           _ <- dstEvents.traverse(_.add(received)).void
-        } yield ()
-    }
+          } yield ()
 
     Arbitrary {
       for {
         db <- arbDatabaseWithSequences.arbitrary
-        add = addEventsForObservation(db)(_)
-        e  <- db.observations.rows.values.toList.traverse(add).map(_.sequence_)
-      } yield e.runS(db).getOrElse(db)
+        e  <- db.observations.rows.values.toList.traverse { o =>
+          db.visitRecords.get(o.id) match {
+            case Some(VisitRecords.GmosNorth(vs)) => addEvents(o.id, vs)
+            case Some(VisitRecords.GmosSouth(vs)) => addEvents(o.id, vs)
+            case _                                => Gen.const(StateT.pure[EitherInput, Database, Unit](()))
+          }
+        }
+      } yield e.sequence.runS(db).getOrElse(db)
     }
   }
 }

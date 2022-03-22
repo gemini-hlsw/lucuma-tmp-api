@@ -4,16 +4,16 @@
 package lucuma.odb.api.model
 
 import cats.data.StateT
-import lucuma.core.model.{ExecutionEvent, Observation, Step}
-import lucuma.core.util.Enumerated
 import cats.{Eq, Order}
-import cats.syntax.all._
+import cats.syntax.eq._
 import eu.timepit.refined.types.numeric._
 import org.typelevel.cats.time.instances.instant._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import io.circe.refined._
 import eu.timepit.refined.auto._
+import lucuma.core.model.{ExecutionEvent, Observation}
+import lucuma.core.util.Enumerated
 
 import java.time.Instant
 
@@ -26,7 +26,7 @@ sealed trait ExecutionEventModel {
 
   def observationId: Observation.Id
 
-  def generated:     Instant
+  def visitId:       Visit.Id
 
   def received:      Instant
 
@@ -88,7 +88,7 @@ object ExecutionEventModel {
   final case class SequenceEvent(
     id:            ExecutionEvent.Id,
     observationId: Observation.Id,
-    generated:     Instant,
+    visitId:       Visit.Id,
     received:      Instant,
     command:       SequenceCommandType
   ) extends ExecutionEventModel
@@ -99,16 +99,15 @@ object ExecutionEventModel {
       Order.by { a => (
         a.id,
         a.observationId,
+        a.visitId,
         a.command,
-        a.generated,
         a.received
       )}
     }
 
     final case class Add(
-      eventId:       Option[ExecutionEvent.Id],
       observationId: Observation.Id,
-      generated:     Instant,
+      visitId:       Visit.Id,
       command:       SequenceCommandType
     ) {
 
@@ -117,9 +116,10 @@ object ExecutionEventModel {
       ): StateT[EitherInput, Database, SequenceEvent] =
 
         for {
-          i <- Database.executionEvent.getUnusedKey(eventId)
+          i <- Database.executionEvent.cycleNextUnused
           _ <- Database.observation.lookup(observationId)
-          e  = SequenceEvent(i, observationId, generated, received, command)
+          _ <- VisitRecords.visitAt(observationId, visitId)
+          e  = SequenceEvent(i, observationId, visitId, received, command)
           _ <- Database.executionEvent.saveNew(i, e)
         } yield e
 
@@ -132,10 +132,9 @@ object ExecutionEventModel {
 
       implicit val OrderAdd: Order[Add] =
         Order.by { a => (
-          a.eventId,
           a.observationId,
-          a.command,
-          a.generated
+          a.visitId,
+          a.command
         )}
 
     }
@@ -186,12 +185,11 @@ object ExecutionEventModel {
   final case class StepEvent(
     id:            ExecutionEvent.Id,
     observationId: Observation.Id,
-    generated:     Instant,
+    visitId:       Visit.Id,
+    stepId:        Step.Id,
     received:      Instant,
 
-    stepId:        Step.Id,
     sequenceType:  SequenceModel.SequenceType,
-
     stage:         StepStageType
 
   ) extends ExecutionEventModel
@@ -202,22 +200,18 @@ object ExecutionEventModel {
       Order.by { a => (
         a.id,
         a.observationId,
+        a.visitId,
         a.stepId,
-        a.sequenceType,
-
-        a.stage,
-
         a.received,
-        a.generated
+        a.sequenceType,
+        a.stage,
       )}
 
-
     final case class Add(
-      eventId:       Option[ExecutionEvent.Id],
       observationId: Observation.Id,
-      generated:     Instant,
-
+      visitId:       Visit.Id,
       stepId:        Step.Id,
+
       sequenceType:  SequenceModel.SequenceType,
       stage:         StepStageType
     ) {
@@ -227,16 +221,16 @@ object ExecutionEventModel {
       ): StateT[EitherInput, Database, StepEvent] =
 
         for {
-          i <- Database.executionEvent.getUnusedKey(eventId)
+          i <- Database.executionEvent.cycleNextUnused
           _ <- Database.observation.lookup(observationId)
-          _ <- Database.step.lookup(stepId)
+          _ <- VisitRecords.stepAt(observationId, visitId, stepId)
           e  =
             StepEvent(
               i,
               observationId,
-              generated,
-              received,
+              visitId,
               stepId,
+              received,
               sequenceType,
               stage
             )
@@ -252,12 +246,11 @@ object ExecutionEventModel {
 
       implicit val OrderAdd: Order[Add] =
         Order.by { a => (
-          a.eventId,
           a.observationId,
+          a.visitId,
           a.stepId,
           a.sequenceType,
-          a.stage,
-          a.generated
+          a.stage
         )}
 
     }
@@ -307,10 +300,10 @@ object ExecutionEventModel {
   final case class DatasetEvent(
     id:            ExecutionEvent.Id,
     observationId: Observation.Id,
-    generated:     Instant,
+    visitId:       Visit.Id,
+    stepId:        Step.Id,
     received:      Instant,
 
-    stepId:        Step.Id,
     datasetIndex:  PosInt,
     filename:      Option[DatasetFilename],
     stageType:     DatasetStageType
@@ -334,19 +327,17 @@ object ExecutionEventModel {
       Order.by { a => (
         a.id,
         a.observationId,
+        a.visitId,
         a.stepId,
         a.datasetIndex.value,
         a.filename,
         a.stageType,
-        a.generated,
         a.received
       )}
 
     final case class Add(
-      eventId:       Option[ExecutionEvent.Id],
       observationId: Observation.Id,
-      generated:     Instant,
-
+      visitId:       Visit.Id,
       stepId:        Step.Id,
       datasetIndex:  PosInt,
       filename:      Option[DatasetFilename],
@@ -358,16 +349,16 @@ object ExecutionEventModel {
       ): StateT[EitherInput, Database, DatasetEvent] =
 
         for {
-          i <- Database.executionEvent.getUnusedKey(eventId)
+          i <- Database.executionEvent.cycleNextUnused
           _ <- Database.observation.lookup(observationId)
-          _ <- Database.step.lookup(stepId)
+          _ <- VisitRecords.stepAt(observationId, visitId, stepId)
           e  =
             DatasetEvent(
               i,
               observationId,
-              generated,
-              received,
+              visitId,
               stepId,
+              received,
               datasetIndex,
               filename,
               stageType
@@ -384,9 +375,8 @@ object ExecutionEventModel {
 
       implicit val OrderAdd: Order[Add] =
         Order.by { a => (
-          a.eventId,
           a.observationId,
-          a.generated,
+          a.visitId,
           a.stepId,
           a.datasetIndex.value,
           a.filename,

@@ -3,20 +3,23 @@
 
 package lucuma.odb.api.model
 
-import lucuma.core.model.{Atom, ExecutionEvent, Observation, Program, Step, Target}
+import cats.Eq
+import cats.Order.catsKernelOrderingForOrder
+import cats.syntax.functor._
+import lucuma.core.model.{ExecutionEvent, Observation, Program, Target}
 import lucuma.odb.api.model.targetModel.TargetModel
-import monocle.{Focus, Lens}
+import monocle.function.At
+import monocle.{Focus, Lens, Optional, Prism}
 
-import scala.collection.immutable.SortedMap
+import scala.collection.immutable.{ListMap, SortedMap}
 
 final case class Database(
   lastEventId:     Long,
-  atoms:           Table[Atom.Id, AtomModel[Step.Id]],
+  visitRecords:    SortedMap[Observation.Id, VisitRecords],
   executionEvents: Table[ExecutionEvent.Id, ExecutionEventModel],
   observations:    Table[Observation.Id, ObservationModel],
   programs:        Table[Program.Id, ProgramModel],
-  steps:           Table[Step.Id, StepModel[_]],
-  targets:         Table[Target.Id, TargetModel]
+  targets:         Table[Target.Id, TargetModel],
 )
 
 object Database extends DatabaseOptics {
@@ -24,16 +27,22 @@ object Database extends DatabaseOptics {
   val empty: Database =
     Database(
       lastEventId     = 0L,
-      atoms           = Table.empty,
+      visitRecords    = SortedMap.empty,
       executionEvents = Table.empty,
       observations    = Table.empty,
       programs        = Table.empty,
-      steps           = Table.empty,
       targets         = Table.empty
     )
 
-  val atom: DatabaseState[Atom.Id, AtomModel[Step.Id]] =
-    DatabaseState(atoms)
+  implicit val EqDatabase: Eq[Database] =
+    Eq.by { a => (
+      a.lastEventId,
+      a.visitRecords,
+      a.executionEvents,
+      a.observations,
+      a.programs,
+      a.targets
+    )}
 
   val executionEvent: DatabaseState[ExecutionEvent.Id, ExecutionEventModel] =
     DatabaseState(executionEvents)
@@ -43,9 +52,6 @@ object Database extends DatabaseOptics {
 
   val program: DatabaseState[Program.Id, ProgramModel] =
     DatabaseState(programs)
-
-  val step: DatabaseState[Step.Id, StepModel[_]] =
-    DatabaseState(steps)
 
   val target: DatabaseState[Target.Id, TargetModel] =
     DatabaseState(targets)
@@ -57,11 +63,29 @@ sealed trait DatabaseOptics { self: Database.type =>
   val lastEventId: Lens[Database, Long] =
     Focus[Database](_.lastEventId)
 
-  val atoms: Lens[Database, Table[Atom.Id, AtomModel[Step.Id]]] =
-    Focus[Database](_.atoms)
+  val visitRecords: Lens[Database, SortedMap[Observation.Id, VisitRecords]] =
+    Focus[Database](_.visitRecords)
 
-  val lastAtomId: Lens[Database, Atom.Id] =
-    atoms.andThen(Table.lastKey)
+  def visitRecordsAt(oid: Observation.Id): Lens[Database, Option[VisitRecords]] =
+    visitRecords.andThen(At.at(oid))
+
+  def visitRecordsAtOptional(oid: Observation.Id): Optional[Database, VisitRecords] =
+    visitRecords.andThen(
+      Optional.apply[SortedMap[Observation.Id, VisitRecords], VisitRecords](_.get(oid)) { vr =>
+        _.updatedWith(oid)(_.as(vr))
+      }
+    )
+
+  def visitRecordAt[S, D](
+    oid:     Observation.Id,
+    visitId: Visit.Id,
+    prism:   Prism[VisitRecords, ListMap[Visit.Id, VisitRecord[S, D]]]
+  ): Optional[Database, VisitRecord[S, D]] =
+    visitRecordsAtOptional(oid).andThen(prism.andThen(
+      Optional.apply[ListMap[Visit.Id, VisitRecord[S, D]], VisitRecord[S, D]](_.get(visitId)) { vr =>
+        _.updatedWith(visitId)(_.as(vr))
+      }
+    ))
 
   val executionEvents: Lens[Database, Table[ExecutionEvent.Id, ExecutionEventModel]] =
     Focus[Database](_.executionEvents)
@@ -83,12 +107,6 @@ sealed trait DatabaseOptics { self: Database.type =>
 
   val lastProgramId: Lens[Database, Program.Id] =
     programs.andThen(Table.lastKey)
-
-  val steps: Lens[Database, Table[Step.Id, StepModel[_]]] =
-    Focus[Database](_.steps)
-
-  val lastStepId: Lens[Database, Step.Id] =
-    steps.andThen(Table.lastKey)
 
   val targets: Lens[Database, Table[Target.Id, TargetModel]] =
     Focus[Database](_.targets)
