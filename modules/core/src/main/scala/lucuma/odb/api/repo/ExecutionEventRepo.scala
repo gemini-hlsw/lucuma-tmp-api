@@ -437,7 +437,7 @@ object ExecutionEventRepo {
         def record(in: ValidatedInput[VisitRecord[S, D]]): StateT[EitherInput, Database, VisitRecord[S, D]] =
           for {
             vr <- StateT.liftF(in.toEither)
-            _  <- Database.visitRecordsAt(visit.observationId).mod_ { ovr =>
+            _  <- Database.visitRecordsAt(visit.observationId).mod_[EitherInput] { ovr =>
               prism.reverseGet(ovr.fold(ListMap(visitId -> vr)) { vrs =>
                 prism.getOption(vrs).fold(ListMap(visitId -> vr))(_.updated(visitId, vr))
               }).some
@@ -462,7 +462,7 @@ object ExecutionEventRepo {
             sr  <- StateT.liftF(in.toEither)
             _   <- Database.visitRecordAt(step.observationId, step.visitId, prism)
                     .andThen(VisitRecord.steps[S, D].asOptional)
-                    .mod_(_.updated(stepId, sr))
+                    .mod_[EitherInput](_.updated(stepId, sr))
           } yield sr
 
         for {

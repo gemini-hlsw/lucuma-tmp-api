@@ -3,52 +3,53 @@
 
 package lucuma.odb.api.model.syntax
 
+import cats.Applicative
 import cats.data.StateT
 import lucuma.odb.api.model.EitherInput
 import monocle.Optional
 
 final class OptionalOps[S, A](val self: Optional[S, A]) extends AnyVal {
 
-  def toState: StateT[EitherInput, S, Option[A]] =
-    StateT(s => Right((s, self.getOption(s))))
+  def toState[F[_]: Applicative]: StateT[F, S, Option[A]] =
+    StateT(s => Applicative[F].pure((s, self.getOption(s))))
 
-  def st: StateT[EitherInput, S, Option[A]] =
+  def st[F[_]: Applicative]: StateT[F, S, Option[A]] =
     toState
 
-  def extract: StateT[EitherInput, S, Option[A]] =
+  def extract[F[_]: Applicative]: StateT[F, S, Option[A]] =
     toState
 
-  def edit(a: A): StateT[EitherInput, S, Option[A]] =
+  def edit[F[_]: Applicative](a: A): StateT[F, S, Option[A]] =
     assign(a)
 
   @inline def :=(a: A): StateT[EitherInput, S, Option[A]] =
-    edit(a)
+    edit[EitherInput](a)
 
-  def edit(a: Option[A]): StateT[EitherInput, S, Option[A]] =
-    a.fold(st)(assign)
+  def edit[F[_]: Applicative](a: Option[A]): StateT[F, S, Option[A]] =
+    a.fold(st[F])(assign[F])
 
   @inline def :=(a: Option[A]): StateT[EitherInput, S, Option[A]] =
     edit(a)
 
-  def mod(f: A => A): StateT[EitherInput, S, Option[A]] =
+  def mod[F[_]: Applicative](f: A => A): StateT[F, S, Option[A]] =
     StateT { s0 =>
       val s1 = self.modify(f)(s0)
-      Right((s1, self.getOption(s1)))
+      Applicative[F].pure((s1, self.getOption(s1)))
     }
 
-  def modo(f: A => A): StateT[EitherInput, S, Option[A]] =
-    StateT(s => Right((self.modify(f)(s), self.getOption(s))))
+  def modo[F[_]: Applicative](f: A => A): StateT[F, S, Option[A]] =
+    StateT(s => Applicative[F].pure((self.modify(f)(s), self.getOption(s))))
 
-  def mod_(f: A => A): StateT[EitherInput, S, Unit] =
-    StateT(s => Right((self.modify(f)(s), ())))
+  def mod_[F[_]: Applicative](f: A => A): StateT[F, S, Unit] =
+    StateT(s => Applicative[F].pure((self.modify(f)(s), ())))
 
-  def assign(a: A): StateT[EitherInput, S, Option[A]] =
+  def assign[F[_]: Applicative](a: A): StateT[F, S, Option[A]] =
     mod(_ => a)
 
-  def assigno(a: A): StateT[EitherInput, S, Option[A]] =
+  def assigno[F[_]: Applicative](a: A): StateT[F, S, Option[A]] =
     modo(_ => a)
 
-  def assign_(a: A): StateT[EitherInput, S, Unit] =
+  def assign_[F[_]: Applicative](a: A): StateT[F, S, Unit] =
     mod_(_ => a)
 }
 

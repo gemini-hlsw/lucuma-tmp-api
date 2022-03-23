@@ -3,6 +3,7 @@
 
 package lucuma.odb.api.model.syntax
 
+import cats.Applicative
 import cats.data.StateT
 import clue.data.{Assign, Ignore, Input, Unassign}
 import cats.syntax.either._
@@ -29,7 +30,7 @@ final class LensOps[S, A](val self: Lens[S, A]) extends AnyVal {
 
       // Unset the A in S.
       case Unassign  =>
-        edit(Option.empty[B]).void
+        edit[EitherInput](Option.empty[B]).void
 
       // Create a new instance of A for the state S or else edit the existing
       // A instance in the state S.  Arguments to the input are validated
@@ -68,52 +69,52 @@ final class LensOps[S, A](val self: Lens[S, A]) extends AnyVal {
 
     }
 
-  def transform(st: StateT[EitherInput, A, Unit]): StateT[EitherInput, S, Unit] =
+  def transform[F[_]: Applicative](st: StateT[F, A, Unit]): StateT[F, S, Unit] =
     st.transformS[S](self.get, (s, a) => self.replace(a)(s))
 
   def :<(st: Option[StateT[EitherInput, A, Unit]]): StateT[EitherInput, S, Unit] =
-    st.fold(StateT.empty[EitherInput, S, Unit])(transform)
+    st.fold(StateT.empty[EitherInput, S, Unit])(transform[EitherInput])
 
-  def toState: StateT[EitherInput, S, A] =
-    StateT(s => Right((s, self.get(s))))
+  def toState[F[_]: Applicative]: StateT[F, S, A] =
+    StateT(s => Applicative[F].pure((s, self.get(s))))
 
-  def st: StateT[EitherInput, S, A] =
+  def st[F[_]: Applicative]: StateT[F, S, A] =
     toState
 
-  def extract: StateT[EitherInput, S, A] =
+  def extract[F[_]: Applicative]: StateT[F, S, A] =
     toState
 
-  def edit(a: A): StateT[EitherInput, S, A] =
+  def edit[F[_]: Applicative](a: A): StateT[F, S, A] =
     assign(a)
 
   @inline def :=(a: A): StateT[EitherInput, S, A] =
-    edit(a)
+    edit[EitherInput](a)
 
-  def edit(a: Option[A]): StateT[EitherInput, S, A] =
+  def edit[F[_]: Applicative](a: Option[A]): StateT[F, S, A] =
     a.fold(st)(assign)
 
   @inline def :=(a: Option[A]): StateT[EitherInput, S, A] =
-    edit(a)
+    edit[EitherInput](a)
 
-  def mod(f: A => A): StateT[EitherInput, S, A] =
+  def mod[F[_]: Applicative](f: A => A): StateT[F, S, A] =
     StateT { s0 =>
       val s1 = self.modify(f)(s0)
-      Right((s1, self.get(s1)))
+      Applicative[F].pure((s1, self.get(s1)))
     }
 
-  def modo(f: A => A): StateT[EitherInput, S, A] =
-    StateT(s => Right((self.modify(f)(s), self.get(s))))
+  def modo[F[_]: Applicative](f: A => A): StateT[F, S, A] =
+    StateT(s => Applicative[F].pure((self.modify(f)(s), self.get(s))))
 
-  def mod_(f: A => A): StateT[EitherInput, S, Unit] =
-    StateT(s => Right((self.modify(f)(s), ())))
+  def mod_[F[_]: Applicative](f: A => A): StateT[F, S, Unit] =
+    StateT(s => Applicative[F].pure((self.modify(f)(s), ())))
 
-  def assign(a: A): StateT[EitherInput, S, A] =
+  def assign[F[_]: Applicative](a: A): StateT[F, S, A] =
     mod(_ => a)
 
-  def assigno(a: A): StateT[EitherInput, S, A] =
+  def assigno[F[_]: Applicative](a: A): StateT[F, S, A] =
     modo(_ => a)
 
-  def assign_(a: A): StateT[EitherInput, S, Unit] =
+  def assign_[F[_]: Applicative](a: A): StateT[F, S, Unit] =
     mod_(_ => a)
 }
 

@@ -76,11 +76,11 @@ object VisitRecords {
     }(GmosSouth(_))
 
   def visits(oid: Observation.Id): StateT[EitherInput, Database, Option[ListMap[Visit.Id, VisitRecord[_, _]]]] =
-    Database.visitRecordsAt(oid).st.map { _.map(_.visits) }
+    Database.visitRecordsAt(oid).st[EitherInput].map { _.map(_.visits) }
 
   def visitAt(oid: Observation.Id, visitId: Visit.Id): StateT[EitherInput, Database, VisitRecord[_, _]] =
     for {
-      v <- Database.visitRecordsAt(oid).st
+      v <- Database.visitRecordsAt(oid).st[EitherInput]
       r <- StateT.liftF(
         v.flatMap(_.visits.get(visitId)).toRightNec(
           InputError.fromMessage(s"Unknown visit for observation $oid, visit $visitId")
