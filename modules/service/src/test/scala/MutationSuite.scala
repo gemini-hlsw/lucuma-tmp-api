@@ -60,7 +60,7 @@ class MutationSuite extends OdbSuite {
             constraintSet {
               skyBackground
               elevationRange {
-                airmassRange {
+                airMass {
                   min
                   max
                 }
@@ -79,7 +79,7 @@ class MutationSuite extends OdbSuite {
           "edit": {
             "skyBackground": "GRAY",
             "elevationRange": {
-              "airmassRange": {
+              "airMass": {
                 "min": 0.0,
                 "max": 2.0
               }

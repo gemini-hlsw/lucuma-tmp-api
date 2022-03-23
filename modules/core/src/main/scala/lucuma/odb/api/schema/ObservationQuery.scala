@@ -3,13 +3,13 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{ConstraintSetModel, InputError, ObservationModel, ScienceRequirements}
+import lucuma.odb.api.model.{InputError, ObservationModel, ScienceRequirements}
 import lucuma.odb.api.repo.ResultPage
 import cats.MonadError
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
-import lucuma.core.model.{Observation, Target}
+import lucuma.core.model.{ConstraintSet, Observation, Target}
 import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
 import lucuma.odb.api.schema.TargetSchema.TargetEnvironmentType
 import org.typelevel.log4cats.Logger
@@ -101,7 +101,7 @@ trait ObservationQuery {
 
   def groupByConstraintSet[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
 
-    ObservationGroupSchema.groupingField[F, ConstraintSetModel, Observation.Id](
+    ObservationGroupSchema.groupingField[F, ConstraintSet, Observation.Id](
       "constraintSet",
       "Observations grouped by commonly held constraints",
       ConstraintSetType,

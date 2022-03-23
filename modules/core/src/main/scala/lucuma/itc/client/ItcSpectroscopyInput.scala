@@ -11,11 +11,11 @@ import lucuma.core.`enum`.Band
 import lucuma.core.math.BrightnessUnits.{BrightnessMeasure, Integrated, Surface}
 import lucuma.core.math.{RadialVelocity, Wavelength}
 import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
-import lucuma.core.model.{SourceProfile, SpectralDefinition, Target, UnnormalizedSED}
+import lucuma.core.model.{ConstraintSet, ElevationRange, SourceProfile, SpectralDefinition, Target, UnnormalizedSED}
 import lucuma.core.syntax.enumerated._
 import lucuma.core.syntax.string._
 import lucuma.core.util.Enumerated
-import lucuma.odb.api.model.{AirmassRange, ConstraintSetModel, HourAngleRange, ObservationModel, ScienceConfigurationModel}
+import lucuma.odb.api.model.{ObservationModel, ScienceConfigurationModel}
 
 import scala.collection.immutable.SortedMap
 
@@ -25,7 +25,7 @@ final case class ItcSpectroscopyInput(
   sourceProfile:   SourceProfile,
   band:            Band,
   radialVelocity:  RadialVelocity,
-  constraints:     ConstraintSetModel,
+  constraints:     ConstraintSet,
   modes:           List[ScienceConfigurationModel]
 )
 
@@ -185,25 +185,25 @@ object ItcSpectroscopyInput {
         )
     }
 
-  implicit val EncoderConstraintSetModel: Encoder[ConstraintSetModel] =
-    (a: ConstraintSetModel) =>
+  implicit val EncoderConstraintSetModel: Encoder[ConstraintSet] =
+    (a: ConstraintSet) =>
       Json.obj(
         "imageQuality"    -> screaming(a.imageQuality),
         "cloudExtinction" -> screaming(a.cloudExtinction),
         "skyBackground"   -> screaming(a.skyBackground),
         "waterVapor"      -> screaming(a.waterVapor),
         "elevationRange"  -> (a.elevationRange match {
-          case AirmassRange(min, max)             =>
+          case ElevationRange.AirMass(min, max)             =>
             Json.obj(
-              "airmassRange"->
+              "airMass"->
                 Json.obj(
                   "min" -> min.value.asJson,
                   "max" -> max.value.asJson
                 )
             )
-          case HourAngleRange(minHours, maxHours) =>
+          case ElevationRange.HourAngle(minHours, maxHours) =>
             Json.obj(
-              "hourAngleRange" ->
+              "hourAngle" ->
                 Json.obj(
                   "minHours" -> minHours.value.asJson,
                   "maxHours" -> maxHours.value.asJson

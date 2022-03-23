@@ -9,7 +9,7 @@ import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.odb.api.model.targetModel.{TargetEnvironmentInput, TargetEnvironmentModel}
 import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
-import lucuma.core.model.{Observation, Program}
+import lucuma.core.model.{ConstraintSet, Observation, Program}
 import cats.{Eq, Functor}
 import cats.data.StateT
 import cats.effect.Sync
@@ -37,7 +37,7 @@ final case class ObservationModel(
   status:               ObsStatus,
   activeStatus:         ObsActiveStatus,
   targetEnvironment:    TargetEnvironmentModel,
-  constraintSet:        ConstraintSetModel,
+  constraintSet:        ConstraintSet,
   scienceRequirements:  ScienceRequirements,
   scienceConfiguration: Option[ScienceConfigurationModel],
   config:               Option[InstrumentConfigModel],
@@ -306,7 +306,7 @@ trait ObservationOptics { self: ObservationModel.type =>
   val targetEnvironment: Lens[ObservationModel, TargetEnvironmentModel] =
     Focus[ObservationModel](_.targetEnvironment)
 
-  val constraintSet: Lens[ObservationModel, ConstraintSetModel] =
+  val constraintSet: Lens[ObservationModel, ConstraintSet] =
     Focus[ObservationModel](_.constraintSet)
 
   val scienceRequirements: Lens[ObservationModel, ScienceRequirements] =
