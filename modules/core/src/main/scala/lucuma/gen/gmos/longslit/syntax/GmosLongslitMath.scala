@@ -6,7 +6,7 @@ package lucuma.gen.gmos.longslit.syntax
 import cats.Order
 import cats.syntax.order._
 import coulomb._
-import eu.timepit.refined.types.all.PosInt
+import eu.timepit.refined.types.all.{PosDouble, PosInt}
 import lucuma.core.`enum`.{GmosNorthDetector, GmosNorthFpu, GmosSouthDetector, GmosSouthFpu, GmosXBinning, ImageQuality, Site}
 import lucuma.core.math.Angle
 import lucuma.core.math.units.{Nanometer, NanometersPerPixel, Pixels}
@@ -49,9 +49,9 @@ private[syntax] sealed trait GmosLongslitMath {
    * @param slitWidth slit size
    * @param sampling desired sampling rate
    */
-  protected def xbin(slitWidth: Angle, sampling: Double): GmosXBinning = {
+  protected def xbin(slitWidth: Angle, sampling: PosDouble): GmosXBinning = {
     val npix  = slitWidth.toMicroarcseconds.toDouble / pixelSize.toMicroarcseconds.toDouble
-    DescendingXBinning.find(b => npix / b.count.toDouble >= sampling).getOrElse(GmosXBinning.One)
+    DescendingXBinning.find(b => npix / b.count.toDouble >= sampling.value).getOrElse(GmosXBinning.One)
   }
 
   /**
@@ -95,7 +95,7 @@ private[syntax] object GmosNorthLongslitMath extends GmosLongslitMath {
   def effectiveSlitWidth(fpu: GmosNorthFpu, p: SourceProfile, iq: ImageQuality): Angle =
     fpu.slitWidth.getOrElse(IfuSlitWidth) min effectiveSize(p, iq)
 
-  def xbin(fpu: GmosNorthFpu, p: SourceProfile, iq: ImageQuality, sampling: Double): GmosXBinning =
+  def xbin(fpu: GmosNorthFpu, p: SourceProfile, iq: ImageQuality, sampling: PosDouble): GmosXBinning =
     super.xbin(effectiveSlitWidth(fpu, p, iq), sampling)
 
 }
@@ -107,7 +107,7 @@ private[syntax] object GmosSouthLongslitMath extends GmosLongslitMath {
   def effectiveSlitWidth(fpu: GmosSouthFpu, p: SourceProfile, iq: ImageQuality): Angle =
     fpu.slitWidth.getOrElse(IfuSlitWidth) min effectiveSize(p, iq)
 
-  def xbin(fpu: GmosSouthFpu, p: SourceProfile, iq: ImageQuality, sampling: Double): GmosXBinning =
+  def xbin(fpu: GmosSouthFpu, p: SourceProfile, iq: ImageQuality, sampling: PosDouble): GmosXBinning =
     super.xbin(effectiveSlitWidth(fpu, p, iq), sampling)
 
 }

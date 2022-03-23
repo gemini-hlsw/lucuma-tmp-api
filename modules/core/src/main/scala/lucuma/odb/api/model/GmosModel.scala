@@ -16,10 +16,9 @@ import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import io.circe.generic.extras.semiauto.deriveConfiguredDecoder
 import io.circe.generic.extras.Configuration
-import monocle.Optional
+import monocle.{Focus, Lens, Optional}
 
 import scala.concurrent.duration._
-import monocle.Lens
 import monocle.macros.GenLens
 
 
@@ -265,7 +264,7 @@ object GmosModel {
     ampRead:  GmosAmpReadMode
   )
 
-  object CcdReadout { //extends CcdReadoutOptics {
+  object CcdReadout extends CcdReadoutOptics {
 
     val Default: CcdReadout =
       CcdReadout(
@@ -284,6 +283,25 @@ object GmosModel {
         a.ampGain,
         a.ampRead
       )}
+
+  }
+
+  sealed trait CcdReadoutOptics { self: CcdReadout.type =>
+
+    val xBin: Lens[CcdReadout, GmosXBinning] =
+      Focus[CcdReadout](_.xBin)
+
+    val yBin: Lens[CcdReadout, GmosYBinning] =
+      Focus[CcdReadout](_.yBin)
+
+    val ampCount: Lens[CcdReadout, GmosAmpCount] =
+      Focus[CcdReadout](_.ampCount)
+
+    val ampGain: Lens[CcdReadout, GmosAmpGain] =
+      Focus[CcdReadout](_.ampGain)
+
+    val ampRead: Lens[CcdReadout, GmosAmpReadMode] =
+      Focus[CcdReadout](_.ampRead)
 
   }
 
@@ -396,7 +414,7 @@ object GmosModel {
     wavelength: Wavelength
   )
 
-  object Grating {
+  object Grating extends GratingOptics {
 
     implicit def EqGmosGrating[D: Eq]: Eq[Grating[D]] =
       Eq.by { a => (
@@ -404,6 +422,19 @@ object GmosModel {
         a.order,
         a.wavelength
       )}
+
+  }
+
+  sealed trait GratingOptics { self: Grating.type =>
+
+    def disperser[D]: Lens[Grating[D], D] =
+      Focus[Grating[D]](_.disperser)
+
+    def order[D]: Lens[Grating[D], GmosDisperserOrder] =
+      Focus[Grating[D]](_.order)
+
+    def wavelength[D]: Lens[Grating[D], Wavelength] =
+      Focus[Grating[D]](_.wavelength)
 
   }
 
@@ -454,7 +485,7 @@ object GmosModel {
     fpu:      Option[Either[CustomMask, GmosNorthFpu]]
   ) extends Dynamic[GmosNorthDisperser, GmosNorthFilter, GmosNorthFpu]
 
-  object NorthDynamic { // extends NorthDynamicOptics {
+  object NorthDynamic extends NorthDynamicOptics {
 
     implicit def EqDynamic: Eq[NorthDynamic] =
       Eq.by { a => (
@@ -469,6 +500,44 @@ object GmosModel {
 
   }
 
+  sealed trait NorthDynamicOptics { self: NorthDynamic.type =>
+
+    val exposure: Lens[NorthDynamic, FiniteDuration] =
+      Focus[NorthDynamic](_.exposure)
+
+    val readout: Lens[NorthDynamic, CcdReadout] =
+      Focus[NorthDynamic](_.readout)
+
+    val xBin: Lens[NorthDynamic, GmosXBinning] =
+      readout andThen CcdReadout.xBin
+
+    val yBin: Lens[NorthDynamic, GmosYBinning] =
+      readout andThen CcdReadout.yBin
+
+    val dtax: Lens[NorthDynamic, GmosDtax] =
+      Focus[NorthDynamic](_.dtax)
+
+    val roi: Lens[NorthDynamic, GmosRoi] =
+      Focus[NorthDynamic](_.roi)
+
+    val grating: Lens[NorthDynamic, Option[Grating[GmosNorthDisperser]]] =
+      Focus[NorthDynamic](_.grating)
+
+    val wavelength: Optional[NorthDynamic, Wavelength] =
+      Optional[NorthDynamic, Wavelength](
+        _.grating.map(_.wavelength)
+      )(
+        λ => grating.modify(_.map(Grating.wavelength.replace(λ)))
+      )
+
+    val filter: Lens[NorthDynamic, Option[GmosNorthFilter]] =
+      Focus[NorthDynamic](_.filter)
+
+    val fpu: Lens[NorthDynamic, Option[Either[CustomMask, GmosNorthFpu]]] =
+      Focus[NorthDynamic](_.fpu)
+
+  }
+
   final case class SouthDynamic (
     exposure: FiniteDuration,
     readout:  CcdReadout,
@@ -479,7 +548,7 @@ object GmosModel {
     fpu:      Option[Either[CustomMask, GmosSouthFpu]]
   ) extends Dynamic[GmosSouthDisperser, GmosSouthFilter, GmosSouthFpu]
 
-  object SouthDynamic { //extends SouthDynamicOptics {
+  object SouthDynamic extends SouthDynamicOptics {
 
     implicit def EqDynamic: Eq[SouthDynamic] =
       Eq.by { a => (
@@ -491,6 +560,31 @@ object GmosModel {
         a.filter,
         a.fpu
       )}
+
+  }
+
+  sealed trait SouthDynamicOptics { self: SouthDynamic.type =>
+
+    val exposure: Lens[SouthDynamic, FiniteDuration] =
+      Focus[SouthDynamic](_.exposure)
+
+    val readout: Lens[SouthDynamic, CcdReadout] =
+      Focus[SouthDynamic](_.readout)
+
+    val dtax: Lens[SouthDynamic, GmosDtax] =
+      Focus[SouthDynamic](_.dtax)
+
+    val roi: Lens[SouthDynamic, GmosRoi] =
+      Focus[SouthDynamic](_.roi)
+
+    val grating: Lens[SouthDynamic, Option[Grating[GmosSouthDisperser]]] =
+      Focus[SouthDynamic](_.grating)
+
+    val filter: Lens[SouthDynamic, Option[GmosSouthFilter]] =
+      Focus[SouthDynamic](_.filter)
+
+    val fpu: Lens[SouthDynamic, Option[Either[CustomMask, GmosSouthFpu]]] =
+      Focus[SouthDynamic](_.fpu)
 
   }
 

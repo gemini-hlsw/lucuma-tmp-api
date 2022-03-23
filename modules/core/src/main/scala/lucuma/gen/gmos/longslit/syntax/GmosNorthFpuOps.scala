@@ -3,12 +3,13 @@
 
 package lucuma.gen.gmos.longslit.syntax
 
+import eu.timepit.refined.types.all.PosDouble
 import lucuma.core.`enum`.{GmosNorthFpu, GmosXBinning, ImageQuality}
 import lucuma.core.model.SourceProfile
 
 final class GmosNorthFpuOps(val self: GmosNorthFpu) extends AnyVal {
 
-  def xbin(p: SourceProfile, iq: ImageQuality, sampling: Double): GmosXBinning =
+  def xbin(p: SourceProfile, iq: ImageQuality, sampling: PosDouble): GmosXBinning =
     GmosNorthLongslitMath.xbin(self, p, iq, sampling)
 
 }
