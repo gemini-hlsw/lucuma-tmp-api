@@ -91,14 +91,14 @@ final case class AirMassRangeInput(
     }
   }
 
-  override val edit: StateT[EitherInput, ElevationRange.AirMass, Unit] = {
+  override val edit: StateT[EitherInput, AirMass, Unit] = {
     val validArgs = (
       min.traverse(n => ValidatedInput.closedInterval("min", n, MinValue, MaxValue)),
       max.traverse(x => ValidatedInput.closedInterval("max", x, MinValue, MaxValue))
     ).tupled
 
     for {
-      args <- validArgs.liftState[ElevationRange.AirMass]
+      args <- validArgs.liftState[AirMass]
       (n0, x0) = args
       n1 <- StateT.inspect[EitherInput, AirMass, DecimalValue](r => n0.getOrElse(r.min))
       x1 <- StateT.inspect[EitherInput, AirMass, DecimalValue](r => x0.getOrElse(r.max))
@@ -134,7 +134,7 @@ final case class HourAngleRangeInput(
       s"""Invalid HourAngleRange: "minHours" value ${min.value} must be <= "maxHours" value ${max.value}."""
     )
 
-  override val create: ValidatedInput[ElevationRange.HourAngle] = {
+  override val create: ValidatedInput[HourAngle] = {
     def checkRange(name: String, value: Option[BigDecimal]): ValidatedInput[Refined[BigDecimal, Closed[MinHour.type, MaxHour.type]]] =
       value
         .toValidNec(InputError.fromMessage(s""""$name" parameter of HourAngleRange must be defined on creation"""))
