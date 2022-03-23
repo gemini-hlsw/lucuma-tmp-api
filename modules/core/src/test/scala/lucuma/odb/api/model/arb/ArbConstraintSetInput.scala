@@ -11,38 +11,10 @@ import lucuma.core.util.arb.ArbEnumerated
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
-trait ArbConstraintSetModel {
-  import ArbElevationRange._
+trait ArbConstraintSetInput {
+  import ArbElevationRangeInput._
   import ArbEnumerated._
   import ArbInput._
-
-  implicit val arbConstraintSet: Arbitrary[ConstraintSetModel] =
-    Arbitrary {
-      for {
-        iq   <- arbitrary[ImageQuality]
-        ce   <- arbitrary[CloudExtinction]
-        sb   <- arbitrary[SkyBackground]
-        wv   <- arbitrary[WaterVapor]
-        er   <- arbitrary[ElevationRangeModel]
-      } yield ConstraintSetModel(iq, ce, sb, wv, er)
-    }
-
-  implicit val cogConstraintSet: Cogen[ConstraintSetModel] =
-    Cogen[
-      (ImageQuality,
-       CloudExtinction,
-       SkyBackground,
-       WaterVapor,
-       ElevationRangeModel
-      )
-    ].contramap(cs =>
-      (cs.imageQuality,
-       cs.cloudExtinction,
-       cs.skyBackground,
-       cs.waterVapor,
-       cs.elevationRange
-      )
-    )
 
   implicit val arbConstraintSetInput: Arbitrary[ConstraintSetInput] =
     Arbitrary {
@@ -73,4 +45,4 @@ trait ArbConstraintSetModel {
     )
 }
 
-object ArbConstraintSetModel extends ArbConstraintSetModel
+object ArbConstraintSetInput extends ArbConstraintSetInput

@@ -5,7 +5,8 @@ package lucuma.odb.api.model
 package arb
 
 import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
-import lucuma.core.model.{Observation, Program}
+import lucuma.core.model.{ConstraintSet, Observation, Program}
+import lucuma.core.model.arb.ArbConstraintSet
 import lucuma.core.util.arb.{ArbEnumerated, ArbGid}
 import eu.timepit.refined.scalacheck.all._
 import eu.timepit.refined.types.all.NonEmptyString
@@ -15,7 +16,8 @@ import org.scalacheck.Arbitrary.arbitrary
 
 trait ArbObservationModel {
 
-  import ArbConstraintSetModel._
+  import ArbConstraintSet._
+  import ArbConstraintSetInput._
   import ArbScienceRequirements._
   import ArbEnumerated._
   import ArbGid._
@@ -30,7 +32,7 @@ trait ArbObservationModel {
         os <- arbitrary[ObsStatus]
         as <- arbitrary[ObsActiveStatus]
         ts <- arbitrary[TargetEnvironmentModel]
-        cs <- arbitrary[ConstraintSetModel]
+        cs <- arbitrary[ConstraintSet]
         sr <- arbitrary[ScienceRequirements]
       } yield ObservationModel(id, ex, pid, nm, os, as, ts, cs, sr, None, None, PlannedTimeSummaryModel.Zero)
     }
@@ -51,7 +53,7 @@ trait ArbObservationModel {
       Option[String],
       ObsStatus,
       ObsActiveStatus,
-      ConstraintSetModel,
+      ConstraintSet,
       ScienceRequirements
     )].contramap { in => (
       in.id,

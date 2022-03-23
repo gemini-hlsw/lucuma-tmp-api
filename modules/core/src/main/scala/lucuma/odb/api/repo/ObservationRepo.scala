@@ -6,9 +6,9 @@ package lucuma.odb.api.repo
 import cats.data.{EitherT, StateT}
 import cats.effect.{Async, Ref}
 import cats.implicits._
-import lucuma.core.model.{Observation, Program, Target}
+import lucuma.core.model.{ConstraintSet, Observation, Program, Target}
 import lucuma.odb.api.model.ObservationModel.{BulkEdit, Create, Edit, Group, ObservationEvent}
-import lucuma.odb.api.model.{ConstraintSetInput, ConstraintSetModel, Database, EitherInput, Event, InputError, InstrumentConfigModel, ObservationModel, PlannedTimeSummaryModel, ScienceRequirements, ScienceRequirementsInput, Table}
+import lucuma.odb.api.model.{ConstraintSetInput, Database, EitherInput, Event, InputError, InstrumentConfigModel, ObservationModel, PlannedTimeSummaryModel, ScienceRequirements, ScienceRequirementsInput, Table}
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.model.syntax.databasestate._
@@ -70,7 +70,7 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
   def groupByConstraintSet(
     pid:            Program.Id,
     includeDeleted: Boolean
-  ): F[List[Group[ConstraintSetModel]]]
+  ): F[List[Group[ConstraintSet]]]
 
   def groupByScienceRequirements(
     pid:            Program.Id,
@@ -282,7 +282,7 @@ object ObservationRepo {
       override def groupByConstraintSet(
         pid:            Program.Id,
         includeDeleted: Boolean
-      ): F[List[Group[ConstraintSetModel]]] =
+      ): F[List[Group[ConstraintSet]]] =
         groupBy(pid, includeDeleted)(_.constraintSet)
 
       override def groupByScienceRequirements(

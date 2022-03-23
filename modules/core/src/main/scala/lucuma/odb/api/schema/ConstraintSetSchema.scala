@@ -4,9 +4,8 @@
 package lucuma.odb.api.schema
 
 import lucuma.core.enum.{CloudExtinction, ImageQuality, SkyBackground, WaterVapor}
-import lucuma.odb.api.model.{AirmassRange, ElevationRangeModel, HourAngleRange}
+import lucuma.core.model.{ConstraintSet, ElevationRange}
 import lucuma.odb.api.schema.syntax.all._
-import lucuma.odb.api.model.ConstraintSetModel
 
 import sangria.schema._
 
@@ -24,7 +23,7 @@ object ConstraintSetSchema {
   implicit val EnumTypeWaterVapor: EnumType[WaterVapor] =
     EnumType.fromEnumerated("WaterVapor", "Water vapor")
 
-  val AirMassRangeType: ObjectType[Any, AirmassRange] =
+  val AirMassRangeType: ObjectType[Any, ElevationRange.AirMass] =
     ObjectType(
       name     = "AirMassRange",
       fieldsFn = () =>
@@ -32,19 +31,19 @@ object ConstraintSetSchema {
           Field(
             name        = "min",
             fieldType   = BigDecimalType,
-            description = Some("Minimum Airmass (unitless)"),
+            description = Some("Minimum AirMass (unitless)"),
             resolve     = _.value.min.value
           ),
           Field(
             name        = "max",
             fieldType   = BigDecimalType,
-            description = Some("Maximum Airmass (unitless)"),
+            description = Some("Maximum AirMass (unitless)"),
             resolve     = _.value.max.value
           )
         )
     )
 
-  val HourAngleRangeType: ObjectType[Any, HourAngleRange] =
+  val HourAngleRangeType: ObjectType[Any, ElevationRange.HourAngle] =
     ObjectType(
       name     = "HourAngleRange",
       fieldsFn = () =>
@@ -64,28 +63,28 @@ object ConstraintSetSchema {
         )
     )
 
-  val ElevationRangeModelType: ObjectType[Any, ElevationRangeModel] =
+  val ElevationRangeModelType: ObjectType[Any, ElevationRange] =
     ObjectType(
       name        = "ElevationRange",
-      description = "Either airmass range or elevation range",
+      description = "Either air mass range or elevation range",
       fieldsFn    = () =>
         fields(
           Field(
-            name        = "airmassRange",
+            name        = "airMass",
             fieldType   = OptionType(AirMassRangeType),
-            description = Some("Airmass range if elevation range is an Airmass range"),
-            resolve     = c => ElevationRangeModel.airmassRange.getOption(c.value)
+            description = Some("AirMass range if elevation range is an Airmass range"),
+            resolve     = c => ElevationRange.airMass.getOption(c.value)
           ),
           Field(
-            name        = "hourAngleRange",
+            name        = "hourAngle",
             fieldType   = OptionType(HourAngleRangeType),
             description = Some("Hour angle range if elevation range is an Hour angle range"),
-            resolve     = c => ElevationRangeModel.hourAngleRange.getOption(c.value)
+            resolve     = c => ElevationRange.hourAngle.getOption(c.value)
           )
         )
     )
 
-  val ConstraintSetType: ObjectType[Any, ConstraintSetModel] =
+  val ConstraintSetType: ObjectType[Any, ConstraintSet] =
     ObjectType(
       name     = "ConstraintSet",
       fieldsFn = () =>
@@ -117,7 +116,7 @@ object ConstraintSetSchema {
           Field(
             name        = "elevationRange",
             fieldType   = ElevationRangeModelType,
-            description = Some("Either airmass range or elevation range"),
+            description = Some("Either air mass range or elevation range"),
             resolve     = _.value.elevationRange
           )
         )

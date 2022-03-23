@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{AirmassRangeInput, ConstraintSetInput, ElevationRangeInput, HourAngleRangeInput}
+import lucuma.odb.api.model.{AirMassRangeInput, ConstraintSetInput, ElevationRangeInput, HourAngleRangeInput}
 import lucuma.odb.api.schema.syntax.inputtype._
 import sangria.macros.derive._
 import sangria.marshalling.circe._
@@ -14,10 +14,10 @@ trait ConstraintSetMutation {
   import ConstraintSetSchema._
   import syntax.inputobjecttype._
 
-  implicit val InputObjectTypeAirmassRange: InputObjectType[AirmassRangeInput] =
-    deriveInputObjectType[AirmassRangeInput](
-      InputObjectTypeName("AirmassRangeInput"),
-      InputObjectTypeDescription("Airmass range creation and edit parameters")
+  implicit val InputObjectTypeAirmassRange: InputObjectType[AirMassRangeInput] =
+    deriveInputObjectType[AirMassRangeInput](
+      InputObjectTypeName("AirMassRangeInput"),
+      InputObjectTypeDescription("Air mass range creation and edit parameters")
     )
 
   implicit val InputObjectTypeHourAngleRange: InputObjectType[HourAngleRangeInput] =
@@ -29,10 +29,10 @@ trait ConstraintSetMutation {
   implicit val InputObjectTypeElevationRange: InputObjectType[ElevationRangeInput] =
     InputObjectType[ElevationRangeInput](
       "ElevationRangeInput",
-      "Elevation range creation and edit parameters.  Choose one of airmass or hour angle constraints.",
+      "Elevation range creation and edit parameters.  Choose one of airMass or hourAngle constraints.",
       List(
-        InputObjectTypeAirmassRange.optionField("airmassRange"),
-        InputObjectTypeHourAngleRange.optionField("hourAngleRange")
+        InputObjectTypeAirmassRange.optionField("airMass"),
+        InputObjectTypeHourAngleRange.optionField("hourAngle")
       )
     )
 
