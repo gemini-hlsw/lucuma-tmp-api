@@ -195,7 +195,8 @@ object ItcSpectroscopyInput {
         "elevationRange"  -> (a.elevationRange match {
           case ElevationRange.AirMass(min, max)             =>
             Json.obj(
-              "airMass"->
+              // TODO: we should switch this to airMass to be consistent
+              "airmassRange"->
                 Json.obj(
                   "min" -> min.value.asJson,
                   "max" -> max.value.asJson
@@ -203,7 +204,8 @@ object ItcSpectroscopyInput {
             )
           case ElevationRange.HourAngle(minHours, maxHours) =>
             Json.obj(
-              "hourAngle" ->
+              // TODO: we should switch this to hourAngle to be consistent
+              "hourAngleRange" ->
                 Json.obj(
                   "minHours" -> minHours.value.asJson,
                   "maxHours" -> maxHours.value.asJson
