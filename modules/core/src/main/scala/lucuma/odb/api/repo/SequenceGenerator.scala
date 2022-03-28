@@ -9,8 +9,9 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
 import lucuma.itc.client.ItcResult
-import lucuma.odb.api.model.ObservationModel
+import lucuma.odb.api.model.{InstrumentConfigModel, ObservationModel}
 import lucuma.odb.api.model.targetModel.TargetModel
+
 
 sealed trait SequenceGenerator[F[_]] {
 
@@ -18,6 +19,11 @@ sealed trait SequenceGenerator[F[_]] {
     observation:    ObservationModel,
     includeDeleted: Boolean = false
   ): F[Option[(TargetModel, ItcResult.Success)]]
+
+  def gen(
+    observation:    ObservationModel,
+    includeDeleted: Boolean = false
+  ): F[Option[InstrumentConfigModel]]
 
 }
 
@@ -42,21 +48,19 @@ object SequenceGenerator {
           r  <- ts.zip(rs)
                   .flatMap(_.sequence.toList)
                   .traverse(_.traverse(_.itc.toEither))
-                  .map(_.maxByOption { case (_, r) => (r.exposureTime.getSeconds, r.exposureTime.getNano)})
+                  .map(_.maxByOption { case (_, r) => r.exposureTime })
                   .leftMap(e => new Exception(e.msg))
                   .liftTo[F]
         } yield r
       }
 
-//      override def itc(
-//        oid:            Observation.Id,
-//        includeDeleted: Boolean
-//      ): F[Option[(TargetModel, ItcResult.Success)]] =
-//        for {
-//          o   <- ctx.odbRepo.observation.select(oid, includeDeleted)
-//          r   <- o.fold(Applicative[F].pure(Option.empty[(TargetModel, ItcResult.Success)]))(itcForObs(_, includeDeleted))
-//        } yield r
-
+      override def gen(
+        observation:    ObservationModel,
+        includeDeleted: Boolean
+      ): F[Option[InstrumentConfigModel]] = {
+        // TBD
+        ???
+      }
 
 
     }

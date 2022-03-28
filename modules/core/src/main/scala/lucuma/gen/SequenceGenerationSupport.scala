@@ -15,7 +15,7 @@ import lucuma.odb.api.model.{Atom, AtomModel, Breakpoint, GcalModel, Step, StepC
 /**
  * Sequence generation helper trait.
  */
-trait SequenceGenerator[D] {
+private[gen] trait SequenceGenerationSupport[D] {
 
   /**
    * Sequence generation involves defining edits to the dynamic instrument

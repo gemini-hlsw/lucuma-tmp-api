@@ -5,10 +5,11 @@ package lucuma.itc.client
 
 import cats.Eq
 import cats.syntax.all._
-import eu.timepit.refined.types.numeric.PosBigDecimal
+import eu.timepit.refined.types.numeric._
 import io.circe.{Decoder, DecodingFailure, HCursor}
 
-import java.time.Duration
+import java.math.MathContext
+import scala.concurrent.duration._
 
 
 sealed trait ItcResult {
@@ -19,6 +20,13 @@ sealed trait ItcResult {
       case e: ItcResult.Error   => e.asLeft[ItcResult.Success]
       case s: ItcResult.Success => s.asRight[ItcResult.Error]
     }
+
+  def error: Option[ItcResult.Error] =
+    toEither.swap.toOption
+
+  def success: Option[ItcResult.Success] =
+    toEither.toOption
+
 }
 
 object ItcResult {
@@ -59,18 +67,27 @@ object ItcResult {
   }
 
   final case class Success(
-    exposureTime:  Duration,
+    exposureTime:  FiniteDuration,
     exposures:     Int,
     signalToNoise: PosBigDecimal,
     resultType:    String
-  ) extends ItcResult
+  ) extends ItcResult {
+
+    def stepSignalToNoise: PosBigDecimal =
+      PosBigDecimal.unsafeFrom(
+        (signalToNoise.value * signalToNoise.value / exposures)
+          .underlying()
+          .sqrt(MathContext.DECIMAL128)
+      )
+
+  }
 
   object Success {
 
     implicit val DecoderSuccess: Decoder[Success] =
       (c: HCursor) =>
         for {
-          t <- c.downField("exposureTime").downField("microseconds").as[Long].map(µs => Duration.ofSeconds(µs / 1000000, µs % 1000000))
+          t <- c.downField("exposureTime").downField("microseconds").as[Long].map(_.microseconds)
           n <- c.downField("exposures").as[Int]
           s <- c.downField("signalToNoise").as[BigDecimal].flatMap(d => PosBigDecimal.from(d).leftMap(m => DecodingFailure(m, c.history)))
           r <- c.downField("resultType").as[String]
@@ -78,8 +95,7 @@ object ItcResult {
 
     implicit val EqSuccess: Eq[Success] =
       Eq.by { a => (
-        a.exposureTime.getSeconds,
-        a.exposureTime.getNano,
+        a.exposureTime.toNanos,
         a.exposures,
         a.signalToNoise.value,
         a.resultType

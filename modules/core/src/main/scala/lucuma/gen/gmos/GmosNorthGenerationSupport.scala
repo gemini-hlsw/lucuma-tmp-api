@@ -9,7 +9,7 @@ import lucuma.odb.api.model.GmosModel.{CcdReadout, NorthDynamic}
 
 import scala.concurrent.duration._
 
-private[gmos] trait GmosNorthSequenceGenerator extends SequenceGenerator[NorthDynamic] {
+private[gmos] trait GmosNorthGenerationSupport extends SequenceGenerationSupport[NorthDynamic] {
 
   override val initialConfig: NorthDynamic =
     NorthDynamic(
