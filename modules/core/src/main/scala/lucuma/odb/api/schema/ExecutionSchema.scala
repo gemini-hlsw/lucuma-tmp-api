@@ -3,12 +3,13 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.core.model.{ExecutionEvent, Observation}
-import lucuma.odb.api.model.{DatasetModel, ExecutionEventModel, InstrumentConfigModel, Step}
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import eu.timepit.refined.types.all.PosInt
+import lucuma.core.model.{ExecutionEvent, Observation}
+import lucuma.odb.api.model.{DatasetModel, ExecutionEventModel, InstrumentConfigModel, Step}
+import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
 import sangria.schema._
 

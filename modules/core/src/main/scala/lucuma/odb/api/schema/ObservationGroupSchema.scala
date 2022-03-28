@@ -4,7 +4,7 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.{InputError, ObservationModel}
-import lucuma.odb.api.repo.{ObservationRepo, ResultPage}
+import lucuma.odb.api.repo.{ObservationRepo, OdbCtx, ResultPage}
 import cats.Order.catsKernelOrderingForOrder
 import cats.effect.Async
 import cats.effect.std.Dispatcher

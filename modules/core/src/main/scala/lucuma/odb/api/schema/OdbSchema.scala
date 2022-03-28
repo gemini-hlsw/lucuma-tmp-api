@@ -6,6 +6,7 @@ package lucuma.odb.api.schema
 import lucuma.odb.api.model.InputError
 import cats.effect.Async
 import cats.effect.std.Dispatcher
+import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
 import sangria.execution.{ExceptionHandler, HandledException}
 import sangria.schema.Schema

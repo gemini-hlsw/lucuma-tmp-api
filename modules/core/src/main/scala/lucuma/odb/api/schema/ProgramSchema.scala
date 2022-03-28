@@ -9,6 +9,7 @@ import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.foldable._
 import cats.syntax.functor._
+import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
 import sangria.schema._
 

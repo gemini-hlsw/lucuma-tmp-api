@@ -7,6 +7,7 @@ import lucuma.odb.api.model.ProgramModel
 import lucuma.odb.api.schema.syntax.inputtype._
 import cats.effect.Async
 import cats.effect.std.Dispatcher
+import lucuma.odb.api.repo.OdbCtx
 import lucuma.odb.api.schema.ProgramSchema.ProgramType
 import org.typelevel.log4cats.Logger
 import sangria.macros.derive._

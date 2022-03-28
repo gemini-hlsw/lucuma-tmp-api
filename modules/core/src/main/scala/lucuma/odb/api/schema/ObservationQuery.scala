@@ -4,7 +4,7 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.{InputError, ObservationModel, ScienceRequirements}
-import lucuma.odb.api.repo.ResultPage
+import lucuma.odb.api.repo.{OdbCtx, ResultPage}
 import cats.MonadError
 import cats.effect.Async
 import cats.effect.std.Dispatcher

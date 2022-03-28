@@ -3,7 +3,8 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{Sequence, PlannedTime, SequenceModel}
+import lucuma.odb.api.model.{PlannedTime, Sequence, SequenceModel}
+import lucuma.odb.api.repo.OdbCtx
 import sangria.schema._
 
 object SequenceSchema {

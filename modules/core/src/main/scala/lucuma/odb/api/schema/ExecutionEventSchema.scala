@@ -7,6 +7,7 @@ import lucuma.core.model.ExecutionEvent
 import lucuma.odb.api.model.ExecutionEventModel
 import cats.effect.Async
 import cats.effect.std.Dispatcher
+import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
 import sangria.schema._
 

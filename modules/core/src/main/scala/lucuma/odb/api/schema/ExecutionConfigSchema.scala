@@ -11,6 +11,7 @@ import lucuma.odb.api.model.{GmosModel, InstrumentConfigModel, Sequence, Sequenc
 import lucuma.odb.api.model.SequenceModel.SequenceType.{Acquisition, Science}
 import cats.syntax.all._
 import lucuma.core.`enum`.Instrument
+import lucuma.odb.api.repo.OdbCtx
 import lucuma.odb.api.schema.Paging.unsafeSelectPageFuture
 import org.typelevel.log4cats.Logger
 import sangria.schema.{Field, _}

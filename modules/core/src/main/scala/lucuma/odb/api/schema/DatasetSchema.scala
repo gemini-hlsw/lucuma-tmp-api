@@ -14,6 +14,7 @@ import cats.syntax.all._
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.all.PosInt
 import lucuma.core.optics.Format
+import lucuma.odb.api.repo.OdbCtx
 import monocle.Prism
 import org.typelevel.log4cats.Logger
 import sangria.schema._

@@ -10,7 +10,7 @@ import cats.syntax.option._
 import lucuma.core.model.ExecutionEvent
 import lucuma.odb.api.model.{Step, StepRecord, Visit, VisitRecord}
 import lucuma.odb.api.model.ExecutionEventModel.SequenceEvent
-import lucuma.odb.api.repo.ResultPage
+import lucuma.odb.api.repo.{OdbCtx, ResultPage}
 import org.typelevel.log4cats.Logger
 import sangria.schema._
 

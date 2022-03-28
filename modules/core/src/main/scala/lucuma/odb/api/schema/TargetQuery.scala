@@ -6,7 +6,7 @@ package lucuma.odb.api.schema
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
-import lucuma.odb.api.repo.ResultPage
+import lucuma.odb.api.repo.{OdbCtx, ResultPage}
 import lucuma.odb.api.model.targetModel.TargetModel
 import lucuma.odb.api.schema.TargetSchema.ArgumentTargetId
 import org.typelevel.log4cats.Logger

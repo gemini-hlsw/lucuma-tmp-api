@@ -11,6 +11,7 @@ import cats.syntax.option._
 import io.circe.Decoder
 import lucuma.odb.api.model.{ExecutionEventModel, InputValidator, Step, StepRecord, Visit, VisitRecord, VisitRecords}
 import lucuma.odb.api.model.GmosModel.{CreateNorthDynamic, CreateNorthStatic, CreateSouthDynamic, CreateSouthStatic, NorthDynamic, NorthStatic, SouthDynamic, SouthStatic}
+import lucuma.odb.api.repo.OdbCtx
 import monocle.Prism
 import org.typelevel.log4cats.Logger
 import sangria.macros.derive._

@@ -15,7 +15,7 @@ import clue.http4sjdk.Http4sJDKBackend
 import clue.http4sjdk.Http4sJDKWSBackend
 import io.circe.literal._
 import lucuma.itc.client.ItcClient
-import lucuma.odb.api.schema.OdbCtx
+import lucuma.odb.api.repo.OdbCtx
 // TODO: SSO
 //import lucuma.core.model.User
 import lucuma.odb.api.repo.OdbRepo

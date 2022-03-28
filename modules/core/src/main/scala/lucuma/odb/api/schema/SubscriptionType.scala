@@ -18,6 +18,7 @@ import cats.syntax.functor._
 import fs2.Stream
 import lucuma.odb.api.model.targetModel.TargetModel.TargetEvent
 import lucuma.odb.api.model.targetModel.TargetModel
+import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
 import sangria.schema._
 import sangria.streaming.SubscriptionStream

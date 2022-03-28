@@ -5,6 +5,7 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.{Atom, AtomModel, PlannedTime, StepModel}
 import cats.syntax.all._
+import lucuma.odb.api.repo.OdbCtx
 import sangria.schema._
 
 object AtomSchema {
