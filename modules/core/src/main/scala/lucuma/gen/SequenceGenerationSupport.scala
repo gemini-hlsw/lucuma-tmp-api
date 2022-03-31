@@ -36,6 +36,9 @@ private[gen] trait SequenceGenerationSupport[D] {
   def eval[A](prog: State[D, A]): A =
     prog.runA(initialConfig).value
 
+  /**
+   * Creates an atom from the given steps.
+   */
   def atom[F[_]: Sync](
     s0: F[StepModel[D]],
     ss: F[StepModel[D]]*
@@ -70,7 +73,9 @@ private[gen] trait SequenceGenerationSupport[D] {
   def scienceStep[F[_]: Sync](p: Angle, q: Angle): State[D, F[StepModel[D]]] =
     scienceStep[F](Offset(Offset.P(p), Offset.Q(q)))
 
-
+  /**
+   * Generates a GCAL flat based on the current instrument configuration.
+   */
   def flatStep[F[_]: Sync]: State[D, F[StepModel[D]]] =
     step[F] { d =>
       StepConfig.Gcal(

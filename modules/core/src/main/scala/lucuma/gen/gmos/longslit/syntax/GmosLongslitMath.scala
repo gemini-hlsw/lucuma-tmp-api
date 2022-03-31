@@ -36,9 +36,6 @@ private[syntax] sealed trait GmosLongslitMath {
     Angle.fromMicroarcseconds(310000L)
 
 
-//  val Sampling: Double =
-//    2.5
-
   private val DescendingXBinning: List[GmosXBinning] =
     GmosXBinning.all.sortBy(b => -b.count)
 

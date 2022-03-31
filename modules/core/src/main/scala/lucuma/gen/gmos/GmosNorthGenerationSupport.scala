@@ -11,6 +11,11 @@ import scala.concurrent.duration._
 
 private[gmos] trait GmosNorthGenerationSupport extends SequenceGenerationSupport[NorthDynamic] {
 
+  /**
+   * Starting point, default dynamic configuration for GMOS North.  This will
+   * serve as the initial state in state computations that produce sequence
+   * steps.
+   */
   override val initialConfig: NorthDynamic =
     NorthDynamic(
       exposure = 0.seconds,

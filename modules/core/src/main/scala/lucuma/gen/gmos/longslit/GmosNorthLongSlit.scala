@@ -28,6 +28,9 @@ import spire.std.int._
 
 import scala.concurrent.duration._
 
+/**
+ * GMOS North LongSlit observing mode generator.
+ */
 final case class GmosNorthLongSlit(
   mode:            ScienceConfigurationModel.Modes.GmosNorthLongSlit,
   acqExposureTime: AcqExposureTime,
@@ -38,9 +41,9 @@ final case class GmosNorthLongSlit(
   sampling:        PosDouble
 ) {
 
-  val generate: ModeGenerator[NorthStatic, NorthDynamic] =
+  val generate: Generator[NorthStatic, NorthDynamic] =
 
-    new ModeGenerator[NorthStatic, NorthDynamic] with GmosNorthGenerationSupport {
+    new Generator[NorthStatic, NorthDynamic] with GmosNorthGenerationSupport {
 
       def acquisitionSteps[F[_] : Sync]: GmosNorthLongSlit.AcquisitionSteps[F] =
         GmosNorthLongSlit.AcquisitionSteps.generate[F](
@@ -49,10 +52,10 @@ final case class GmosNorthLongSlit(
 
       override val static: NorthStatic =
         NorthStatic(
-          detector = GmosNorthDetector.Hamamatsu,
+          detector      = GmosNorthDetector.Hamamatsu,
           mosPreImaging = MosPreImaging.IsNotMosPreImaging,
           nodAndShuffle = Option.empty,
-          stageMode = GmosNorthStageMode.FollowXy
+          stageMode     = GmosNorthStageMode.FollowXy
         )
 
       override def acquisition[F[_] : Sync](
