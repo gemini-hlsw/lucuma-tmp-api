@@ -4,7 +4,7 @@
 package lucuma.odb.api.schema
 
 import lucuma.core.model.{ExecutionEvent, Observation, Program, Target}
-import lucuma.odb.api.repo.{ExecutionEventRepo, ObservationRepo, ProgramRepo, TargetRepo}
+import lucuma.odb.api.repo.{ExecutionEventRepo, ObservationRepo, OdbCtx, ProgramRepo, TargetRepo}
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import lucuma.core.util.Gid

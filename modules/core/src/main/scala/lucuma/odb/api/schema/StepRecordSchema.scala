@@ -13,7 +13,7 @@ import eu.timepit.refined.cats._
 import lucuma.core.model.ExecutionEvent
 import lucuma.odb.api.model.StepRecord
 import lucuma.odb.api.model.ExecutionEventModel.{DatasetEvent, StepEvent}
-import lucuma.odb.api.repo.ResultPage
+import lucuma.odb.api.repo.{OdbCtx, ResultPage}
 import org.typelevel.log4cats.Logger
 import sangria.schema._
 

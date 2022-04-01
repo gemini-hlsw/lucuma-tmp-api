@@ -10,6 +10,7 @@ import cats.effect.Async
 import cats.effect.std.Dispatcher
 import io.circe.Decoder
 import lucuma.odb.api.model.targetModel.{EditAsterismInput, TargetEnvironmentInput}
+import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
 import sangria.macros.derive._
 import sangria.marshalling.circe._

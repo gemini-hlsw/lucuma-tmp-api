@@ -12,6 +12,7 @@ import lucuma.odb.api.model.{CoordinatesModel, DeclinationModel, ObservationMode
 import lucuma.odb.api.model.targetModel.{CatalogInfoInput, EditAsterismInput, NonsiderealInput, SiderealInput, TargetEnvironmentInput, TargetModel}
 import lucuma.odb.api.schema.syntax.`enum`._
 import lucuma.core.model.Target
+import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
 import sangria.macros.derive.{ReplaceInputField, _}
 import sangria.marshalling.circe._

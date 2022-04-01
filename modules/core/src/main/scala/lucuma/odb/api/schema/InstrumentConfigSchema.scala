@@ -4,7 +4,8 @@
 package lucuma.odb.api.schema
 
 import lucuma.core.`enum`.Instrument
-import lucuma.odb.api.model.{Sequence, InstrumentConfigModel, PlannedTime}
+import lucuma.odb.api.model.{InstrumentConfigModel, PlannedTime, Sequence}
+import lucuma.odb.api.repo.OdbCtx
 import lucuma.odb.api.schema.TimeSchema.DurationType
 import sangria.schema._
 

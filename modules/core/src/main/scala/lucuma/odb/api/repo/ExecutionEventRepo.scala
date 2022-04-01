@@ -398,7 +398,7 @@ object ExecutionEventRepo {
         // static configurations.
 
         def isExecuted(a: AtomModel[StepModel[D]]): State[List[(StepConfig[D], Boolean)], Boolean] = {
-          val steps = a.steps.map(s => (s.config, true)).toList
+          val steps = a.steps.tupleRight(true).toList
 
           for {
             rs <- State.get[List[(StepConfig[D], Boolean)]]

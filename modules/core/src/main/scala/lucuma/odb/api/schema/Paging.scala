@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.repo.ResultPage
+import lucuma.odb.api.repo.{OdbCtx, ResultPage}
 import lucuma.core.util.Gid
 import lucuma.odb.api.model.{InputError, TopLevelModel, Uid}
 import cats.{ApplicativeError, Eq, Order}

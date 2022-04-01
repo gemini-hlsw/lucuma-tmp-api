@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.service
 
-import lucuma.odb.api.repo.OdbRepo
+import lucuma.odb.api.repo.{OdbCtx, OdbRepo}
 import cats.effect.{Async, ExitCode, IO, IOApp, Resource}
 import cats.implicits._
 import fs2.Stream
@@ -15,7 +15,7 @@ import org.typelevel.log4cats.{Logger => Log4CatsLogger}
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import lucuma.graphql.routes.SangriaGraphQLService
 import lucuma.graphql.routes.GraphQLService
-import lucuma.odb.api.schema.{OdbCtx, OdbSchema}
+import lucuma.odb.api.schema.OdbSchema
 import cats.effect.std.Dispatcher
 import lucuma.graphql.routes.Routes
 import lucuma.itc.client.ItcClient

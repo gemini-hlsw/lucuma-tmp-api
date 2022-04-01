@@ -13,6 +13,7 @@ import lucuma.core.model.{CatalogInfo, EphemerisKey, Target}
 import cats.syntax.all._
 import cats.effect.std.Dispatcher
 import lucuma.core.model.Target.{Nonsidereal, Sidereal}
+import lucuma.odb.api.repo.OdbCtx
 import lucuma.odb.api.schema.GeneralSchema.EnumTypeExistence
 import org.typelevel.log4cats.Logger
 import sangria.schema.{Field, _}
