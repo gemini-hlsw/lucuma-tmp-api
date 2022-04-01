@@ -89,9 +89,9 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
 
     forAll { (t: Database) =>
       val (_, obs) = runEditTest(t) { o =>
-        ObservationModel.Edit(o.id, name = Input(NonEmptyString.unsafeFrom("Biff")))
+        ObservationModel.Edit(o.id, subtitle = Input(NonEmptyString.unsafeFrom("Biff")))
       }
-      assert(obs.name.contains(NonEmptyString.unsafeFrom("Biff")))
+      assert(obs.subtitle.contains(NonEmptyString.unsafeFrom("Biff")))
     }
 
   }
@@ -99,7 +99,7 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
   property("simple non-edit") {
     forAll { (t: Database) =>
       val (before, after) = runEditTest(t) { o =>
-        ObservationModel.Edit(o.id, name = o.name.fold(Input.ignore[NonEmptyString])(n => Input(n)))
+        ObservationModel.Edit(o.id, subtitle = o.subtitle.fold(Input.ignore[NonEmptyString])(n => Input(n)))
       }
       assertEquals(after, before)
     }

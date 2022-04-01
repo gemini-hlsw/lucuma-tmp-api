@@ -12,7 +12,7 @@ class ObservationEditSubscriptionSuite extends OdbSuite {
   val query: String = """
     subscription ObservationEdit {
       observationEdit(programId: "p-2") {
-        value { id name }
+        value { id subtitle }
       }
     }
   """
@@ -34,7 +34,7 @@ class ObservationEditSubscriptionSuite extends OdbSuite {
       {
         "editObservation": {
           "observationId": "o-2",
-          "name": $newName
+          "subtitle": $newName
         }
       }
     """
@@ -50,7 +50,7 @@ class ObservationEditSubscriptionSuite extends OdbSuite {
         "observationEdit" : {
           "value" : {
             "id" : "o-2",
-            "name" : $newName
+            "subtitle" : $newName
           }
         }
       }

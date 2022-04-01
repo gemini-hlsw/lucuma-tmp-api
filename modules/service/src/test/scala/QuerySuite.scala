@@ -131,7 +131,7 @@ class QuerySuite extends OdbSuite {
             observations(first: 10) {
               nodes {
                 id
-                name
+                title
               }
             }
           }
@@ -161,27 +161,27 @@ class QuerySuite extends OdbSuite {
                 "nodes" : [
                   {
                     "id" : "o-2",
-                    "name" : "NGC 5949"
+                    "title" : "o-2: NGC 5949"
                   },
                   {
                     "id" : "o-3",
-                    "name" : "NGC 3312"
+                    "title" : "o-3: NGC 3312"
                   },
                   {
                     "id" : "o-4",
-                    "name" : "NGC 3312"
+                    "title" : "o-4: NGC 3312"
                   },
                   {
                     "id" : "o-5",
-                    "name" : "NGC 3312"
+                    "title" : "o-5: NGC 3312"
                   },
                   {
                     "id" : "o-6",
-                    "name" : "NGC 5949"
+                    "title" : "o-6: NGC 5949, NGC 3269, NGC 3312"
                   },
                   {
                     "id" : "o-7",
-                    "name" : "Observation"
+                    "title" : "o-7"
                   }
                 ]
               }
@@ -207,7 +207,7 @@ class QuerySuite extends OdbSuite {
             observations(first: 10) {
               nodes {
                 id
-                name
+                title
               }
             }
           }
@@ -237,27 +237,27 @@ class QuerySuite extends OdbSuite {
                 "nodes" : [
                   {
                     "id" : "o-2",
-                    "name" : "NGC 5949"
+                    "title" : "o-2: NGC 5949"
                   },
                   {
                     "id" : "o-3",
-                    "name" : "NGC 3312"
+                    "title" : "o-3: NGC 3312"
                   },
                   {
                     "id" : "o-4",
-                    "name" : "NGC 3312"
+                    "title" : "o-4: NGC 3312"
                   },
                   {
                     "id" : "o-5",
-                    "name" : "NGC 3312"
+                    "title" : "o-5: NGC 3312"
                   },
                   {
                     "id" : "o-6",
-                    "name" : "NGC 5949"
+                    "title" : "o-6: NGC 5949, NGC 3269, NGC 3312"
                   },
                   {
                     "id" : "o-7",
-                    "name" : "Observation"
+                    "title" : "o-7"
                   }
                 ]
               }
