@@ -191,7 +191,7 @@ trait OdbSuite extends CatsEffectSuite {
                 _   <- log.debug("*** ----- about to start stream fiber")
                 fib <- sub.stream.compile.toList.start
                 _   <- log.debug("*** ----- pausing a bit")
-                _   <- IO.sleep(200.millis)
+                _   <- IO.sleep(500.millis)
                 _   <- log.debug("*** ----- running mutations")
                 _   <- mutations.fold(_.traverse_ { case (query, vars) =>
                          val req = conn.request(Operation(query))
