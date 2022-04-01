@@ -402,7 +402,7 @@ object TestInit {
     ObservationModel.Create(
       observationId        = None,
       programId            = pid,
-      name                 = targets.headOption.map(_.name) orElse NonEmptyString.from("Observation").toOption,
+      subtitle                 = targets.headOption.map(_.name) orElse NonEmptyString.from("Observation").toOption,
       status               = ObsStatus.New.some,
       activeStatus         = ObsActiveStatus.Active.some,
       targetEnvironment    = TargetEnvironmentInput.asterism(targets.map(_.id)).some,

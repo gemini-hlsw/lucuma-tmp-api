@@ -33,7 +33,7 @@ final case class ObservationModel(
   id:                   Observation.Id,
   existence:            Existence,
   programId:            Program.Id,
-  name:                 Option[NonEmptyString],
+  subtitle:             Option[NonEmptyString],
   status:               ObsStatus,
   activeStatus:         ObsActiveStatus,
   targetEnvironment:    TargetEnvironmentModel,
@@ -60,7 +60,7 @@ object ObservationModel extends ObservationOptics {
       o.id,
       o.existence,
       o.programId,
-      o.name,
+      o.subtitle,
       o.status,
       o.activeStatus,
       o.targetEnvironment,
@@ -75,7 +75,7 @@ object ObservationModel extends ObservationOptics {
   final case class Create(
     observationId:        Option[Observation.Id],
     programId:            Program.Id,
-    name:                 Option[NonEmptyString],
+    subtitle:             Option[NonEmptyString],
     status:               Option[ObsStatus],
     activeStatus:         Option[ObsActiveStatus],
     targetEnvironment:    Option[TargetEnvironmentInput],
@@ -101,7 +101,7 @@ object ObservationModel extends ObservationOptics {
               id                   = i,
               existence            = Present,
               programId            = programId,
-              name                 = name,
+              subtitle             = subtitle,
               status               = status.getOrElse(ObsStatus.New),
               activeStatus         = activeStatus.getOrElse(ObsActiveStatus.Active),
               targetEnvironment    = tʹ,
@@ -125,7 +125,7 @@ object ObservationModel extends ObservationOptics {
       Create(
         observationId        = None,
         programId            = programId,
-        name                 = None,
+        subtitle             = None,
         status               = None,
         activeStatus         = None,
         targetEnvironment    = None,
@@ -142,7 +142,7 @@ object ObservationModel extends ObservationOptics {
       Eq.by { a => (
         a.observationId,
         a.programId,
-        a.name,
+        a.subtitle,
         a.status,
         a.activeStatus,
         a.targetEnvironment,
@@ -157,7 +157,7 @@ object ObservationModel extends ObservationOptics {
   final case class Edit(
     observationId:        Observation.Id,
     existence:            Input[Existence]                 = Input.ignore,
-    name:                 Input[NonEmptyString]            = Input.ignore,
+    subtitle:             Input[NonEmptyString]            = Input.ignore,
     status:               Input[ObsStatus]                 = Input.ignore,
     activeStatus:         Input[ObsActiveStatus]           = Input.ignore,
     targetEnvironment:    Input[TargetEnvironmentInput]    = Input.ignore,
@@ -177,7 +177,7 @@ object ObservationModel extends ObservationOptics {
         args <- validArgs.liftState
         (e, s, a) = args
         _ <- ObservationModel.existence            := e
-        _ <- ObservationModel.name                 := name.toOptionOption
+        _ <- ObservationModel.subtitle             := subtitle.toOptionOption
         _ <- ObservationModel.status               := s
         _ <- ObservationModel.activeStatus         := a
         _ <- ObservationModel.targetEnvironment    :! targetEnvironment
@@ -201,7 +201,7 @@ object ObservationModel extends ObservationOptics {
       Eq.by { a => (
         a.observationId,
         a.existence,
-        a.name,
+        a.subtitle,
         a.status,
         a.activeStatus,
         a.targetEnvironment,
@@ -294,8 +294,8 @@ trait ObservationOptics { self: ObservationModel.type =>
   val existence: Lens[ObservationModel, Existence] =
     Focus[ObservationModel](_.existence)
 
-  val name: Lens[ObservationModel, Option[NonEmptyString]] =
-    Focus[ObservationModel](_.name)
+  val subtitle: Lens[ObservationModel, Option[NonEmptyString]] =
+    Focus[ObservationModel](_.subtitle)
 
   val status: Lens[ObservationModel, ObsStatus] =
     Focus[ObservationModel](_.status)

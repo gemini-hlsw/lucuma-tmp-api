@@ -6,8 +6,10 @@ package lucuma.odb.api.schema
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
+import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.Observation
+import lucuma.core.util.Gid
 import lucuma.odb.api.model.ObservationModel
 import lucuma.odb.api.repo.{OdbCtx, SequenceGenerator}
 import lucuma.odb.api.schema.TargetSchema.TargetEnvironmentType
@@ -94,10 +96,32 @@ object ObservationSchema {
         ),
 
         Field(
-          name        = "name",
+          name        = "title",
+          fieldType   = NonEmptyStringType,
+          description = Some("Observation title generated from id and targets"),
+          resolve     = c => {
+            val targets = c.value.targetEnvironment.asterism.toList.flatTraverse { tid =>
+              c.ctx.odbRepo.target.selectTarget(tid).map(_.map(_.target.name.value).toList)
+            }
+            c.unsafeToFuture(
+              targets.map { ts =>
+                val idStr = Gid[Observation.Id].show(c.value.id)
+                NonEmptyString.unsafeFrom(
+                  ts match {
+                    case Nil => idStr
+                    case _   => ts.mkString(s"$idStr: ", ", ", "")
+                  }
+                )
+              }
+            )
+          }
+        ),
+
+        Field(
+          name        = "subtitle",
           fieldType   = OptionType(NonEmptyStringType),
-          description = Some("Observation name"),
-          resolve     = _.value.name
+          description = Some("User-supplied observation-identifying detail information"),
+          resolve     = _.value.subtitle
         ),
 
         Field(

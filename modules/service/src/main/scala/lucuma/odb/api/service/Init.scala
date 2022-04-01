@@ -362,7 +362,7 @@ object Init {
     ObservationModel.Create(
       observationId        = None,
       programId            = pid,
-      name                 = target.map(_.name) orElse NonEmptyString.from("Observation").toOption,
+      subtitle                 = target.map(_.name) orElse NonEmptyString.from("Observation").toOption,
       status               = ObsStatus.New.some,
       activeStatus         = ObsActiveStatus.Active.some,
       targetEnvironment    = target.fold(none[TargetEnvironmentInput]) { sidereal =>

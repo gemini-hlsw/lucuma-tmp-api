@@ -46,7 +46,7 @@ trait ObservationMutation {
       InputObjectTypeName("EditObservationInput"),
       InputObjectTypeDescription("Edit observation"),
       ReplaceInputField("existence",            EnumTypeExistence.notNullableField("existence")),
-      ReplaceInputField("name",                 NonEmptyStringType.nullableField("name")),
+      ReplaceInputField("subtitle",             NonEmptyStringType.nullableField("subtitle")),
       ReplaceInputField("status",               ObsStatusType.notNullableField("status")),
       ReplaceInputField("activeStatus",         ObsActiveStatusType.notNullableField("activeStatus")),
       ReplaceInputField("targetEnvironment",    InputObjectTypeTargetEnvironment.notNullableField("targetEnvironment")),

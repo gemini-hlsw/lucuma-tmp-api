@@ -59,7 +59,7 @@ trait ArbObservationModel {
       in.id,
       in.existence,
       in.programId,
-      in.name.map(_.value),
+      in.subtitle.map(_.value),
       in.status,
       in.activeStatus,
       in.constraintSet,
@@ -102,7 +102,7 @@ trait ArbObservationModel {
     )].contramap { in => (
       in.observationId,
       in.programId,
-      in.name.map(_.value),
+      in.subtitle.map(_.value),
       in.status,
       in.activeStatus,
       in.targetEnvironment,
