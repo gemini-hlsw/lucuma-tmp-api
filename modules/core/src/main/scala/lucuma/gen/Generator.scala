@@ -3,50 +3,88 @@
 
 package lucuma.gen
 
+import cats.Monad
 import cats.effect.Sync
-import fs2.Stream
-import lucuma.odb.api.model.{AtomModel, StepModel}
+import cats.syntax.flatMap._
+import cats.syntax.functor._
+import lucuma.core.`enum`.Instrument
+import lucuma.odb.api.model.{ExecutionModel, Sequence, SequenceModel}
 
 /**
  * A sequence generator for the given static `S` and dynamic `D` types for a
  * particular observing mode.
  *
+ * @tparam F effect type
  * @tparam S type of static (unchanging) configuration data
  * @tparam D type of dynamic (potentially changing from step to step) configuration
  */
-trait Generator[S, D] {
+trait Generator[F[_], S, D] { self =>
 
+  def instrument: Instrument
+
+  /**
+   * Static, unchanging, configuration for this observing mode.
+   */
   def static: S
 
   /**
-   * Generates a full acquisition sequence, stopping when the given `acquired`
-   * computation produces a `true` value.
-   *
-   * @param acquired a computation that determines when the target is acquired
+   * Generates the acquisition sequence expected for the remainder of the
+   * acquisition.
    */
-  def acquisition[F[_]: Sync](
-    acquired: F[Boolean]
-  ): Stream[F, AtomModel[StepModel[D]]]
+  def acquisition(
+    recordedSteps: List[RecordedStep[D]]
+  ): F[Sequence[D]]
 
   /**
-   * Generates a re-acquisition sequence, stopping only when the given
-   * `acquired` computation produces a `true` value.
-   *
-   * @param acquired a computation that determines when the target is reacquired
+   * Generates the science sequence expected for the remainder of the
+   * observation.
    */
-  def reacquisition[F[_]: Sync](
-    acquired: F[Boolean]
-  ): Stream[F, AtomModel[StepModel[D]]]
+  def science(
+    recordedSteps: List[RecordedStep[D]]
+  ): F[Sequence[D]]
 
-  /**
-   * Generates the full science sequence, stopping when the given `observed`
-   * computation produces a `true` value (e.g., when the required S/N has been
-   * reached).
-   *
-   * @param observed a computation that decides when the observation is done
-   */
-  def science[F[_]: Sync](
-    observed: F[Boolean]
-  ): Stream[F, AtomModel[StepModel[D]]]
+
+}
+
+object Generator {
+
+  def run[F[_]: Monad, S, D](
+    generator: Generator[F, S, D]
+  )(
+    recordedSteps: List[RecordedStep[D]]
+  ): F[ExecutionModel.Config[S, D]] =
+
+    for {
+      a <- generator.acquisition(recordedSteps)
+      s <- generator.science(recordedSteps)
+    } yield ExecutionModel.Config(generator.static, a, s)
+
+  def manual[F[_]: Sync, S, D](
+    inst:   Instrument,
+    config: ExecutionModel.Config[S, D]
+  ): Generator[F, S, D] =
+
+    new Generator[F, S, D] with GeneratorHelper[D] {
+      override def instrument: Instrument =
+        inst
+
+      override def static: S =
+        config.static
+
+      override def acquisition(recordedSteps: List[RecordedStep[D]]): F[Sequence[D]] =
+        Sync[F].pure(remainingManualSteps(config.acquisition, recordedSteps))
+
+      override def science(recordedSteps: List[RecordedStep[D]]): F[Sequence[D]] =
+        Sync[F].pure(remainingManualSteps(config.science, recordedSteps))
+
+      private def remainingManualSteps(
+        wholeSequence: Sequence[D],
+        recordedSteps: List[RecordedStep[D]]
+      ): Sequence[D] =
+        SequenceModel(
+          remainingSteps(wholeSequence.atoms, recordedSteps)(_.steps.map(_.config))
+        )
+
+    }
 
 }

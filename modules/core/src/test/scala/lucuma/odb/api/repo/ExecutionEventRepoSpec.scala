@@ -30,12 +30,12 @@ final class ExecutionEventRepoSpec extends ScalaCheckSuite with OdbRepoTest {
             case Some(VisitRecords.GmosNorth(_)) =>
               repo
                 .executionEvent
-                .selectStepsForObservation(o.id, VisitRecords.gmosNorthVisits.getOption)
+                .selectStepsForObservation(o.id, VisitRecords.listGmosNorthVisits)
                 .map(_.filter(_.isExecuted).map(sr => (sr.observationId, sr.stepId)))
             case Some(VisitRecords.GmosSouth(_)) =>
               repo
                 .executionEvent
-                .selectStepsForObservation(o.id, VisitRecords.gmosSouthVisits.getOption)
+                .selectStepsForObservation(o.id, VisitRecords.listGmosSouthVisits)
                 .map(_.filter(_.isExecuted).map(sr => (sr.observationId, sr.stepId)))
             case _                                =>
               IO.pure(List.empty[(Observation.Id, Step.Id)])
@@ -78,38 +78,4 @@ final class ExecutionEventRepoSpec extends ScalaCheckSuite with OdbRepoTest {
     }
 
   }
-/*
-  property("selectRemainingAtoms") {
-
-    forAll(genDatabase) { (db: Database) =>
-
-      val isExecutedStep: Set[UUID] =
-        db.executionEvents.rows.values.collect {
-          case ExecutionEventModel.StepEvent(_, _, _, sid, _, Science, EndStep) => sid
-        }.toSet
-
-      def isExecutedAtom(a: AtomModel[StepModel[_]]): Boolean =
-        a.steps.forall(isExecutedStep)
-
-      val remaining: Map[Observation.Id, Set[Atom.Id]] =
-        runTest(db) { repo =>
-          db.observations.rows.keys.toList.traverse { oid =>
-            repo
-              .executionEvent
-              .selectRemainingAtoms(oid, Science)
-              .map(_.map(_.id).toSet)
-              .tupleLeft(oid)
-          }
-        }.toMap
-
-      db.observations.rows.view.values.forall { om =>
-        om.config.toList.flatMap(_.science.atoms).forall { aid =>
-          remaining.get(om.id).forall(_.contains(aid)) === !isExecutedAtom(db.atoms.rows(aid))
-        }
-      }
-
-    }
-
-  }
- */
 }

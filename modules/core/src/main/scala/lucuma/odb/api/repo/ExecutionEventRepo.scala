@@ -3,14 +3,14 @@
 
 package lucuma.odb.api.repo
 
-import cats.data.{State, StateT}
+import cats.data.StateT
 import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.all._
 import cats.effect.{Clock, Ref, Sync}
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.all.PosInt
 import lucuma.core.`enum`.Instrument
-import lucuma.odb.api.model.{AtomModel, Database, DatasetModel, EitherInput, ExecutionEventModel, InputValidator, InstrumentConfigModel, Sequence, SequenceModel, StepConfig, Step, StepModel, StepRecord, ValidatedInput, Visit, VisitRecord, VisitRecords}
+import lucuma.odb.api.model.{Database, DatasetModel, EitherInput, ExecutionEventModel, InputValidator, Step, StepRecord, ValidatedInput, Visit, VisitRecord, VisitRecords}
 import lucuma.odb.api.model.ExecutionEventModel.{DatasetEvent, SequenceEvent, StepEvent}
 import lucuma.odb.api.model.syntax.databasestate._
 import lucuma.odb.api.model.syntax.eitherinput._
@@ -65,40 +65,34 @@ sealed trait ExecutionEventRepo[F[_]] {
   def selectStepForId[S, D](
     oid:    Observation.Id,
     stepId: Step.Id,
-    recs:   VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]]
+    visits: VisitRecords => List[(Visit.Id, VisitRecord[S, D])]
   ): F[Option[StepRecord.Output[D]]]
 
   /** Page executed visits associated with an observation. */
   def selectVisitsPageForObservation[S, D](
-    oid:   Observation.Id,
-    recs:  VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]],
-    count: Option[Int],
-    after: Option[Visit.Id] = None
+    oid:    Observation.Id,
+    visits: VisitRecords => List[(Visit.Id, VisitRecord[S, D])],
+    count:  Option[Int],
+    after:  Option[Visit.Id] = None
   ): F[ResultPage[VisitRecord.Output[S, D]]]
 
   /** Page executed steps associated with an observation. */
   def selectStepsPageForObservation[S, D](
-    oid:   Observation.Id,
-    recs:  VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]],
-    count: Option[Int],
-    after: Option[Step.Id] = None
+    oid:    Observation.Id,
+    visits: VisitRecords => List[(Visit.Id, VisitRecord[S, D])],
+    count:  Option[Int],
+    after:  Option[Step.Id] = None
   ): F[ResultPage[StepRecord.Output[D]]]
 
   /** Select all recorded steps for an observation at once. */
   def selectStepsForObservation[S, D](
-    oid:  Observation.Id,
-    recs: VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]]
+    oid:    Observation.Id,
+    visits: VisitRecords => List[(Visit.Id, VisitRecord[S, D])]
   ): F[List[StepRecord.Output[D]]]
 
   def selectExistentialStepsForObservation(
     oid:  Observation.Id,
    ): F[List[StepRecord.Output[_]]]
-
-  def selectRemainingAtoms[S, D](
-    oid:  Observation.Id,
-    recs: VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]],
-    seq:  InstrumentConfigModel => Option[Sequence[D]]
-  ): F[Sequence[D]]
 
   def insertVisit[SI, S, D](
     visitId:       Visit.Id,
@@ -180,7 +174,7 @@ object ExecutionEventRepo {
         db:     Database,
         oid:    Observation.Id,
         stepId: Step.Id,
-        recs:   VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]]
+        visits: VisitRecords => List[(Visit.Id, VisitRecord[S, D])]
       ): Option[StepRecord.Output[D]] = {
 
         val events  = sortedEvents(db) {
@@ -190,7 +184,7 @@ object ExecutionEventRepo {
         }
 
         val stepRec = Database.visitRecordsAt(oid).get(db).toList.flatMap { vrs =>
-          recs(vrs).toList.flatMap(_.toList).flatMap { case (vid, vr) =>
+          visits(vrs).flatMap { case (vid, vr) =>
             vr.steps.get(stepId).tupleLeft(stepId).toList.tupleLeft(vid)
           }
         }
@@ -202,33 +196,33 @@ object ExecutionEventRepo {
       override def selectStepForId[S, D](
         oid:    Observation.Id,
         stepId: Step.Id,
-        recs:   VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]]
+        visits: VisitRecords => List[(Visit.Id, VisitRecord[S, D])]
       ): F[Option[StepRecord.Output[D]]] =
-        databaseRef.get.map(recordedStep(_, oid, stepId, recs))
+        databaseRef.get.map(recordedStep(_, oid, stepId, visits))
 
       private def recordedSteps[S, D](
-        db:   Database,
-        oid:  Observation.Id,
-        recs: Option[ListMap[Visit.Id, VisitRecord[S, D]]]
+        db:     Database,
+        oid:    Observation.Id,
+        visits: List[(Visit.Id, VisitRecord[S, D])]
       ): List[StepRecord.Output[D]] = {
 
         val events   = sortedEvents(db)(_.observationId === oid)
-        val stepRecs = recs.toList.flatMap(_.toList).flatMap { case (vid, vr) => vr.steps.toList.tupleLeft(vid) }
+        val stepRecs = visits.flatMap { case (vid, vr) => vr.steps.toList.tupleLeft(vid) }
         addEventsToSteps(oid, events, stepRecs)
       }
 
       private def recordedSteps[S, D](
-        db:   Database,
-        oid:  Observation.Id,
-        recs: VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]]
+        db:     Database,
+        oid:    Observation.Id,
+        visits: VisitRecords => List[(Visit.Id, VisitRecord[S, D])]
       ): List[StepRecord.Output[D]] =
-        recordedSteps[S, D](db, oid, Database.visitRecordsAt(oid).get(db).flatMap(recs))
+        recordedSteps[S, D](db, oid, Database.visitRecordsAt(oid).get(db).toList.flatMap(visits))
 
       override def selectStepsForObservation[S, D](
-        oid:  Observation.Id,
-        recs: VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]]
+        oid:    Observation.Id,
+        visits: VisitRecords => List[(Visit.Id, VisitRecord[S, D])]
       ): F[List[StepRecord.Output[D]]] =
-        databaseRef.get.map(recordedSteps(_, oid, recs))
+        databaseRef.get.map(recordedSteps(_, oid, visits))
 
       override def selectExistentialStepsForObservation(
         oid:  Observation.Id,
@@ -236,31 +230,31 @@ object ExecutionEventRepo {
         databaseRef.get.map { db =>
           db.observations.rows.get(oid).flatMap(_.config).map(_.instrument match {
             // How do you do this without breaking out the various cases?
-            case Instrument.GmosNorth => recordedSteps(db, oid, VisitRecords.gmosNorthVisits.getOption _)
-            case Instrument.GmosSouth => recordedSteps(db, oid, VisitRecords.gmosSouthVisits.getOption _)
+            case Instrument.GmosNorth => recordedSteps(db, oid, VisitRecords.listGmosNorthVisits)
+            case Instrument.GmosSouth => recordedSteps(db, oid, VisitRecords.listGmosSouthVisits)
             case _                    => List.empty[StepRecord.Output[_]]
           }).toList.flatten
         }
 
       def selectVisitsPageForObservation[S, D](
         oid:   Observation.Id,
-        recs:  VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]],
+        recs:  VisitRecords => List[(Visit.Id, VisitRecord[S, D])],
         count: Option[Int],
         after: Option[Visit.Id] = None
       ): F[ResultPage[VisitRecord.Output[S, D]]] =
 
         databaseRef.get.map { db =>
 
-          val vMap      = Database.visitRecordsAt(oid).get(db).flatMap(recs).getOrElse(ListMap.empty)
+          val visits    = Database.visitRecordsAt(oid).get(db).toList.flatMap(recs)
           val events    = sortedEvents(db)(_.observationId === oid)
-          val stepRecs  = vMap.toList.flatMap { case (vid, vr) => vr.steps.toList.tupleLeft(vid) }
+          val stepRecs  = visits.flatMap { case (vid, vr) => vr.steps.toList.tupleLeft(vid) }
           val soMap     = addEventsToSteps(oid, events, stepRecs).fproductLeft(_.stepId).toMap
 
           val seqEvents = events.collect {
             case e@SequenceEvent(_,_,_,_,_) => e
           }
 
-          val allVisits = vMap.toList.map { case (vid, vr) =>
+          val allVisits = visits.map { case (vid, vr) =>
             VisitRecord.Output[S,D](
               oid,
               vid,
@@ -283,13 +277,13 @@ object ExecutionEventRepo {
 
 
       override def selectStepsPageForObservation[S, D](
-        oid:   Observation.Id,
-        recs:  VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]],
-        count: Option[Int],
-        after: Option[Step.Id] = None
+        oid:    Observation.Id,
+        visits: VisitRecords => List[(Visit.Id, VisitRecord[S, D])],
+        count:  Option[Int],
+        after:  Option[Step.Id] = None
       ): F[ResultPage[StepRecord.Output[D]]] =
 
-        selectStepsForObservation(oid, recs).map { steps =>
+        selectStepsForObservation(oid, visits).map { steps =>
           ResultPage.fromSeq(
             steps,
             count,
@@ -374,56 +368,6 @@ object ExecutionEventRepo {
           )
 
         }
-
-
-      private def remainingAtoms[S, D](
-        db:   Database,
-        oid:  Observation.Id,
-        recs: VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]],
-        seq:  InstrumentConfigModel => Option[Sequence[D]]
-      ): Sequence[D] = {
-
-        val recorded: List[(StepConfig[D], Boolean)] =
-          recordedSteps(db, oid, recs).map(r => (r.stepConfig, r.isExecuted))
-
-        val wholeSequence: List[AtomModel[StepModel[D]]] =
-          db.observations.rows.get(oid).flatMap(_.config).flatMap(seq).toList.flatMap(_.atoms)
-
-        // We remove atoms from the wholeSequence when a matching, contiguous,
-        // executed series of steps is found in the recorded list.  This is
-        // still too simplistic since "contiguous" could be separated by days
-        // of time. TBD.
-
-        // Also, we need to filter out any steps that were taken under different
-        // static configurations.
-
-        def isExecuted(a: AtomModel[StepModel[D]]): State[List[(StepConfig[D], Boolean)], Boolean] = {
-          val steps = a.steps.tupleRight(true).toList
-
-          for {
-            rs <- State.get[List[(StepConfig[D], Boolean)]]
-            i   = rs.indexOfSlice(steps, 0)
-            _  <- State.set[List[(StepConfig[D], Boolean)]] {
-              if (i < 0) rs else rs.patch(i, Nil, steps.length)
-            }
-          } yield i > -1
-        }
-
-        SequenceModel(
-          // Filter the sequence, removing any atoms we consider executed.
-          wholeSequence
-            .zip(wholeSequence.traverse(isExecuted).runA(recorded).value)
-            .filterNot(_._2)
-            .map(_._1)
-        )
-      }
-
-      override def selectRemainingAtoms[S, D](
-        oid:  Observation.Id,
-        recs: VisitRecords => Option[ListMap[Visit.Id, VisitRecord[S, D]]],
-        seq:  InstrumentConfigModel => Option[Sequence[D]]
-      ): F[Sequence[D]] =
-        databaseRef.get.map(remainingAtoms(_, oid, recs, seq))
 
       private def received: F[Instant] =
         Clock[F].realTime.map(d => Instant.ofEpochMilli(d.toMillis))

@@ -25,7 +25,7 @@ import scala.collection.immutable.{ListMap, SortedMap, SortedSet}
 trait ArbDatabase extends SplitSetHelper {
 
   import ArbExecutionEventModel._
-  import ArbInstrumentConfigModel._
+  import ArbExecutionModel._
   import ArbObservationModel._
   import ArbProgramModel._
   import ArbTargetModel._
@@ -132,7 +132,7 @@ trait ArbDatabase extends SplitSetHelper {
    */
   val arbDatabaseWithSequences: Arbitrary[Database] = {
 
-    def dbWithSequences(db: Database, c: List[Option[InstrumentConfigModel.Create]]): Database = {
+    def dbWithSequences(db: Database, c: List[Option[ExecutionModel.Create]]): Database = {
       // Create an option random sequence for each observation.
       val update =
         for {
@@ -148,9 +148,9 @@ trait ArbDatabase extends SplitSetHelper {
     Arbitrary {
       for {
         d <- arbDatabase.arbitrary
-        c <- Gen.listOfN[Option[InstrumentConfigModel.Create]](
+        c <- Gen.listOfN[Option[ExecutionModel.Create]](
                d.observations.rows.size,
-               Gen.option(arbValidInstrumentConfigModelCreate.arbitrary)
+               Gen.option(arbValidExecutionModelCreate.arbitrary)
              )
       } yield dbWithSequences(d, c)
     }

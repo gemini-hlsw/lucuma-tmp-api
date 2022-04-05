@@ -5,7 +5,7 @@ package lucuma.gen
 package gmos
 package longslit
 
-import cats.effect.{IO, Ref}
+import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import cats.syntax.eq._
 import cats.syntax.functor._
@@ -21,7 +21,7 @@ import lucuma.odb.api.model.ScienceConfigurationModel.Modes
 import lucuma.odb.api.model.{AtomModel, StepModel}
 import lucuma.odb.api.model.arb._
 import munit.ScalaCheckSuite
-import org.scalacheck.{Arbitrary, Gen}
+import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Prop.forAll
 
@@ -43,34 +43,35 @@ final class GmosNorthLongSlitSuite extends ScalaCheckSuite {
     m:  Modes.GmosNorthLongSlit,
     sp: SourceProfile,
     iq: ImageQuality
-  ): GmosNorthLongSlit =
+  ): GmosNorthLongSlit[IO] =
       GmosNorthLongSlit(
         m,
+        λ,
+        iq,
+        sampling,
+        sp,
         acqTime,
         sciTime,
-        λ,
-        sp,
-        iq,
-        sampling
+        100
       )
 
 
   property("all atoms and steps have unique ids") {
     forAll { (mode: Modes.GmosNorthLongSlit, sp: SourceProfile, iq: ImageQuality) =>
 
-      val seq = longSlit(mode, sp, iq).generate.science(IO.pure(false))
-      val ids = seq.take(100).compile.toList.unsafeRunSync().flatMap(a => a.id.toUuid :: a.steps.toList.map(_.id.toUuid))
+      val seq = longSlit(mode, sp, iq).science(Nil)
+      val ids = seq.unsafeRunSync().atoms.map(a => a.id.toUuid :: a.steps.toList.map(_.id.toUuid))
 
       assertEquals(ids.size, ids.distinct.size)
     }
 
   }
 
-  property("acquisition stops after first atom when already acquired") {
+  property("acquisition stops after first atom") {
     forAll { (mode: Modes.GmosNorthLongSlit, sp: SourceProfile, iq: ImageQuality) =>
 
-      val seq   = longSlit(mode, sp, iq).generate.acquisition(IO.pure(true))
-      val atoms = seq.compile.toList.unsafeRunSync()
+      val seq   = longSlit(mode, sp, iq).acquisition(Nil)
+      val atoms = seq.unsafeRunSync().atoms
       assertEquals(atoms.size, 1)
     }
   }
@@ -81,15 +82,7 @@ final class GmosNorthLongSlitSuite extends ScalaCheckSuite {
         m   <- arbitrary[Modes.GmosNorthLongSlit]
         sp  <- arbitrary[SourceProfile]
         iq  <- arbitrary[ImageQuality]
-        cnt <- Gen.posNum[Int]
-        max     = (cnt % 100).abs
-        counter = Ref.unsafe[IO, Int](0)
-      } yield longSlit(m, sp, iq)
-                .generate
-                .science(counter.getAndUpdate(_ + 1).map(_ >= max))
-                .compile
-                .toList
-                .unsafeRunSync()
+      } yield longSlit(m, sp, iq).science(Nil).unsafeRunSync().atoms
     }
 
   property("science sequence atoms always consist of a flat and science") {

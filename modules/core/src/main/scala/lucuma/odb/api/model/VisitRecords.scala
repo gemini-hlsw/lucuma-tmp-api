@@ -64,16 +64,40 @@ object VisitRecords {
       case _                                  => false
     }
 
+  private def lookup[S, D](
+    p: Prism[VisitRecords, ListMap[Visit.Id, VisitRecord[S, D]]],
+    vr: VisitRecords,
+    vid: Visit.Id
+  ): Option[VisitRecord[S, D]] =
+    p.getOption(vr).flatMap(_.get(vid))
+
+  private def list[S, D](
+    p: Prism[VisitRecords, ListMap[Visit.Id, VisitRecord[S, D]]],
+    vr: VisitRecords
+  ): List[(Visit.Id, VisitRecord[S, D])] =
+    p.getOption(vr).toList.flatMap(_.toList)
+
   val gmosNorthVisits: Prism[VisitRecords, ListMap[Visit.Id, VisitRecord[GmosModel.NorthStatic, GmosModel.NorthDynamic]]] =
     Prism.partial[VisitRecords, ListMap[Visit.Id, VisitRecord[GmosModel.NorthStatic, GmosModel.NorthDynamic]]] {
       case GmosNorth(vs) => vs
     }(GmosNorth(_))
 
+  val lookupGmosNorthVisit: (VisitRecords, Visit.Id) => Option[VisitRecord[GmosModel.NorthStatic, GmosModel.NorthDynamic]] =
+    lookup(gmosNorthVisits, _, _)
+
+  val listGmosNorthVisits: VisitRecords => List[(Visit.Id, VisitRecord[GmosModel.NorthStatic, GmosModel.NorthDynamic])] =
+    list(gmosNorthVisits, _)
 
   val gmosSouthVisits: Prism[VisitRecords, ListMap[Visit.Id, VisitRecord[GmosModel.SouthStatic, GmosModel.SouthDynamic]]] =
     Prism.partial[VisitRecords, ListMap[Visit.Id, VisitRecord[GmosModel.SouthStatic, GmosModel.SouthDynamic]]] {
       case GmosSouth(vs) => vs
     }(GmosSouth(_))
+
+  val lookupGmosSouthVisit: (VisitRecords, Visit.Id) => Option[VisitRecord[GmosModel.SouthStatic, GmosModel.SouthDynamic]] =
+    lookup(gmosSouthVisits, _, _)
+
+  val listGmosSouthVisits: VisitRecords => List[(Visit.Id, VisitRecord[GmosModel.SouthStatic, GmosModel.SouthDynamic])] =
+    list(gmosSouthVisits, _)
 
   def visits(oid: Observation.Id): StateT[EitherInput, Database, Option[ListMap[Visit.Id, VisitRecord[_, _]]]] =
     Database.visitRecordsAt(oid).st.map { _.map(_.visits) }
