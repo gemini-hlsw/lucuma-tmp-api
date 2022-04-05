@@ -13,7 +13,12 @@ import scala.concurrent.duration._
 
 
 sealed trait ItcResult {
-  def resultType: String
+
+  def resultType: String =
+    this match {
+      case ItcResult.Error(_)         => ItcResult.Error.ResultType
+      case ItcResult.Success(_, _, _) => ItcResult.Success.ResultType
+    }
 
   def toEither: Either[ItcResult.Error, ItcResult.Success] =
     this match {
@@ -47,30 +52,28 @@ object ItcResult {
     }
 
   final case class Error(
-    msg:        String,
-    resultType: String
+    msg: String
   ) extends ItcResult
 
   object Error {
+
+    val ResultType: String =
+      "Error"
+
     implicit val DecoderError: Decoder[Error] =
       (c: HCursor) =>
         for {
           m <- c.downField("msg").as[String]
-          r <- c.downField("resultType").as[String]
-        } yield Error(m, r)
+        } yield Error(m)
 
     implicit val EqError: Eq[Error] =
-      Eq.by { a => (
-        a.msg,
-        a.resultType
-      )}
+      Eq.by(_.msg)
   }
 
   final case class Success(
     exposureTime:  FiniteDuration,
     exposures:     Int,
-    signalToNoise: PosBigDecimal,
-    resultType:    String
+    signalToNoise: PosBigDecimal
   ) extends ItcResult {
 
     def stepSignalToNoise: PosBigDecimal =
@@ -84,23 +87,30 @@ object ItcResult {
 
   object Success {
 
+    val ResultType: String =
+      "Success"
+
     implicit val DecoderSuccess: Decoder[Success] =
       (c: HCursor) =>
         for {
           t <- c.downField("exposureTime").downField("microseconds").as[Long].map(_.microseconds)
           n <- c.downField("exposures").as[Int]
           s <- c.downField("signalToNoise").as[BigDecimal].flatMap(d => PosBigDecimal.from(d).leftMap(m => DecodingFailure(m, c.history)))
-          r <- c.downField("resultType").as[String]
-        } yield Success(t, n, s, r)
+        } yield Success(t, n, s)
 
     implicit val EqSuccess: Eq[Success] =
       Eq.by { a => (
         a.exposureTime.toNanos,
         a.exposures,
-        a.signalToNoise.value,
-        a.resultType
+        a.signalToNoise.value
       )}
 
   }
+
+  def error(msg: String): ItcResult =
+    Error(msg)
+
+  def success(exposureTime: FiniteDuration, exposures: Int, signalToNoise: PosBigDecimal): ItcResult =
+    Success(exposureTime, exposures, signalToNoise)
 
 }
