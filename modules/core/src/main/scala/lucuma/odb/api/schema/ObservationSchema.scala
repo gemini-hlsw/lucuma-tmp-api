@@ -11,7 +11,7 @@ import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.Observation
 import lucuma.core.util.Gid
 import lucuma.odb.api.model.ObservationModel
-import lucuma.odb.api.repo.{OdbCtx, SequenceGenerator}
+import lucuma.odb.api.repo.OdbCtx
 import lucuma.odb.api.schema.TargetSchema.TargetEnvironmentType
 import org.typelevel.log4cats.Logger
 import sangria.schema._
@@ -189,9 +189,10 @@ object ObservationSchema {
           description = "ITC execution results".some,
           arguments   = List(UseItcCacheArgument),
           resolve     = c => c.unsafeToFuture {
-            SequenceGenerator(c.ctx, c.args.arg(UseItcCacheArgument))
-              .itc(c.value)
-              .map(_.map(_._2))
+            c.ctx
+             .itcClient
+             .query(c.value.id, c.ctx.odbRepo, useCache = c.args.arg(UseItcCacheArgument))
+             .map(_.toOption.map(_._2))
           }
         ),
 
