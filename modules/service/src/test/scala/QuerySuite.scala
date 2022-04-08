@@ -161,27 +161,27 @@ class QuerySuite extends OdbSuite {
                 "nodes" : [
                   {
                     "id" : "o-2",
-                    "title" : "o-2: NGC 5949"
+                    "title" : "NGC 5949"
                   },
                   {
                     "id" : "o-3",
-                    "title" : "o-3: NGC 3312"
+                    "title" : "NGC 3312"
                   },
                   {
                     "id" : "o-4",
-                    "title" : "o-4: NGC 3312"
+                    "title" : "NGC 3312"
                   },
                   {
                     "id" : "o-5",
-                    "title" : "o-5: NGC 3312"
+                    "title" : "NGC 3312"
                   },
                   {
                     "id" : "o-6",
-                    "title" : "o-6: NGC 5949, NGC 3269, NGC 3312"
+                    "title" : "NGC 5949, NGC 3269, NGC 3312"
                   },
                   {
                     "id" : "o-7",
-                    "title" : "o-7"
+                    "title" : ""
                   }
                 ]
               }
@@ -237,27 +237,27 @@ class QuerySuite extends OdbSuite {
                 "nodes" : [
                   {
                     "id" : "o-2",
-                    "title" : "o-2: NGC 5949"
+                    "title" : "NGC 5949"
                   },
                   {
                     "id" : "o-3",
-                    "title" : "o-3: NGC 3312"
+                    "title" : "NGC 3312"
                   },
                   {
                     "id" : "o-4",
-                    "title" : "o-4: NGC 3312"
+                    "title" : "NGC 3312"
                   },
                   {
                     "id" : "o-5",
-                    "title" : "o-5: NGC 3312"
+                    "title" : "NGC 3312"
                   },
                   {
                     "id" : "o-6",
-                    "title" : "o-6: NGC 5949, NGC 3269, NGC 3312"
+                    "title" : "NGC 5949, NGC 3269, NGC 3312"
                   },
                   {
                     "id" : "o-7",
-                    "title" : "o-7"
+                    "title" : ""
                   }
                 ]
               }
