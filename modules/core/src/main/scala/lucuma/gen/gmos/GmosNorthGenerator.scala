@@ -15,7 +15,6 @@ trait GmosNorthGenerator[F[_]] extends Generator[F, NorthStatic, NorthDynamic] {
   override def instrument: Instrument =
     Instrument.GmosNorth
 
-
 }
 
 object GmosNorthGenerator {

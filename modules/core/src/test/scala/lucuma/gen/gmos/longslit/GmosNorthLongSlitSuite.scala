@@ -9,9 +9,10 @@ import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import cats.syntax.eq._
 import cats.syntax.functor._
+import cats.syntax.option._
 import eu.timepit.refined.auto._
-import eu.timepit.refined.types.all.PosDouble
-import lucuma.core.`enum`.ImageQuality
+import eu.timepit.refined.types.all.{PosDouble, PosInt}
+import lucuma.core.`enum`.{ImageQuality, StepType}
 import lucuma.core.math.Wavelength
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.arb.ArbSourceProfile
@@ -38,6 +39,7 @@ final class GmosNorthLongSlitSuite extends ScalaCheckSuite {
   val acqTime: AcqExposureTime = AcqExposureTime.unsafeFrom(10.seconds)
   val sciTime: SciExposureTime = SciExposureTime.unsafeFrom( 5.minutes)
   val sampling: PosDouble      = 2.5
+  val exposureCount: PosInt    = 100
 
   def longSlit(
     m:  Modes.GmosNorthLongSlit,
@@ -52,7 +54,7 @@ final class GmosNorthLongSlitSuite extends ScalaCheckSuite {
         sp,
         acqTime,
         sciTime,
-        100
+        exposureCount
       )
 
 
@@ -73,6 +75,22 @@ final class GmosNorthLongSlitSuite extends ScalaCheckSuite {
       val seq   = longSlit(mode, sp, iq).acquisition(Nil)
       val atoms = seq.unsafeRunSync().atoms
       assertEquals(atoms.size, 1)
+    }
+  }
+
+  property("there is always a next acquisition atom") {
+
+    forAll { (mode: Modes.GmosNorthLongSlit, sp: SourceProfile, iq: ImageQuality) =>
+
+      val acq = GmosNorthLongSlit.AcquisitionSteps(mode.fpu, acqTime, λ)
+      val stp = List(
+        RecordedStep(acq.ccd2, isExecuted = true),
+        RecordedStep(acq.p10,  isExecuted = true),
+        RecordedStep(acq.slit, isExecuted = true)
+      )
+      val seq   = longSlit(mode, sp, iq).acquisition(stp)
+      val atoms = seq.unsafeRunSync().atoms.flatMap(_.steps.toList).map(_.config)
+      assertEquals(atoms, List(acq.slit))
     }
   }
 
@@ -110,6 +128,71 @@ final class GmosNorthLongSlitSuite extends ScalaCheckSuite {
       val expected = fs2.Stream(true, false, false, true).repeat.take(atoms.size.toLong).toList
 
       assertEquals(obtained, expected)
+    }
+  }
+
+  property("skip executed atoms") {
+
+    forAll { (mode: Modes.GmosNorthLongSlit, sp: SourceProfile, iq: ImageQuality) =>
+      val sci   = GmosNorthLongSlit.ScienceSteps(mode, sciTime, λ, sp, iq, sampling)
+      val stp   = sci.atom0.toList.map(c => RecordedStep(c, isExecuted = true))
+      val seq   = longSlit(mode, sp, iq).science(stp)
+      val atoms = seq.unsafeRunSync().atoms.flatMap(_.steps.toList).map(_.config)
+      assertEquals(atoms.size, (exposureCount.value - 1) * 2)
+    }
+  }
+
+  property("executing part of an atom is not executing it at all") {
+
+    forAll { (mode: Modes.GmosNorthLongSlit, sp: SourceProfile, iq: ImageQuality) =>
+
+      val sci   = GmosNorthLongSlit.ScienceSteps(mode, sciTime, λ, sp, iq, sampling)
+
+      val steps =
+        List.unfold(0)(i => if (i < exposureCount) (sci.atom(i), i+1).some else none)
+          .map(nel => if (nel.head.stepType === StepType.Science) nel.head else nel.last)
+          .map(sc => RecordedStep(sc, isExecuted = true))
+
+      val seq   = longSlit(mode, sp, iq).science(steps)
+      val atoms = seq.unsafeRunSync().atoms.flatMap(_.steps.toList).map(_.config)
+      assertEquals(atoms.size, exposureCount.value * 2)
+    }
+  }
+
+  property("executing all the steps stops the sequence") {
+
+    forAll { (mode: Modes.GmosNorthLongSlit, sp: SourceProfile, iq: ImageQuality) =>
+
+      val sci   = GmosNorthLongSlit.ScienceSteps(mode, sciTime, λ, sp, iq, sampling)
+      val steps =
+        List.unfold(0)(i => if (i < exposureCount) (sci.atom(i), i+1).some else none)
+          .flatMap(nel => nel.toList)
+          .map(sc => RecordedStep(sc, isExecuted = true))
+
+      val seq   = longSlit(mode, sp, iq).science(steps)
+      val atoms = seq.unsafeRunSync().atoms.flatMap(_.steps.toList).map(_.config)
+      assert(atoms.isEmpty)
+    }
+  }
+
+  property("non-contiguous steps do not make an atom") {
+
+    forAll { (mode: Modes.GmosNorthLongSlit, sp: SourceProfile, iq: ImageQuality) =>
+
+      val acq   = GmosNorthLongSlit.AcquisitionSteps(mode.fpu, acqTime, λ)
+      val sci   = GmosNorthLongSlit.ScienceSteps(mode, sciTime, λ, sp, iq, sampling)
+      val steps =
+        List.unfold(0)(i => if (i < exposureCount) (sci.atom(i), i+1).some else none)
+          .flatMap(nel => nel.toList)
+          .flatMap { sc => List(
+            RecordedStep(sc,       isExecuted = true),
+            RecordedStep(acq.ccd2, isExecuted = true)
+          )}
+
+      val seq   = longSlit(mode, sp, iq).science(steps)
+      val atoms = seq.unsafeRunSync().atoms.flatMap(_.steps.toList).map(_.config)
+
+      assertEquals(atoms.size, exposureCount.value * 2)
     }
   }
 }
