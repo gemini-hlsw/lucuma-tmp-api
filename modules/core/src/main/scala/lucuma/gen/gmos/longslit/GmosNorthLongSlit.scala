@@ -38,6 +38,10 @@ sealed trait GmosNorthLongSlit[F[_]] extends GmosNorthGenerator[F]
  */
 object GmosNorthLongSlit {
 
+  /**
+   * Queries the ITC and ODB to come up with a GMOS North LongSlit generator,
+   * if possible.
+   */
   def query[F[_]: Sync](
     itc:         ItcClient[F],
     odb:         OdbRepo[F],

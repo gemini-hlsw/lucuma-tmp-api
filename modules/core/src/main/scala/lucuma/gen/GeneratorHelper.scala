@@ -10,7 +10,10 @@ import cats.syntax.functor._
 import cats.syntax.traverse._
 import lucuma.odb.api.model.{Atom, AtomModel, Breakpoint, Sequence, SequenceModel, Step, StepConfig, StepModel}
 
-
+/**
+ * Helper for `Generator` implementations.  Provides utilities for creating
+ * steps and atoms along with their IDs.
+ */
 private[gen] trait GeneratorHelper[D] {
 
   def createSequence[F[_]: Sync](
@@ -39,7 +42,6 @@ private[gen] trait GeneratorHelper[D] {
       aid   <- Atom.Id.random[F]
       steps <- steps.traverse(createStep(_))
     } yield AtomModel(aid, steps)
-
 
   def createStep[F[_]: Sync](
     stepConfig: StepConfig[D],

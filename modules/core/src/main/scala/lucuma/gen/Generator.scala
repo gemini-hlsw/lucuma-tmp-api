@@ -48,6 +48,10 @@ trait Generator[F[_], S, D] { self =>
 
 object Generator {
 
+  /**
+   * Runs the Generator to make the execution config with its static config,
+   * acquisition sequence, and science sequence.
+   */
   def run[F[_]: Monad, S, D](
     generator: Generator[F, S, D]
   )(
@@ -59,6 +63,10 @@ object Generator {
       s <- generator.science(recordedSteps)
     } yield ExecutionModel.Config(generator.static, a, s)
 
+  /**
+   * Creates a "generator" that faithfully generates the manually defined
+   * sequences.
+   */
   def manual[F[_]: Sync, S, D](
     inst:   Instrument,
     config: ExecutionModel.Config[S, D]

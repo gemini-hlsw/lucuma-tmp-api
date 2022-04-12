@@ -17,6 +17,10 @@ import lucuma.itc.client.{ItcClient, ItcResult}
 import lucuma.odb.api.model.{ExecutionContext, ExecutionModel, GmosModel, ObservationModel, ScienceConfigurationModel, Visit, VisitRecord, VisitRecords}
 import lucuma.odb.api.repo.OdbRepo
 
+/**
+ * Utilities for producing an execution config for an observation, preferring
+ * the manually defined sequences (if any) over automated sequences.
+ */
 object SequenceComputation {
 
   def manual[F[_]: Sync](
