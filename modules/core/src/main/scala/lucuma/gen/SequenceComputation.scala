@@ -96,7 +96,7 @@ object SequenceComputation {
       ): F[ExecutionContext] =
         RecordedStep
           .lookup[F, S, D](odb, oid, visits)
-          .flatMap(Generator.run(gen))
+          .flatMap(gen.run)
           .map(ctx(oid))
     }
 
