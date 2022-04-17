@@ -143,22 +143,22 @@ object PlannedTime {
   def estimateSequence[D](s: Sequence[D]): CategorizedTime =
     NonEmptyList(CategorizedTime.Zero, s.atoms.map(estimateAtom)).reduce
 
-  def estimate(config: InstrumentConfigModel): PlannedTime = {
+  def estimate(config: ExecutionModel): PlannedTime = {
     val gmosSetup = NonNegativeFiniteDuration.unsafeFrom(18.minutes)
 
     config match {
-      case gn: InstrumentConfigModel.GmosNorth =>
+      case gn: ExecutionModel.GmosNorth =>
         PlannedTime(
           gmosSetup,
-          gn.acquisition.atoms.map(estimateAtom),
-          gn.science.atoms.map(estimateAtom)
+          gn.config.acquisition.atoms.map(estimateAtom),
+          gn.config.science.atoms.map(estimateAtom)
         )
 
-      case gs: InstrumentConfigModel.GmosSouth =>
+      case gs: ExecutionModel.GmosSouth =>
         PlannedTime(
           gmosSetup,
-          gs.acquisition.atoms.map(estimateAtom),
-          gs.science.atoms.map(estimateAtom)
+          gs.config.acquisition.atoms.map(estimateAtom),
+          gs.config.science.atoms.map(estimateAtom)
         )
     }
   }

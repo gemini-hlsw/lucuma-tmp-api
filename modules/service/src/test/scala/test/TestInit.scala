@@ -410,7 +410,7 @@ object TestInit {
       scienceRequirements  = ScienceRequirementsInput.Default.some,
       scienceConfiguration = None,
       config               =
-        InstrumentConfigModel.Create.gmosSouth(
+        ExecutionModel.Create.gmosSouth(
           GmosModel.CreateSouthStatic.Default,
           acquisitionSequence,
           scienceSequence

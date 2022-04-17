@@ -186,7 +186,7 @@ object ObservationSchema {
 
         Field(
           name        = "manualConfig",
-          fieldType   = OptionType(InstrumentConfigSchema.ConfigType[F]),
+          fieldType   = OptionType(ManualConfigSchema.ManualConfigType[F]),
           description = Some("Manual instrument configuration"),
           resolve     = _.value.config
         ),

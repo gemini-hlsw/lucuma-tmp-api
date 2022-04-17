@@ -16,7 +16,7 @@ import sangria.macros.derive._
 
 object ScienceConfigurationSchema {
   import GmosSchema._
-  import InstrumentConfigSchema._
+  import InstrumentSchema.EnumTypeInstrument
 
   implicit val EnumTypeConfigurationMode: EnumType[ConfigurationMode] =
     EnumType.fromEnumerated(

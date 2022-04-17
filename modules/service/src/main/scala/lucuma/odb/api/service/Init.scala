@@ -20,7 +20,7 @@ import io.circe.parser.decode
 import lucuma.core.model.Program
 import lucuma.odb.api.model.GmosModel.CreateFpu
 import lucuma.odb.api.model.OffsetModel.ComponentInput
-import lucuma.odb.api.model.ScienceConfigurationModel.Modes.GmosSouthLongSlitInput
+import lucuma.odb.api.model.ScienceConfigurationModel.Modes.{GmosNorthLongSlitInput, GmosSouthLongSlitInput}
 import lucuma.odb.api.model.ScienceConfigurationModel.SlitWidthInput
 
 import scala.concurrent.duration._
@@ -386,12 +386,57 @@ object Init {
           ).assign
         ).some,
       config               =
-        InstrumentConfigModel.Create.gmosSouth(
+        ExecutionModel.Create.gmosSouth(
           GmosModel.CreateSouthStatic.Default,
           acquisitionSequence,
           scienceSequence
         ).some
     )
+
+  def autoObs(
+    pid:   Program.Id,
+    target: Option[TargetModel]
+  ): ObservationModel.Create =
+    ObservationModel.Create(
+      observationId        = None,
+      programId            = pid,
+      subtitle             = None,
+      status               = ObsStatus.New.some,
+      activeStatus         = ObsActiveStatus.Active.some,
+      targetEnvironment    = target.fold(none[TargetEnvironmentInput]) { sidereal =>
+        TargetEnvironmentInput.asterism(sidereal.id).some
+      },
+      constraintSet        = ConstraintSetInput(
+        imageQuality    = ImageQuality.PointOne.assign,
+        cloudExtinction = CloudExtinction.PointOne.assign,
+        skyBackground   = SkyBackground.Dark.assign,
+        waterVapor      = WaterVapor.Wet.assign,
+        elevationRange  = ElevationRangeInput(
+          airMass = AirMassRangeInput(
+            min = BigDecimal(1.0).some,
+            max = BigDecimal(1.75).some
+          ).assign
+        ).assign
+      ).some,
+      scienceRequirements  =
+        ScienceRequirementsInput(
+          ScienceMode.Spectroscopy.assign,
+          SpectroscopyScienceRequirementsInput(
+            wavelength    = WavelengthModel.Input.fromNanometers(520).assign,
+            signalToNoise = PosBigDecimal.unsafeFrom(700).assign
+          ).assign
+        ).some,
+      scienceConfiguration =
+        ScienceConfigurationInput(
+          gmosNorthLongSlit = GmosNorthLongSlitInput(
+            disperser = GmosNorthDisperser.B600_G5307.assign,
+            fpu       = GmosNorthFpu.LongSlit_1_00.assign,
+            slitWidth = SlitWidthInput.arcseconds(1.0).assign
+          ).assign
+        ).some,
+      config               = None
+    )
+
 
   /**
    * Initializes a (presumably) empty ODB with some demo values.
@@ -415,6 +460,7 @@ object Init {
       _  <- repo.observation.insert(obs(p.id, ts.headOption))
       _  <- repo.observation.insert(obs(p.id, ts.lastOption))
       _  <- repo.observation.insert(obs(p.id, None))
+      _  <- repo.observation.insert(autoObs(p.id, ts.lastOption))
     } yield ()
 
 }

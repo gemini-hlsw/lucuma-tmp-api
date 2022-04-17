@@ -40,7 +40,7 @@ final case class ObservationModel(
   constraintSet:        ConstraintSet,
   scienceRequirements:  ScienceRequirements,
   scienceConfiguration: Option[ScienceConfigurationModel],
-  config:               Option[InstrumentConfigModel],
+  config:               Option[ExecutionModel],
   plannedTimeSummary:   PlannedTimeSummaryModel
 ) {
 
@@ -82,7 +82,7 @@ object ObservationModel extends ObservationOptics {
     constraintSet:        Option[ConstraintSetInput],
     scienceRequirements:  Option[ScienceRequirementsInput],
     scienceConfiguration: Option[ScienceConfigurationInput],
-    config:               Option[InstrumentConfigModel.Create]
+    config:               Option[ExecutionModel.Create]
   ) {
 
     def create[F[_]: Sync](
@@ -315,7 +315,7 @@ trait ObservationOptics { self: ObservationModel.type =>
   val scienceConfiguration: Lens[ObservationModel, Option[ScienceConfigurationModel]] =
     Focus[ObservationModel](_.scienceConfiguration)
 
-  val config: Lens[ObservationModel, Option[InstrumentConfigModel]] =
+  val config: Lens[ObservationModel, Option[ExecutionModel]] =
     Focus[ObservationModel](_.config)
 
 }

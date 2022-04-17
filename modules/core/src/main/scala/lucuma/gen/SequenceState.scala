@@ -3,19 +3,15 @@
 
 package lucuma.gen
 
-import cats.data.{NonEmptyList, State}
-import cats.effect.Sync
-import cats.syntax.flatMap._
-import cats.syntax.functor._
-import cats.syntax.traverse._
+import cats.data.State
 import lucuma.core.`enum`.{GcalContinuum, GcalDiffuser, GcalFilter, GcalShutter}
 import lucuma.core.math.{Angle, Offset}
-import lucuma.odb.api.model.{Atom, AtomModel, Breakpoint, GcalModel, Step, StepConfig, StepModel}
+import lucuma.odb.api.model.{GcalModel, StepConfig}
 
 /**
  * Sequence generation helper trait.
  */
-private[gen] trait SequenceGenerationSupport[D] {
+private[gen] trait SequenceState[D] {
 
   /**
    * Sequence generation involves defining edits to the dynamic instrument
@@ -36,32 +32,15 @@ private[gen] trait SequenceGenerationSupport[D] {
   def eval[A](prog: State[D, A]): A =
     prog.runA(initialConfig).value
 
-  /**
-   * Creates an atom from the given steps.
-   */
-  def atom[F[_]: Sync](
-    s0: F[StepModel[D]],
-    ss: F[StepModel[D]]*
-  ): F[AtomModel[StepModel[D]]] =
-    for {
-      aid   <- Atom.Id.random[F]
-      steps <- NonEmptyList(s0, ss.toList).sequence
-    } yield AtomModel(aid, steps)
-
-  def step[F[_]: Sync](
-    toStepConfig: D => StepConfig[D],
-    breakpoint:   Breakpoint = Breakpoint.disabled
-  ): State[D, F[StepModel[D]]] =
-    State.inspect[D, F[StepModel[D]]] { d =>
-      Step.Id.random[F].map { sid => StepModel(sid, breakpoint, toStepConfig(d)) }
-    }
+  def step(f: D => StepConfig[D]): State[D, StepConfig[D]] =
+    State.inspect[D, StepConfig[D]](f)
 
   /**
    * Produces a "science" step based upon the current instrument configuration
    * state and the given telescope configuration.
    */
-  def scienceStep[F[_]: Sync](o: Offset): State[D, F[StepModel[D]]] =
-    step[F](StepConfig.Science(_, o))
+  def scienceStep(o: Offset): State[D, StepConfig[D]] =
+    step(StepConfig.Science(_, o))
 
   /**
    * Produces a "science" step based upon the current instrument configuration
@@ -70,14 +49,14 @@ private[gen] trait SequenceGenerationSupport[D] {
    * @param p offset in p
    * @param q offset in q
    */
-  def scienceStep[F[_]: Sync](p: Angle, q: Angle): State[D, F[StepModel[D]]] =
-    scienceStep[F](Offset(Offset.P(p), Offset.Q(q)))
+  def scienceStep(p: Angle, q: Angle): State[D, StepConfig[D]] =
+    scienceStep(Offset(Offset.P(p), Offset.Q(q)))
 
   /**
    * Generates a GCAL flat based on the current instrument configuration.
    */
-  def flatStep[F[_]: Sync]: State[D, F[StepModel[D]]] =
-    step[F] { d =>
+  def flatStep: State[D, StepConfig[D]] =
+    step { d =>
       StepConfig.Gcal(
         d,
 

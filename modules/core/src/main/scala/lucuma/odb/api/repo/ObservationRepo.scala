@@ -8,7 +8,7 @@ import cats.effect.{Async, Ref}
 import cats.implicits._
 import lucuma.core.model.{ConstraintSet, Observation, Program, Target}
 import lucuma.odb.api.model.ObservationModel.{BulkEdit, Create, Edit, Group, ObservationEvent}
-import lucuma.odb.api.model.{ConstraintSetInput, Database, EitherInput, Event, InputError, InstrumentConfigModel, ObservationModel, PlannedTimeSummaryModel, ScienceRequirements, ScienceRequirementsInput, Table}
+import lucuma.odb.api.model.{ConstraintSetInput, Database, EitherInput, Event, ExecutionModel, InputError, ObservationModel, PlannedTimeSummaryModel, ScienceRequirements, ScienceRequirementsInput, Table}
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.model.syntax.databasestate._
@@ -36,7 +36,7 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
   def selectManualConfig(
     oid:            Observation.Id,
     includeDeleted: Boolean                = false
-  ): F[Option[InstrumentConfigModel]]
+  ): F[Option[ExecutionModel]]
 
   def insert(input: Create): F[ObservationModel]
 
@@ -131,7 +131,7 @@ object ObservationRepo {
       override def selectManualConfig(
         oid:            Observation.Id,
         includeDeleted: Boolean
-      ): F[Option[InstrumentConfigModel]] =
+      ): F[Option[ExecutionModel]] =
         select(oid, includeDeleted).map(_.flatMap(_.config))
 
       override def insert(newObs: Create): F[ObservationModel] = {

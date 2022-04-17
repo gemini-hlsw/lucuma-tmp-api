@@ -12,6 +12,12 @@ object InstrumentSchema {
 
   import syntax.`enum`._
 
+  implicit val EnumTypeInstrument: EnumType[Instrument] =
+    EnumType.fromEnumerated(
+      "InstrumentType",
+      "Instrument"
+    )
+
   implicit val EnumTypeMosPreImaging: EnumType[MosPreImaging] =
     EnumType.fromEnumerated(
       "MosPreImaging",

@@ -37,8 +37,8 @@ object OdbSchema {
       Some(MutationType[F]),
       Some(SubscriptionType[F]),
       additionalTypes =
-        InstrumentConfigSchema.implementations[F] ++
-        ExecutionConfigSchema.implementations[F]
+        ManualConfigSchema.manualConfigImplementations[F] ++
+        ExecutionSchema.executionConfigImplementations[F]
     )
 
 }

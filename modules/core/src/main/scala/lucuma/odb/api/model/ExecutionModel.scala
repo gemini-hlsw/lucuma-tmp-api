@@ -9,33 +9,34 @@ import cats.effect.Sync
 import cats.syntax.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
+import monocle.Prism
 
-sealed trait InstrumentConfigModel extends Product with Serializable {
 
+sealed trait ExecutionModel {
   def instrument:  Instrument
-
-  def gmosNorth: Option[InstrumentConfigModel.GmosNorth] =
-    this match {
-      case gn: InstrumentConfigModel.GmosNorth => gn.some
-      case _                                   => none
-    }
-
-  def gmosSouth: Option[InstrumentConfigModel.GmosSouth] =
-    this match {
-      case gs: InstrumentConfigModel.GmosSouth => gs.some
-      case _                                   => none
-    }
-
 }
 
 
-object InstrumentConfigModel {
+object ExecutionModel {
+
+  final case class Config[S, D](
+    static:      S,
+    acquisition: Sequence[D],
+    science:     Sequence[D]
+  )
+
+  object Config {
+    implicit def EqConfig[S: Eq, D: Eq]: Eq[Config[S, D]] =
+      Eq.by { a => (
+        a.static,
+        a.acquisition,
+        a.science
+      )}
+  }
 
   final case class GmosNorth(
-    static:      GmosModel.NorthStatic,
-    acquisition: Sequence[GmosModel.NorthDynamic],
-    science:     Sequence[GmosModel.NorthDynamic]
-  ) extends InstrumentConfigModel {
+    config: Config[GmosModel.NorthStatic, GmosModel.NorthDynamic]
+  ) extends ExecutionModel {
 
     def instrument: Instrument =
       Instrument.GmosNorth
@@ -45,7 +46,7 @@ object InstrumentConfigModel {
   object GmosNorth {
 
     implicit val EqGmosNorth: Eq[GmosNorth] =
-      Eq.by { a => (a.static, a.acquisition, a.science) }
+      Eq.by(_.config)
 
   }
 
@@ -60,7 +61,7 @@ object InstrumentConfigModel {
         st <- Sync[F].pure(static.create)
         aq <- acquisition.create[F, GmosModel.NorthDynamic]
         sc <- science.create[F, GmosModel.NorthDynamic]
-      } yield (st, aq, sc).mapN(GmosNorth(_, _, _))
+      } yield (st, aq, sc).mapN((st, aq, sc) => GmosNorth(Config(st, aq, sc)))
   }
 
   object CreateGmosNorth {
@@ -74,10 +75,8 @@ object InstrumentConfigModel {
   }
 
   final case class GmosSouth(
-    static:      GmosModel.SouthStatic,
-    acquisition: Sequence[GmosModel.SouthDynamic],
-    science:     Sequence[GmosModel.SouthDynamic]
-  ) extends InstrumentConfigModel {
+    config: Config[GmosModel.SouthStatic, GmosModel.SouthDynamic]
+  ) extends ExecutionModel {
 
     def instrument: Instrument =
       Instrument.GmosSouth
@@ -87,7 +86,7 @@ object InstrumentConfigModel {
   object GmosSouth {
 
     implicit val EqGmosSouth: Eq[GmosSouth] =
-      Eq.by { a => (a.static, a.acquisition, a.science) }
+      Eq.by(_.config)
 
   }
 
@@ -102,7 +101,7 @@ object InstrumentConfigModel {
         st <- Sync[F].pure(static.create)
         aq <- acquisition.create[F, GmosModel.SouthDynamic]
         sc <- science.create[F,GmosModel.SouthDynamic]
-      } yield (st, aq, sc).mapN(GmosSouth(_, _, _))
+      } yield (st, aq, sc).mapN((st, aq, sc) => GmosSouth(Config(st, aq, sc)))
 
   }
 
@@ -116,27 +115,40 @@ object InstrumentConfigModel {
 
   }
 
-  implicit val EqInstrumentModel: Eq[InstrumentConfigModel] =
+  implicit val EqExecutionConfigModel: Eq[ExecutionModel] =
     Eq.instance {
       case (a: GmosNorth, b: GmosNorth) => a === b
       case (a: GmosSouth, b: GmosSouth) => a === b
       case _                            => false
     }
 
+  val AsGmosNorth: Prism[ExecutionModel, GmosNorth] =
+    Prism.apply[ExecutionModel, GmosNorth] {
+      case gn: GmosNorth => gn.some
+      case _             => None
+    }(identity)
+
+  val AsGmosSouth: Prism[ExecutionModel, GmosSouth] =
+    Prism.apply[ExecutionModel, GmosSouth] {
+      case gs: GmosSouth => gs.some
+      case _             => None
+    }(identity)
+
+
   final case class Create(
     gmosNorth: Option[CreateGmosNorth],
     gmosSouth: Option[CreateGmosSouth]
   ) {
 
-    def create[F[_]: Sync]: F[ValidatedInput[InstrumentConfigModel]] =
+    def create[F[_]: Sync]: F[ValidatedInput[ExecutionModel]] =
       for {
         gn <- gmosNorth.traverse(_.create)
         gs <- gmosSouth.traverse(_.create)
       } yield (gn, gs) match {
           case (Some(n), None) => n
           case (None, Some(s)) => s
-          case (None,    None) => InputError.fromMessage("At least one of `gmosNorth` or `gmosSouth` required").invalidNec[InstrumentConfigModel]
-          case _               => InputError.fromMessage("Only one of `gmosNorth` or `gmosSouth` may be specified").invalidNec[InstrumentConfigModel]
+          case (None,    None) => InputError.fromMessage("At least one of `gmosNorth` or `gmosSouth` required").invalidNec[ExecutionModel]
+          case _               => InputError.fromMessage("Only one of `gmosNorth` or `gmosSouth` may be specified").invalidNec[ExecutionModel]
         }
   }
 

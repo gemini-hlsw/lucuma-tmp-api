@@ -15,8 +15,8 @@ import scala.util.Try
 
 object GeneralSchema {
 
-  import TimeSchema._
   import syntax.`enum`._
+  import TimeSchema._
 
   implicit val EnumTypeExistence: EnumType[Existence] =
     EnumType.fromEnumerated(
