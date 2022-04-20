@@ -12,7 +12,6 @@ import lucuma.odb.api.model.{Database, EitherInput, Event, InputError, ProgramMo
 import lucuma.odb.api.model.ProgramModel.ProgramEvent
 import lucuma.odb.api.model.syntax.databasestate._
 import lucuma.odb.api.model.syntax.eitherinput._
-import lucuma.odb.api.model.syntax.validatedinput._
 
 trait ProgramRepo[F[_]] extends TopLevelRepo[F, Program.Id, ProgramModel] {
 
@@ -81,7 +80,7 @@ object ProgramRepo {
         val update: StateT[EitherInput, Database, ProgramModel] =
           for {
             initial <- Database.program.lookup(input.programId)
-            edited  <- input.edit(initial).liftState
+            edited  <- StateT.liftF(input.edit.runS(initial))
             _       <- Database.program.update(input.programId, edited)
           } yield edited
 

@@ -5,7 +5,6 @@ package lucuma.odb.api.model
 
 import cats.data.StateT
 import cats.Eq
-import cats.syntax.all._
 import clue.data.Input
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string.NonEmptyString
@@ -13,8 +12,9 @@ import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
 import lucuma.odb.api.model.syntax.input._
+import lucuma.odb.api.model.syntax.lens._
+import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.core.model.Program
-import lucuma.core.optics.syntax.lens._
 import monocle.Lens
 
 
@@ -65,12 +65,12 @@ object ProgramModel extends ProgramOptics {
     name:      Input[NonEmptyString]  = Input.ignore
   ) {
 
-    def edit(p: ProgramModel): ValidatedInput[ProgramModel] = {
-      existence.validateIsNotNull("existence").map { e =>
-        (ProgramModel.existence := e).void
-      }.map(_.runS(p).value)
-    }
-
+    val edit: StateT[EitherInput, ProgramModel, Unit] =
+      for {
+        ex <- existence.validateIsNotNull("existence").liftState
+        _ <- ProgramModel.existence := ex
+        _ <- ProgramModel.name := name.toOptionOption
+      } yield ()
   }
 
   object Edit {
