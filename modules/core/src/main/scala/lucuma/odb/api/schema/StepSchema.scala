@@ -89,13 +89,6 @@ object StepSchema {
         ),
 
         Field(
-          name        = "stepType",
-          fieldType   = EnumTypeStepType,
-          description = Some("Step type"),
-          resolve     = _.value.config.stepType
-        ),
-
-        Field(
           name        = "stepConfig",
           fieldType   = StepConfigType[F],
           description = Some("The sequence step itself"),
