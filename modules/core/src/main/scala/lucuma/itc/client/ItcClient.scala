@@ -10,12 +10,13 @@ import cats.syntax.functor._
 import cats.syntax.traverse._
 import cats.effect.{Async, Ref, Resource}
 import clue.TransactionalClient
-import clue.http4sjdk.Http4sJDKBackend
+import clue.http4s.Http4sBackend
 import io.circe.syntax._
 import lucuma.core.model.{Observation, Target}
 import lucuma.odb.api.model.ObservationModel
 import lucuma.odb.api.repo.OdbRepo
 import org.http4s.Uri
+import org.http4s.jdkhttpclient.JdkHttpClient
 import org.typelevel.log4cats.Logger
 
 class ItcClient[F[_]: Async: Logger](
@@ -26,7 +27,7 @@ class ItcClient[F[_]: Async: Logger](
 
   val resource: Resource[F, TransactionalClient[F, Unit]] =
     for {
-      b <- Http4sJDKBackend[F]
+      b <- JdkHttpClient.simple.map(Http4sBackend[F](_))
       c <- Resource.eval(TransactionalClient.of[F, Unit](uri)(Async[F], b, Logger[F]))
     } yield c
 
