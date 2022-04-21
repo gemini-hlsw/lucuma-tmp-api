@@ -9,6 +9,8 @@ import cats.Eq
 import cats.data.NonEmptyList
 import cats.effect.Sync
 import cats.syntax.eq._
+import eu.timepit.refined.auto._
+import eu.timepit.refined.types.all.PosDouble
 import lucuma.odb.api.model.{Sequence, StepConfig}
 
 import scala.concurrent.duration._
@@ -74,6 +76,9 @@ object GmosLongSlit {
 
   def acquisitionExposureTime: AcqExposureTime =
     AcqExposureTime.unsafeFrom(10.seconds)
+
+  val DefaultSampling: PosDouble =
+    2.5
 
   /**
    * Unique step configurations used to form an acquisition sequence.

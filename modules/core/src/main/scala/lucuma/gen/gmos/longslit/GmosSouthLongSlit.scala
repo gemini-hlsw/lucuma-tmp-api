@@ -46,7 +46,7 @@ object GmosSouthLongSlit {
     itc:         ItcClient[F],
     odb:         OdbRepo[F],
     observation: ObservationModel,
-    sampling:    PosDouble = 2.5,
+    sampling:    PosDouble = GmosLongSlit.DefaultSampling,
   ): F[Either[ItcResult.Error, Option[GmosSouthLongSlit[F]]]] =
 
     itc
