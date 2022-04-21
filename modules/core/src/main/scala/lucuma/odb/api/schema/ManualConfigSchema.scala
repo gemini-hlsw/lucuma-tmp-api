@@ -15,7 +15,6 @@ object ManualConfigSchema {
   import InstrumentSchema.EnumTypeInstrument
   import PlannedTimeSchema.PlannedTimeType
   import SequenceSchema.SequenceType
-  import TimeSchema.DurationType
 
   def ManualConfigType[F[_]]: InterfaceType[OdbCtx[F], ExecutionModel] =
     InterfaceType[OdbCtx[F], ExecutionModel](
@@ -35,13 +34,6 @@ object ManualConfigSchema {
           fieldType   = PlannedTimeType,
           description = Some("Planned time for this configuration"),
           resolve     = c => PlannedTime.estimate(c.value)
-        ),
-
-        Field(
-          name        = "setupTime",
-          fieldType   = DurationType,
-          description = Some("Estimated setup time"),
-          resolve     = c => PlannedTime.estimate(c.value).setup.value
         )
 
       )
