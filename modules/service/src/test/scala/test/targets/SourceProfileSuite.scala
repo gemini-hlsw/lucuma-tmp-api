@@ -44,7 +44,7 @@ class SourceProfileSuite extends OdbSuite {
                 "brightnesses": [
                   {
                     "band": "U",
-                    "value": 10.000,
+                    "value": 10,
                     "units": "VEGA_MAGNITUDE",
                     "error": null
                   },
@@ -68,7 +68,7 @@ class SourceProfileSuite extends OdbSuite {
                   },
                   {
                     "band": "J",
-                    "value": 42.000,
+                    "value": 42,
                     "units": "VEGA_MAGNITUDE",
                     "error": 0.018
                   },
@@ -155,7 +155,7 @@ class SourceProfileSuite extends OdbSuite {
                 "brightnesses": [
                   {
                     "band": "U",
-                    "value": 10.000,
+                    "value": 10,
                     "units": "VEGA_MAGNITUDE",
                     "error": null
                   }
@@ -224,7 +224,7 @@ class SourceProfileSuite extends OdbSuite {
                     "band": "V",
                     "value": 13.960,
                     "units": "VEGA_MAGNITUDE",
-                    "error": 10.000
+                    "error": 10
                   }
                 ]
               }

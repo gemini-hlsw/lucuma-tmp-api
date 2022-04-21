@@ -133,9 +133,9 @@ object ItcSpectroscopyInput {
           Json.fromFields(
             List(
               "band"  -> screaming(b),
-              "value" -> m.value.toBigDecimal.asJson,
+              "value" -> m.value.asJson,
               "units" -> m.units.serialized.asJson
-            ) ++ m.error.toList.map(v => "error" -> v.toBigDecimal.asJson)
+            ) ++ m.error.toList.map(v => "error" -> v.asJson)
           )
         }: _*)
       )

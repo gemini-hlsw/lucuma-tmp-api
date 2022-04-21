@@ -3,11 +3,10 @@
 
 package lucuma.odb.api.schema
 
-import cats.syntax.either._
 import cats.syntax.option._
 import eu.timepit.refined.types.all.PosBigDecimal
 import lucuma.core.`enum`.{Band, CoolStarTemperature, GalaxySpectrum, HIIRegionSpectrum, PlanetSpectrum, PlanetaryNebulaSpectrum, QuasarSpectrum, StellarLibrarySpectrum}
-import lucuma.core.math.{BrightnessValue, Wavelength}
+import lucuma.core.math.Wavelength
 import lucuma.core.math.BrightnessUnits.{Brightness, FluxDensityContinuum, Integrated, LineFlux, Surface}
 import lucuma.core.math.dimensional.{Measure, Of, Units}
 import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
@@ -226,13 +225,6 @@ object SourceProfileSchema {
       "Flux density continuum surface units"
     )
 
-  val BrightnessValueType: ScalarAlias[BrightnessValue, BigDecimal] =
-    ScalarAlias(
-      BigDecimalType,
-      BrightnessValue.fromBigDecimal.reverseGet,
-      bd => BrightnessValue.fromBigDecimal.get(bd).asRight
-    )
-
   private def GroupedUnitQtyType[N, UG](
     name:      String,
     valueType: OutputType[N],
@@ -274,20 +266,20 @@ object SourceProfileSchema {
         Field(
           name        = "value",
           fieldType   = BigDecimalType,
-          resolve     = c => BrightnessValue.fromBigDecimal.reverseGet(c.value.measure.value)
+          resolve     = _.value.measure.value
         ),
 
         Field(
           name        = "units",
           fieldType   = unitsType,
-          resolve     = c => Measure.unitsTagged[BrightnessValue, Brightness[T]].get(c.value.measure)
+          resolve     = c => Measure.unitsTagged[BigDecimal, Brightness[T]].get(c.value.measure)
         ),
 
         Field(
           name        = "error",
           fieldType   = OptionType(BigDecimalType),
           description = "Error, if any".some,
-          resolve     = _.value.measure.error.map(BrightnessValue.fromBigDecimal.reverseGet)
+          resolve     = _.value.measure.error
         )
 
       )

@@ -25,7 +25,7 @@ import lucuma.core.`enum`.{Band, CoolStarTemperature, GalaxySpectrum, HIIRegionS
 import lucuma.core.math.BrightnessUnits._
 import lucuma.core.math.dimensional.{Measure, Of, Units}
 import lucuma.core.math.units.KilometersPerSecond
-import lucuma.core.math.{BrightnessValue, Wavelength}
+import lucuma.core.math.Wavelength
 import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
 import lucuma.core.model.{EmissionLine, SourceProfile, SpectralDefinition, UnnormalizedSED}
 import lucuma.odb.api.model.{AngleModel, EditorInput, EitherInput, InputError, ValidatedInput, WavelengthModel}
@@ -219,10 +219,10 @@ object SourceProfileModel {
 
   final case class BandBrightnessPair[T](
     band:    Band,
-    measure: Measure[BrightnessValue] Of Brightness[T]
+    measure: Measure[BigDecimal] Of Brightness[T]
   ) {
 
-    def toTuple: (Band, Measure[BrightnessValue] Of Brightness[T]) =
+    def toTuple: (Band, Measure[BigDecimal] Of Brightness[T]) =
       (band, measure)
 
   }
@@ -235,7 +235,7 @@ object SourceProfileModel {
         a.measure
       )}
 
-    def measure[T]: Lens[BandBrightnessPair[T], Measure[BrightnessValue] Of Brightness[T]] =
+    def measure[T]: Lens[BandBrightnessPair[T], Measure[BigDecimal] Of Brightness[T]] =
       Focus[BandBrightnessPair[T]](_.measure)
 
   }
@@ -251,10 +251,10 @@ object SourceProfileModel {
       (value.notMissing("value"),
        units.notMissing("units")
       ).mapN { (v, u) =>
-        val m = u.withValueTagged(BrightnessValue.fromBigDecimal.get(v))
+        val m = u.withValueTagged(v)
         BandBrightnessPair[T](
           band,
-          error.toOption.fold(m) { e => m.withError(BrightnessValue.fromBigDecimal.get(e)) }
+          error.toOption.fold(m)(m.withError)
         )
       }
 
@@ -267,10 +267,10 @@ object SourceProfileModel {
       for {
         args <- validArgs.liftState
         (v, u)  = args
-        measure = StateT.modify[EitherInput, Measure[BrightnessValue] Of Brightness[T]] { m =>
-          val newValue = v.map(BrightnessValue.fromBigDecimal.get).getOrElse(m.value)
+        measure = StateT.modify[EitherInput, Measure[BigDecimal] Of Brightness[T]] { m =>
+          val newValue = v.getOrElse(m.value)
           val newUnits = u.getOrElse(Measure.unitsTagged.get(m))
-          val newError = error.map(BrightnessValue.fromBigDecimal.get).fold(m.error, Option.empty[BrightnessValue], _.some)
+          val newError = error.fold(m.error, Option.empty[BigDecimal], _.some)
 
           val newMeasure = newUnits.withValueTagged(newValue)
           newError.fold(newMeasure)(newMeasure.withError)
@@ -382,7 +382,7 @@ object SourceProfileModel {
         // When editing, the `brightnesses` input is taken to mean
         // the list of edits to perform.  Any band not mentioned is
         // left unchanged.
-        val updates: EitherInput[List[(Band, Of[Measure[BrightnessValue], Brightness[T]])]] =
+        val updates: EitherInput[List[(Band, Of[Measure[BigDecimal], Brightness[T]])]] =
           inputs.traverse { bbi =>
             m.get(bbi.band).fold(bbi.create.map(_.toTuple)) { measure =>
               bbi.edit.runS(BandBrightnessPair[T](bbi.band, measure)).map(_.toTuple).toValidated
