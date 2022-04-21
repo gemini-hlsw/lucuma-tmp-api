@@ -7,15 +7,15 @@ val catsTimeVersion             = "0.5.0"
 val circeOpticsVersion          = "0.14.1"
 val circeVersion                = "0.14.1"
 val cirisVersion                = "2.3.2"
-val clueVersion                 = "0.20.3"
+val clueVersion                 = "0.21.0"
 val http4sVersion               = "0.23.11"
-val http4sJdkHttpClientVersion  = "0.5.0"
+val http4sJdkHttpClientVersion  = "0.7.0"
 val fs2Version                  = "3.2.7"
 val jawnVersion                 = "1.3.2"
 val kindProjectorVersion        = "0.13.2"
 val logbackVersion              = "1.2.11"
 val lucumaCoreVersion           = "0.28.0"
-val lucumaGraphQLRoutesVersion  = "0.3.0"
+val lucumaGraphQLRoutesVersion  = "0.3.1"
 //val lucumaSsoVersion            = "0.0.11"
 val log4catsVersion             = "2.2.0"
 val monocleVersion              = "3.1.0"
@@ -79,8 +79,9 @@ lazy val core = project
       "org.sangria-graphql"        %% "sangria"                   % sangriaVersion,
       "org.sangria-graphql"        %% "sangria-circe"             % sangriaCirceVersion,
       "edu.gemini"                 %% "clue-core"                 % clueVersion,
-      "edu.gemini"                 %% "clue-http4s-jdk-client"    % clueVersion,
+      "edu.gemini"                 %% "clue-http4s"               % clueVersion,
       "edu.gemini"                 %% "clue-model"                % clueVersion,
+      "org.http4s"                 %% "http4s-jdk-http-client"    % http4sJdkHttpClientVersion,
       "edu.gemini"                 %% "lucuma-core"               % lucumaCoreVersion,
       "org.tpolecat"               %% "atto-core"                 % attoVersion,
       "org.typelevel"              %% "cats-core"                 % catsVersion,
@@ -141,7 +142,7 @@ lazy val service = project
       "org.http4s"                 %% "http4s-blaze-client"           % http4sVersion,
       "org.http4s"                 %% "http4s-circe"                  % http4sVersion,
       "org.http4s"                 %% "http4s-dsl"                    % http4sVersion,
-      "edu.gemini"                 %% "clue-http4s-jdk-client"        % clueVersion            % Test,
+      "edu.gemini"                 %% "clue-http4s"                   % clueVersion            % Test,
       "org.typelevel"              %% "munit-cats-effect-3"           % munitCatsEffectVersion % Test,
 //      "edu.gemini"                 %% "lucuma-sso-backend-client"     % lucumaSsoVersion,
       "edu.gemini"                 %% "lucuma-graphql-routes-sangria" % lucumaGraphQLRoutesVersion,

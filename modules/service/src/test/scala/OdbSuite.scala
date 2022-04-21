@@ -11,8 +11,7 @@ import clue.GraphQLOperation
 import clue.PersistentStreamingClient
 import clue.TransactionalClient
 import io.circe.Json
-import clue.http4sjdk.Http4sJDKBackend
-import clue.http4sjdk.Http4sJDKWSBackend
+import clue.http4s.{Http4sBackend, Http4sWSBackend}
 import io.circe.literal._
 import lucuma.itc.client.ItcClient
 import lucuma.odb.api.repo.OdbCtx
@@ -25,6 +24,7 @@ import lucuma.odb.api.service.Main
 import munit.CatsEffectSuite
 import org.http4s.{Uri => Http4sUri, _}
 import org.http4s.blaze.server.BlazeServerBuilder
+import org.http4s.jdkhttpclient.{JdkHttpClient, JdkWSClient}
 import org.http4s.implicits.http4sLiteralsSyntax
 import org.http4s.headers.Authorization
 import org.http4s.server.Server
@@ -78,14 +78,14 @@ trait OdbSuite extends CatsEffectSuite {
 
   private def transactionalClient(svr: Server): Resource[IO, TransactionalClient[IO, Nothing]] =
     for {
-      xbe <- Http4sJDKBackend.apply[IO]
+      xbe <- JdkHttpClient.simple[IO].map(Http4sBackend[IO](_))
       uri  = svr.baseUri / "odb"
       xc  <- Resource.eval(TransactionalClient.of[IO, Nothing](uri, headers = Headers(Authorization(Credentials.Token(AuthScheme.Bearer, "123"))))(Async[IO], xbe, Logger[IO]))
     } yield xc
 
   private def streamingClient(svr: Server): Resource[IO, PersistentStreamingClient[IO, Nothing, _, _]] =
     for {
-      sbe <- Http4sJDKWSBackend[IO]
+      sbe <- JdkWSClient.simple[IO].map(Http4sWSBackend[IO](_))
       uri  = (svr.baseUri / "ws").copy(scheme = Some(Http4sUri.Scheme.unsafeFromString("ws")))
       sc  <- Resource.eval(ApolloWebSocketClient.of(uri)(Async[IO], Logger[IO], sbe))
       ps   = Map("Authorization" -> Json.fromString("Bearer 123"))
