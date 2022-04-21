@@ -5,10 +5,8 @@ package lucuma.gen
 package gmos
 package longslit
 
-import cats.data.NonEmptyList
 import cats.effect.Sync
 import cats.syntax.either._
-import cats.syntax.eq._
 import cats.syntax.functor._
 import cats.syntax.option._
 import coulomb.Quantity
@@ -22,10 +20,11 @@ import lucuma.core.math.units._
 import lucuma.core.model.SourceProfile
 import lucuma.core.optics.syntax.lens._
 import lucuma.core.optics.syntax.optional._
+import lucuma.gen.gmos.longslit.GmosLongSlit.{AcquisitionSteps, ScienceSteps}
 import lucuma.gen.gmos.longslit.syntax.all._
 import lucuma.itc.client.{ItcClient, ItcResult}
 import lucuma.odb.api.model.GmosModel.{CustomMask, GratingConfig, NorthDynamic, NorthStatic}
-import lucuma.odb.api.model.{ObservationModel, ScienceConfigurationModel, Sequence, StepConfig}
+import lucuma.odb.api.model.{ObservationModel, ScienceConfigurationModel, Sequence}
 import lucuma.odb.api.repo.OdbRepo
 import spire.std.int._
 
@@ -67,7 +66,6 @@ object GmosNorthLongSlit {
         case gnls: ScienceConfigurationModel.Modes.GmosNorthLongSlit => gnls
       }
       λ        <- observation.scienceRequirements.spectroscopy.wavelength
-      acqTime  <- AcqExposureTime.from(10.seconds)
       sciTime  <- SciExposureTime.from(itc.exposureTime)
       expCount <- PosInt.from(itc.exposures).toOption
     } yield GmosNorthLongSlit[F](
@@ -76,7 +74,7 @@ object GmosNorthLongSlit {
       observation.constraintSet.imageQuality,
       sampling,
       sourceProfile,
-      acqTime,
+      GmosLongSlit.acquisitionExposureTime,
       sciTime,
       expCount
     )
@@ -92,7 +90,7 @@ object GmosNorthLongSlit {
     exposureCount: PosInt
   ): GmosNorthLongSlit[F] =
 
-    new GmosNorthLongSlit[F] with GeneratorHelper[NorthDynamic] {
+    new GmosNorthLongSlit[F] with GmosLongSlit[F, NorthStatic, NorthDynamic] {
 
       override def static: NorthStatic =
         NorthStatic(
@@ -102,80 +100,30 @@ object GmosNorthLongSlit {
           stageMode     = GmosNorthStageMode.FollowXy
         )
 
+      override def acquisitionSteps: AcquisitionSteps[NorthDynamic] =
+        Acquisition.compute(mode.fpu, acqTime, λ)
+
+      override def scienceSteps: ScienceSteps[NorthDynamic] =
+        Science.compute(mode, sciTime, λ, sourceProfile, imageQuality, sampling)
+
       override def acquisition(
         recordedSteps: List[RecordedStep[NorthDynamic]]
-      ): F[Sequence[NorthDynamic]] = {
-
-        val steps = AcquisitionSteps(mode.fpu, acqTime, λ)
-
-        def initialSeq: F[Sequence[NorthDynamic]] = createSequence(steps.initialAtom)
-        def repeatSeq:  F[Sequence[NorthDynamic]] = createSequence(steps.repeatingAtom)
-
-        recordedSteps.map(_.stepConfig).lastIndexOfSlice(steps.initialAtom.toList) match {
-          case i if i < 0 =>
-            // We've never done an acquisition for this observation.
-            initialSeq
-
-          case i          =>
-            // Starting at the last time we acquired the target, split into
-            // the initial sequence and everything that may follow.
-            val (in, rm) = recordedSteps.slice(i, Int.MaxValue).splitAt(steps.initialAtom.length)
-
-            def isExecuted: Boolean    = in.forall(_.isExecuted)
-            def repeatingSlit: Boolean = rm.map(_.stepConfig).forall(_ === steps.slit)
-
-            // If any of the initial sequence is not yet executed, then we
-            // still need to do the initial atom.  Otherwise if we're just
-            // repeating the image through the slit, continue to do so.
-            if (isExecuted && repeatingSlit) repeatSeq else initialSeq
-        }
-
-      }
+      ): F[Sequence[NorthDynamic]] =
+        longSlitAcquisition(recordedSteps)
 
       override def science(
         recordedSteps: List[RecordedStep[NorthDynamic]]
-      ): F[Sequence[NorthDynamic]] = {
-
-        val sciSteps      = ScienceSteps(mode, sciTime, λ, sourceProfile, imageQuality, sampling)
-        val wholeSequence = List.unfold(0) { i =>
-          Option.when(i < exposureCount)((sciSteps.atom(i), i + 1))
-        }
-
-        createSequence(
-          remainingSteps(wholeSequence, recordedSteps)(identity)
-        )
-      }
-
+      ): F[Sequence[NorthDynamic]] =
+        longSlitScience(exposureCount, recordedSteps)
     }
 
-  /**
-   * Unique step configurations used to form an acquisition sequence.
-   *
-   * @param ccd2 image, 2x2 using CCD2 ROI
-   * @param p10  20 second exposure, 1x1 Central Stamp, 10 arcsec offset in p
-   * @param slit image through the slit
-   */
-  final case class AcquisitionSteps(
-    ccd2: StepConfig[NorthDynamic],
-    p10:  StepConfig[NorthDynamic],
-    slit: StepConfig[NorthDynamic]
-  ) {
+  object Acquisition extends GmosNorthSequenceState {
 
-    val initialAtom: NonEmptyList[StepConfig[NorthDynamic]] =
-      NonEmptyList.of(ccd2, p10, slit)
-
-    val repeatingAtom: NonEmptyList[StepConfig[NorthDynamic]] =
-      NonEmptyList.of(slit)
-
-  }
-
-  object AcquisitionSteps extends GmosNorthSequenceState {
-
-    def apply(
+    def compute(
       fpu:          GmosNorthFpu,
       exposureTime: AcqExposureTime,
       λ:            Wavelength,
-    ): AcquisitionSteps = {
+    ): AcquisitionSteps[NorthDynamic] = {
 
       def filter: GmosNorthFilter = GmosNorthFilter.allAcquisition.minBy { f =>
         (λ.toPicometers.value.value - f.wavelength.toPicometers.value.value).abs
@@ -209,50 +157,16 @@ object GmosNorthLongSlit {
 
   }
 
-  /**
-   * Unique step configurations used to form a science sequence.
-   *
-   * @param science0 science step at offset (0, 0) and requested λ
-   * @param flat0    smart flat matching `science0`
-   * @param science1 science step at offset (0, 15) and λ + Δ
-   * @param flat1    smart flat matching `science1`
-   */
-  final case class ScienceSteps(
-    science0: StepConfig[NorthDynamic],
-    flat0:    StepConfig[NorthDynamic],
-    science1: StepConfig[NorthDynamic],
-    flat1:    StepConfig[NorthDynamic]
-  ) {
+  object Science extends GmosNorthSequenceState {
 
-    val atom0: NonEmptyList[StepConfig[NorthDynamic]] =
-      NonEmptyList.of(science0, flat0)
-
-    val atom1: NonEmptyList[StepConfig[NorthDynamic]] =
-      NonEmptyList.of(flat1, science1)
-
-    val atom2: NonEmptyList[StepConfig[NorthDynamic]] =
-      NonEmptyList.of(science1, flat1)
-
-    val atom3: NonEmptyList[StepConfig[NorthDynamic]] =
-      NonEmptyList.of(flat0, science0)
-
-    val uniqueAtoms: Vector[NonEmptyList[StepConfig[NorthDynamic]]] =
-      Vector(atom0, atom1, atom2, atom3)
-
-    def atom(i: Int): NonEmptyList[StepConfig[NorthDynamic]] =
-      uniqueAtoms((i % 4).abs)
-  }
-
-  object ScienceSteps extends GmosNorthSequenceState {
-
-    def apply(
+    def compute(
       mode:          ScienceConfigurationModel.Modes.GmosNorthLongSlit,
       exposureTime:  SciExposureTime,
       λ:             Wavelength,
       sourceProfile: SourceProfile,
       imageQuality:  ImageQuality,
       sampling:      PosDouble
-    ): ScienceSteps = {
+    ): ScienceSteps[NorthDynamic] = {
 
       def sum(λ: Wavelength, Δ: Quantity[PosInt, Nanometer]): Wavelength =
         new Wavelength(λ.toPicometers + Δ.to[PosInt, Picometer])
