@@ -571,6 +571,12 @@ object GmosModel {
     val readout: Lens[SouthDynamic, CcdReadout] =
       Focus[SouthDynamic](_.readout)
 
+    val xBin: Lens[SouthDynamic, GmosXBinning] =
+      readout andThen CcdReadout.xBin
+
+    val yBin: Lens[SouthDynamic, GmosYBinning] =
+      readout andThen CcdReadout.yBin
+
     val dtax: Lens[SouthDynamic, GmosDtax] =
       Focus[SouthDynamic](_.dtax)
 
@@ -579,6 +585,13 @@ object GmosModel {
 
     val gratingConfig: Lens[SouthDynamic, Option[GratingConfig[GmosSouthDisperser]]] =
       Focus[SouthDynamic](_.gratingConfig)
+
+    val wavelength: Optional[SouthDynamic, Wavelength] =
+      Optional[SouthDynamic, Wavelength](
+        _.grating.map(_.wavelength)
+      )(
+        λ => grating.modify(_.map(Grating.wavelength.replace(λ)))
+      )
 
     val filter: Lens[SouthDynamic, Option[GmosSouthFilter]] =
       Focus[SouthDynamic](_.filter)
