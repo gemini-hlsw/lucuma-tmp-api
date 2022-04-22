@@ -9,9 +9,15 @@ import cats.Eq
 import cats.data.NonEmptyList
 import cats.effect.Sync
 import cats.syntax.eq._
+import cats.syntax.functor._
 import eu.timepit.refined.auto._
-import eu.timepit.refined.types.all.PosDouble
-import lucuma.odb.api.model.{Sequence, StepConfig}
+import eu.timepit.refined.types.all.{PosDouble, PosInt}
+import lucuma.core.`enum`.ImageQuality
+import lucuma.core.math.Wavelength
+import lucuma.core.model.SourceProfile
+import lucuma.itc.client.{ItcClient, ItcResult}
+import lucuma.odb.api.model.{ObservationModel, ScienceConfigurationModel, Sequence, StepConfig}
+import lucuma.odb.api.repo.OdbRepo
 
 import scala.concurrent.duration._
 
@@ -79,6 +85,62 @@ object GmosLongSlit {
 
   val DefaultSampling: PosDouble =
     2.5
+
+  final case class Input[M](
+    mode:          M,
+    λ:             Wavelength,
+    imageQuality:  ImageQuality,
+    sampling:      PosDouble,
+    sourceProfile: SourceProfile,
+    acqTime:       AcqExposureTime,
+    sciTime:       SciExposureTime,
+    exposureCount: PosInt
+  )
+
+  object Input {
+
+    def query[F[_]: Sync, M](
+      itc:         ItcClient[F],
+      odb:         OdbRepo[F],
+      observation: ObservationModel,
+      sampling:    PosDouble = GmosLongSlit.DefaultSampling,
+    )(
+      f: PartialFunction[ScienceConfigurationModel, M]
+    ): F[Either[ItcResult.Error, Option[Input[M]]]] =
+
+      itc
+        .query(observation.id, odb)
+        .map(_.map { case (target, result) =>
+          fromObservationAndItc(observation, sampling, target.sourceProfile, result)(f)
+        })
+
+
+    def fromObservationAndItc[M](
+      observation:   ObservationModel,
+      sampling:      PosDouble,
+      sourceProfile: SourceProfile,
+      itc:           ItcResult.Success
+    )(
+      f: PartialFunction[ScienceConfigurationModel, M]
+    ): Option[Input[M]] =
+
+      for {
+        mode     <- observation.scienceConfiguration.collect(f)
+        λ        <- observation.scienceRequirements.spectroscopy.wavelength
+        sciTime  <- SciExposureTime.from(itc.exposureTime)
+        expCount <- PosInt.from(itc.exposures).toOption
+      } yield Input[M](
+        mode,
+        λ,
+        observation.constraintSet.imageQuality,
+        sampling,
+        sourceProfile,
+        GmosLongSlit.acquisitionExposureTime,
+        sciTime,
+        expCount
+      )
+
+  }
 
   /**
    * Unique step configurations used to form an acquisition sequence.

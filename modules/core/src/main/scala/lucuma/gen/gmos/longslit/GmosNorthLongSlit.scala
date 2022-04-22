@@ -48,36 +48,14 @@ object GmosNorthLongSlit {
     sampling:    PosDouble = GmosLongSlit.DefaultSampling,
   ): F[Either[ItcResult.Error, Option[GmosNorthLongSlit[F]]]] =
 
-    itc
-      .query(observation.id, odb)
-      .map(_.map { case (target, result) =>
-        fromObservationAndItc(observation, sampling, target.sourceProfile, result)
-      })
+    GmosLongSlit.Input.query(itc, odb, observation, sampling) {
+      case gnls: ScienceConfigurationModel.Modes.GmosNorthLongSlit => gnls
+    }.map(_.map(_.map(fromInput[F])))
 
-  def fromObservationAndItc[F[_]: Sync](
-    observation:   ObservationModel,
-    sampling:      PosDouble,
-    sourceProfile: SourceProfile,
-    itc:           ItcResult.Success
-  ): Option[GmosNorthLongSlit[F]] =
-
-    for {
-      mode     <- observation.scienceConfiguration.collect {
-        case gnls: ScienceConfigurationModel.Modes.GmosNorthLongSlit => gnls
-      }
-      λ        <- observation.scienceRequirements.spectroscopy.wavelength
-      sciTime  <- SciExposureTime.from(itc.exposureTime)
-      expCount <- PosInt.from(itc.exposures).toOption
-    } yield GmosNorthLongSlit[F](
-      mode,
-      λ,
-      observation.constraintSet.imageQuality,
-      sampling,
-      sourceProfile,
-      GmosLongSlit.acquisitionExposureTime,
-      sciTime,
-      expCount
-    )
+  def fromInput[F[_]: Sync](
+    in: GmosLongSlit.Input[ScienceConfigurationModel.Modes.GmosNorthLongSlit]
+  ): GmosNorthLongSlit[F] =
+    apply(in.mode, in.λ, in.imageQuality, in.sampling, in.sourceProfile, in.acqTime, in.sciTime, in.exposureCount)
 
   def apply[F[_]: Sync](
     mode:          ScienceConfigurationModel.Modes.GmosNorthLongSlit,
