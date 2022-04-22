@@ -427,7 +427,7 @@ object GmosModel {
 
   sealed trait GratingConfigOptics { self: GratingConfig.type =>
 
-    def disperser[D]: Lens[GratingConfig[D], D] =
+    def grating[D]: Lens[GratingConfig[D], D] =
       Focus[GratingConfig[D]](_.grating)
 
     def order[D]: Lens[GratingConfig[D], GmosDisperserOrder] =

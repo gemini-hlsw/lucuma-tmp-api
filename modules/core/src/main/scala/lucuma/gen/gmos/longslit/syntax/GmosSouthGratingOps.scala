@@ -8,16 +8,16 @@ import eu.timepit.refined.types.all.PosInt
 import lucuma.core.`enum`.GmosSouthDisperser
 import lucuma.core.math.units.Nanometer
 
-final class GmosSouthDisperserOps(val self: GmosSouthDisperser) {
+final class GmosSouthGratingOps(val self: GmosSouthDisperser) {
 
   val Δλ: Quantity[PosInt, Nanometer] =
     GmosSouthLongslitMath.Δλ(self.dispersion)
 
 }
 
-trait ToGmosSouthDisperserOps {
-  implicit def toGmosSouthDisperserOps(disperser: GmosSouthDisperser): GmosSouthDisperserOps =
-    new GmosSouthDisperserOps(disperser)
+trait ToGmosSouthGratingOps {
+  implicit def toGmosSouthGratingOps(grating: GmosSouthDisperser): GmosSouthGratingOps =
+    new GmosSouthGratingOps(grating)
 }
 
-object gmosSouthDisperser extends ToGmosSouthDisperserOps
+object gmosSouthGrating extends ToGmosSouthGratingOps

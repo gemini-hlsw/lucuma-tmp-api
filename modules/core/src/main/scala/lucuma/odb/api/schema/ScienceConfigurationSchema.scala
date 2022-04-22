@@ -115,10 +115,10 @@ object ScienceConfigurationSchema {
         ),
 
         Field(
-          name        = "disperser",
+          name        = "grating",
           fieldType   = EnumTypeGmosNorthGrating,
-          description = Some("GMOS North Disperser"),
-          resolve     = _.value.disperser
+          description = Some("GMOS North Grating"),
+          resolve     = _.value.grating
         ),
 
         Field(
@@ -151,10 +151,10 @@ object ScienceConfigurationSchema {
         ),
 
         Field(
-          name        = "disperser",
+          name        = "grating",
           fieldType   = EnumTypeGmosSouthGrating,
-          description = Some("GMOS South Disperser"),
-          resolve     = _.value.disperser
+          description = Some("GMOS South Grating"),
+          resolve     = _.value.grating
         ),
 
         Field(

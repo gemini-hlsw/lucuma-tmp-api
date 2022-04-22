@@ -262,13 +262,13 @@ object GmosNorthLongSlit {
           _  <- NorthDynamic.exposure      := exposureTime.value
           _  <- NorthDynamic.xBin          := mode.fpu.xbin(sourceProfile, imageQuality, sampling)
           _  <- NorthDynamic.yBin          := GmosYBinning.Two
-          _  <- NorthDynamic.gratingConfig := GratingConfig(mode.disperser, GmosDisperserOrder.One, λ).some
+          _  <- NorthDynamic.gratingConfig := GratingConfig(mode.grating, GmosDisperserOrder.One, λ).some
           _  <- NorthDynamic.filter        := mode.filter
           _  <- NorthDynamic.fpu           := mode.fpu.asRight.some
           s0 <- scienceStep(0.arcsec, 0.arcsec)
           f0 <- flatStep
 
-          _  <- NorthDynamic.wavelength := sum(λ, mode.disperser.Δλ)
+          _  <- NorthDynamic.wavelength := sum(λ, mode.grating.Δλ)
           s1 <- scienceStep(0.arcsec, 15.arcsec)
           f1 <- flatStep
         } yield ScienceSteps(s0, f0, s1, f1)

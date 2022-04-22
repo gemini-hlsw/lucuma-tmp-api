@@ -380,7 +380,7 @@ object Init {
       scienceConfiguration =
         ScienceConfigurationInput(
           gmosSouthLongSlit = GmosSouthLongSlitInput(
-            disperser = GmosSouthDisperser.B600_G5323.assign,
+            grating = GmosSouthDisperser.B600_G5323.assign,
             fpu       = GmosSouthFpu.LongSlit_1_00.assign,
             slitWidth = SlitWidthInput.arcseconds(1.0).assign
           ).assign
@@ -429,7 +429,7 @@ object Init {
       scienceConfiguration =
         ScienceConfigurationInput(
           gmosNorthLongSlit = GmosNorthLongSlitInput(
-            disperser = GmosNorthDisperser.B600_G5307.assign,
+            grating = GmosNorthDisperser.B600_G5307.assign,
             fpu       = GmosNorthFpu.LongSlit_1_00.assign,
             slitWidth = SlitWidthInput.arcseconds(1.0).assign
           ).assign

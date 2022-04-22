@@ -38,7 +38,7 @@ trait ArbScienceConfigurationModel {
       Angle
     )].contramap { in => (
       in.filter,
-      in.disperser,
+      in.grating,
       in.fpu,
       in.slitWidth
     )}
