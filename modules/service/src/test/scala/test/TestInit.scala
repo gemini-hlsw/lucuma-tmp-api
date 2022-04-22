@@ -276,7 +276,7 @@ object TestInit {
 
   import GmosModel.{CreateCcdReadout, CreateSouthDynamic}
   import CreateCcdReadout.{ampRead, xBin, yBin}
-  import CreateSouthDynamic.{exposure, filter, fpu, grating, readout, roi, step}
+  import CreateSouthDynamic.{exposure, filter, fpu, gratingConfig, readout, roi, step}
   import StepConfig.CreateStepConfig
 
   private def edit[A](start: A)(state: State[A, _]): A =
@@ -343,7 +343,7 @@ object TestInit {
         _ <- readout.andThen(xBin)    := GmosXBinning.Two
         _ <- readout.andThen(yBin)    := GmosYBinning.Two
         _ <- roi                      := GmosRoi.CentralSpectrum
-        _ <- grating                  := GmosModel.CreateGratingConfig[GmosSouthDisperser](GmosSouthDisperser.B600_G5323, GmosDisperserOrder.One, WavelengthModel.Input.fromNanometers(520.0)).some
+        _ <- gratingConfig                  := GmosModel.CreateGratingConfig[GmosSouthDisperser](GmosSouthDisperser.B600_G5323, GmosDisperserOrder.One, WavelengthModel.Input.fromNanometers(520.0)).some
         _ <- filter                   := Option.empty[GmosSouthFilter]
         _ <- fpu                      := GmosModel.CreateFpu.builtin[GmosSouthFpu](GmosSouthFpu.LongSlit_1_00).some
       } yield ()

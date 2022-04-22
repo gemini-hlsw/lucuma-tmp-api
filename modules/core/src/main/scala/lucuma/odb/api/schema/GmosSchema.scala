@@ -495,10 +495,10 @@ object GmosSchema {
         ),
 
         Field(
-          name        = "grating",
+          name        = "gratingConfig",
           fieldType   = OptionType(GmosGratingConfigType[D](site)),
           description = Some(s"${gmos(site).longName} grating"),
-          resolve     = _.value.grating
+          resolve     = _.value.gratingConfig
         ),
 
         Field(
@@ -531,13 +531,13 @@ object GmosSchema {
       s"${gmos(site).tag.capitalize}DynamicInput",
       s"${gmos(site).longName} instrument configuration input",
       List(
-        InputField("exposure", InputObjectTypeDuration,            "Exposure time"),
-        InputField("readout",  InputObjectTypeGmosCcdReadoutInput, "GMOS CCD readout"),
-        InputField("dtax",     EnumTypeGmosDtax,                   "GMOS detector x offset"),
-        InputField("roi",      EnumTypeGmosRoi,                    "GMOS region of interest"),
-        InputField("grating",  OptionInputType(InputObjectTypeGratingConfigInput[D](site)), s"${gmos(site).longName} grating"),
-        InputField("filter",   OptionInputType(implicitly[EnumType[L]]),              s"${gmos(site).longName} filter"),
-        InputField("fpu",      OptionInputType(InputObjectFpuInput[U](site)),         s"${gmos(site).longName} FPU")
+        InputField("exposure",      InputObjectTypeDuration,            "Exposure time"),
+        InputField("readout",       InputObjectTypeGmosCcdReadoutInput, "GMOS CCD readout"),
+        InputField("dtax",          EnumTypeGmosDtax,                   "GMOS detector x offset"),
+        InputField("roi",           EnumTypeGmosRoi,                    "GMOS region of interest"),
+        InputField("gratingConfig", OptionInputType(InputObjectTypeGratingConfigInput[D](site)), s"${gmos(site).longName} grating"),
+        InputField("filter",        OptionInputType(implicitly[EnumType[L]]),              s"${gmos(site).longName} filter"),
+        InputField("fpu",           OptionInputType(InputObjectFpuInput[U](site)),         s"${gmos(site).longName} FPU")
       )
     )
 

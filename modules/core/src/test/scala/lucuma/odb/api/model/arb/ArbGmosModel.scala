@@ -385,7 +385,7 @@ trait ArbGmosModel {
         in.readout,
         in.dtax,
         in.roi,
-        in.grating,
+        in.gratingConfig,
         in.filter,
         in.fpu
       )
@@ -419,7 +419,7 @@ trait ArbGmosModel {
         in.readout,
         in.dtax,
         in.roi,
-        in.grating,
+        in.gratingConfig,
         in.filter,
         in.fpu
       )
@@ -453,7 +453,7 @@ trait ArbGmosModel {
         in.readout,
         in.dtax,
         in.roi,
-        in.grating,
+        in.gratingConfig,
         in.filter,
         in.fpu
       )
@@ -487,7 +487,7 @@ trait ArbGmosModel {
         in.readout,
         in.dtax,
         in.roi,
-        in.grating,
+        in.gratingConfig,
         in.filter,
         in.fpu
       )

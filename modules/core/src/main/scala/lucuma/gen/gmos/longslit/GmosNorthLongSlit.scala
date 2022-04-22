@@ -186,7 +186,7 @@ object GmosNorthLongSlit {
           _  <- NorthDynamic.exposure := exposureTime.value
           _  <- NorthDynamic.filter   := filter.some
           _  <- NorthDynamic.fpu      := none[Either[CustomMask, GmosNorthFpu]]
-          _  <- NorthDynamic.grating  := none[GratingConfig[GmosNorthDisperser]]
+          _  <- NorthDynamic.gratingConfig  := none[GratingConfig[GmosNorthDisperser]]
           _  <- NorthDynamic.xBin     := GmosXBinning.Two
           _  <- NorthDynamic.yBin     := GmosYBinning.Two
           _  <- NorthDynamic.roi      := GmosRoi.Ccd2
@@ -262,7 +262,7 @@ object GmosNorthLongSlit {
           _  <- NorthDynamic.exposure := exposureTime.value
           _  <- NorthDynamic.xBin     := mode.fpu.xbin(sourceProfile, imageQuality, sampling)
           _  <- NorthDynamic.yBin     := GmosYBinning.Two
-          _  <- NorthDynamic.grating  := GratingConfig(mode.disperser, GmosDisperserOrder.One, λ).some
+          _  <- NorthDynamic.gratingConfig  := GratingConfig(mode.disperser, GmosDisperserOrder.One, λ).some
           _  <- NorthDynamic.filter   := mode.filter
           _  <- NorthDynamic.fpu      := mode.fpu.asRight.some
           s0 <- scienceStep(0.arcsec, 0.arcsec)

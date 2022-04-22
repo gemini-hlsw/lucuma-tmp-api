@@ -50,7 +50,7 @@ final class GmosModelSuite extends DisciplineSuite {
   checkAll("GmosModel.CreateSouthDynamic.step.exposure",   OptionalTests(GmosModel.CreateSouthDynamic.step.exposure))
   checkAll("GmosModel.CreateSouthDynamic.step.p",          OptionalTests(GmosModel.CreateSouthDynamic.step.p))
   checkAll("GmosModel.CreateSouthDynamic.step.q",          OptionalTests(GmosModel.CreateSouthDynamic.step.q))
-  checkAll("GmosModel.CreateSouthDynamic.step.grating",    OptionalTests(GmosModel.CreateSouthDynamic.step.grating))
+  checkAll("GmosModel.CreateSouthDynamic.step.grating",    OptionalTests(GmosModel.CreateSouthDynamic.step.gratingConfig))
   checkAll("GmosModel.CreateSouthDynamic.step.wavelength", OptionalTests(GmosModel.CreateSouthDynamic.step.wavelength))
 
 }

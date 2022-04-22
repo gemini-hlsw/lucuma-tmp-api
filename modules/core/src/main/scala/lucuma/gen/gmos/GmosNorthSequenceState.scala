@@ -28,7 +28,7 @@ private[gmos] trait GmosNorthSequenceState extends SequenceState[NorthDynamic] {
       ),
       dtax    = GmosDtax.Zero,
       roi     = GmosRoi.FullFrame,
-      grating = None,
+      gratingConfig = None,
       filter  = None,
       fpu     = None
     )
