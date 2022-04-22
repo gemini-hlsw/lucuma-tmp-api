@@ -408,57 +408,57 @@ object GmosModel {
   }
 
 
-  final case class Grating[D](
-    disperser:  D,
+  final case class GratingConfig[D](
+    grating:    D,
     order:      GmosDisperserOrder,
     wavelength: Wavelength
   )
 
-  object Grating extends GratingOptics {
+  object GratingConfig extends GratingConfigOptics {
 
-    implicit def EqGmosGrating[D: Eq]: Eq[Grating[D]] =
+    implicit def EqGmosGrating[D: Eq]: Eq[GratingConfig[D]] =
       Eq.by { a => (
-        a.disperser,
+        a.grating,
         a.order,
         a.wavelength
       )}
 
   }
 
-  sealed trait GratingOptics { self: Grating.type =>
+  sealed trait GratingConfigOptics { self: GratingConfig.type =>
 
-    def disperser[D]: Lens[Grating[D], D] =
-      Focus[Grating[D]](_.disperser)
+    def disperser[D]: Lens[GratingConfig[D], D] =
+      Focus[GratingConfig[D]](_.grating)
 
-    def order[D]: Lens[Grating[D], GmosDisperserOrder] =
-      Focus[Grating[D]](_.order)
+    def order[D]: Lens[GratingConfig[D], GmosDisperserOrder] =
+      Focus[GratingConfig[D]](_.order)
 
-    def wavelength[D]: Lens[Grating[D], Wavelength] =
-      Focus[Grating[D]](_.wavelength)
+    def wavelength[D]: Lens[GratingConfig[D], Wavelength] =
+      Focus[GratingConfig[D]](_.wavelength)
 
   }
 
-  final case class CreateGrating[D](
-    disperser:  D,
+  final case class CreateGratingConfig[D](
+    grating:    D,
     order:      GmosDisperserOrder,
     wavelength: WavelengthModel.Input
   ) {
 
-    val create: ValidatedInput[Grating[D]] =
-      wavelength.toWavelength("wavelength").map(Grating(disperser, order, _))
+    val create: ValidatedInput[GratingConfig[D]] =
+      wavelength.toWavelength("wavelength").map(GratingConfig(grating, order, _))
 
   }
 
-  object CreateGrating {
-    def wavelength[D]: Lens[CreateGrating[D], WavelengthModel.Input] =
-      GenLens[CreateGrating[D]](_.wavelength)
+  object CreateGratingConfig {
+    def wavelength[D]: Lens[CreateGratingConfig[D], WavelengthModel.Input] =
+      GenLens[CreateGratingConfig[D]](_.wavelength)
 
-    implicit def DecoderCreateGrating[D: Decoder]: Decoder[CreateGrating[D]] =
-      deriveDecoder[CreateGrating[D]]
+    implicit def DecoderCreateGrating[D: Decoder]: Decoder[CreateGratingConfig[D]] =
+      deriveDecoder[CreateGratingConfig[D]]
 
-    implicit def EqCreateGrating[D: Eq]: Eq[CreateGrating[D]] =
+    implicit def EqCreateGratingConfig[D: Eq]: Eq[CreateGratingConfig[D]] =
       Eq.by { a => (
-        a.disperser,
+        a.grating,
         a.order,
         a.wavelength
       )}
@@ -470,7 +470,7 @@ object GmosModel {
     def readout:  CcdReadout
     def dtax:     GmosDtax
     def roi:      GmosRoi
-    def grating:  Option[Grating[D]]
+    def grating:  Option[GratingConfig[D]]
     def filter:   Option[L]
     def fpu:      Option[Either[CustomMask, U]]
   }
@@ -480,7 +480,7 @@ object GmosModel {
     readout:  CcdReadout,
     dtax:     GmosDtax,
     roi:      GmosRoi,
-    grating:  Option[Grating[GmosNorthDisperser]],
+    grating:  Option[GratingConfig[GmosNorthDisperser]],
     filter:   Option[GmosNorthFilter],
     fpu:      Option[Either[CustomMask, GmosNorthFpu]]
   ) extends Dynamic[GmosNorthDisperser, GmosNorthFilter, GmosNorthFpu]
@@ -520,14 +520,14 @@ object GmosModel {
     val roi: Lens[NorthDynamic, GmosRoi] =
       Focus[NorthDynamic](_.roi)
 
-    val grating: Lens[NorthDynamic, Option[Grating[GmosNorthDisperser]]] =
+    val grating: Lens[NorthDynamic, Option[GratingConfig[GmosNorthDisperser]]] =
       Focus[NorthDynamic](_.grating)
 
     val wavelength: Optional[NorthDynamic, Wavelength] =
       Optional[NorthDynamic, Wavelength](
         _.grating.map(_.wavelength)
       )(
-        λ => grating.modify(_.map(Grating.wavelength.replace(λ)))
+        λ => grating.modify(_.map(GratingConfig.wavelength.replace(λ)))
       )
 
     val filter: Lens[NorthDynamic, Option[GmosNorthFilter]] =
@@ -543,7 +543,7 @@ object GmosModel {
     readout:  CcdReadout,
     dtax:     GmosDtax,
     roi:      GmosRoi,
-    grating:  Option[Grating[GmosSouthDisperser]],
+    grating:  Option[GratingConfig[GmosSouthDisperser]],
     filter:   Option[GmosSouthFilter],
     fpu:      Option[Either[CustomMask, GmosSouthFpu]]
   ) extends Dynamic[GmosSouthDisperser, GmosSouthFilter, GmosSouthFpu]
@@ -577,7 +577,7 @@ object GmosModel {
     val roi: Lens[SouthDynamic, GmosRoi] =
       Focus[SouthDynamic](_.roi)
 
-    val grating: Lens[SouthDynamic, Option[Grating[GmosSouthDisperser]]] =
+    val grating: Lens[SouthDynamic, Option[GratingConfig[GmosSouthDisperser]]] =
       Focus[SouthDynamic](_.grating)
 
     val filter: Lens[SouthDynamic, Option[GmosSouthFilter]] =
@@ -594,7 +594,7 @@ object GmosModel {
     def readout:  CreateCcdReadout
     def dtax:     GmosDtax
     def roi:      GmosRoi
-    def grating:  Option[CreateGrating[D]]
+    def grating:  Option[CreateGratingConfig[D]]
     def filter:   Option[L]
     def fpu:      Option[CreateFpu[U]]
 
@@ -605,7 +605,7 @@ object GmosModel {
     readout:  CreateCcdReadout                          = CreateCcdReadout(),
     dtax:     GmosDtax                                  = GmosDtax.Zero,
     roi:      GmosRoi                                   = GmosRoi.FullFrame,
-    grating:  Option[CreateGrating[GmosNorthDisperser]] = None,
+    grating:  Option[CreateGratingConfig[GmosNorthDisperser]] = None,
     filter:   Option[GmosNorthFilter]                   = None,
     fpu:      Option[CreateFpu[GmosNorthFpu]]           = None
   ) extends CreateDynamic[GmosNorthDisperser, GmosNorthFilter, GmosNorthFpu] {
@@ -649,7 +649,7 @@ object GmosModel {
     readout:  CreateCcdReadout                          = CreateCcdReadout(),
     dtax:     GmosDtax                                  = GmosDtax.Zero,
     roi:      GmosRoi                                   = GmosRoi.FullFrame,
-    grating:  Option[CreateGrating[GmosSouthDisperser]] = None,
+    grating:  Option[CreateGratingConfig[GmosSouthDisperser]] = None,
     filter:   Option[GmosSouthFilter]                   = None,
     fpu:      Option[CreateFpu[GmosSouthFpu]]           = None
   ) extends CreateDynamic[GmosSouthDisperser, GmosSouthFilter, GmosSouthFpu] {
@@ -674,7 +674,7 @@ object GmosModel {
     val roi: Lens[CreateSouthDynamic, GmosRoi] =
       GenLens[CreateSouthDynamic](_.roi)
 
-    val grating: Lens[CreateSouthDynamic, Option[CreateGrating[GmosSouthDisperser]]] =
+    val grating: Lens[CreateSouthDynamic, Option[CreateGratingConfig[GmosSouthDisperser]]] =
       GenLens[CreateSouthDynamic](_.grating)
 
     val filter: Lens[CreateSouthDynamic, Option[GmosSouthFilter]] =
@@ -702,11 +702,11 @@ object GmosModel {
 
     object instrument {
 
-      val grating: Optional[CreateSouthDynamic, CreateGrating[GmosSouthDisperser]] =
+      val grating: Optional[CreateSouthDynamic, CreateGratingConfig[GmosSouthDisperser]] =
         CreateSouthDynamic.grating.some
 
       val wavelength: Optional[CreateSouthDynamic, WavelengthModel.Input] =
-        grating.andThen(CreateGrating.wavelength[GmosSouthDisperser])
+        grating.andThen(CreateGratingConfig.wavelength[GmosSouthDisperser])
 
     }
 
@@ -723,11 +723,11 @@ object GmosModel {
       val q: Optional[StepConfig.CreateStepConfig[CreateSouthDynamic], OffsetModel.ComponentInput] =
         StepConfig.CreateStepConfig.q[CreateSouthDynamic]
 
-      val grating: Optional[StepConfig.CreateStepConfig[CreateSouthDynamic], CreateGrating[GmosSouthDisperser]] =
+      val grating: Optional[StepConfig.CreateStepConfig[CreateSouthDynamic], CreateGratingConfig[GmosSouthDisperser]] =
         instrumentConfig.andThen(instrument.grating)
 
       val wavelength: Optional[StepConfig.CreateStepConfig[CreateSouthDynamic], WavelengthModel.Input] =
-        grating.andThen(CreateGrating.wavelength[GmosSouthDisperser])
+        grating.andThen(CreateGratingConfig.wavelength[GmosSouthDisperser])
 
     }
   }

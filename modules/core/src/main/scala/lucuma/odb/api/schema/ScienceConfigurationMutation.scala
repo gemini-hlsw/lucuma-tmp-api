@@ -26,7 +26,7 @@ trait ScienceConfigurationMutation {
       "Edit or create GMOS South Long Slit configuration",
       List(
         EnumTypeGmosSouthFilter.notNullableField("filter"),
-        EnumTypeGmosSouthDisperser.notNullableField("disperser"),
+        EnumTypeGmosSouthGrating.notNullableField("disperser"),
         EnumTypeGmosSouthFpu.notNullableField("fpu"),
         InputSlitWidthInput.notNullableField("slitWidth")
       )
@@ -38,7 +38,7 @@ trait ScienceConfigurationMutation {
       "Edit or create GMOS North Long Slit configuration",
       List(
         EnumTypeGmosNorthFilter.notNullableField("filter"),
-        EnumTypeGmosNorthDisperser.notNullableField("disperser"),
+        EnumTypeGmosNorthGrating.notNullableField("disperser"),
         EnumTypeGmosNorthFpu.notNullableField("fpu"),
         InputSlitWidthInput.notNullableField("slitWidth")
       )

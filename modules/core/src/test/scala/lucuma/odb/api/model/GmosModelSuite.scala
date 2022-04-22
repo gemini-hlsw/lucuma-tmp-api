@@ -38,8 +38,8 @@ final class GmosModelSuite extends DisciplineSuite {
   checkAll("GmosModel.CustomMask",                  EqTests[GmosModel.CustomMask].eqv)
   checkAll("GmosModel.CreateCustomMask",            EqTests[GmosModel.CreateCustomMask].eqv)
 
-  checkAll("GmosModel.Grating",                     EqTests[GmosModel.Grating[GmosNorthDisperser]].eqv)
-  checkAll("GmosModel.CreateGrating",               EqTests[GmosModel.CreateGrating[GmosNorthDisperser]].eqv)
+  checkAll("GmosModel.Grating",                     EqTests[GmosModel.GratingConfig[GmosNorthDisperser]].eqv)
+  checkAll("GmosModel.CreateGrating",               EqTests[GmosModel.CreateGratingConfig[GmosNorthDisperser]].eqv)
 
   checkAll("GmosModel.NorthDynamic",                EqTests[GmosModel.NorthDynamic].eqv)
   checkAll("GmosModel.CreateNorthDynamic",          EqTests[GmosModel.CreateNorthDynamic].eqv)
