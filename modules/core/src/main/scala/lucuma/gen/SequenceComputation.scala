@@ -11,7 +11,7 @@ import cats.syntax.functor._
 import cats.syntax.option._
 import cats.syntax.traverse._
 import lucuma.core.model.Observation
-import lucuma.gen.gmos.longslit.GmosNorthLongSlit
+import lucuma.gen.gmos.longslit.{GmosNorthLongSlit, GmosSouthLongSlit}
 import lucuma.gen.gmos.{GmosNorthGenerator, GmosSouthGenerator}
 import lucuma.itc.client.{ItcClient, ItcResult}
 import lucuma.odb.api.model.{ExecutionContext, ExecutionModel, GmosModel, ObservationModel, ScienceConfigurationModel, Visit, VisitRecord, VisitRecords}
@@ -59,6 +59,8 @@ object SequenceComputation {
       o.scienceConfiguration.flatTraverse {
         case _: ScienceConfigurationModel.Modes.GmosNorthLongSlit =>
           run(Instrument.GmosNorth, GmosNorthLongSlit.query(itc, odb, o))
+        case _: ScienceConfigurationModel.Modes.GmosSouthLongSlit =>
+          run(Instrument.GmosSouth, GmosSouthLongSlit.query(itc, odb, o))
         case _                                                    =>
           Applicative[F].pure(None)
       }

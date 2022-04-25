@@ -82,7 +82,7 @@ final class GmosNorthLongSlitSuite extends ScalaCheckSuite {
 
     forAll { (mode: Modes.GmosNorthLongSlit, sp: SourceProfile, iq: ImageQuality) =>
 
-      val acq = GmosNorthLongSlit.AcquisitionSteps(mode.fpu, acqTime, λ)
+      val acq = GmosNorthLongSlit.Acquisition.compute(mode.fpu, acqTime, λ)
       val stp = List(
         RecordedStep(acq.ccd2, isExecuted = true),
         RecordedStep(acq.p10,  isExecuted = true),
@@ -134,7 +134,7 @@ final class GmosNorthLongSlitSuite extends ScalaCheckSuite {
   property("skip executed atoms") {
 
     forAll { (mode: Modes.GmosNorthLongSlit, sp: SourceProfile, iq: ImageQuality) =>
-      val sci   = GmosNorthLongSlit.ScienceSteps(mode, sciTime, λ, sp, iq, sampling)
+      val sci   = GmosNorthLongSlit.Science.compute(mode, sciTime, λ, sp, iq, sampling)
       val stp   = sci.atom0.toList.map(c => RecordedStep(c, isExecuted = true))
       val seq   = longSlit(mode, sp, iq).science(stp)
       val atoms = seq.unsafeRunSync().atoms.flatMap(_.steps.toList).map(_.config)
@@ -146,7 +146,7 @@ final class GmosNorthLongSlitSuite extends ScalaCheckSuite {
 
     forAll { (mode: Modes.GmosNorthLongSlit, sp: SourceProfile, iq: ImageQuality) =>
 
-      val sci   = GmosNorthLongSlit.ScienceSteps(mode, sciTime, λ, sp, iq, sampling)
+      val sci   = GmosNorthLongSlit.Science.compute(mode, sciTime, λ, sp, iq, sampling)
 
       val steps =
         List.unfold(0)(i => if (i < exposureCount) (sci.atom(i), i+1).some else none)
@@ -163,7 +163,7 @@ final class GmosNorthLongSlitSuite extends ScalaCheckSuite {
 
     forAll { (mode: Modes.GmosNorthLongSlit, sp: SourceProfile, iq: ImageQuality) =>
 
-      val sci   = GmosNorthLongSlit.ScienceSteps(mode, sciTime, λ, sp, iq, sampling)
+      val sci   = GmosNorthLongSlit.Science.compute(mode, sciTime, λ, sp, iq, sampling)
       val steps =
         List.unfold(0)(i => if (i < exposureCount) (sci.atom(i), i+1).some else none)
           .flatMap(nel => nel.toList)
@@ -179,8 +179,8 @@ final class GmosNorthLongSlitSuite extends ScalaCheckSuite {
 
     forAll { (mode: Modes.GmosNorthLongSlit, sp: SourceProfile, iq: ImageQuality) =>
 
-      val acq   = GmosNorthLongSlit.AcquisitionSteps(mode.fpu, acqTime, λ)
-      val sci   = GmosNorthLongSlit.ScienceSteps(mode, sciTime, λ, sp, iq, sampling)
+      val acq   = GmosNorthLongSlit.Acquisition.compute(mode.fpu, acqTime, λ)
+      val sci   = GmosNorthLongSlit.Science.compute(mode, sciTime, λ, sp, iq, sampling)
       val steps =
         List.unfold(0)(i => if (i < exposureCount) (sci.atom(i), i+1).some else none)
           .flatMap(nel => nel.toList)

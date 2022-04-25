@@ -23,22 +23,23 @@ import lucuma.core.optics.syntax.optional._
 import lucuma.gen.gmos.longslit.GmosLongSlit.{AcquisitionSteps, ScienceSteps}
 import lucuma.gen.gmos.longslit.syntax.all._
 import lucuma.itc.client.{ItcClient, ItcResult}
-import lucuma.odb.api.model.GmosModel.{CustomMask, GratingConfig, NorthDynamic, NorthStatic}
+import lucuma.odb.api.model.GmosModel.{CustomMask, GratingConfig, SouthDynamic, SouthStatic}
 import lucuma.odb.api.model.{ObservationModel, ScienceConfigurationModel, Sequence}
 import lucuma.odb.api.repo.OdbRepo
 import spire.std.int._
 
 import scala.concurrent.duration._
 
-sealed trait GmosNorthLongSlit[F[_]] extends GmosNorthGenerator[F]
+sealed trait GmosSouthLongSlit[F[_]] extends GmosSouthGenerator[F]
+
 
 /**
- * Sequence generation for GMOS North Longslit
+ * Sequence generation for GMOS South Longslit
  */
-object GmosNorthLongSlit {
+object GmosSouthLongSlit {
 
   /**
-   * Queries the ITC and ODB to come up with a GMOS North LongSlit generator,
+   * Queries the ITC and ODB to come up with a GMOS South LongSlit generator,
    * if possible.
    */
   def query[F[_]: Sync](
@@ -46,19 +47,19 @@ object GmosNorthLongSlit {
     odb:         OdbRepo[F],
     observation: ObservationModel,
     sampling:    PosDouble = GmosLongSlit.DefaultSampling,
-  ): F[Either[ItcResult.Error, Option[GmosNorthLongSlit[F]]]] =
+  ): F[Either[ItcResult.Error, Option[GmosSouthLongSlit[F]]]] =
 
     GmosLongSlit.Input.query(itc, odb, observation, sampling) {
-      case gnls: ScienceConfigurationModel.Modes.GmosNorthLongSlit => gnls
+      case gnls: ScienceConfigurationModel.Modes.GmosSouthLongSlit => gnls
     }.map(_.map(_.map(fromInput[F])))
 
   def fromInput[F[_]: Sync](
-    in: GmosLongSlit.Input[ScienceConfigurationModel.Modes.GmosNorthLongSlit]
-  ): GmosNorthLongSlit[F] =
+    in: GmosLongSlit.Input[ScienceConfigurationModel.Modes.GmosSouthLongSlit]
+  ): GmosSouthLongSlit[F] =
     apply(in.mode, in.λ, in.imageQuality, in.sampling, in.sourceProfile, in.acqTime, in.sciTime, in.exposureCount)
 
   def apply[F[_]: Sync](
-    mode:          ScienceConfigurationModel.Modes.GmosNorthLongSlit,
+    mode:          ScienceConfigurationModel.Modes.GmosSouthLongSlit,
     λ:             Wavelength,
     imageQuality:  ImageQuality,
     sampling:      PosDouble,
@@ -66,66 +67,66 @@ object GmosNorthLongSlit {
     acqTime:       AcqExposureTime,
     sciTime:       SciExposureTime,
     exposureCount: PosInt
-  ): GmosNorthLongSlit[F] =
+  ): GmosSouthLongSlit[F] =
 
-    new GmosNorthLongSlit[F] with GmosLongSlit[F, NorthStatic, NorthDynamic] {
+    new GmosSouthLongSlit[F] with GmosLongSlit[F, SouthStatic, SouthDynamic] {
 
-      override def static: NorthStatic =
-        NorthStatic(
-          detector      = GmosNorthDetector.Hamamatsu,
+      override def static: SouthStatic =
+        SouthStatic(
+          detector      = GmosSouthDetector.Hamamatsu,
           mosPreImaging = MosPreImaging.IsNotMosPreImaging,
           nodAndShuffle = Option.empty,
-          stageMode     = GmosNorthStageMode.FollowXy
+          stageMode     = GmosSouthStageMode.FollowXy
         )
 
-      override def acquisitionSteps: AcquisitionSteps[NorthDynamic] =
+      override def acquisitionSteps: AcquisitionSteps[SouthDynamic] =
         Acquisition.compute(mode.fpu, acqTime, λ)
 
-      override def scienceSteps: ScienceSteps[NorthDynamic] =
+      override def scienceSteps: ScienceSteps[SouthDynamic] =
         Science.compute(mode, sciTime, λ, sourceProfile, imageQuality, sampling)
 
       override def acquisition(
-        recordedSteps: List[RecordedStep[NorthDynamic]]
-      ): F[Sequence[NorthDynamic]] =
+        recordedSteps: List[RecordedStep[SouthDynamic]]
+      ): F[Sequence[SouthDynamic]] =
         longSlitAcquisition(recordedSteps)
 
       override def science(
-        recordedSteps: List[RecordedStep[NorthDynamic]]
-      ): F[Sequence[NorthDynamic]] =
+        recordedSteps: List[RecordedStep[SouthDynamic]]
+      ): F[Sequence[SouthDynamic]] =
         longSlitScience(exposureCount, recordedSteps)
     }
 
-  object Acquisition extends GmosNorthSequenceState {
+  object Acquisition extends GmosSouthSequenceState {
 
     def compute(
-      fpu:          GmosNorthFpu,
+      fpu:          GmosSouthFpu,
       exposureTime: AcqExposureTime,
       λ:            Wavelength,
-    ): AcquisitionSteps[NorthDynamic] = {
+    ): AcquisitionSteps[SouthDynamic] = {
 
-      def filter: GmosNorthFilter = GmosNorthFilter.allAcquisition.minBy { f =>
+      def filter: GmosSouthFilter = GmosSouthFilter.allAcquisition.minBy { f =>
         (λ.toPicometers.value.value - f.wavelength.toPicometers.value.value).abs
       }
 
       eval {
         for {
-          _  <- NorthDynamic.exposure      := exposureTime.value
-          _  <- NorthDynamic.filter        := filter.some
-          _  <- NorthDynamic.fpu           := none[Either[CustomMask, GmosNorthFpu]]
-          _  <- NorthDynamic.gratingConfig := none[GratingConfig[GmosNorthDisperser]]
-          _  <- NorthDynamic.xBin          := GmosXBinning.Two
-          _  <- NorthDynamic.yBin          := GmosYBinning.Two
-          _  <- NorthDynamic.roi           := GmosRoi.Ccd2
+          _  <- SouthDynamic.exposure      := exposureTime.value
+          _  <- SouthDynamic.filter        := filter.some
+          _  <- SouthDynamic.fpu           := none[Either[CustomMask, GmosSouthFpu]]
+          _  <- SouthDynamic.gratingConfig := none[GratingConfig[GmosSouthDisperser]]
+          _  <- SouthDynamic.xBin          := GmosXBinning.Two
+          _  <- SouthDynamic.yBin          := GmosYBinning.Two
+          _  <- SouthDynamic.roi           := GmosRoi.Ccd2
           s0 <- scienceStep(0.arcsec, 0.arcsec)
 
-          _  <- NorthDynamic.exposure      := 20.seconds
-          _  <- NorthDynamic.fpu           := fpu.asRight.some
-          _  <- NorthDynamic.xBin          := GmosXBinning.One
-          _  <- NorthDynamic.yBin          := GmosYBinning.One
-          _  <- NorthDynamic.roi           := GmosRoi.CentralStamp
+          _  <- SouthDynamic.exposure      := 20.seconds
+          _  <- SouthDynamic.fpu           := fpu.asRight.some
+          _  <- SouthDynamic.xBin          := GmosXBinning.One
+          _  <- SouthDynamic.yBin          := GmosYBinning.One
+          _  <- SouthDynamic.roi           := GmosRoi.CentralStamp
           s1 <- scienceStep(10.arcsec, 0.arcsec)
 
-          _  <- NorthDynamic.exposure      := exposureTime.value * 4
+          _  <- SouthDynamic.exposure      := exposureTime.value * 4
           s2 <- scienceStep(0.arcsec, 0.arcsec)
 
         } yield AcquisitionSteps(s0, s1, s2)
@@ -135,32 +136,32 @@ object GmosNorthLongSlit {
 
   }
 
-  object Science extends GmosNorthSequenceState {
+  object Science extends GmosSouthSequenceState {
 
     def compute(
-      mode:          ScienceConfigurationModel.Modes.GmosNorthLongSlit,
+      mode:          ScienceConfigurationModel.Modes.GmosSouthLongSlit,
       exposureTime:  SciExposureTime,
       λ:             Wavelength,
       sourceProfile: SourceProfile,
       imageQuality:  ImageQuality,
       sampling:      PosDouble
-    ): ScienceSteps[NorthDynamic] = {
+    ): ScienceSteps[SouthDynamic] = {
 
       def sum(λ: Wavelength, Δ: Quantity[PosInt, Nanometer]): Wavelength =
         new Wavelength(λ.toPicometers + Δ.to[PosInt, Picometer])
 
       eval {
         for {
-          _  <- NorthDynamic.exposure      := exposureTime.value
-          _  <- NorthDynamic.xBin          := mode.fpu.xbin(sourceProfile, imageQuality, sampling)
-          _  <- NorthDynamic.yBin          := GmosYBinning.Two
-          _  <- NorthDynamic.gratingConfig := GratingConfig(mode.grating, GmosDisperserOrder.One, λ).some
-          _  <- NorthDynamic.filter        := mode.filter
-          _  <- NorthDynamic.fpu           := mode.fpu.asRight.some
+          _  <- SouthDynamic.exposure      := exposureTime.value
+          _  <- SouthDynamic.xBin          := mode.fpu.xbin(sourceProfile, imageQuality, sampling)
+          _  <- SouthDynamic.yBin          := GmosYBinning.Two
+          _  <- SouthDynamic.gratingConfig := GratingConfig(mode.grating, GmosDisperserOrder.One, λ).some
+          _  <- SouthDynamic.filter        := mode.filter
+          _  <- SouthDynamic.fpu           := mode.fpu.asRight.some
           s0 <- scienceStep(0.arcsec, 0.arcsec)
           f0 <- flatStep
 
-          _  <- NorthDynamic.wavelength    := sum(λ, mode.grating.Δλ)
+          _  <- SouthDynamic.wavelength    := sum(λ, mode.grating.Δλ)
           s1 <- scienceStep(0.arcsec, 15.arcsec)
           f1 <- flatStep
         } yield ScienceSteps(s0, f0, s1, f1)

@@ -355,45 +355,7 @@ object Init {
        .map(AtomModel.Create(_))
     )
 
-  def obs(
-    pid:   Program.Id,
-    target: Option[TargetModel]
-  ): ObservationModel.Create =
-    ObservationModel.Create(
-      observationId        = None,
-      programId            = pid,
-      subtitle             = None,
-      status               = ObsStatus.New.some,
-      activeStatus         = ObsActiveStatus.Active.some,
-      targetEnvironment    = target.fold(none[TargetEnvironmentInput]) { sidereal =>
-        TargetEnvironmentInput.asterism(sidereal.id).some
-      },
-      constraintSet        = None,
-      scienceRequirements  =
-        ScienceRequirementsInput(
-          ScienceMode.Spectroscopy.assign,
-          SpectroscopyScienceRequirementsInput(
-            wavelength    = WavelengthModel.Input.fromNanometers(520).assign,
-            signalToNoise = PosBigDecimal.unsafeFrom(700).assign
-          ).assign
-        ).some,
-      scienceConfiguration =
-        ScienceConfigurationInput(
-          gmosSouthLongSlit = GmosSouthLongSlitInput(
-            grating = GmosSouthDisperser.B600_G5323.assign,
-            fpu       = GmosSouthFpu.LongSlit_1_00.assign,
-            slitWidth = SlitWidthInput.arcseconds(1.0).assign
-          ).assign
-        ).some,
-      config               =
-        ExecutionModel.Create.gmosSouth(
-          GmosModel.CreateSouthStatic.Default,
-          acquisitionSequence,
-          scienceSequence
-        ).some
-    )
-
-  def autoObs(
+  def baseObs(
     pid:   Program.Id,
     target: Option[TargetModel]
   ): ObservationModel.Create =
@@ -426,17 +388,49 @@ object Init {
             signalToNoise = PosBigDecimal.unsafeFrom(700).assign
           ).assign
         ).some,
-      scienceConfiguration =
-        ScienceConfigurationInput(
-          gmosNorthLongSlit = GmosNorthLongSlitInput(
-            grating = GmosNorthDisperser.B600_G5307.assign,
-            fpu       = GmosNorthFpu.LongSlit_1_00.assign,
-            slitWidth = SlitWidthInput.arcseconds(1.0).assign
-          ).assign
-        ).some,
+      scienceConfiguration = None,
       config               = None
     )
 
+  def gmosSouthAutoObs(
+    pid:   Program.Id,
+    target: Option[TargetModel]
+  ): ObservationModel.Create =
+    ObservationModel.Create.scienceConfiguration.replace(
+        ScienceConfigurationInput(
+          gmosSouthLongSlit = GmosSouthLongSlitInput(
+            grating   = GmosSouthDisperser.B600_G5323.assign,
+            fpu       = GmosSouthFpu.LongSlit_1_00.assign,
+            slitWidth = SlitWidthInput.arcseconds(1.0).assign
+          ).assign
+        ).some
+    )(baseObs(pid, target))
+
+  def gmosSouthManualObs(
+    pid:   Program.Id,
+    target: Option[TargetModel]
+  ): ObservationModel.Create =
+    ObservationModel.Create.config.replace(
+      ExecutionModel.Create.gmosSouth(
+        GmosModel.CreateSouthStatic.Default,
+        acquisitionSequence,
+        scienceSequence
+      ).some
+    )(baseObs(pid, target))
+
+  def gmosNorthAutoObs(
+    pid:   Program.Id,
+    target: Option[TargetModel]
+  ): ObservationModel.Create =
+    ObservationModel.Create.scienceConfiguration.replace(
+        ScienceConfigurationInput(
+          gmosNorthLongSlit = GmosNorthLongSlitInput(
+            grating   = GmosNorthDisperser.B600_G5307.assign,
+            fpu       = GmosNorthFpu.LongSlit_1_00.assign,
+            slitWidth = SlitWidthInput.arcseconds(1.0).assign
+          ).assign
+        ).some
+    )(baseObs(pid, target))
 
   /**
    * Initializes a (presumably) empty ODB with some demo values.
@@ -457,10 +451,10 @@ object Init {
             )
       cs <- targets.liftTo[F]
       ts <- cs.traverse(repo.target.insert(p.id, _))
-      _  <- repo.observation.insert(obs(p.id, ts.headOption))
-      _  <- repo.observation.insert(obs(p.id, ts.lastOption))
-      _  <- repo.observation.insert(obs(p.id, None))
-      _  <- repo.observation.insert(autoObs(p.id, ts.lastOption))
+      _  <- repo.observation.insert(gmosSouthAutoObs(p.id, ts.headOption))
+      _  <- repo.observation.insert(gmosSouthAutoObs(p.id, ts.lastOption))
+      _  <- repo.observation.insert(gmosSouthManualObs(p.id, None))
+      _  <- repo.observation.insert(gmosNorthAutoObs(p.id, ts.lastOption))
     } yield ()
 
 }

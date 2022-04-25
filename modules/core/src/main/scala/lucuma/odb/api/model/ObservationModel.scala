@@ -152,6 +152,11 @@ object ObservationModel extends ObservationOptics {
         a.config
       )}
 
+    val scienceConfiguration: Lens[Create, Option[ScienceConfigurationInput]] =
+      Focus[Create](_.scienceConfiguration)
+
+    val config: Lens[Create, Option[ExecutionModel.Create]] =
+      Focus[Create](_.config)
   }
 
   final case class Edit(
