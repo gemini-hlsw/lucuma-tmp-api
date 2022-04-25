@@ -4,14 +4,21 @@
 package lucuma.odb.api.model
 
 import cats.Eq
+import cats.data.StateT
+import cats.syntax.apply._
+import clue.data.Input
 import coulomb.Quantity
 import coulomb.cats.implicits._
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.all.{NonEmptyString, PosDouble}
+import io.circe.Decoder
 import lucuma.core.`enum`.{GmosAmpGain, GmosAmpReadMode, GmosNorthDisperser, GmosNorthFilter, GmosNorthFpu, GmosRoi, GmosXBinning, GmosYBinning, ImageQuality, Instrument}
 import lucuma.core.math.{Angle, Offset}
 import lucuma.core.math.units.Nanometer
 import lucuma.core.model.SourceProfile
+import lucuma.odb.api.model.syntax.input._
+import lucuma.odb.api.model.syntax.lens._
+import lucuma.odb.api.model.syntax.validatedinput._
 import monocle.{Focus, Lens}
 
 sealed trait ScienceMode extends Product with Serializable {
@@ -152,6 +159,55 @@ object ScienceMode {
 
       val fpu: Lens[BasicConfig, GmosNorthFpu] =
         Focus[BasicConfig](_.fpu)
+
+    }
+
+    final case class BasicConfigInput(
+      grating:   Input[GmosNorthDisperser] = Input.ignore,
+      filter:    Input[GmosNorthFilter]    = Input.ignore,
+      fpu:       Input[GmosNorthFpu]       = Input.ignore
+    ) extends EditorInput[BasicConfig] {
+
+      override val create: ValidatedInput[BasicConfig] =
+        (grating.notMissing("grating"),
+          fpu.notMissing("fpu")
+        ).mapN { case (d, u) =>
+          BasicConfig(d, filter.toOption, u)
+        }
+
+      override val edit: StateT[EitherInput, BasicConfig, Unit] = {
+
+        val validArgs =
+          (grating.validateIsNotNull("grating"),
+            fpu.validateIsNotNull("fpu")
+          ).tupled
+
+        for {
+          args <- validArgs.liftState
+          (grating, fpu) = args
+          _    <- BasicConfig.grating := grating
+          _    <- BasicConfig.filter  := filter.toOptionOption
+          _    <- BasicConfig.fpu     := fpu
+        } yield ()
+
+      }
+    }
+
+    object BasicConfigInput {
+
+      import io.circe.generic.extras.semiauto._
+      import io.circe.generic.extras.Configuration
+      implicit val customConfig: Configuration = Configuration.default.withDefaults
+
+      implicit val DecoderBasicConfigInput: Decoder[BasicConfig] =
+        deriveConfiguredDecoder[BasicConfig]
+
+      implicit val EqBasicConfigInput: Eq[BasicConfigInput] =
+        Eq.by { a => (
+          a.grating,
+          a.filter,
+          a.fpu
+        )}
 
     }
 
