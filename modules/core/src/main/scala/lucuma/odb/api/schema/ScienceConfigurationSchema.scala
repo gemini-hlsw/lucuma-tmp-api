@@ -12,7 +12,6 @@ import lucuma.odb.api.model.ScienceConfigurationModel.Modes
 import lucuma.odb.api.schema.syntax.all._
 
 import sangria.schema._
-import sangria.macros.derive._
 
 object ScienceConfigurationSchema {
   import GmosSchema._
@@ -22,18 +21,6 @@ object ScienceConfigurationSchema {
     EnumType.fromEnumerated(
       "ConfigurationModeType",
       "ConfigurationMode"
-    )
-
-  implicit val EnumSlitWidthAngleUnits: EnumType[ScienceConfigurationModel.Units] =
-    EnumType.fromEnumerated[ScienceConfigurationModel.Units](
-      "SlitWidthAngleUnits",
-      "Slit width units"
-    )
-
-  implicit val InputSlitWidthInput: InputType[ScienceConfigurationModel.SlitWidthInput] =
-    deriveInputObjectType[ScienceConfigurationModel.SlitWidthInput](
-      InputObjectTypeName("SlitWidthInput"),
-      InputObjectTypeDescription("Slit width in appropriate units"),
     )
 
   val SlitWidthType: ObjectType[Any, Angle]=
@@ -126,14 +113,7 @@ object ScienceConfigurationSchema {
           fieldType   = EnumTypeGmosNorthFpu,
           description = Some("GMOS North FPU"),
           resolve     = _.value.fpu
-        ),
-
-        Field(
-          name        = "slitWidth",
-          fieldType   = SlitWidthType,
-          description = Some("Slit width in appropriate units"),
-          resolve     = _.value.slitWidth
-        ),
+        )
       )
     )
 
@@ -162,14 +142,7 @@ object ScienceConfigurationSchema {
           fieldType   = EnumTypeGmosSouthFpu,
           description = Some("GMOS South  FPU"),
           resolve     = _.value.fpu
-        ),
-
-        Field(
-          name        = "slitWidth",
-          fieldType   = SlitWidthType,
-          description = Some("Slit width in appropriate units"),
-          resolve     = _.value.slitWidth
-        ),
+        )
       )
     )
 

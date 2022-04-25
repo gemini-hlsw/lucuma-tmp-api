@@ -21,7 +21,6 @@ import lucuma.core.model.Program
 import lucuma.odb.api.model.GmosModel.CreateFpu
 import lucuma.odb.api.model.OffsetModel.ComponentInput
 import lucuma.odb.api.model.ScienceConfigurationModel.Modes.{GmosNorthLongSlitInput, GmosSouthLongSlitInput}
-import lucuma.odb.api.model.ScienceConfigurationModel.SlitWidthInput
 
 import scala.concurrent.duration._
 
@@ -400,8 +399,7 @@ object Init {
         ScienceConfigurationInput(
           gmosSouthLongSlit = GmosSouthLongSlitInput(
             grating   = GmosSouthDisperser.B600_G5323.assign,
-            fpu       = GmosSouthFpu.LongSlit_1_00.assign,
-            slitWidth = SlitWidthInput.arcseconds(1.0).assign
+            fpu       = GmosSouthFpu.LongSlit_1_00.assign
           ).assign
         ).some
     )(baseObs(pid, target))
@@ -426,8 +424,7 @@ object Init {
         ScienceConfigurationInput(
           gmosNorthLongSlit = GmosNorthLongSlitInput(
             grating   = GmosNorthDisperser.B600_G5307.assign,
-            fpu       = GmosNorthFpu.LongSlit_1_00.assign,
-            slitWidth = SlitWidthInput.arcseconds(1.0).assign
+            fpu       = GmosNorthFpu.LongSlit_1_00.assign
           ).assign
         ).some
     )(baseObs(pid, target))
