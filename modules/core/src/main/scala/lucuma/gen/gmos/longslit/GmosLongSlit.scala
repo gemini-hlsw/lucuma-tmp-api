@@ -10,10 +10,12 @@ import cats.data.NonEmptyList
 import cats.effect.Sync
 import cats.syntax.eq._
 import cats.syntax.functor._
+import coulomb.Quantity
 import eu.timepit.refined.auto._
 import eu.timepit.refined.types.all.{PosDouble, PosInt}
 import lucuma.core.`enum`.ImageQuality
 import lucuma.core.math.Wavelength
+import lucuma.core.math.units.Nanometer
 import lucuma.core.model.SourceProfile
 import lucuma.itc.client.{ItcClient, ItcResult}
 import lucuma.odb.api.model.{ObservationModel, ScienceConfigurationModel, Sequence, StepConfig}
@@ -85,6 +87,13 @@ object GmosLongSlit {
 
   val DefaultSampling: PosDouble =
     2.5
+
+  def wavelengthDither(λ: Wavelength, Δ: Quantity[Int, Nanometer]): Wavelength =
+    Wavelength
+      .fromPicometers
+      .getOption(λ.toPicometers.value + Δ.value * 1000)
+      .getOrElse(Wavelength.Min)
+
 
   final case class Input[M](
     mode:          M,

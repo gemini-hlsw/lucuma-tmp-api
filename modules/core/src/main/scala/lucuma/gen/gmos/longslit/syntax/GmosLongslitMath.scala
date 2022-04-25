@@ -76,11 +76,11 @@ private[syntax] sealed trait GmosLongslitMath {
    *
    * @param dispersion - dispersion in nm/pix (see https://www.gemini.edu/sciops/instruments/gmos/spectroscopy-overview/gratings)
    */
-  def Δλ(dispersion: Quantity[Rational, NanometersPerPixel]): Quantity[PosInt, Nanometer] = {
+  def Δλ(dispersion: Quantity[Rational, NanometersPerPixel]): Quantity[Int, Nanometer] = {
     val d = dispersion.value.toDouble
     val g = gapSize.value.value
     val v = d * g * 2.0             // raw value, which we round to nearest 5 nm
-    PosInt.unsafeFrom(((v/5.0).round * 5.0).toInt).withUnit[Nanometer]
+    ((v/5.0).round * 5.0).toInt.withUnit[Nanometer]
   }
 
 }

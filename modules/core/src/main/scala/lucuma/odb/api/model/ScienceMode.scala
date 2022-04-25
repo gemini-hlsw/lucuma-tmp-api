@@ -71,6 +71,7 @@ object ScienceMode {
       explicitSpatialOffsets: Option[List[Offset.Q]]                 = None
     ) {
 
+      import lucuma.gen.gmos.longslit.syntax.gmosNorthGrating._
       import lucuma.gen.gmos.longslit.syntax.gmosNorthFpu._
 
       def grating: GmosNorthDisperser =
@@ -98,7 +99,12 @@ object ScienceMode {
         explicitRoi.getOrElse(AdvancedConfig.DefaultRoi)
 
       def λDithers: List[Quantity[Int, Nanometer]] =
-        explicitλDithers.getOrElse(AdvancedConfig.DefaultλDithers)
+        explicitλDithers.getOrElse {
+          List(
+            Quantity[Int, Nanometer](0),
+            overrideBasic.grating.Δλ
+          )
+        }
 
       def spatialOffsets: List[Offset.Q] =
         explicitSpatialOffsets.getOrElse(AdvancedConfig.DefaultSpatialOffsets)
@@ -118,9 +124,6 @@ object ScienceMode {
 
       val DefaultRoi: GmosRoi =
         GmosRoi.FullFrame
-
-      val DefaultλDithers: List[Quantity[Int, Nanometer]] =
-        List(Quantity[Int, Nanometer](-5), Quantity[Int, Nanometer](5))
 
       val DefaultSpatialOffsets: List[Offset.Q] =
         List(Offset.Q.Zero, Offset.Q(Angle.arcseconds.reverseGet(15)))

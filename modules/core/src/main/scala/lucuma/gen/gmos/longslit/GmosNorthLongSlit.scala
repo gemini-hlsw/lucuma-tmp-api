@@ -9,14 +9,11 @@ import cats.effect.Sync
 import cats.syntax.either._
 import cats.syntax.functor._
 import cats.syntax.option._
-import coulomb.Quantity
-import coulomb.refined._
 import eu.timepit.refined.auto._
 import eu.timepit.refined.types.all.{PosDouble, PosInt}
 import lucuma.core.`enum`._
 import lucuma.core.math.Wavelength
 import lucuma.core.math.syntax.int._
-import lucuma.core.math.units._
 import lucuma.core.model.SourceProfile
 import lucuma.core.optics.syntax.lens._
 import lucuma.core.optics.syntax.optional._
@@ -26,7 +23,6 @@ import lucuma.itc.client.{ItcClient, ItcResult}
 import lucuma.odb.api.model.GmosModel.{CustomMask, GratingConfig, NorthDynamic, NorthStatic}
 import lucuma.odb.api.model.{ObservationModel, ScienceConfigurationModel, Sequence}
 import lucuma.odb.api.repo.OdbRepo
-import spire.std.int._
 
 import scala.concurrent.duration._
 
@@ -144,10 +140,7 @@ object GmosNorthLongSlit {
       sourceProfile: SourceProfile,
       imageQuality:  ImageQuality,
       sampling:      PosDouble
-    ): ScienceSteps[NorthDynamic] = {
-
-      def sum(λ: Wavelength, Δ: Quantity[PosInt, Nanometer]): Wavelength =
-        new Wavelength(λ.toPicometers + Δ.to[PosInt, Picometer])
+    ): ScienceSteps[NorthDynamic] =
 
       eval {
         for {
@@ -160,13 +153,12 @@ object GmosNorthLongSlit {
           s0 <- scienceStep(0.arcsec, 0.arcsec)
           f0 <- flatStep
 
-          _  <- NorthDynamic.wavelength    := sum(λ, mode.grating.Δλ)
+          _  <- NorthDynamic.wavelength    := GmosLongSlit.wavelengthDither(λ, mode.grating.Δλ)
           s1 <- scienceStep(0.arcsec, 15.arcsec)
           f1 <- flatStep
         } yield ScienceSteps(s0, f0, s1, f1)
       }
 
-    }
 
   }
 
