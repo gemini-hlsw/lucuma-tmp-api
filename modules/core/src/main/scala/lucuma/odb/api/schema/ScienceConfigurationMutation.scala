@@ -4,21 +4,13 @@
 package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.{ScienceConfigurationInput, ScienceConfigurationModel}
-import sangria.macros.derive._
 import sangria.schema._
 
 trait ScienceConfigurationMutation {
 
   import syntax.inputtype._
   import ScienceConfigurationModel.Modes._
-  import ScienceConfigurationModel.SlitWidthInput
   import GmosSchema._
-
-  implicit val InputSlitWidthInput: InputType[SlitWidthInput] =
-    deriveInputObjectType[SlitWidthInput](
-      InputObjectTypeName("SlitWidthInput"),
-      InputObjectTypeDescription("Slit width in appropriate units"),
-    )
 
   implicit val InputObjectTypeGmosSouthLongSlit: InputObjectType[GmosSouthLongSlitInput] =
     InputObjectType[GmosSouthLongSlitInput](
@@ -27,8 +19,7 @@ trait ScienceConfigurationMutation {
       List(
         EnumTypeGmosSouthFilter.notNullableField("filter"),
         EnumTypeGmosSouthGrating.notNullableField("grating"),
-        EnumTypeGmosSouthFpu.notNullableField("fpu"),
-        InputSlitWidthInput.notNullableField("slitWidth")
+        EnumTypeGmosSouthFpu.notNullableField("fpu")
       )
     )
 
@@ -39,8 +30,7 @@ trait ScienceConfigurationMutation {
       List(
         EnumTypeGmosNorthFilter.notNullableField("filter"),
         EnumTypeGmosNorthGrating.notNullableField("grating"),
-        EnumTypeGmosNorthFpu.notNullableField("fpu"),
-        InputSlitWidthInput.notNullableField("slitWidth")
+        EnumTypeGmosNorthFpu.notNullableField("fpu")
       )
     )
 

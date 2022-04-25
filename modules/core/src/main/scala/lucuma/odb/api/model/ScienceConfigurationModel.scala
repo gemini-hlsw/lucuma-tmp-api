@@ -9,14 +9,10 @@ import cats.syntax.all._
 import cats.data.StateT
 import clue.data.Input
 import io.circe.Decoder
-import io.circe.generic.semiauto.deriveDecoder
 import lucuma.core.enum.GmosNorthFilter
 import lucuma.core.enum.GmosNorthDisperser
 import lucuma.core.enum.GmosSouthFilter
 import lucuma.core.enum.GmosSouthDisperser
-import lucuma.core.math.Angle
-import lucuma.core.util.Enumerated
-import lucuma.core.util.Display
 import lucuma.odb.api.model.ScienceConfigurationModel.Modes.{GmosNorthLongSlit, GmosNorthLongSlitInput, GmosSouthLongSlit, GmosSouthLongSlitInput}
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
@@ -48,8 +44,7 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
     final case class GmosNorthLongSlit(
       filter:    Option[GmosNorthFilter],
       grating:   GmosNorthDisperser,
-      fpu:       GmosNorthFpu,
-      slitWidth: Angle
+      fpu:       GmosNorthFpu
     ) extends ScienceConfigurationModel {
       val mode: ConfigurationMode =
         ConfigurationMode.GmosNorthLongSlit
@@ -68,42 +63,35 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
       val fpu: Lens[GmosNorthLongSlit, GmosNorthFpu] =
         Focus[GmosNorthLongSlit](_.fpu)
 
-      val slitWidth: Lens[GmosNorthLongSlit, Angle] =
-        Focus[GmosNorthLongSlit](_.slitWidth)
-
       implicit val EqGmosNorth: Eq[GmosNorthLongSlit] =
-        Eq.by(a => (a.filter, a.grating, a.slitWidth))
+        Eq.by(a => (a.filter, a.grating, a.fpu))
     }
 
     final case class GmosNorthLongSlitInput(
       filter:    Input[GmosNorthFilter]    = Input.ignore,
       grating:   Input[GmosNorthDisperser] = Input.ignore,
-      fpu:       Input[GmosNorthFpu]       = Input.ignore,
-      slitWidth: Input[SlitWidthInput]     = Input.ignore
+      fpu:       Input[GmosNorthFpu]       = Input.ignore
     ) extends EditorInput[GmosNorthLongSlit] {
 
       override val create: ValidatedInput[GmosNorthLongSlit] =
         (grating.notMissing("grating"),
-         fpu.notMissing("fpu"),
-         slitWidth.notMissingAndThen("slitWidth")(_.toAngle)
-        ).mapN { case (d, u, s) =>
-          GmosNorthLongSlit(filter.toOption, d, u, s)
+         fpu.notMissing("fpu")
+        ).mapN { case (d, u) =>
+          GmosNorthLongSlit(filter.toOption, d, u)
         }
 
       override val edit: StateT[EitherInput, GmosNorthLongSlit, Unit] = {
         val validArgs =
           (grating.validateIsNotNull("grating"),
-           fpu.validateIsNotNull("fpu"),
-           slitWidth.validateNotNullable("slitWidth")(_.toAngle)
+           fpu.validateIsNotNull("fpu")
           ).tupled
 
         for {
           args <- validArgs.liftState
-          (grating, fpu, slitWidth) = args
+          (grating, fpu) = args
           _ <- GmosNorthLongSlit.filter    := filter.toOptionOption
           _ <- GmosNorthLongSlit.grating   := grating
           _ <- GmosNorthLongSlit.fpu       := fpu
-          _ <- GmosNorthLongSlit.slitWidth := slitWidth
         } yield ()
       }
     }
@@ -121,8 +109,7 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
         Eq.by { a => (
           a.filter,
           a.grating,
-          a.fpu,
-          a.slitWidth
+          a.fpu
         )}
 
     }
@@ -130,8 +117,7 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
     final case class GmosSouthLongSlit(
       filter:    Option[GmosSouthFilter],
       grating:   GmosSouthDisperser,
-      fpu:       GmosSouthFpu,
-      slitWidth: Angle
+      fpu:       GmosSouthFpu
     ) extends ScienceConfigurationModel {
       val mode: ConfigurationMode =
         ConfigurationMode.GmosSouthLongSlit
@@ -150,43 +136,36 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
       val fpu: Lens[GmosSouthLongSlit, GmosSouthFpu] =
         Focus[GmosSouthLongSlit](_.fpu)
 
-      val slitWidth: Lens[GmosSouthLongSlit, Angle] =
-        Focus[GmosSouthLongSlit](_.slitWidth)
-
       implicit val EqGmosSouth: Eq[GmosSouthLongSlit] =
-        Eq.by(a => (a.filter, a.grating, a.slitWidth))
+        Eq.by(a => (a.filter, a.grating, a.fpu))
 
     }
 
     final case class GmosSouthLongSlitInput(
       filter:    Input[GmosSouthFilter]    = Input.ignore,
       grating:   Input[GmosSouthDisperser] = Input.ignore,
-      fpu:       Input[GmosSouthFpu]       = Input.ignore,
-      slitWidth: Input[SlitWidthInput]     = Input.ignore
+      fpu:       Input[GmosSouthFpu]       = Input.ignore
     ) extends EditorInput[GmosSouthLongSlit] {
 
       override val create: ValidatedInput[GmosSouthLongSlit] =
         (grating.notMissing("grating"),
-         fpu.notMissing("fpu"),
-         slitWidth.notMissingAndThen("slitWidth")(_.toAngle)
-        ).mapN { case (d, u, s) =>
-          GmosSouthLongSlit(filter.toOption, d, u, s)
+         fpu.notMissing("fpu")
+        ).mapN { case (d, u) =>
+          GmosSouthLongSlit(filter.toOption, d, u)
         }
 
       def edit: StateT[EitherInput, GmosSouthLongSlit, Unit] = {
         val validArgs =
           (grating.validateIsNotNull("grating"),
-           fpu.validateIsNotNull("fpu"),
-           slitWidth.validateNotNullable("slitWidth")(_.toAngle)
+           fpu.validateIsNotNull("fpu")
           ).tupled
 
         for {
           args <- validArgs.liftState
-          (grating, fpu, slitWidth) = args
+          (grating, fpu) = args
           _ <- GmosSouthLongSlit.filter    := filter.toOptionOption
           _ <- GmosSouthLongSlit.grating   := grating
           _ <- GmosSouthLongSlit.fpu       := fpu
-          _ <- GmosSouthLongSlit.slitWidth := slitWidth
         } yield ()
       }
 
@@ -204,84 +183,10 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
         Eq.by { a => (
           a.filter,
           a.grating,
-          a.fpu,
-          a.slitWidth
+          a.fpu
         )}
 
     }
-  }
-
-  final case class SlitWidthInput(
-    microarcseconds: Option[Long],
-    milliarcseconds: Option[BigDecimal],
-    arcseconds:      Option[BigDecimal]
-  ) {
-    import Units._
-
-    val toAngle: ValidatedInput[Angle] =
-      ValidatedInput.requireOne("slitWidthInput",
-        microarcseconds.map(Microarcseconds.readLong),
-        milliarcseconds.map(Milliarcseconds.readDecimal),
-        arcseconds     .map(Arcseconds.readDecimal)
-      )
-  }
-
-  object SlitWidthInput {
-    val Empty: SlitWidthInput =
-      SlitWidthInput(None, None, None)
-
-    def microarcseconds(a: Long): SlitWidthInput =
-      Empty.copy(microarcseconds = a.some)
-
-    def milliarcseconds(a: BigDecimal): SlitWidthInput =
-      Empty.copy(milliarcseconds = a.some)
-
-    def arcseconds(a: BigDecimal): SlitWidthInput =
-      Empty.copy(arcseconds = a.some)
-
-    implicit def DecoderFocalPlaneAngleInput: Decoder[SlitWidthInput] =
-      deriveDecoder[SlitWidthInput]
-
-    implicit val EqFocalPlaneAngleInput: Eq[SlitWidthInput] =
-      Eq.by { a => (
-        a.microarcseconds,
-        a.milliarcseconds,
-        a.arcseconds
-      )}
-
-  }
-
-  sealed abstract class Units(
-    val angleUnit: AngleModel.Units
-  ) extends Product with Serializable {
-
-    def readLong(value: Long): ValidatedInput[Angle] =
-      angleUnit.readSignedLong(value)
-
-    def readDecimal(value: BigDecimal): ValidatedInput[Angle] =
-      angleUnit.readSignedDecimal(value)
-  }
-
-  object Units {
-
-    case object Microarcseconds extends Units(AngleModel.Units.Microarcseconds)
-    case object Milliarcseconds extends Units(AngleModel.Units.Milliarcseconds)
-    case object Arcseconds      extends Units(AngleModel.Units.Arcseconds)
-
-    val microarcseconds: Units = Microarcseconds
-    val milliarcseconds: Units = Milliarcseconds
-    val arcseconds: Units      = Arcseconds
-
-    implicit val EnumeratedUnits: Enumerated[Units] =
-      Enumerated.of(
-        Microarcseconds,
-        Milliarcseconds,
-        Arcseconds
-      )
-
-    implicit def DisplayUnits: Display[Units] =
-      Display.byShortName(_.angleUnit.abbreviation)
-
   }
 
   import Modes._

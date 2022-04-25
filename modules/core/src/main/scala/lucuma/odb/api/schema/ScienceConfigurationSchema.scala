@@ -5,14 +5,12 @@ package lucuma.odb.api.schema
 
 import cats.syntax.option._
 
-import lucuma.core.math.Angle
 import lucuma.odb.api.model.ConfigurationMode
 import lucuma.odb.api.model.ScienceConfigurationModel
 import lucuma.odb.api.model.ScienceConfigurationModel.Modes
 import lucuma.odb.api.schema.syntax.all._
 
 import sangria.schema._
-import sangria.macros.derive._
 
 object ScienceConfigurationSchema {
   import GmosSchema._
@@ -22,47 +20,6 @@ object ScienceConfigurationSchema {
     EnumType.fromEnumerated(
       "ConfigurationModeType",
       "ConfigurationMode"
-    )
-
-  implicit val EnumSlitWidthAngleUnits: EnumType[ScienceConfigurationModel.Units] =
-    EnumType.fromEnumerated[ScienceConfigurationModel.Units](
-      "SlitWidthAngleUnits",
-      "Slit width units"
-    )
-
-  implicit val InputSlitWidthInput: InputType[ScienceConfigurationModel.SlitWidthInput] =
-    deriveInputObjectType[ScienceConfigurationModel.SlitWidthInput](
-      InputObjectTypeName("SlitWidthInput"),
-      InputObjectTypeDescription("Slit width in appropriate units"),
-    )
-
-  val SlitWidthType: ObjectType[Any, Angle]=
-    ObjectType(
-      name     = "slitWidth",
-      fieldsFn = () => fields(
-
-        Field(
-          name        = "microarcseconds",
-          fieldType   = LongType,
-          description = Some("Slit width in µas"),
-          resolve     = v => Angle.signedMicroarcseconds.get(v.value)
-        ),
-
-        Field(
-          name        = "milliarcseconds",
-          fieldType   = BigDecimalType,
-          description = Some("Slit width in mas"),
-          resolve     = v => Angle.signedDecimalMilliarcseconds.get(v.value)
-        ),
-
-        Field(
-          name        = "arcseconds",
-          fieldType   = BigDecimalType,
-          description = Some("Slit width in arcsec"),
-          resolve     = v => Angle.signedDecimalArcseconds.get(v.value)
-        )
-
-      )
     )
 
   def ScienceConfigurationType: ObjectType[Any, ScienceConfigurationModel] =
@@ -126,14 +83,7 @@ object ScienceConfigurationSchema {
           fieldType   = EnumTypeGmosNorthFpu,
           description = Some("GMOS North FPU"),
           resolve     = _.value.fpu
-        ),
-
-        Field(
-          name        = "slitWidth",
-          fieldType   = SlitWidthType,
-          description = Some("Slit width in appropriate units"),
-          resolve     = _.value.slitWidth
-        ),
+        )
       )
     )
 
@@ -162,14 +112,7 @@ object ScienceConfigurationSchema {
           fieldType   = EnumTypeGmosSouthFpu,
           description = Some("GMOS South  FPU"),
           resolve     = _.value.fpu
-        ),
-
-        Field(
-          name        = "slitWidth",
-          fieldType   = SlitWidthType,
-          description = Some("Slit width in appropriate units"),
-          resolve     = _.value.slitWidth
-        ),
+        )
       )
     )
 
