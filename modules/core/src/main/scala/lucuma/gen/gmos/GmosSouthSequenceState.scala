@@ -26,11 +26,11 @@ private[gmos] trait GmosSouthSequenceState extends SequenceState[SouthDynamic] {
         GmosAmpGain.Low,
         GmosAmpReadMode.Fast
       ),
-      dtax    = GmosDtax.Zero,
-      roi     = GmosRoi.FullFrame,
-      grating = None,
-      filter  = None,
-      fpu     = None
+      dtax          = GmosDtax.Zero,
+      roi           = GmosRoi.FullFrame,
+      gratingConfig = None,
+      filter        = None,
+      fpu           = None
     )
 
 

@@ -588,9 +588,9 @@ object GmosModel {
 
     val wavelength: Optional[SouthDynamic, Wavelength] =
       Optional[SouthDynamic, Wavelength](
-        _.grating.map(_.wavelength)
+        _.gratingConfig.map(_.wavelength)
       )(
-        λ => grating.modify(_.map(Grating.wavelength.replace(λ)))
+        λ => gratingConfig.modify(_.map(GratingConfig.wavelength.replace(λ)))
       )
 
     val filter: Lens[SouthDynamic, Option[GmosSouthFilter]] =

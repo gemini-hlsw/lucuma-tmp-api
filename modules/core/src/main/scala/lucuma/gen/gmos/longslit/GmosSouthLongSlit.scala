@@ -23,7 +23,7 @@ import lucuma.core.optics.syntax.optional._
 import lucuma.gen.gmos.longslit.GmosLongSlit.{AcquisitionSteps, ScienceSteps}
 import lucuma.gen.gmos.longslit.syntax.all._
 import lucuma.itc.client.{ItcClient, ItcResult}
-import lucuma.odb.api.model.GmosModel.{CustomMask, Grating, SouthDynamic, SouthStatic}
+import lucuma.odb.api.model.GmosModel.{CustomMask, GratingConfig, SouthDynamic, SouthStatic}
 import lucuma.odb.api.model.{ObservationModel, ScienceConfigurationModel, Sequence}
 import lucuma.odb.api.repo.OdbRepo
 import spire.std.int._
@@ -110,23 +110,23 @@ object GmosSouthLongSlit {
 
       eval {
         for {
-          _  <- SouthDynamic.exposure := exposureTime.value
-          _  <- SouthDynamic.filter   := filter.some
-          _  <- SouthDynamic.fpu      := none[Either[CustomMask, GmosSouthFpu]]
-          _  <- SouthDynamic.grating  := none[Grating[GmosSouthDisperser]]
-          _  <- SouthDynamic.xBin     := GmosXBinning.Two
-          _  <- SouthDynamic.yBin     := GmosYBinning.Two
-          _  <- SouthDynamic.roi      := GmosRoi.Ccd2
+          _  <- SouthDynamic.exposure      := exposureTime.value
+          _  <- SouthDynamic.filter        := filter.some
+          _  <- SouthDynamic.fpu           := none[Either[CustomMask, GmosSouthFpu]]
+          _  <- SouthDynamic.gratingConfig := none[GratingConfig[GmosSouthDisperser]]
+          _  <- SouthDynamic.xBin          := GmosXBinning.Two
+          _  <- SouthDynamic.yBin          := GmosYBinning.Two
+          _  <- SouthDynamic.roi           := GmosRoi.Ccd2
           s0 <- scienceStep(0.arcsec, 0.arcsec)
 
-          _  <- SouthDynamic.exposure := 20.seconds
-          _  <- SouthDynamic.fpu      := fpu.asRight.some
-          _  <- SouthDynamic.xBin     := GmosXBinning.One
-          _  <- SouthDynamic.yBin     := GmosYBinning.One
-          _  <- SouthDynamic.roi      := GmosRoi.CentralStamp
+          _  <- SouthDynamic.exposure      := 20.seconds
+          _  <- SouthDynamic.fpu           := fpu.asRight.some
+          _  <- SouthDynamic.xBin          := GmosXBinning.One
+          _  <- SouthDynamic.yBin          := GmosYBinning.One
+          _  <- SouthDynamic.roi           := GmosRoi.CentralStamp
           s1 <- scienceStep(10.arcsec, 0.arcsec)
 
-          _  <- SouthDynamic.exposure := exposureTime.value * 4
+          _  <- SouthDynamic.exposure      := exposureTime.value * 4
           s2 <- scienceStep(0.arcsec, 0.arcsec)
 
         } yield AcquisitionSteps(s0, s1, s2)
@@ -152,16 +152,16 @@ object GmosSouthLongSlit {
 
       eval {
         for {
-          _  <- SouthDynamic.exposure := exposureTime.value
-          _  <- SouthDynamic.xBin     := mode.fpu.xbin(sourceProfile, imageQuality, sampling)
-          _  <- SouthDynamic.yBin     := GmosYBinning.Two
-          _  <- SouthDynamic.grating  := Grating(mode.disperser, GmosDisperserOrder.One, λ).some
-          _  <- SouthDynamic.filter   := mode.filter
-          _  <- SouthDynamic.fpu      := mode.fpu.asRight.some
+          _  <- SouthDynamic.exposure      := exposureTime.value
+          _  <- SouthDynamic.xBin          := mode.fpu.xbin(sourceProfile, imageQuality, sampling)
+          _  <- SouthDynamic.yBin          := GmosYBinning.Two
+          _  <- SouthDynamic.gratingConfig := GratingConfig(mode.grating, GmosDisperserOrder.One, λ).some
+          _  <- SouthDynamic.filter        := mode.filter
+          _  <- SouthDynamic.fpu           := mode.fpu.asRight.some
           s0 <- scienceStep(0.arcsec, 0.arcsec)
           f0 <- flatStep
 
-          _  <- SouthDynamic.wavelength := sum(λ, mode.disperser.Δλ)
+          _  <- SouthDynamic.wavelength    := sum(λ, mode.grating.Δλ)
           s1 <- scienceStep(0.arcsec, 15.arcsec)
           f1 <- flatStep
         } yield ScienceSteps(s0, f0, s1, f1)

@@ -118,14 +118,14 @@ object GmosNorthLongSlit {
           _  <- NorthDynamic.roi           := GmosRoi.Ccd2
           s0 <- scienceStep(0.arcsec, 0.arcsec)
 
-          _  <- NorthDynamic.exposure := 20.seconds
-          _  <- NorthDynamic.fpu      := fpu.asRight.some
-          _  <- NorthDynamic.xBin     := GmosXBinning.One
-          _  <- NorthDynamic.yBin     := GmosYBinning.One
-          _  <- NorthDynamic.roi      := GmosRoi.CentralStamp
+          _  <- NorthDynamic.exposure      := 20.seconds
+          _  <- NorthDynamic.fpu           := fpu.asRight.some
+          _  <- NorthDynamic.xBin          := GmosXBinning.One
+          _  <- NorthDynamic.yBin          := GmosYBinning.One
+          _  <- NorthDynamic.roi           := GmosRoi.CentralStamp
           s1 <- scienceStep(10.arcsec, 0.arcsec)
 
-          _  <- NorthDynamic.exposure := exposureTime.value * 4
+          _  <- NorthDynamic.exposure      := exposureTime.value * 4
           s2 <- scienceStep(0.arcsec, 0.arcsec)
 
         } yield AcquisitionSteps(s0, s1, s2)
@@ -160,7 +160,7 @@ object GmosNorthLongSlit {
           s0 <- scienceStep(0.arcsec, 0.arcsec)
           f0 <- flatStep
 
-          _  <- NorthDynamic.wavelength := sum(λ, mode.grating.Δλ)
+          _  <- NorthDynamic.wavelength    := sum(λ, mode.grating.Δλ)
           s1 <- scienceStep(0.arcsec, 15.arcsec)
           f1 <- flatStep
         } yield ScienceSteps(s0, f0, s1, f1)
