@@ -236,7 +236,7 @@ object Init {
   import GmosModel.{CreateCcdReadout, CreateSouthDynamic}
   import StepConfig.CreateStepConfig
 
-  import CreateSouthDynamic.{exposure, filter, fpu, grating, readout, roi, step}
+  import CreateSouthDynamic.{exposure, filter, fpu, gratingConfig, readout, roi, step}
   import CreateCcdReadout.{ampRead, xBin, yBin}
 
   private def edit[A](start: A)(state: State[A, _]): A =
@@ -303,7 +303,7 @@ object Init {
         _ <- readout.andThen(xBin)    := GmosXBinning.Two
         _ <- readout.andThen(yBin)    := GmosYBinning.Two
         _ <- roi                      := GmosRoi.CentralSpectrum
-        _ <- grating                  := GmosModel.CreateGrating[GmosSouthDisperser](GmosSouthDisperser.B600_G5323, GmosDisperserOrder.One, WavelengthModel.Input.fromNanometers(520.0)).some
+        _ <- gratingConfig            := GmosModel.CreateGratingConfig[GmosSouthDisperser](GmosSouthDisperser.B600_G5323, GmosDisperserOrder.One, WavelengthModel.Input.fromNanometers(520.0)).some
         _ <- filter                   := Option.empty[GmosSouthFilter]
         _ <- fpu                      := CreateFpu.builtin[GmosSouthFpu](GmosSouthFpu.LongSlit_1_00).some
       } yield ()
@@ -380,7 +380,7 @@ object Init {
       scienceConfiguration =
         ScienceConfigurationInput(
           gmosSouthLongSlit = GmosSouthLongSlitInput(
-            disperser = GmosSouthDisperser.B600_G5323.assign,
+            grating = GmosSouthDisperser.B600_G5323.assign,
             fpu       = GmosSouthFpu.LongSlit_1_00.assign,
             slitWidth = SlitWidthInput.arcseconds(1.0).assign
           ).assign
@@ -429,7 +429,7 @@ object Init {
       scienceConfiguration =
         ScienceConfigurationInput(
           gmosNorthLongSlit = GmosNorthLongSlitInput(
-            disperser = GmosNorthDisperser.B600_G5307.assign,
+            grating = GmosNorthDisperser.B600_G5307.assign,
             fpu       = GmosNorthFpu.LongSlit_1_00.assign,
             slitWidth = SlitWidthInput.arcseconds(1.0).assign
           ).assign

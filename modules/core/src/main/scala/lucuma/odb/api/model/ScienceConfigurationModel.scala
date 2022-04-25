@@ -47,7 +47,7 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
 
     final case class GmosNorthLongSlit(
       filter:    Option[GmosNorthFilter],
-      disperser: GmosNorthDisperser,
+      grating:   GmosNorthDisperser,
       fpu:       GmosNorthFpu,
       slitWidth: Angle
     ) extends ScienceConfigurationModel {
@@ -62,8 +62,8 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
       val filter: Lens[GmosNorthLongSlit, Option[GmosNorthFilter]] =
         Focus[GmosNorthLongSlit](_.filter)
 
-      val disperser: Lens[GmosNorthLongSlit, GmosNorthDisperser] =
-        Focus[GmosNorthLongSlit](_.disperser)
+      val grating: Lens[GmosNorthLongSlit, GmosNorthDisperser] =
+        Focus[GmosNorthLongSlit](_.grating)
 
       val fpu: Lens[GmosNorthLongSlit, GmosNorthFpu] =
         Focus[GmosNorthLongSlit](_.fpu)
@@ -72,18 +72,18 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
         Focus[GmosNorthLongSlit](_.slitWidth)
 
       implicit val EqGmosNorth: Eq[GmosNorthLongSlit] =
-        Eq.by(a => (a.filter, a.disperser, a.slitWidth))
+        Eq.by(a => (a.filter, a.grating, a.slitWidth))
     }
 
     final case class GmosNorthLongSlitInput(
       filter:    Input[GmosNorthFilter]    = Input.ignore,
-      disperser: Input[GmosNorthDisperser] = Input.ignore,
+      grating:   Input[GmosNorthDisperser] = Input.ignore,
       fpu:       Input[GmosNorthFpu]       = Input.ignore,
       slitWidth: Input[SlitWidthInput]     = Input.ignore
     ) extends EditorInput[GmosNorthLongSlit] {
 
       override val create: ValidatedInput[GmosNorthLongSlit] =
-        (disperser.notMissing("disperser"),
+        (grating.notMissing("grating"),
          fpu.notMissing("fpu"),
          slitWidth.notMissingAndThen("slitWidth")(_.toAngle)
         ).mapN { case (d, u, s) =>
@@ -92,16 +92,16 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
 
       override val edit: StateT[EitherInput, GmosNorthLongSlit, Unit] = {
         val validArgs =
-          (disperser.validateIsNotNull("disperser"),
+          (grating.validateIsNotNull("grating"),
            fpu.validateIsNotNull("fpu"),
            slitWidth.validateNotNullable("slitWidth")(_.toAngle)
           ).tupled
 
         for {
           args <- validArgs.liftState
-          (disperser, fpu, slitWidth) = args
+          (grating, fpu, slitWidth) = args
           _ <- GmosNorthLongSlit.filter    := filter.toOptionOption
-          _ <- GmosNorthLongSlit.disperser := disperser
+          _ <- GmosNorthLongSlit.grating   := grating
           _ <- GmosNorthLongSlit.fpu       := fpu
           _ <- GmosNorthLongSlit.slitWidth := slitWidth
         } yield ()
@@ -120,7 +120,7 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
       implicit val EqEditGmosNorthLongSlit: Eq[GmosNorthLongSlitInput] =
         Eq.by { a => (
           a.filter,
-          a.disperser,
+          a.grating,
           a.fpu,
           a.slitWidth
         )}
@@ -129,7 +129,7 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
 
     final case class GmosSouthLongSlit(
       filter:    Option[GmosSouthFilter],
-      disperser: GmosSouthDisperser,
+      grating:   GmosSouthDisperser,
       fpu:       GmosSouthFpu,
       slitWidth: Angle
     ) extends ScienceConfigurationModel {
@@ -144,8 +144,8 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
       val filter: Lens[GmosSouthLongSlit, Option[GmosSouthFilter]] =
         Focus[GmosSouthLongSlit](_.filter)
 
-      val disperser: Lens[GmosSouthLongSlit, GmosSouthDisperser] =
-        Focus[GmosSouthLongSlit](_.disperser)
+      val grating: Lens[GmosSouthLongSlit, GmosSouthDisperser] =
+        Focus[GmosSouthLongSlit](_.grating)
 
       val fpu: Lens[GmosSouthLongSlit, GmosSouthFpu] =
         Focus[GmosSouthLongSlit](_.fpu)
@@ -154,19 +154,19 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
         Focus[GmosSouthLongSlit](_.slitWidth)
 
       implicit val EqGmosSouth: Eq[GmosSouthLongSlit] =
-        Eq.by(a => (a.filter, a.disperser, a.slitWidth))
+        Eq.by(a => (a.filter, a.grating, a.slitWidth))
 
     }
 
     final case class GmosSouthLongSlitInput(
       filter:    Input[GmosSouthFilter]    = Input.ignore,
-      disperser: Input[GmosSouthDisperser] = Input.ignore,
+      grating:   Input[GmosSouthDisperser] = Input.ignore,
       fpu:       Input[GmosSouthFpu]       = Input.ignore,
       slitWidth: Input[SlitWidthInput]     = Input.ignore
     ) extends EditorInput[GmosSouthLongSlit] {
 
       override val create: ValidatedInput[GmosSouthLongSlit] =
-        (disperser.notMissing("disperser"),
+        (grating.notMissing("grating"),
          fpu.notMissing("fpu"),
          slitWidth.notMissingAndThen("slitWidth")(_.toAngle)
         ).mapN { case (d, u, s) =>
@@ -175,16 +175,16 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
 
       def edit: StateT[EitherInput, GmosSouthLongSlit, Unit] = {
         val validArgs =
-          (disperser.validateIsNotNull("disperser"),
+          (grating.validateIsNotNull("grating"),
            fpu.validateIsNotNull("fpu"),
            slitWidth.validateNotNullable("slitWidth")(_.toAngle)
           ).tupled
 
         for {
           args <- validArgs.liftState
-          (disperser, fpu, slitWidth) = args
+          (grating, fpu, slitWidth) = args
           _ <- GmosSouthLongSlit.filter    := filter.toOptionOption
-          _ <- GmosSouthLongSlit.disperser := disperser
+          _ <- GmosSouthLongSlit.grating   := grating
           _ <- GmosSouthLongSlit.fpu       := fpu
           _ <- GmosSouthLongSlit.slitWidth := slitWidth
         } yield ()
@@ -203,7 +203,7 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
       implicit val EqEditGmosSouthLongSlit: Eq[GmosSouthLongSlitInput] =
         Eq.by { a => (
           a.filter,
-          a.disperser,
+          a.grating,
           a.fpu,
           a.slitWidth
         )}

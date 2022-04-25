@@ -56,10 +56,10 @@ object GmosSchema {
       "GmosSouth Detector type"
     )
 
-  implicit val EnumTypeGmosDisperserOrder: EnumType[GmosDisperserOrder] =
+  implicit val EnumTypeGmosGratingOrder: EnumType[GmosDisperserOrder] =
     EnumType.fromEnumerated(
-      "GmosDisperserOrder",
-      "GMOS disperser order"
+      "GmosGratingOrder",
+      "GMOS grating order"
     )
 
   implicit val EnumTypeGmosDtax: EnumType[GmosDtax] =
@@ -74,10 +74,10 @@ object GmosSchema {
       "Electronic offsetting"
     )
 
-  implicit val EnumTypeGmosNorthDisperser: EnumType[GmosNorthDisperser] =
+  implicit val EnumTypeGmosNorthGrating: EnumType[GmosNorthDisperser] =
     EnumType.fromEnumerated(
-      "GmosNorthDisperser",
-      "GMOS North Disperser"
+      "GmosNorthGrating",
+      "GMOS North Grating"
     )
 
   implicit val EnumTypeGmosNorthFilter: EnumType[GmosNorthFilter] =
@@ -104,12 +104,12 @@ object GmosSchema {
       "GMOS Region Of Interest"
     )
 
-  implicit val EnumTypeGmosSouthDisperser: EnumType[GmosSouthDisperser] =
+  implicit val EnumTypeGmosSouthGrating: EnumType[GmosSouthDisperser] =
     // GmosSouthDisperser.all is haunted.  B600_G5323 is inexplicably null in the list.
     // Fixed with marking it `lazy` in core but for now ....
     EnumType.fromEnumerated[GmosSouthDisperser](
-      "GmosSouthDisperser",
-      "GMOS South Disperser"
+      "GmosSouthGrating",
+      "GMOS South Grating"
     )(Enumerated.of(
       GmosSouthDisperser.B1200_G5321,
       GmosSouthDisperser.R831_G5322,
@@ -339,25 +339,25 @@ object GmosSchema {
       )
     )
 
-  def GmosGratingType[D: EnumType](
+  def GmosGratingConfigType[D: EnumType](
     site: Site
-  ): ObjectType[Any, GmosModel.Grating[D]] =
+  ): ObjectType[Any, GmosModel.GratingConfig[D]] =
     ObjectType(
-      name        = s"${gmos(site).tag}Grating",
-      description = s"${gmos(site).longName} Grating",
+      name        = s"${gmos(site).tag}GratingConfig",
+      description = s"${gmos(site).longName} Grating Configuration",
       fieldsFn    = () => fields(
 
         Field(
-          name        = "disperser",
+          name        = "grating",
           fieldType   = implicitly[EnumType[D]],
-          description = Some(s"${gmos(site).longName} Disperser"),
-          resolve     = _.value.disperser
+          description = Some(s"${gmos(site).longName} Grating"),
+          resolve     = _.value.grating
         ),
 
         Field(
           name        = "order",
-          fieldType   = EnumTypeGmosDisperserOrder,
-          description = Some(s"GMOS disperser order"),
+          fieldType   = EnumTypeGmosGratingOrder,
+          description = Some(s"GMOS grating order"),
           resolve     = _.value.order
         ),
 
@@ -371,16 +371,16 @@ object GmosSchema {
       )
     )
 
-  def InputObjectTypeGratingInput[D: EnumType](
+  def InputObjectTypeGratingConfigInput[D: EnumType](
     site: Site,
-  ): InputObjectType[GmosModel.CreateGrating[D]] =
+  ): InputObjectType[GmosModel.CreateGratingConfig[D]] =
 
-    InputObjectType[GmosModel.CreateGrating[D]](
-      s"${gmos(site).tag}GratingInput",
+    InputObjectType[GmosModel.CreateGratingConfig[D]](
+      s"${gmos(site).tag}GratingConfigInput",
       s"${gmos(site).longName} grating input parameters",
       List(
-        InputField("disperser", implicitly[EnumType[D]], s"Gmos${gmos(site).tag} disperser"),
-        InputField("order", EnumTypeGmosDisperserOrder, "GMOS disperser order"),
+        InputField("grating", implicitly[EnumType[D]], s"Gmos${gmos(site).tag} grating"),
+        InputField("order", EnumTypeGmosGratingOrder, "GMOS grating order"),
         InputField("wavelength", InputWavelength, "Grating wavelength")
       )
     )
@@ -495,10 +495,10 @@ object GmosSchema {
         ),
 
         Field(
-          name        = "grating",
-          fieldType   = OptionType(GmosGratingType[D](site)),
+          name        = "gratingConfig",
+          fieldType   = OptionType(GmosGratingConfigType[D](site)),
           description = Some(s"${gmos(site).longName} grating"),
-          resolve     = _.value.grating
+          resolve     = _.value.gratingConfig
         ),
 
         Field(
@@ -531,13 +531,13 @@ object GmosSchema {
       s"${gmos(site).tag.capitalize}DynamicInput",
       s"${gmos(site).longName} instrument configuration input",
       List(
-        InputField("exposure", InputObjectTypeDuration,            "Exposure time"),
-        InputField("readout",  InputObjectTypeGmosCcdReadoutInput, "GMOS CCD readout"),
-        InputField("dtax",     EnumTypeGmosDtax,                   "GMOS detector x offset"),
-        InputField("roi",      EnumTypeGmosRoi,                    "GMOS region of interest"),
-        InputField("grating",  OptionInputType(InputObjectTypeGratingInput[D](site)), s"${gmos(site).longName} grating"),
-        InputField("filter",   OptionInputType(implicitly[EnumType[L]]),              s"${gmos(site).longName} filter"),
-        InputField("fpu",      OptionInputType(InputObjectFpuInput[U](site)),         s"${gmos(site).longName} FPU")
+        InputField("exposure",      InputObjectTypeDuration,            "Exposure time"),
+        InputField("readout",       InputObjectTypeGmosCcdReadoutInput, "GMOS CCD readout"),
+        InputField("dtax",          EnumTypeGmosDtax,                   "GMOS detector x offset"),
+        InputField("roi",           EnumTypeGmosRoi,                    "GMOS region of interest"),
+        InputField("gratingConfig", OptionInputType(InputObjectTypeGratingConfigInput[D](site)), s"${gmos(site).longName} grating"),
+        InputField("filter",        OptionInputType(implicitly[EnumType[L]]),              s"${gmos(site).longName} filter"),
+        InputField("fpu",           OptionInputType(InputObjectFpuInput[U](site)),         s"${gmos(site).longName} FPU")
       )
     )
 

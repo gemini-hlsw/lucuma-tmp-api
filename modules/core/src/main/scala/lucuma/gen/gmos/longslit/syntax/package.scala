@@ -5,10 +5,10 @@ package lucuma.gen.gmos.longslit
 
 package object syntax {
 
-  object all extends ToGmosNorthDisperserOps
+  object all extends ToGmosNorthGratingOps
                 with ToGmosNorthFilterCompanionOps
                 with ToGmosNorthFpuOps
-                with ToGmosSouthDisperserOps
+                with ToGmosSouthGratingOps
                 with ToGmosSouthFilterCompanionOps
                 with ToGmosSouthFpuOps
 

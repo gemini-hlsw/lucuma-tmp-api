@@ -38,8 +38,8 @@ final class GmosModelSuite extends DisciplineSuite {
   checkAll("GmosModel.CustomMask",                  EqTests[GmosModel.CustomMask].eqv)
   checkAll("GmosModel.CreateCustomMask",            EqTests[GmosModel.CreateCustomMask].eqv)
 
-  checkAll("GmosModel.Grating",                     EqTests[GmosModel.Grating[GmosNorthDisperser]].eqv)
-  checkAll("GmosModel.CreateGrating",               EqTests[GmosModel.CreateGrating[GmosNorthDisperser]].eqv)
+  checkAll("GmosModel.GratingConfig",               EqTests[GmosModel.GratingConfig[GmosNorthDisperser]].eqv)
+  checkAll("GmosModel.CreateGratingConfig",         EqTests[GmosModel.CreateGratingConfig[GmosNorthDisperser]].eqv)
 
   checkAll("GmosModel.NorthDynamic",                EqTests[GmosModel.NorthDynamic].eqv)
   checkAll("GmosModel.CreateNorthDynamic",          EqTests[GmosModel.CreateNorthDynamic].eqv)
@@ -50,7 +50,7 @@ final class GmosModelSuite extends DisciplineSuite {
   checkAll("GmosModel.CreateSouthDynamic.step.exposure",   OptionalTests(GmosModel.CreateSouthDynamic.step.exposure))
   checkAll("GmosModel.CreateSouthDynamic.step.p",          OptionalTests(GmosModel.CreateSouthDynamic.step.p))
   checkAll("GmosModel.CreateSouthDynamic.step.q",          OptionalTests(GmosModel.CreateSouthDynamic.step.q))
-  checkAll("GmosModel.CreateSouthDynamic.step.grating",    OptionalTests(GmosModel.CreateSouthDynamic.step.grating))
+  checkAll("GmosModel.CreateSouthDynamic.step.grating",    OptionalTests(GmosModel.CreateSouthDynamic.step.gratingConfig))
   checkAll("GmosModel.CreateSouthDynamic.step.wavelength", OptionalTests(GmosModel.CreateSouthDynamic.step.wavelength))
 
 }

@@ -215,22 +215,22 @@ object ItcSpectroscopyInput {
       )
 
   implicit val EncoderScienceConfigurationModel: Encoder[ScienceConfigurationModel] = {
-    case ScienceConfigurationModel.Modes.GmosNorthLongSlit(filter, disperser, fpu, _) =>
+    case ScienceConfigurationModel.Modes.GmosNorthLongSlit(filter, grating, fpu, _) =>
       Json.obj(
         "gmosN" ->
           Json.fromFields(
             List(
-              "disperser"  -> screaming(disperser),
+              "disperser"  -> screaming(grating),
               "fpu"        -> screaming(fpu)
             ) ++ filter.map(screaming(_)).tupleLeft("filter").toList
           )
       )
-    case ScienceConfigurationModel.Modes.GmosSouthLongSlit(filter, disperser, fpu, _) =>
+    case ScienceConfigurationModel.Modes.GmosSouthLongSlit(filter, grating, fpu, _) =>
       Json.obj(
         "gmosS" ->
           Json.fromFields(
             List(
-              "disperser"  -> screaming(disperser),
+              "disperser"  -> screaming(grating),
               "fpu"        -> screaming(fpu)
             ) ++ filter.map(screaming(_)).tupleLeft("filter").toList
           )

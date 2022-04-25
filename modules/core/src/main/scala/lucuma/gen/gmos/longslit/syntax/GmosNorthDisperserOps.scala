@@ -15,9 +15,9 @@ final class GmosNorthDisperserOps(val self: GmosNorthDisperser) {
 
 }
 
-trait ToGmosNorthDisperserOps {
-  implicit def toGmosNorthDisperserOps(disperser: GmosNorthDisperser): GmosNorthDisperserOps =
-    new GmosNorthDisperserOps(disperser)
+trait ToGmosNorthGratingOps {
+  implicit def toGmosNorthGratingOps(grating: GmosNorthDisperser): GmosNorthDisperserOps =
+    new GmosNorthDisperserOps(grating)
 }
 
-object gmosNorthDisperser extends ToGmosNorthDisperserOps
+object gmosNorthGrating extends ToGmosNorthGratingOps
