@@ -5,7 +5,6 @@ package lucuma.odb.api.schema
 
 import cats.syntax.option._
 
-import lucuma.core.math.Angle
 import lucuma.odb.api.model.ConfigurationMode
 import lucuma.odb.api.model.ScienceConfigurationModel
 import lucuma.odb.api.model.ScienceConfigurationModel.Modes
@@ -21,35 +20,6 @@ object ScienceConfigurationSchema {
     EnumType.fromEnumerated(
       "ConfigurationModeType",
       "ConfigurationMode"
-    )
-
-  val SlitWidthType: ObjectType[Any, Angle]=
-    ObjectType(
-      name     = "slitWidth",
-      fieldsFn = () => fields(
-
-        Field(
-          name        = "microarcseconds",
-          fieldType   = LongType,
-          description = Some("Slit width in µas"),
-          resolve     = v => Angle.signedMicroarcseconds.get(v.value)
-        ),
-
-        Field(
-          name        = "milliarcseconds",
-          fieldType   = BigDecimalType,
-          description = Some("Slit width in mas"),
-          resolve     = v => Angle.signedDecimalMilliarcseconds.get(v.value)
-        ),
-
-        Field(
-          name        = "arcseconds",
-          fieldType   = BigDecimalType,
-          description = Some("Slit width in arcsec"),
-          resolve     = v => Angle.signedDecimalArcseconds.get(v.value)
-        )
-
-      )
     )
 
   def ScienceConfigurationType: ObjectType[Any, ScienceConfigurationModel] =
