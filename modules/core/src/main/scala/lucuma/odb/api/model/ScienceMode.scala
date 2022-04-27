@@ -12,7 +12,17 @@ import monocle.Prism
 
 sealed trait ScienceMode extends Product with Serializable {
 
+  def mode:       ConfigurationMode
   def instrument: Instrument
+
+  def fold[A](
+    gnls: ScienceMode.GmosNorthLongSlit => A,
+    gsls: ScienceMode.GmosSouthLongSlit => A
+  ): A =
+    this match {
+      case m @ ScienceMode.GmosNorthLongSlit(_, _) => gnls(m)
+      case m @ ScienceMode.GmosSouthLongSlit(_, _) => gsls(m)
+    }
 
 }
 
@@ -27,6 +37,9 @@ object ScienceMode {
     basic:    BasicConfig[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu],
     advanced: AdvancedConfig[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu]
   ) extends ScienceMode {
+
+    override def mode: ConfigurationMode =
+      ConfigurationMode.GmosNorthLongSlit
 
     override def instrument: Instrument =
       Instrument.GmosNorth
@@ -47,6 +60,9 @@ object ScienceMode {
     basic:    BasicConfig[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu],
     advanced: AdvancedConfig[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu]
   ) extends ScienceMode {
+
+    override def mode: ConfigurationMode =
+      ConfigurationMode.GmosSouthLongSlit
 
     override def instrument: Instrument =
       Instrument.GmosSouth
