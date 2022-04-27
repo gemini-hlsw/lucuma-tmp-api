@@ -68,9 +68,9 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
     }
 
     final case class GmosNorthLongSlitInput(
-      filter:    Input[GmosNorthFilter]    = Input.ignore,
+      filter:    Input[GmosNorthFilter]  = Input.ignore,
       grating:   Input[GmosNorthGrating] = Input.ignore,
-      fpu:       Input[GmosNorthFpu]       = Input.ignore
+      fpu:       Input[GmosNorthFpu]     = Input.ignore
     ) extends EditorInput[GmosNorthLongSlit] {
 
       override val create: ValidatedInput[GmosNorthLongSlit] =
@@ -142,9 +142,9 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
     }
 
     final case class GmosSouthLongSlitInput(
-      filter:    Input[GmosSouthFilter]    = Input.ignore,
+      filter:    Input[GmosSouthFilter]  = Input.ignore,
       grating:   Input[GmosSouthGrating] = Input.ignore,
-      fpu:       Input[GmosSouthFpu]       = Input.ignore
+      fpu:       Input[GmosSouthFpu]     = Input.ignore
     ) extends EditorInput[GmosSouthLongSlit] {
 
       override val create: ValidatedInput[GmosSouthLongSlit] =

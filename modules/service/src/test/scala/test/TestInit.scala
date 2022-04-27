@@ -343,7 +343,7 @@ object TestInit {
         _ <- readout.andThen(xBin)    := GmosXBinning.Two
         _ <- readout.andThen(yBin)    := GmosYBinning.Two
         _ <- roi                      := GmosRoi.CentralSpectrum
-        _ <- gratingConfig                  := GmosModel.CreateGratingConfig[GmosSouthGrating](GmosSouthGrating.B600_G5323, GmosGratingOrder.One, WavelengthModel.Input.fromNanometers(520.0)).some
+        _ <- gratingConfig            := GmosModel.CreateGratingConfig[GmosSouthGrating](GmosSouthGrating.B600_G5323, GmosGratingOrder.One, WavelengthModel.Input.fromNanometers(520.0)).some
         _ <- filter                   := Option.empty[GmosSouthFilter]
         _ <- fpu                      := GmosModel.CreateFpu.builtin[GmosSouthFpu](GmosSouthFpu.LongSlit_1_00).some
       } yield ()

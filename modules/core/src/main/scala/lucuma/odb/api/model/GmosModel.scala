@@ -615,12 +615,12 @@ object GmosModel {
 
   final case class CreateNorthDynamic(
     exposure:      FiniteDurationModel.Input,
-    readout:       CreateCcdReadout                                = CreateCcdReadout(),
-    dtax:          GmosDtax                                        = GmosDtax.Zero,
-    roi:           GmosRoi                                         = GmosRoi.FullFrame,
+    readout:       CreateCcdReadout                              = CreateCcdReadout(),
+    dtax:          GmosDtax                                      = GmosDtax.Zero,
+    roi:           GmosRoi                                       = GmosRoi.FullFrame,
     gratingConfig: Option[CreateGratingConfig[GmosNorthGrating]] = None,
-    filter:        Option[GmosNorthFilter]                         = None,
-    fpu:           Option[CreateFpu[GmosNorthFpu]]                 = None
+    filter:        Option[GmosNorthFilter]                       = None,
+    fpu:           Option[CreateFpu[GmosNorthFpu]]               = None
   ) extends CreateDynamic[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu] {
 
     val create: ValidatedInput[NorthDynamic] =
@@ -659,12 +659,12 @@ object GmosModel {
 
   final case class CreateSouthDynamic(
     exposure:      FiniteDurationModel.Input,
-    readout:       CreateCcdReadout                                = CreateCcdReadout(),
-    dtax:          GmosDtax                                        = GmosDtax.Zero,
-    roi:           GmosRoi                                         = GmosRoi.FullFrame,
+    readout:       CreateCcdReadout                              = CreateCcdReadout(),
+    dtax:          GmosDtax                                      = GmosDtax.Zero,
+    roi:           GmosRoi                                       = GmosRoi.FullFrame,
     gratingConfig: Option[CreateGratingConfig[GmosSouthGrating]] = None,
-    filter:        Option[GmosSouthFilter]                         = None,
-    fpu:           Option[CreateFpu[GmosSouthFpu]]                 = None
+    filter:        Option[GmosSouthFilter]                       = None,
+    fpu:           Option[CreateFpu[GmosSouthFpu]]               = None
   ) extends CreateDynamic[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu] {
 
     val create: ValidatedInput[SouthDynamic] =
