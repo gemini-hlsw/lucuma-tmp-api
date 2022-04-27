@@ -10,9 +10,9 @@ import cats.data.StateT
 import clue.data.Input
 import io.circe.Decoder
 import lucuma.core.enum.GmosNorthFilter
-import lucuma.core.enum.GmosNorthDisperser
+import lucuma.core.enum.GmosNorthGrating
 import lucuma.core.enum.GmosSouthFilter
-import lucuma.core.enum.GmosSouthDisperser
+import lucuma.core.enum.GmosSouthGrating
 import lucuma.odb.api.model.ScienceConfigurationModel.Modes.{GmosNorthLongSlit, GmosNorthLongSlitInput, GmosSouthLongSlit, GmosSouthLongSlitInput}
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
@@ -43,7 +43,7 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
 
     final case class GmosNorthLongSlit(
       filter:    Option[GmosNorthFilter],
-      grating:   GmosNorthDisperser,
+      grating:   GmosNorthGrating,
       fpu:       GmosNorthFpu
     ) extends ScienceConfigurationModel {
       val mode: ConfigurationMode =
@@ -57,7 +57,7 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
       val filter: Lens[GmosNorthLongSlit, Option[GmosNorthFilter]] =
         Focus[GmosNorthLongSlit](_.filter)
 
-      val grating: Lens[GmosNorthLongSlit, GmosNorthDisperser] =
+      val grating: Lens[GmosNorthLongSlit, GmosNorthGrating] =
         Focus[GmosNorthLongSlit](_.grating)
 
       val fpu: Lens[GmosNorthLongSlit, GmosNorthFpu] =
@@ -68,9 +68,9 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
     }
 
     final case class GmosNorthLongSlitInput(
-      filter:    Input[GmosNorthFilter]    = Input.ignore,
-      grating:   Input[GmosNorthDisperser] = Input.ignore,
-      fpu:       Input[GmosNorthFpu]       = Input.ignore
+      filter:    Input[GmosNorthFilter]  = Input.ignore,
+      grating:   Input[GmosNorthGrating] = Input.ignore,
+      fpu:       Input[GmosNorthFpu]     = Input.ignore
     ) extends EditorInput[GmosNorthLongSlit] {
 
       override val create: ValidatedInput[GmosNorthLongSlit] =
@@ -116,7 +116,7 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
 
     final case class GmosSouthLongSlit(
       filter:    Option[GmosSouthFilter],
-      grating:   GmosSouthDisperser,
+      grating:   GmosSouthGrating,
       fpu:       GmosSouthFpu
     ) extends ScienceConfigurationModel {
       val mode: ConfigurationMode =
@@ -130,7 +130,7 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
       val filter: Lens[GmosSouthLongSlit, Option[GmosSouthFilter]] =
         Focus[GmosSouthLongSlit](_.filter)
 
-      val grating: Lens[GmosSouthLongSlit, GmosSouthDisperser] =
+      val grating: Lens[GmosSouthLongSlit, GmosSouthGrating] =
         Focus[GmosSouthLongSlit](_.grating)
 
       val fpu: Lens[GmosSouthLongSlit, GmosSouthFpu] =
@@ -142,9 +142,9 @@ object ScienceConfigurationModel extends ScienceConfigurationModelOptics {
     }
 
     final case class GmosSouthLongSlitInput(
-      filter:    Input[GmosSouthFilter]    = Input.ignore,
-      grating:   Input[GmosSouthDisperser] = Input.ignore,
-      fpu:       Input[GmosSouthFpu]       = Input.ignore
+      filter:    Input[GmosSouthFilter]  = Input.ignore,
+      grating:   Input[GmosSouthGrating] = Input.ignore,
+      fpu:       Input[GmosSouthFpu]     = Input.ignore
     ) extends EditorInput[GmosSouthLongSlit] {
 
       override val create: ValidatedInput[GmosSouthLongSlit] =

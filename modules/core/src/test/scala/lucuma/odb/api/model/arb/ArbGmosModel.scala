@@ -297,7 +297,7 @@ trait ArbGmosModel {
     Arbitrary {
       for {
         d <- arbitrary[D]
-        o <- arbitrary[GmosDisperserOrder]
+        o <- arbitrary[GmosGratingOrder]
         w <- arbitrary[Wavelength]
       } yield GmosModel.GratingConfig(d, o, w)
     }
@@ -305,7 +305,7 @@ trait ArbGmosModel {
   implicit def cogGrating[D: Cogen]: Cogen[GmosModel.GratingConfig[D]] =
     Cogen[(
       D,
-      GmosDisperserOrder,
+      GmosGratingOrder,
       Wavelength
     )].contramap { in =>
       (
@@ -319,7 +319,7 @@ trait ArbGmosModel {
     Arbitrary {
       for {
         d <- arbitrary[D]
-        o <- arbitrary[GmosDisperserOrder]
+        o <- arbitrary[GmosGratingOrder]
         w <- arbitrary[WavelengthModel.Input]
       } yield GmosModel.CreateGratingConfig(d, o, w)
     }
@@ -327,7 +327,7 @@ trait ArbGmosModel {
   implicit def cogCreateGrating[D: Cogen]: Cogen[GmosModel.CreateGratingConfig[D]] =
     Cogen[(
       D,
-      GmosDisperserOrder,
+      GmosGratingOrder,
       WavelengthModel.Input
     )].contramap { in =>
       (
@@ -364,7 +364,7 @@ trait ArbGmosModel {
         c <- arbitrary[GmosModel.CcdReadout]
         x <- arbitrary[GmosDtax]
         r <- arbitrary[GmosRoi]
-        g <- arbitrary[Option[GmosModel.GratingConfig[GmosNorthDisperser]]]
+        g <- arbitrary[Option[GmosModel.GratingConfig[GmosNorthGrating]]]
         f <- arbitrary[Option[GmosNorthFilter]]
         u <- arbitrary[Option[Either[GmosModel.CustomMask, GmosNorthFpu]]]
       } yield GmosModel.NorthDynamic(e, c, x, r, g, f, u)
@@ -376,7 +376,7 @@ trait ArbGmosModel {
       GmosModel.CcdReadout,
       GmosDtax,
       GmosRoi,
-      Option[GmosModel.GratingConfig[GmosNorthDisperser]],
+      Option[GmosModel.GratingConfig[GmosNorthGrating]],
       Option[GmosNorthFilter],
       Option[Either[GmosModel.CustomMask, GmosNorthFpu]]
     )].contramap { in =>
@@ -398,7 +398,7 @@ trait ArbGmosModel {
         c <- arbitrary[GmosModel.CreateCcdReadout]
         x <- arbitrary[GmosDtax]
         r <- arbitrary[GmosRoi]
-        g <- arbitrary[Option[GmosModel.CreateGratingConfig[GmosNorthDisperser]]]
+        g <- arbitrary[Option[GmosModel.CreateGratingConfig[GmosNorthGrating]]]
         f <- arbitrary[Option[GmosNorthFilter]]
         u <- arbitrary[Option[GmosModel.CreateFpu[GmosNorthFpu]]]
       } yield GmosModel.CreateNorthDynamic(e, c, x, r, g, f, u)
@@ -410,7 +410,7 @@ trait ArbGmosModel {
       GmosModel.CreateCcdReadout,
       GmosDtax,
       GmosRoi,
-      Option[GmosModel.CreateGratingConfig[GmosNorthDisperser]],
+      Option[GmosModel.CreateGratingConfig[GmosNorthGrating]],
       Option[GmosNorthFilter],
       Option[GmosModel.CreateFpu[GmosNorthFpu]]
     )].contramap { in =>
@@ -432,7 +432,7 @@ trait ArbGmosModel {
         c <- arbitrary[GmosModel.CcdReadout]
         x <- arbitrary[GmosDtax]
         r <- arbitrary[GmosRoi]
-        g <- arbitrary[Option[GmosModel.GratingConfig[GmosSouthDisperser]]]
+        g <- arbitrary[Option[GmosModel.GratingConfig[GmosSouthGrating]]]
         f <- arbitrary[Option[GmosSouthFilter]]
         u <- arbitrary[Option[Either[GmosModel.CustomMask, GmosSouthFpu]]]
       } yield GmosModel.SouthDynamic(e, c, x, r, g, f, u)
@@ -444,7 +444,7 @@ trait ArbGmosModel {
       GmosModel.CcdReadout,
       GmosDtax,
       GmosRoi,
-      Option[GmosModel.GratingConfig[GmosSouthDisperser]],
+      Option[GmosModel.GratingConfig[GmosSouthGrating]],
       Option[GmosSouthFilter],
       Option[Either[GmosModel.CustomMask, GmosSouthFpu]]
     )].contramap { in =>
@@ -466,7 +466,7 @@ trait ArbGmosModel {
         c <- arbitrary[GmosModel.CreateCcdReadout]
         x <- arbitrary[GmosDtax]
         r <- arbitrary[GmosRoi]
-        g <- arbitrary[Option[GmosModel.CreateGratingConfig[GmosSouthDisperser]]]
+        g <- arbitrary[Option[GmosModel.CreateGratingConfig[GmosSouthGrating]]]
         f <- arbitrary[Option[GmosSouthFilter]]
         u <- arbitrary[Option[GmosModel.CreateFpu[GmosSouthFpu]]]
       } yield GmosModel.CreateSouthDynamic(e, c, x, r, g, f, u)
@@ -478,7 +478,7 @@ trait ArbGmosModel {
       GmosModel.CreateCcdReadout,
       GmosDtax,
       GmosRoi,
-      Option[GmosModel.CreateGratingConfig[GmosSouthDisperser]],
+      Option[GmosModel.CreateGratingConfig[GmosSouthGrating]],
       Option[GmosSouthFilter],
       Option[GmosModel.CreateFpu[GmosSouthFpu]]
     )].contramap { in =>

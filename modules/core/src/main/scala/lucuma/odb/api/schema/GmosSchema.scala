@@ -56,7 +56,7 @@ object GmosSchema {
       "GmosSouth Detector type"
     )
 
-  implicit val EnumTypeGmosGratingOrder: EnumType[GmosDisperserOrder] =
+  implicit val EnumTypeGmosGratingOrder: EnumType[GmosGratingOrder] =
     EnumType.fromEnumerated(
       "GmosGratingOrder",
       "GMOS grating order"
@@ -74,7 +74,7 @@ object GmosSchema {
       "Electronic offsetting"
     )
 
-  implicit val EnumTypeGmosNorthGrating: EnumType[GmosNorthDisperser] =
+  implicit val EnumTypeGmosNorthGrating: EnumType[GmosNorthGrating] =
     EnumType.fromEnumerated(
       "GmosNorthGrating",
       "GMOS North Grating"
@@ -104,20 +104,20 @@ object GmosSchema {
       "GMOS Region Of Interest"
     )
 
-  implicit val EnumTypeGmosSouthGrating: EnumType[GmosSouthDisperser] =
-    // GmosSouthDisperser.all is haunted.  B600_G5323 is inexplicably null in the list.
+  implicit val EnumTypeGmosSouthGrating: EnumType[GmosSouthGrating] =
+    // GmosSouthGrating.all is haunted.  B600_G5323 is inexplicably null in the list.
     // Fixed with marking it `lazy` in core but for now ....
-    EnumType.fromEnumerated[GmosSouthDisperser](
+    EnumType.fromEnumerated[GmosSouthGrating](
       "GmosSouthGrating",
       "GMOS South Grating"
     )(Enumerated.of(
-      GmosSouthDisperser.B1200_G5321,
-      GmosSouthDisperser.R831_G5322,
-      GmosSouthDisperser.B600_G5323,
-      GmosSouthDisperser.R600_G5324,
-      GmosSouthDisperser.B480_G5327,
-      GmosSouthDisperser.R400_G5325,
-      GmosSouthDisperser.R150_G5326
+      GmosSouthGrating.B1200_G5321,
+      GmosSouthGrating.R831_G5322,
+      GmosSouthGrating.B600_G5323,
+      GmosSouthGrating.R600_G5324,
+      GmosSouthGrating.B480_G5327,
+      GmosSouthGrating.R400_G5325,
+      GmosSouthGrating.R150_G5326
     ))
 
   implicit val EnumTypeGmosSouthFilter: EnumType[GmosSouthFilter] =
@@ -518,10 +518,10 @@ object GmosSchema {
     )
 
   val GmosNorthDynamicType: ObjectType[Any, GmosModel.NorthDynamic] =
-    GmosDynamicType[GmosNorthDisperser, GmosNorthFilter, GmosNorthFpu, GmosModel.NorthDynamic](Site.GN)
+    GmosDynamicType[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu, GmosModel.NorthDynamic](Site.GN)
 
   val GmosSouthDynamicType: ObjectType[Any, GmosModel.SouthDynamic] =
-    GmosDynamicType[GmosSouthDisperser, GmosSouthFilter, GmosSouthFpu, GmosModel.SouthDynamic](Site.GS)
+    GmosDynamicType[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu, GmosModel.SouthDynamic](Site.GS)
 
   def InputObjectTypeGmosDynamicInput[D: EnumType, L: EnumType, U: EnumType, G <: GmosModel.CreateDynamic[D, L, U]](
     site: Site
@@ -542,10 +542,10 @@ object GmosSchema {
     )
 
   val InputObjectTypeGmosNorthDynamic: InputObjectType[GmosModel.CreateNorthDynamic] =
-    InputObjectTypeGmosDynamicInput[GmosNorthDisperser, GmosNorthFilter, GmosNorthFpu, GmosModel.CreateNorthDynamic](Site.GN)
+    InputObjectTypeGmosDynamicInput[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu, GmosModel.CreateNorthDynamic](Site.GN)
 
   val InputObjectTypeGmosSouthDynamic: InputObjectType[GmosModel.CreateSouthDynamic] =
-    InputObjectTypeGmosDynamicInput[GmosSouthDisperser, GmosSouthFilter, GmosSouthFpu, GmosModel.CreateSouthDynamic](Site.GS)
+    InputObjectTypeGmosDynamicInput[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu, GmosModel.CreateSouthDynamic](Site.GS)
 
 
 

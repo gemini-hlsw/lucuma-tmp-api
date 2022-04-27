@@ -5,10 +5,10 @@ package lucuma.gen.gmos.longslit.syntax
 
 import coulomb.Quantity
 import eu.timepit.refined.types.all.PosInt
-import lucuma.core.`enum`.GmosNorthDisperser
+import lucuma.core.`enum`.GmosNorthGrating
 import lucuma.core.math.units.Nanometer
 
-final class GmosNorthDisperserOps(val self: GmosNorthDisperser) {
+final class GmosNorthGratingOps(val self: GmosNorthGrating) {
 
   val Δλ: Quantity[PosInt, Nanometer] =
     GmosNorthLongslitMath.Δλ(self.dispersion)
@@ -16,8 +16,8 @@ final class GmosNorthDisperserOps(val self: GmosNorthDisperser) {
 }
 
 trait ToGmosNorthGratingOps {
-  implicit def toGmosNorthGratingOps(grating: GmosNorthDisperser): GmosNorthDisperserOps =
-    new GmosNorthDisperserOps(grating)
+  implicit def toGmosNorthGratingOps(grating: GmosNorthGrating): GmosNorthGratingOps =
+    new GmosNorthGratingOps(grating)
 }
 
 object gmosNorthGrating extends ToGmosNorthGratingOps

@@ -113,7 +113,7 @@ object GmosSouthLongSlit {
           _  <- SouthDynamic.exposure      := exposureTime.value
           _  <- SouthDynamic.filter        := filter.some
           _  <- SouthDynamic.fpu           := none[Either[CustomMask, GmosSouthFpu]]
-          _  <- SouthDynamic.gratingConfig := none[GratingConfig[GmosSouthDisperser]]
+          _  <- SouthDynamic.gratingConfig := none[GratingConfig[GmosSouthGrating]]
           _  <- SouthDynamic.xBin          := GmosXBinning.Two
           _  <- SouthDynamic.yBin          := GmosYBinning.Two
           _  <- SouthDynamic.roi           := GmosRoi.Ccd2
@@ -155,7 +155,7 @@ object GmosSouthLongSlit {
           _  <- SouthDynamic.exposure      := exposureTime.value
           _  <- SouthDynamic.xBin          := mode.fpu.xbin(sourceProfile, imageQuality, sampling)
           _  <- SouthDynamic.yBin          := GmosYBinning.Two
-          _  <- SouthDynamic.gratingConfig := GratingConfig(mode.grating, GmosDisperserOrder.One, λ).some
+          _  <- SouthDynamic.gratingConfig := GratingConfig(mode.grating, GmosGratingOrder.One, λ).some
           _  <- SouthDynamic.filter        := mode.filter
           _  <- SouthDynamic.fpu           := mode.fpu.asRight.some
           s0 <- scienceStep(0.arcsec, 0.arcsec)

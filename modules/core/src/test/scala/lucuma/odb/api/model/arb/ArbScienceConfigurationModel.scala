@@ -4,7 +4,7 @@
 package lucuma.odb.api.model
 package arb
 
-import lucuma.core.`enum`.{GmosNorthDisperser, GmosNorthFilter, GmosNorthFpu}
+import lucuma.core.`enum`.{GmosNorthGrating, GmosNorthFilter, GmosNorthFpu}
 import lucuma.core.util.arb.ArbEnumerated
 import org.scalacheck.Arbitrary
 import org.scalacheck.Cogen
@@ -21,7 +21,7 @@ trait ArbScienceConfigurationModel {
     Arbitrary {
       for {
         f <- arbitrary[Option[GmosNorthFilter]]
-        d <- arbitrary[GmosNorthDisperser]
+        d <- arbitrary[GmosNorthGrating]
         u <- arbitrary[GmosNorthFpu]
       } yield GmosNorthLongSlit(f, d, u)
     }
@@ -29,7 +29,7 @@ trait ArbScienceConfigurationModel {
   implicit val cogGmosNorthLongSlit: Cogen[GmosNorthLongSlit] =
     Cogen[(
       Option[GmosNorthFilter],
-      GmosNorthDisperser,
+      GmosNorthGrating,
       GmosNorthFpu
     )].contramap { in => (
       in.filter,
