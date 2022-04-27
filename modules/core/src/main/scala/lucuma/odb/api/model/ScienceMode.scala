@@ -4,11 +4,20 @@
 package lucuma.odb.api.model
 
 import cats.Eq
+import cats.data.StateT
+import cats.syntax.apply._
 import cats.syntax.eq._
-import lucuma.core.`enum`.{GmosNorthGrating, GmosNorthFilter, GmosNorthFpu, GmosSouthGrating, GmosSouthFilter, GmosSouthFpu, Instrument}
-import lucuma.odb.api.model.gmos.longslit.{BasicConfig, AdvancedConfig}
+import cats.syntax.functor._
+import cats.syntax.traverse._
+import clue.data.Input
+import io.circe.Decoder
+import lucuma.core.`enum`.{GmosNorthFilter, GmosNorthFpu, GmosNorthGrating, GmosSouthFilter, GmosSouthFpu, GmosSouthGrating, Instrument}
+import lucuma.odb.api.model.ScienceMode.{GmosNorthLongSlit, GmosNorthLongSlitInput, GmosSouthLongSlit, GmosSouthLongSlitInput}
+import lucuma.odb.api.model.gmos.longslit.{AdvancedConfig, AdvancedConfigInput, BasicConfig, BasicConfigInput}
+import lucuma.odb.api.model.syntax.input._
+import lucuma.odb.api.model.syntax.lens._
 import monocle.macros.GenPrism
-import monocle.Prism
+import monocle.{Focus, Lens, Prism}
 
 sealed trait ScienceMode extends Product with Serializable {
 
@@ -35,7 +44,7 @@ object ScienceMode {
    */
   final case class GmosNorthLongSlit(
     basic:    BasicConfig[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu],
-    advanced: AdvancedConfig[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu]
+    advanced: Option[AdvancedConfig[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu]]
   ) extends ScienceMode {
 
     override def mode: ConfigurationMode =
@@ -46,7 +55,7 @@ object ScienceMode {
 
   }
 
-  object GmosNorthLongSlit {
+  object GmosNorthLongSlit extends GmosNorthLongSlitOptics {
 
     implicit val EqGmosNorthLongSlit: Eq[GmosNorthLongSlit] =
       Eq.by { a => (
@@ -56,9 +65,52 @@ object ScienceMode {
 
   }
 
+  sealed trait GmosNorthLongSlitOptics { self: GmosNorthLongSlit.type =>
+
+    val basic: Lens[GmosNorthLongSlit, BasicConfig[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu]] =
+      Focus[GmosNorthLongSlit](_.basic)
+
+    val advanced: Lens[GmosNorthLongSlit, Option[AdvancedConfig[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu]]] =
+      Focus[GmosNorthLongSlit](_.advanced)
+
+  }
+
+  final case class GmosNorthLongSlitInput(
+    basicConfig:    Input[BasicConfigInput[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu]]    = Input.ignore,
+    advancedConfig: Input[AdvancedConfigInput[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu]] = Input.ignore
+  ) extends EditorInput[GmosNorthLongSlit] {
+
+    override val create: ValidatedInput[GmosNorthLongSlit] =
+      (basicConfig.notMissingAndThen("basicConfig")(_.create),
+        advancedConfig.toOption.traverse(_.create)
+      ).mapN { case (b, a) => GmosNorthLongSlit(b, a) }
+
+    override def edit: StateT[EitherInput, GmosNorthLongSlit, Unit] =
+      for {
+        _ <- GmosNorthLongSlit.basic    :! basicConfig
+        _ <- GmosNorthLongSlit.advanced :? advancedConfig
+      } yield ()
+
+  }
+
+  object GmosNorthLongSlitInput {
+    import io.circe.generic.extras.semiauto._
+    import io.circe.generic.extras.Configuration
+    implicit val customConfig: Configuration = Configuration.default.withDefaults
+
+    implicit val DecoderGmosNorthLongSlitInput: Decoder[GmosNorthLongSlitInput] =
+      deriveConfiguredDecoder[GmosNorthLongSlitInput]
+
+    implicit def EqGmosNorthLongSlitInput: Eq[GmosNorthLongSlitInput] =
+      Eq.by { a => (
+        a.basicConfig,
+        a.advancedConfig
+      )}
+  }
+
   final case class GmosSouthLongSlit(
     basic:    BasicConfig[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu],
-    advanced: AdvancedConfig[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu]
+    advanced: Option[AdvancedConfig[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu]]
   ) extends ScienceMode {
 
     override def mode: ConfigurationMode =
@@ -69,7 +121,7 @@ object ScienceMode {
 
   }
 
-  object GmosSouthLongSlit {
+  object GmosSouthLongSlit extends GmosSouthLongSlitOptics {
 
     implicit val EqGmosSouthLongSlit: Eq[GmosSouthLongSlit] =
       Eq.by { a => (
@@ -77,6 +129,49 @@ object ScienceMode {
         a.advanced
       )}
 
+  }
+
+  sealed trait GmosSouthLongSlitOptics { self: GmosSouthLongSlit.type =>
+
+    val basic: Lens[GmosSouthLongSlit, BasicConfig[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu]] =
+      Focus[GmosSouthLongSlit](_.basic)
+
+    val advanced: Lens[GmosSouthLongSlit, Option[AdvancedConfig[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu]]] =
+      Focus[GmosSouthLongSlit](_.advanced)
+
+  }
+
+  final case class GmosSouthLongSlitInput(
+    basicConfig:    Input[BasicConfigInput[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu]]    = Input.ignore,
+    advancedConfig: Input[AdvancedConfigInput[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu]] = Input.ignore
+  ) extends EditorInput[GmosSouthLongSlit] {
+
+    override val create: ValidatedInput[GmosSouthLongSlit] =
+      (basicConfig.notMissingAndThen("basicConfig")(_.create),
+        advancedConfig.toOption.traverse(_.create)
+      ).mapN { case (b, a) => GmosSouthLongSlit(b, a) }
+
+    override def edit: StateT[EitherInput, GmosSouthLongSlit, Unit] =
+      for {
+        _ <- GmosSouthLongSlit.basic    :! basicConfig
+        _ <- GmosSouthLongSlit.advanced :? advancedConfig
+      } yield ()
+
+  }
+
+  object GmosSouthLongSlitInput {
+    import io.circe.generic.extras.semiauto._
+    import io.circe.generic.extras.Configuration
+    implicit val customConfig: Configuration = Configuration.default.withDefaults
+
+    implicit val DecoderGmosSouthLongSlitInput: Decoder[GmosSouthLongSlitInput] =
+      deriveConfiguredDecoder[GmosSouthLongSlitInput]
+
+    implicit def EqGmosSouthLongSlitInput: Eq[GmosSouthLongSlitInput] =
+      Eq.by { a => (
+        a.basicConfig,
+        a.advancedConfig
+      )}
   }
 
   val EqScienceMode: Eq[ScienceMode] =
@@ -91,5 +186,42 @@ object ScienceMode {
 
   val gmosSouthLongSlit: Prism[ScienceMode, GmosSouthLongSlit] =
     GenPrism[ScienceMode, GmosSouthLongSlit]
+
+}
+
+final case class ScienceModeInput(
+  gmosNorthLongSlit: Input[GmosNorthLongSlitInput] = Input.ignore,
+  gmosSouthLongSlit: Input[GmosSouthLongSlitInput] = Input.ignore
+) extends EditorInput[ScienceMode] {
+
+  override val create: ValidatedInput[ScienceMode] =
+    ValidatedInput.requireOne[ScienceMode](
+      "mode",
+      gmosNorthLongSlit.toOption.map(_.create.widen[ScienceMode]),
+      gmosSouthLongSlit.toOption.map(_.create.widen[ScienceMode])
+    )
+
+  override val edit: StateT[EitherInput, ScienceMode, Unit] =
+    EditorInput.editOneOf[ScienceMode, GmosNorthLongSlit, GmosSouthLongSlit](
+      ("gmosNorthLongSlit", gmosNorthLongSlit, ScienceMode.gmosNorthLongSlit),
+      ("gmosSouthLongSlit", gmosSouthLongSlit, ScienceMode.gmosSouthLongSlit)
+    )
+
+}
+
+object ScienceModeInput {
+
+  import io.circe.generic.extras.semiauto._
+  import io.circe.generic.extras.Configuration
+  implicit val customConfig: Configuration = Configuration.default.withDefaults
+
+  implicit val DecoderScienceModeInput: Decoder[ScienceModeInput] =
+    deriveConfiguredDecoder[ScienceModeInput]
+
+  implicit val EqScienceModeInput: Eq[ScienceModeInput] =
+    Eq.by { a => (
+      a.gmosNorthLongSlit,
+      a.gmosSouthLongSlit
+    )}
 
 }
