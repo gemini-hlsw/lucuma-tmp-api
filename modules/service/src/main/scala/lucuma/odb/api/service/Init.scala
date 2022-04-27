@@ -302,7 +302,7 @@ object Init {
         _ <- readout.andThen(xBin)    := GmosXBinning.Two
         _ <- readout.andThen(yBin)    := GmosYBinning.Two
         _ <- roi                      := GmosRoi.CentralSpectrum
-        _ <- gratingConfig            := GmosModel.CreateGratingConfig[GmosSouthDisperser](GmosSouthDisperser.B600_G5323, GmosDisperserOrder.One, WavelengthModel.Input.fromNanometers(520.0)).some
+        _ <- gratingConfig            := GmosModel.CreateGratingConfig[GmosSouthGrating](GmosSouthGrating.B600_G5323, GmosGratingOrder.One, WavelengthModel.Input.fromNanometers(520.0)).some
         _ <- filter                   := Option.empty[GmosSouthFilter]
         _ <- fpu                      := CreateFpu.builtin[GmosSouthFpu](GmosSouthFpu.LongSlit_1_00).some
       } yield ()
@@ -398,7 +398,7 @@ object Init {
     ObservationModel.Create.scienceConfiguration.replace(
         ScienceConfigurationInput(
           gmosSouthLongSlit = GmosSouthLongSlitInput(
-            grating   = GmosSouthDisperser.B600_G5323.assign,
+            grating   = GmosSouthGrating.B600_G5323.assign,
             fpu       = GmosSouthFpu.LongSlit_1_00.assign
           ).assign
         ).some
@@ -423,7 +423,7 @@ object Init {
     ObservationModel.Create.scienceConfiguration.replace(
         ScienceConfigurationInput(
           gmosNorthLongSlit = GmosNorthLongSlitInput(
-            grating   = GmosNorthDisperser.B600_G5307.assign,
+            grating   = GmosNorthGrating.B600_G5307.assign,
             fpu       = GmosNorthFpu.LongSlit_1_00.assign
           ).assign
         ).some

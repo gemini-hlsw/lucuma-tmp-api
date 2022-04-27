@@ -4,7 +4,7 @@
 package lucuma.odb.api.model
 
 import lucuma.odb.api.model.arb._
-import lucuma.core.`enum`.GmosNorthDisperser
+import lucuma.core.`enum`.GmosNorthGrating
 import lucuma.core.util.arb.ArbEnumerated
 
 import cats.kernel.laws.discipline.EqTests
@@ -38,8 +38,8 @@ final class GmosModelSuite extends DisciplineSuite {
   checkAll("GmosModel.CustomMask",                  EqTests[GmosModel.CustomMask].eqv)
   checkAll("GmosModel.CreateCustomMask",            EqTests[GmosModel.CreateCustomMask].eqv)
 
-  checkAll("GmosModel.GratingConfig",               EqTests[GmosModel.GratingConfig[GmosNorthDisperser]].eqv)
-  checkAll("GmosModel.CreateGratingConfig",         EqTests[GmosModel.CreateGratingConfig[GmosNorthDisperser]].eqv)
+  checkAll("GmosModel.GratingConfig",               EqTests[GmosModel.GratingConfig[GmosNorthGrating]].eqv)
+  checkAll("GmosModel.CreateGratingConfig",         EqTests[GmosModel.CreateGratingConfig[GmosNorthGrating]].eqv)
 
   checkAll("GmosModel.NorthDynamic",                EqTests[GmosModel.NorthDynamic].eqv)
   checkAll("GmosModel.CreateNorthDynamic",          EqTests[GmosModel.CreateNorthDynamic].eqv)
