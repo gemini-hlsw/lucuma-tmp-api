@@ -195,8 +195,7 @@ object ItcSpectroscopyInput {
         "elevationRange"  -> (a.elevationRange match {
           case ElevationRange.AirMass(min, max)             =>
             Json.obj(
-              // TODO: we should switch this to airMass to be consistent
-              "airmassRange"->
+              "airMass"->
                 Json.obj(
                   "min" -> min.value.asJson,
                   "max" -> max.value.asJson
@@ -204,8 +203,7 @@ object ItcSpectroscopyInput {
             )
           case ElevationRange.HourAngle(minHours, maxHours) =>
             Json.obj(
-              // TODO: we should switch this to hourAngle to be consistent
-              "hourAngleRange" ->
+              "hourAngle" ->
                 Json.obj(
                   "minHours" -> minHours.value.asJson,
                   "maxHours" -> maxHours.value.asJson
@@ -220,8 +218,11 @@ object ItcSpectroscopyInput {
         "gmosN" ->
           Json.fromFields(
             List(
-              "disperser"  -> screaming(grating),
-              "fpu"        -> screaming(fpu)
+              "grating" -> screaming(grating),
+              "fpu"     ->
+                Json.obj(
+                  "builtin" -> screaming(fpu)
+                )
             ) ++ filter.map(screaming(_)).tupleLeft("filter").toList
           )
       )
@@ -230,8 +231,11 @@ object ItcSpectroscopyInput {
         "gmosS" ->
           Json.fromFields(
             List(
-              "disperser"  -> screaming(grating),
-              "fpu"        -> screaming(fpu)
+              "grating" -> screaming(grating),
+              "fpu"     ->
+                Json.obj(
+                  "builtin" -> screaming(fpu)
+                )
             ) ++ filter.map(screaming(_)).tupleLeft("filter").toList
           )
       )
