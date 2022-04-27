@@ -6,6 +6,7 @@ package lucuma.odb.api.model
 import cats.Eq
 import cats.syntax.eq._
 import lucuma.core.`enum`.{GmosNorthGrating, GmosNorthFilter, GmosNorthFpu, GmosSouthGrating, GmosSouthFilter, GmosSouthFpu, Instrument}
+import lucuma.odb.api.model.gmos.longslit.{BasicConfig, AdvancedConfig}
 import monocle.macros.GenPrism
 import monocle.Prism
 
@@ -23,8 +24,8 @@ object ScienceMode {
    * to sequence generation.
    */
   final case class GmosNorthLongSlit(
-    basic:    gmos.longslit.BasicConfig[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu],
-    advanced: gmos.longslit.AdvancedConfig[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu]
+    basic:    BasicConfig[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu],
+    advanced: AdvancedConfig[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu]
   ) extends ScienceMode {
 
     override def instrument: Instrument =
@@ -43,8 +44,8 @@ object ScienceMode {
   }
 
   final case class GmosSouthLongSlit(
-    basic:    gmos.longslit.BasicConfig[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu],
-    advanced: gmos.longslit.AdvancedConfig[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu]
+    basic:    BasicConfig[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu],
+    advanced: AdvancedConfig[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu]
   ) extends ScienceMode {
 
     override def instrument: Instrument =

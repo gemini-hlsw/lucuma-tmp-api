@@ -1,0 +1,109 @@
+// Copyright (c) 2016-2022 Association of Universities for Research in Astronomy, Inc. (AURA)
+// For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
+
+package lucuma.odb.api.model.gmos.longslit
+
+import cats.Eq
+import cats.data.{NonEmptyList, StateT}
+import cats.syntax.apply._
+import cats.syntax.either._
+import cats.syntax.option._
+import cats.syntax.traverse._
+import clue.data.Input
+import coulomb.Quantity
+import eu.timepit.refined.cats._
+import eu.timepit.refined.types.all.NonEmptyString
+import io.circe.Decoder
+import io.circe.refined._
+import lucuma.core.`enum`.{GmosAmpGain, GmosAmpReadMode, GmosRoi, GmosXBinning, GmosYBinning}
+import lucuma.core.math.Axis.Q
+import lucuma.core.math.Offset
+import lucuma.core.math.units.Nanometer
+import lucuma.odb.api.model.{EditorInput, EitherInput, InputError, OffsetModel, ValidatedInput}
+import lucuma.odb.api.model.syntax.input._
+import lucuma.odb.api.model.syntax.lens._
+
+
+final case class AdvancedConfigInput[G, F, U](
+  name:                      Input[NonEmptyString]                   = Input.ignore,
+  overrideBasic:             Input[BasicConfigInput[G, F, U]]        = Input.ignore,
+  explicitXBin:              Input[GmosXBinning]                     = Input.ignore,
+  explicitYBin:              Input[GmosYBinning]                     = Input.ignore,
+  explicitAmpReadMode:       Input[GmosAmpReadMode]                  = Input.ignore,
+  explicitAmpGain:           Input[GmosAmpGain]                      = Input.ignore,
+  explicitRoi:               Input[GmosRoi]                          = Input.ignore,
+  explicitWavelengthDithers: Input[List[Int]]                        = Input.ignore,
+  explicitSpatialOffsets:    Input[List[OffsetModel.ComponentInput]] = Input.ignore
+) extends EditorInput[AdvancedConfig[G, F, U]] {
+
+  override val create: ValidatedInput[AdvancedConfig[G, F, U]] =
+    (overrideBasic.notMissingAndThen("overrideBasic")(_.create),
+      explicitSpatialOffsets.toOption.toList.flatten.traverse(_.toComponent[Q])
+    ).mapN { (bc, os) =>
+      AdvancedConfig(
+        name.toOption,
+        bc,
+        explicitXBin           = explicitXBin.toOption,
+        explicitYBin           = explicitYBin.toOption,
+        explicitAmpReadMode    = explicitAmpReadMode.toOption,
+        explicitAmpGain        = explicitAmpGain.toOption,
+        explicitRoi            = explicitRoi.toOption,
+        explicitλDithers       = NonEmptyList.fromList(explicitWavelengthDithers.toOption.toList.flatten.map(i => Quantity[Int, Nanometer](i))),
+        explicitSpatialOffsets = NonEmptyList.fromList(os)
+      )
+    }
+
+  override val edit: StateT[EitherInput, AdvancedConfig[G, F, U], Unit] =
+    for {
+      _ <- AdvancedConfig.name                   := name.toOptionOption
+      _ <- AdvancedConfig.overrideBasic          :! overrideBasic
+      _ <- AdvancedConfig.explicitXBin           := explicitXBin.toOptionOption
+      _ <- AdvancedConfig.explicitYBin           := explicitYBin.toOptionOption
+      _ <- AdvancedConfig.explicitAmpReadMode    := explicitAmpReadMode.toOptionOption
+      _ <- AdvancedConfig.explicitAmpGain        := explicitAmpGain.toOptionOption
+      _ <- AdvancedConfig.explicitRoi            := explicitRoi.toOptionOption
+      _ <- AdvancedConfig.explicitλDithers       :<
+        explicitWavelengthDithers.fold(
+          StateT.empty[EitherInput, Option[NonEmptyList[Quantity[Int, Nanometer]]], Unit],
+          StateT.setF(Option.empty[NonEmptyList[Quantity[Int, Nanometer]]].rightNec[InputError]),
+          deltas => StateT.setF(
+            NonEmptyList.fromList(deltas.map(i => Quantity[Int, Nanometer](i))).rightNec[InputError]
+          )
+        ).some
+      _ <- AdvancedConfig.explicitSpatialOffsets :<
+        explicitSpatialOffsets.fold(
+          StateT.empty[EitherInput, Option[NonEmptyList[Offset.Q]], Unit],
+          StateT.setF(Option.empty[NonEmptyList[Offset.Q]].rightNec[InputError]),
+          os => StateT.setF(
+            os.traverse(_.toComponent[Q])
+              .map(NonEmptyList.fromList)
+              .toEither
+          )
+        ).some
+    } yield ()
+
+}
+
+object AdvancedConfigInput {
+
+  import io.circe.generic.extras.semiauto._
+  import io.circe.generic.extras.Configuration
+  implicit val customConfig: Configuration = Configuration.default.withDefaults
+
+  implicit def DecoderAdvancedConfigInput[G: Decoder, F: Decoder, U: Decoder]: Decoder[AdvancedConfigInput[G, F, U]] =
+    deriveConfiguredDecoder[AdvancedConfigInput[G, F, U]]
+
+  implicit def EqAdvancedConfigInput[G: Eq, F: Eq, U: Eq]: Eq[AdvancedConfigInput[G, F, U]] =
+    Eq.by { a => (
+      a.name,
+      a.overrideBasic,
+      a.explicitXBin,
+      a.explicitYBin,
+      a.explicitAmpReadMode,
+      a.explicitAmpGain,
+      a.explicitRoi,
+      a.explicitWavelengthDithers,
+      a.explicitSpatialOffsets
+    )}
+
+}

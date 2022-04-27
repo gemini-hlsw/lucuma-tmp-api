@@ -51,10 +51,10 @@ object BasicConfigInput {
   import io.circe.generic.extras.Configuration
   implicit val customConfig: Configuration = Configuration.default.withDefaults
 
-  implicit def DecoderBasicConfigInput[G: Decoder, F: Decoder, U: Decoder]: Decoder[BasicConfig[G, F, U]] =
-    deriveConfiguredDecoder[BasicConfig[G, F, U]]
+  implicit def DecoderBasicConfigInput[G: Decoder, F: Decoder, U: Decoder]: Decoder[BasicConfigInput[G, F, U]] =
+    deriveConfiguredDecoder[BasicConfigInput[G, F, U]]
 
-  implicit def EqBasicCOnfigInput[G: Eq, F: Eq, U: Eq]: Eq[BasicConfigInput[G, F, U]] =
+  implicit def EqBasicConfigInput[G: Eq, F: Eq, U: Eq]: Eq[BasicConfigInput[G, F, U]] =
     Eq.by { a => (
       a.grating,
       a.filter,
