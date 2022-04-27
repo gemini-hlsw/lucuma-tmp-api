@@ -4,7 +4,7 @@
 package lucuma.odb.api.model.gmos.longslit
 
 import coulomb.Quantity
-import lucuma.core.`enum`.{GmosNorthDisperser, GmosSouthDisperser}
+import lucuma.core.`enum`.{GmosNorthGrating, GmosSouthGrating}
 import lucuma.core.math.units.Nanometer
 
 trait DeltaWavelengthCalculator[G] {
@@ -15,10 +15,10 @@ trait DeltaWavelengthCalculator[G] {
 
 object DeltaWavelengthCalculator {
 
-  implicit val DeltaWavelengthCalculatorGmosNorthGrating: DeltaWavelengthCalculator[GmosNorthDisperser] =
-    (g: GmosNorthDisperser) => GmosNorthLongslitMath.Δλ(g.dispersion)
+  implicit val DeltaWavelengthCalculatorGmosNorthGrating: DeltaWavelengthCalculator[GmosNorthGrating] =
+    (g: GmosNorthGrating) => GmosNorthLongslitMath.Δλ(g.dispersion)
 
-  implicit val DeltaWavelengthCalculatorGmosSouthGrating: DeltaWavelengthCalculator[GmosSouthDisperser] =
-    (g: GmosSouthDisperser) => GmosSouthLongslitMath.Δλ(g.dispersion)
+  implicit val DeltaWavelengthCalculatorGmosSouthGrating: DeltaWavelengthCalculator[GmosSouthGrating] =
+    (g: GmosSouthGrating) => GmosSouthLongslitMath.Δλ(g.dispersion)
 
 }
