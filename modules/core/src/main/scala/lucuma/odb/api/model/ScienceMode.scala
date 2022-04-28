@@ -45,7 +45,7 @@ object ScienceMode {
   final case class GmosNorthLongSlit(
     basic:    BasicConfig[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu],
     advanced: Option[AdvancedConfig[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu]]
-  ) extends ScienceMode {
+  ) extends ScienceMode with gmos.longslit.LongSlit[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu] {
 
     override def mode: ConfigurationMode =
       ConfigurationMode.GmosNorthLongSlit
@@ -111,7 +111,7 @@ object ScienceMode {
   final case class GmosSouthLongSlit(
     basic:    BasicConfig[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu],
     advanced: Option[AdvancedConfig[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu]]
-  ) extends ScienceMode {
+  ) extends ScienceMode with gmos.longslit.LongSlit[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu] {
 
     override def mode: ConfigurationMode =
       ConfigurationMode.GmosSouthLongSlit

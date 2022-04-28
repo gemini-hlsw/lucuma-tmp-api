@@ -5,7 +5,6 @@ package lucuma.odb.api.model.gmos.longslit
 
 import cats.Eq
 import cats.data.{NonEmptyList, StateT}
-import cats.syntax.apply._
 import cats.syntax.either._
 import cats.syntax.option._
 import cats.syntax.traverse._
@@ -26,7 +25,9 @@ import lucuma.odb.api.model.syntax.lens._
 
 final case class AdvancedConfigInput[G, F, U](
   name:                      Input[NonEmptyString]                   = Input.ignore,
-  overrideBasic:             Input[BasicConfigInput[G, F, U]]        = Input.ignore,
+  overrideGrating:           Input[G]                                = Input.ignore,
+  overrideFilter:            Input[Option[F]]                        = Input.ignore,
+  overrideFpu:               Input[U]                                = Input.ignore,
   explicitXBin:              Input[GmosXBinning]                     = Input.ignore,
   explicitYBin:              Input[GmosYBinning]                     = Input.ignore,
   explicitAmpReadMode:       Input[GmosAmpReadMode]                  = Input.ignore,
@@ -37,12 +38,12 @@ final case class AdvancedConfigInput[G, F, U](
 ) extends EditorInput[AdvancedConfig[G, F, U]] {
 
   override val create: ValidatedInput[AdvancedConfig[G, F, U]] =
-    (overrideBasic.notMissingAndThen("overrideBasic")(_.create),
-      explicitSpatialOffsets.toOption.toList.flatten.traverse(_.toComponent[Q])
-    ).mapN { (bc, os) =>
+    explicitSpatialOffsets.toOption.toList.flatten.traverse(_.toComponent[Q]).map { os =>
       AdvancedConfig(
         name.toOption,
-        bc,
+        overrideGrating        = overrideGrating.toOption,
+        overrideFilter         = overrideFilter.toOption,
+        overrideFpu            = overrideFpu.toOption,
         explicitXBin           = explicitXBin.toOption,
         explicitYBin           = explicitYBin.toOption,
         explicitAmpReadMode    = explicitAmpReadMode.toOption,
@@ -55,14 +56,16 @@ final case class AdvancedConfigInput[G, F, U](
 
   override val edit: StateT[EitherInput, AdvancedConfig[G, F, U], Unit] =
     for {
-      _ <- AdvancedConfig.name                   := name.toOptionOption
-      _ <- AdvancedConfig.overrideBasic          :! overrideBasic
-      _ <- AdvancedConfig.explicitXBin           := explicitXBin.toOptionOption
-      _ <- AdvancedConfig.explicitYBin           := explicitYBin.toOptionOption
-      _ <- AdvancedConfig.explicitAmpReadMode    := explicitAmpReadMode.toOptionOption
-      _ <- AdvancedConfig.explicitAmpGain        := explicitAmpGain.toOptionOption
-      _ <- AdvancedConfig.explicitRoi            := explicitRoi.toOptionOption
-      _ <- AdvancedConfig.explicitλDithers       :<
+      _ <- AdvancedConfig.name                     := name.toOptionOption
+      _ <- AdvancedConfig.overrideGrating[G, F, U] := overrideGrating.toOptionOption
+      _ <- AdvancedConfig.overrideFilter[G, F, U]  := overrideFilter.toOptionOption
+      _ <- AdvancedConfig.overrideFpu[G, F, U]     := overrideFpu.toOptionOption
+      _ <- AdvancedConfig.explicitXBin             := explicitXBin.toOptionOption
+      _ <- AdvancedConfig.explicitYBin             := explicitYBin.toOptionOption
+      _ <- AdvancedConfig.explicitAmpReadMode      := explicitAmpReadMode.toOptionOption
+      _ <- AdvancedConfig.explicitAmpGain          := explicitAmpGain.toOptionOption
+      _ <- AdvancedConfig.explicitRoi              := explicitRoi.toOptionOption
+      _ <- AdvancedConfig.explicitλDithers         :<
         explicitWavelengthDithers.fold(
           StateT.empty[EitherInput, Option[NonEmptyList[Quantity[Int, Nanometer]]], Unit],
           StateT.setF(Option.empty[NonEmptyList[Quantity[Int, Nanometer]]].rightNec[InputError]),
@@ -96,7 +99,9 @@ object AdvancedConfigInput {
   implicit def EqAdvancedConfigInput[G: Eq, F: Eq, U: Eq]: Eq[AdvancedConfigInput[G, F, U]] =
     Eq.by { a => (
       a.name,
-      a.overrideBasic,
+      a.overrideGrating,
+      a.overrideFilter,
+      a.overrideFpu,
       a.explicitXBin,
       a.explicitYBin,
       a.explicitAmpReadMode,

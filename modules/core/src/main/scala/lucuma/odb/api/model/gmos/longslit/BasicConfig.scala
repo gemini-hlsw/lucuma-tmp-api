@@ -16,12 +16,7 @@ final case class BasicConfig[G, F, U](
   grating: G,
   filter:  Option[F],
   fpu:     U
-) {
-
-  def toAdvanced: AdvancedConfig[G, F, U] =
-    AdvancedConfig(None, this)
-
-}
+)
 
 object BasicConfig extends BasicConfigOptics {
 

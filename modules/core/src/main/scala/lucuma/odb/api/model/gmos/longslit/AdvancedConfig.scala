@@ -8,11 +8,10 @@ import cats.data.NonEmptyList
 import coulomb.Quantity
 import coulomb.cats.implicits._
 import eu.timepit.refined.cats._
-import eu.timepit.refined.types.all.{NonEmptyString, PosDouble}
-import lucuma.core.`enum`.{GmosAmpGain, GmosAmpReadMode, GmosRoi, GmosXBinning, GmosYBinning, ImageQuality}
+import eu.timepit.refined.types.all.NonEmptyString
+import lucuma.core.`enum`.{GmosAmpGain, GmosAmpReadMode, GmosRoi, GmosXBinning, GmosYBinning}
 import lucuma.core.math.{Angle, Offset}
 import lucuma.core.math.units.Nanometer
-import lucuma.core.model.SourceProfile
 import monocle.{Focus, Lens}
 
 /**
@@ -21,7 +20,9 @@ import monocle.{Focus, Lens}
  */
 final case class AdvancedConfig[G, F, U](
   name:                   Option[NonEmptyString],
-  overrideBasic:          BasicConfig[G, F, U],
+  overrideGrating:        Option[G]                                      = None,
+  overrideFilter:         Option[Option[F]]                              = None,
+  overrideFpu:            Option[U]                                      = None,
   explicitXBin:           Option[GmosXBinning]                           = None,  // calculated from effective slit and sampling by default
   explicitYBin:           Option[GmosYBinning]                           = None,
   explicitAmpReadMode:    Option[GmosAmpReadMode]                        = None,
@@ -29,43 +30,7 @@ final case class AdvancedConfig[G, F, U](
   explicitRoi:            Option[GmosRoi]                                = None,
   explicitλDithers:       Option[NonEmptyList[Quantity[Int, Nanometer]]] = None,
   explicitSpatialOffsets: Option[NonEmptyList[Offset.Q]]                 = None
-) {
-
-  def grating: G =
-    overrideBasic.grating
-
-  def filter: Option[F] =
-    overrideBasic.filter
-
-  def fpu: U =
-    overrideBasic.fpu
-
-  def xBin(
-    sourceProfile: SourceProfile,
-    imageQuality:  ImageQuality,
-    sampling:      PosDouble
-  )(implicit calc: XBinCalculator[U]): GmosXBinning =
-    explicitXBin.getOrElse(calc.xBin(fpu, sourceProfile, imageQuality, sampling))
-
-  def yBin: GmosYBinning =
-    explicitYBin.getOrElse(AdvancedConfig.DefaultYBinning)
-
-  def ampReadMode: GmosAmpReadMode =
-    explicitAmpReadMode.getOrElse(AdvancedConfig.DefaultAmpReadMode)
-
-  def ampGain: GmosAmpGain =
-    explicitAmpGain.getOrElse(AdvancedConfig.DefaultAmpGain)
-
-  def roi: GmosRoi =
-    explicitRoi.getOrElse(AdvancedConfig.DefaultRoi)
-
-  def λDithers(implicit calc: DeltaWavelengthCalculator[G]): NonEmptyList[Quantity[Int, Nanometer]] =
-    explicitλDithers.getOrElse(AdvancedConfig.defaultλDithers(grating))
-
-  def spatialOffsets: NonEmptyList[Offset.Q] =
-    explicitSpatialOffsets.getOrElse(AdvancedConfig.DefaultSpatialOffsets)
-
-}
+)
 
 object AdvancedConfig extends AdvancedConfigOptics {
 
@@ -97,7 +62,9 @@ object AdvancedConfig extends AdvancedConfigOptics {
   implicit def EqAdvancedConfig[G: Eq, F: Eq, U: Eq]: Eq[AdvancedConfig[G, F, U]] =
     Eq.by { a => (
       a.name,
-      a.overrideBasic,
+      a.overrideGrating,
+      a.overrideFilter,
+      a.overrideFpu,
       a.explicitXBin,
       a.explicitYBin,
       a.explicitAmpReadMode,
@@ -114,17 +81,14 @@ sealed trait AdvancedConfigOptics { self: AdvancedConfig.type =>
   def name[G, F, U]: Lens[AdvancedConfig[G, F, U], Option[NonEmptyString]] =
     Focus[AdvancedConfig[G, F, U]](_.name)
 
-  def overrideBasic[G, F, U]: Lens[AdvancedConfig[G, F, U], BasicConfig[G, F, U]] =
-      Focus[AdvancedConfig[G, F, U]](_.overrideBasic)
+  def overrideGrating[G, F, U]: Lens[AdvancedConfig[G, F, U], Option[G]] =
+      Focus[AdvancedConfig[G, F, U]](_.overrideGrating)
 
-  def grating[G, F, U]: Lens[AdvancedConfig[G, F, U], G] =
-    overrideBasic.andThen(BasicConfig.grating)
+  def overrideFilter[G, F, U]: Lens[AdvancedConfig[G, F, U], Option[Option[F]]] =
+      Focus[AdvancedConfig[G, F, U]](_.overrideFilter)
 
-  def filter[G, F, U]: Lens[AdvancedConfig[G, F, U], Option[F]] =
-    overrideBasic.andThen(BasicConfig.filter)
-
-  def fpu[G, F, U]: Lens[AdvancedConfig[G, F, U], U] =
-    overrideBasic.andThen(BasicConfig.fpu)
+  def overrideFpu[G, F, U]: Lens[AdvancedConfig[G, F, U], Option[U]] =
+      Focus[AdvancedConfig[G, F, U]](_.overrideFpu)
 
   def explicitXBin[G, F, U]: Lens[AdvancedConfig[G, F, U], Option[GmosXBinning]] =
     Focus[AdvancedConfig[G, F, U]](_.explicitXBin)
