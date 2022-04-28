@@ -9,24 +9,20 @@ import cats.effect.Sync
 import cats.syntax.either._
 import cats.syntax.functor._
 import cats.syntax.option._
-import coulomb.Quantity
-import coulomb.refined._
 import eu.timepit.refined.auto._
 import eu.timepit.refined.types.all.{PosDouble, PosInt}
 import lucuma.core.`enum`._
 import lucuma.core.math.Wavelength
 import lucuma.core.math.syntax.int._
-import lucuma.core.math.units._
 import lucuma.core.model.SourceProfile
 import lucuma.core.optics.syntax.lens._
 import lucuma.core.optics.syntax.optional._
 import lucuma.gen.gmos.longslit.GmosLongSlit.{AcquisitionSteps, ScienceSteps}
-import lucuma.gen.gmos.longslit.syntax.all._
 import lucuma.itc.client.{ItcClient, ItcResult}
+import lucuma.odb.api.model.{ObservationModel, ScienceMode, Sequence}
+import lucuma.odb.api.model.gmos.syntax.gmosNorthFilter._
 import lucuma.odb.api.model.GmosModel.{CustomMask, GratingConfig, NorthDynamic, NorthStatic}
-import lucuma.odb.api.model.{ObservationModel, ScienceConfigurationModel, Sequence}
 import lucuma.odb.api.repo.OdbRepo
-import spire.std.int._
 
 import scala.concurrent.duration._
 
@@ -49,16 +45,16 @@ object GmosNorthLongSlit {
   ): F[Either[ItcResult.Error, Option[GmosNorthLongSlit[F]]]] =
 
     GmosLongSlit.Input.query(itc, odb, observation, sampling) {
-      case gnls: ScienceConfigurationModel.Modes.GmosNorthLongSlit => gnls
+      case gnls: ScienceMode.GmosNorthLongSlit => gnls
     }.map(_.map(_.map(fromInput[F])))
 
   def fromInput[F[_]: Sync](
-    in: GmosLongSlit.Input[ScienceConfigurationModel.Modes.GmosNorthLongSlit]
+    in: GmosLongSlit.Input[ScienceMode.GmosNorthLongSlit]
   ): GmosNorthLongSlit[F] =
     apply(in.mode, in.λ, in.imageQuality, in.sampling, in.sourceProfile, in.acqTime, in.sciTime, in.exposureCount)
 
   def apply[F[_]: Sync](
-    mode:          ScienceConfigurationModel.Modes.GmosNorthLongSlit,
+    mode:          ScienceMode.GmosNorthLongSlit,
     λ:             Wavelength,
     imageQuality:  ImageQuality,
     sampling:      PosDouble,
@@ -138,35 +134,31 @@ object GmosNorthLongSlit {
   object Science extends GmosNorthSequenceState {
 
     def compute(
-      mode:          ScienceConfigurationModel.Modes.GmosNorthLongSlit,
+      mode:          ScienceMode.GmosNorthLongSlit,
       exposureTime:  SciExposureTime,
       λ:             Wavelength,
       sourceProfile: SourceProfile,
       imageQuality:  ImageQuality,
       sampling:      PosDouble
-    ): ScienceSteps[NorthDynamic] = {
-
-      def sum(λ: Wavelength, Δ: Quantity[PosInt, Nanometer]): Wavelength =
-        new Wavelength(λ.toPicometers + Δ.to[PosInt, Picometer])
+    ): ScienceSteps[NorthDynamic] =
 
       eval {
         for {
           _  <- NorthDynamic.exposure      := exposureTime.value
-          _  <- NorthDynamic.xBin          := mode.fpu.xbin(sourceProfile, imageQuality, sampling)
-          _  <- NorthDynamic.yBin          := GmosYBinning.Two
+          _  <- NorthDynamic.xBin          := mode.xBin(sourceProfile, imageQuality, sampling)
+          _  <- NorthDynamic.yBin          := mode.yBin
           _  <- NorthDynamic.gratingConfig := GratingConfig(mode.grating, GmosGratingOrder.One, λ).some
           _  <- NorthDynamic.filter        := mode.filter
           _  <- NorthDynamic.fpu           := mode.fpu.asRight.some
           s0 <- scienceStep(0.arcsec, 0.arcsec)
           f0 <- flatStep
 
-          _  <- NorthDynamic.wavelength    := sum(λ, mode.grating.Δλ)
+          _  <- NorthDynamic.wavelength    := GmosLongSlit.wavelengthDither(λ, mode.λDithers.last)
           s1 <- scienceStep(0.arcsec, 15.arcsec)
           f1 <- flatStep
         } yield ScienceSteps(s0, f0, s1, f1)
       }
 
-    }
 
   }
 

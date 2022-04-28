@@ -1,7 +1,8 @@
 // Copyright (c) 2016-2022 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
-package lucuma.gen.gmos.longslit.syntax
+package lucuma.odb.api.model.gmos.longslit
+
 
 import cats.Order
 import cats.syntax.order._
@@ -13,7 +14,7 @@ import lucuma.core.math.units.{Nanometer, NanometersPerPixel, Pixels}
 import lucuma.core.model.SourceProfile
 import spire.math.Rational
 
-private[syntax] sealed trait GmosLongslitMath {
+private[longslit] sealed trait GmosLongslitMath {
 
   def site: Site
 
@@ -76,16 +77,16 @@ private[syntax] sealed trait GmosLongslitMath {
    *
    * @param dispersion - dispersion in nm/pix (see https://www.gemini.edu/sciops/instruments/gmos/spectroscopy-overview/gratings)
    */
-  def Δλ(dispersion: Quantity[Rational, NanometersPerPixel]): Quantity[PosInt, Nanometer] = {
+  def Δλ(dispersion: Quantity[Rational, NanometersPerPixel]): Quantity[Int, Nanometer] = {
     val d = dispersion.value.toDouble
     val g = gapSize.value.value
     val v = d * g * 2.0             // raw value, which we round to nearest 5 nm
-    PosInt.unsafeFrom(((v/5.0).round * 5.0).toInt).withUnit[Nanometer]
+    ((v/5.0).round * 5.0).toInt.withUnit[Nanometer]
   }
 
 }
 
-private[syntax] object GmosNorthLongslitMath extends GmosLongslitMath {
+private[longslit] object GmosNorthLongslitMath extends GmosLongslitMath {
 
   override def site: Site = Site.GN
 
@@ -97,7 +98,7 @@ private[syntax] object GmosNorthLongslitMath extends GmosLongslitMath {
 
 }
 
-private[syntax] object GmosSouthLongslitMath extends GmosLongslitMath {
+private[longslit] object GmosSouthLongslitMath extends GmosLongslitMath {
 
   override def site: Site = Site.GS
 

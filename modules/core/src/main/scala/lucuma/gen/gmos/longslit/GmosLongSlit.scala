@@ -10,13 +10,15 @@ import cats.data.NonEmptyList
 import cats.effect.Sync
 import cats.syntax.eq._
 import cats.syntax.functor._
+import coulomb.Quantity
 import eu.timepit.refined.auto._
 import eu.timepit.refined.types.all.{PosDouble, PosInt}
 import lucuma.core.`enum`.ImageQuality
 import lucuma.core.math.Wavelength
+import lucuma.core.math.units.Nanometer
 import lucuma.core.model.SourceProfile
 import lucuma.itc.client.{ItcClient, ItcResult}
-import lucuma.odb.api.model.{ObservationModel, ScienceConfigurationModel, Sequence, StepConfig}
+import lucuma.odb.api.model.{ObservationModel, ScienceMode, Sequence, StepConfig}
 import lucuma.odb.api.repo.OdbRepo
 
 import scala.concurrent.duration._
@@ -86,6 +88,13 @@ object GmosLongSlit {
   val DefaultSampling: PosDouble =
     2.5
 
+  def wavelengthDither(λ: Wavelength, Δ: Quantity[Int, Nanometer]): Wavelength =
+    Wavelength
+      .fromPicometers
+      .getOption(λ.toPicometers.value + Δ.value * 1000)
+      .getOrElse(Wavelength.Min)
+
+
   final case class Input[M](
     mode:          M,
     λ:             Wavelength,
@@ -105,7 +114,7 @@ object GmosLongSlit {
       observation: ObservationModel,
       sampling:    PosDouble = GmosLongSlit.DefaultSampling,
     )(
-      f: PartialFunction[ScienceConfigurationModel, M]
+      f: PartialFunction[ScienceMode, M]
     ): F[Either[ItcResult.Error, Option[Input[M]]]] =
 
       itc
@@ -121,11 +130,11 @@ object GmosLongSlit {
       sourceProfile: SourceProfile,
       itc:           ItcResult.Success
     )(
-      f: PartialFunction[ScienceConfigurationModel, M]
+      f: PartialFunction[ScienceMode, M]
     ): Option[Input[M]] =
 
       for {
-        mode     <- observation.scienceConfiguration.collect(f)
+        mode     <- observation.scienceMode.collect(f)
         λ        <- observation.scienceRequirements.spectroscopy.wavelength
         sciTime  <- SciExposureTime.from(itc.exposureTime)
         expCount <- PosInt.from(itc.exposures).toOption

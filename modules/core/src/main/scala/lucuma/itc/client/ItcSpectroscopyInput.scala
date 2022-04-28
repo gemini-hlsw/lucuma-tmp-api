@@ -15,7 +15,7 @@ import lucuma.core.model.{ConstraintSet, ElevationRange, SourceProfile, Spectral
 import lucuma.core.syntax.enumerated._
 import lucuma.core.syntax.string._
 import lucuma.core.util.Enumerated
-import lucuma.odb.api.model.{ObservationModel, ScienceConfigurationModel}
+import lucuma.odb.api.model.{ObservationModel, ScienceMode}
 
 import scala.collection.immutable.SortedMap
 
@@ -26,7 +26,7 @@ final case class ItcSpectroscopyInput(
   band:            Band,
   radialVelocity:  RadialVelocity,
   constraints:     ConstraintSet,
-  modes:           List[ScienceConfigurationModel]
+  modes:           List[ScienceMode]
 )
 
 object ItcSpectroscopyInput {
@@ -63,7 +63,7 @@ object ItcSpectroscopyInput {
       s2n <- o.scienceRequirements.spectroscopy.signalToNoise
       b   <- band
       r   <- radialVelocity
-      c   <- o.scienceConfiguration
+      c   <- o.scienceMode
     } yield
       ItcSpectroscopyInput(
         w,
@@ -212,31 +212,31 @@ object ItcSpectroscopyInput {
         })
       )
 
-  implicit val EncoderScienceConfigurationModel: Encoder[ScienceConfigurationModel] = {
-    case ScienceConfigurationModel.Modes.GmosNorthLongSlit(filter, grating, fpu) =>
+  implicit val EncoderScienceConfigurationModel: Encoder[ScienceMode] = {
+    case m @ ScienceMode.GmosNorthLongSlit(_, _) =>
       Json.obj(
         "gmosN" ->
           Json.fromFields(
             List(
-              "grating" -> screaming(grating),
+              "grating" -> screaming(m.grating),
               "fpu"     ->
                 Json.obj(
-                  "builtin" -> screaming(fpu)
+                  "builtin" -> screaming(m.fpu)
                 )
-            ) ++ filter.map(screaming(_)).tupleLeft("filter").toList
+            ) ++ m.filter.map(screaming(_)).tupleLeft("filter").toList
           )
       )
-    case ScienceConfigurationModel.Modes.GmosSouthLongSlit(filter, grating, fpu) =>
+    case m @ ScienceMode.GmosSouthLongSlit(_, _) =>
       Json.obj(
         "gmosS" ->
           Json.fromFields(
             List(
-              "grating" -> screaming(grating),
+              "grating" -> screaming(m.grating),
               "fpu"     ->
                 Json.obj(
-                  "builtin" -> screaming(fpu)
+                  "builtin" -> screaming(m.fpu)
                 )
-            ) ++ filter.map(screaming(_)).tupleLeft("filter").toList
+            ) ++ m.filter.map(screaming(_)).tupleLeft("filter").toList
           )
       )
   }

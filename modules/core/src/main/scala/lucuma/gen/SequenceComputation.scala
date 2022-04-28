@@ -14,7 +14,7 @@ import lucuma.core.model.Observation
 import lucuma.gen.gmos.longslit.{GmosNorthLongSlit, GmosSouthLongSlit}
 import lucuma.gen.gmos.{GmosNorthGenerator, GmosSouthGenerator}
 import lucuma.itc.client.{ItcClient, ItcResult}
-import lucuma.odb.api.model.{ExecutionContext, ExecutionModel, GmosModel, ObservationModel, ScienceConfigurationModel, Visit, VisitRecord, VisitRecords}
+import lucuma.odb.api.model.{ExecutionContext, ExecutionModel, GmosModel, ObservationModel, ScienceMode, Visit, VisitRecord, VisitRecords}
 import lucuma.odb.api.repo.OdbRepo
 
 /**
@@ -56,12 +56,12 @@ object SequenceComputation {
         .flatMap(_.traverse(inst.run(oid, odb, _)))
 
     def go(o: ObservationModel): F[Option[ExecutionContext]] =
-      o.scienceConfiguration.flatTraverse {
-        case _: ScienceConfigurationModel.Modes.GmosNorthLongSlit =>
+      o.scienceMode.flatTraverse {
+        case _: ScienceMode.GmosNorthLongSlit =>
           run(Instrument.GmosNorth, GmosNorthLongSlit.query(itc, odb, o))
-        case _: ScienceConfigurationModel.Modes.GmosSouthLongSlit =>
+        case _: ScienceMode.GmosSouthLongSlit =>
           run(Instrument.GmosSouth, GmosSouthLongSlit.query(itc, odb, o))
-        case _                                                    =>
+        case _                                =>
           Applicative[F].pure(None)
       }
 

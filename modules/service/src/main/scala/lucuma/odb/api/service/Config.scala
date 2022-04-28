@@ -68,8 +68,8 @@ object Config {
   def fromCiris[F[_]]: ConfigValue[F, Config] =
     (
       (envOrProp[F]("ODB_PORT") or envOrProp[F]("PORT") or ConfigValue.default("8080")).as[Int],
-//      (envOrProp[F]("ITC_URI") or ConfigValue.default("https://itc-development.herokuapp.com/itc")).as[Uri]
-      (envOrProp[F]("ITC_URI") or ConfigValue.default("https://itc-staging.herokuapp.com/itc")).as[Uri]
+      (envOrProp[F]("ITC_URI") or ConfigValue.default("https://itc-development.herokuapp.com/itc")).as[Uri]
+//      (envOrProp[F]("ITC_URI") or ConfigValue.default("https://itc-staging.herokuapp.com/itc")).as[Uri]
     ).parMapN(Config.apply)
 
 // TODO: SSO

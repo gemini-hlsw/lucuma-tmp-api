@@ -3,12 +3,6 @@
 
 package lucuma.odb.api.service
 
-import lucuma.odb.api.model._
-import lucuma.odb.api.model.targetModel._
-import lucuma.odb.api.repo.OdbRepo
-import lucuma.core.`enum`._
-import lucuma.core.optics.syntax.all._
-import lucuma.core.math.syntax.int._
 import cats.data.State
 import cats.effect.Sync
 import cats.syntax.all._
@@ -17,10 +11,16 @@ import eu.timepit.refined.auto._
 import eu.timepit.refined.types.numeric.PosBigDecimal
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.parser.decode
+import lucuma.core.`enum`.{ScienceMode => ScienceModeEnum, _}
+import lucuma.core.optics.syntax.all._
+import lucuma.core.math.syntax.int._
 import lucuma.core.model.Program
+import lucuma.odb.api.model._
+import lucuma.odb.api.model.gmos.longslit.BasicConfigInput
+import lucuma.odb.api.model.targetModel._
 import lucuma.odb.api.model.GmosModel.CreateFpu
 import lucuma.odb.api.model.OffsetModel.ComponentInput
-import lucuma.odb.api.model.ScienceConfigurationModel.Modes.{GmosNorthLongSlitInput, GmosSouthLongSlitInput}
+import lucuma.odb.api.repo.OdbRepo
 
 import scala.concurrent.duration._
 
@@ -381,13 +381,13 @@ object Init {
       ).some,
       scienceRequirements  =
         ScienceRequirementsInput(
-          ScienceMode.Spectroscopy.assign,
+          ScienceModeEnum.Spectroscopy.assign,
           SpectroscopyScienceRequirementsInput(
             wavelength    = WavelengthModel.Input.fromNanometers(520).assign,
             signalToNoise = PosBigDecimal.unsafeFrom(700).assign
           ).assign
         ).some,
-      scienceConfiguration = None,
+      scienceMode = None,
       config               = None
     )
 
@@ -395,11 +395,13 @@ object Init {
     pid:   Program.Id,
     target: Option[TargetModel]
   ): ObservationModel.Create =
-    ObservationModel.Create.scienceConfiguration.replace(
-        ScienceConfigurationInput(
-          gmosSouthLongSlit = GmosSouthLongSlitInput(
-            grating   = GmosSouthGrating.B600_G5323.assign,
-            fpu       = GmosSouthFpu.LongSlit_1_00.assign
+    ObservationModel.Create.scienceMode.replace(
+        ScienceModeInput(
+          gmosSouthLongSlit = ScienceMode.GmosSouthLongSlitInput(
+            BasicConfigInput[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu](
+              grating   = GmosSouthGrating.B600_G5323.assign,
+              fpu       = GmosSouthFpu.LongSlit_1_00.assign
+            ).assign
           ).assign
         ).some
     )(baseObs(pid, target))
@@ -420,11 +422,13 @@ object Init {
     pid:   Program.Id,
     target: Option[TargetModel]
   ): ObservationModel.Create =
-    ObservationModel.Create.scienceConfiguration.replace(
-        ScienceConfigurationInput(
-          gmosNorthLongSlit = GmosNorthLongSlitInput(
-            grating   = GmosNorthGrating.B600_G5307.assign,
-            fpu       = GmosNorthFpu.LongSlit_1_00.assign
+    ObservationModel.Create.scienceMode.replace(
+        ScienceModeInput(
+          gmosNorthLongSlit = ScienceMode.GmosNorthLongSlitInput(
+            BasicConfigInput[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu](
+              grating   = GmosNorthGrating.B600_G5307.assign,
+              fpu       = GmosNorthFpu.LongSlit_1_00.assign
+            ).assign
           ).assign
         ).some
     )(baseObs(pid, target))
