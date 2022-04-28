@@ -20,7 +20,7 @@ trait ObservationMutation {
 
   import ConstraintSetMutation.InputObjectTypeConstraintSet
   import context._
-  import ScienceConfigurationMutation.InputObjectTypeScienceConfig
+  import ScienceModeMutation.InputObjectTypeScienceMode
   import ScienceRequirementsMutation.InputObjectTypeScienceRequirements
   import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
   import ObservationSchema.{ObsActiveStatusType, ObservationIdType, ObservationIdArgument, ObsStatusType, ObservationType}
@@ -52,7 +52,7 @@ trait ObservationMutation {
       ReplaceInputField("targetEnvironment",    InputObjectTypeTargetEnvironment.notNullableField("targetEnvironment")),
       ReplaceInputField("constraintSet",        InputObjectTypeConstraintSet.notNullableField("constraintSet")),
       ReplaceInputField("scienceRequirements",  InputObjectTypeScienceRequirements.notNullableField("scienceRequirements")),
-      ReplaceInputField("scienceConfiguration", InputObjectTypeScienceConfig.nullableField("scienceConfiguration"))
+      ReplaceInputField("scienceMode",          InputObjectTypeScienceMode.nullableField("scienceMode"))
     )
 
   val ArgumentObservationEdit: Argument[ObservationModel.Edit] =

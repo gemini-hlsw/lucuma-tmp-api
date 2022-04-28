@@ -30,18 +30,18 @@ import scala.collection.immutable.SortedSet
 
 
 final case class ObservationModel(
-  id:                   Observation.Id,
-  existence:            Existence,
-  programId:            Program.Id,
-  subtitle:             Option[NonEmptyString],
-  status:               ObsStatus,
-  activeStatus:         ObsActiveStatus,
-  targetEnvironment:    TargetEnvironmentModel,
-  constraintSet:        ConstraintSet,
-  scienceRequirements:  ScienceRequirements,
-  scienceConfiguration: Option[ScienceConfigurationModel],
-  config:               Option[ExecutionModel],
-  plannedTimeSummary:   PlannedTimeSummaryModel
+  id:                  Observation.Id,
+  existence:           Existence,
+  programId:           Program.Id,
+  subtitle:            Option[NonEmptyString],
+  status:              ObsStatus,
+  activeStatus:        ObsActiveStatus,
+  targetEnvironment:   TargetEnvironmentModel,
+  constraintSet:       ConstraintSet,
+  scienceRequirements: ScienceRequirements,
+  scienceMode:         Option[ScienceMode],
+  config:              Option[ExecutionModel],
+  plannedTimeSummary:  PlannedTimeSummaryModel
 ) {
 
   val validate: StateT[EitherInput, Database, ObservationModel] =
@@ -66,23 +66,23 @@ object ObservationModel extends ObservationOptics {
       o.targetEnvironment,
       o.constraintSet,
       o.scienceRequirements,
-      o.scienceConfiguration,
+      o.scienceMode,
       o.config,
       o.plannedTimeSummary
     )}
 
 
   final case class Create(
-    observationId:        Option[Observation.Id],
-    programId:            Program.Id,
-    subtitle:             Option[NonEmptyString],
-    status:               Option[ObsStatus],
-    activeStatus:         Option[ObsActiveStatus],
-    targetEnvironment:    Option[TargetEnvironmentInput],
-    constraintSet:        Option[ConstraintSetInput],
-    scienceRequirements:  Option[ScienceRequirementsInput],
-    scienceConfiguration: Option[ScienceConfigurationInput],
-    config:               Option[ExecutionModel.Create]
+    observationId:       Option[Observation.Id],
+    programId:           Program.Id,
+    subtitle:            Option[NonEmptyString],
+    status:              Option[ObsStatus],
+    activeStatus:        Option[ObsActiveStatus],
+    targetEnvironment:   Option[TargetEnvironmentInput],
+    constraintSet:       Option[ConstraintSetInput],
+    scienceRequirements: Option[ScienceRequirementsInput],
+    scienceMode:         Option[ScienceModeInput],
+    config:              Option[ExecutionModel.Create]
   ) {
 
     def create[F[_]: Sync](
@@ -95,7 +95,7 @@ object ObservationModel extends ObservationOptics {
           t  = targetEnvironment.getOrElse(TargetEnvironmentInput.Empty).create
           c  = constraintSet.traverse(_.create)
           q  = scienceRequirements.traverse(_.create)
-          u  = scienceConfiguration.traverse(_.create)
+          u  = scienceMode.traverse(_.create)
           o  = (t, c, q, u, g.sequence).mapN { (tʹ, cʹ, qʹ, uʹ, gʹ) =>
             ObservationModel(
               id                   = i,
@@ -107,7 +107,7 @@ object ObservationModel extends ObservationOptics {
               targetEnvironment    = tʹ,
               constraintSet        = cʹ.getOrElse(ConstraintSetModel.Default),
               scienceRequirements  = qʹ.getOrElse(ScienceRequirements.Default),
-              scienceConfiguration = uʹ,
+              scienceMode          = uʹ,
               config               = gʹ,
               plannedTimeSummary   = s
             )
@@ -131,7 +131,7 @@ object ObservationModel extends ObservationOptics {
         targetEnvironment    = None,
         constraintSet        = None,
         scienceRequirements  = None,
-        scienceConfiguration = None,
+        scienceMode          = None,
         config               = None
       )
 
@@ -148,12 +148,12 @@ object ObservationModel extends ObservationOptics {
         a.targetEnvironment,
         a.constraintSet,
         a.scienceRequirements,
-        a.scienceConfiguration,
+        a.scienceMode,
         a.config
       )}
 
-    val scienceConfiguration: Lens[Create, Option[ScienceConfigurationInput]] =
-      Focus[Create](_.scienceConfiguration)
+    val scienceMode: Lens[Create, Option[ScienceModeInput]] =
+      Focus[Create](_.scienceMode)
 
     val config: Lens[Create, Option[ExecutionModel.Create]] =
       Focus[Create](_.config)
@@ -168,7 +168,7 @@ object ObservationModel extends ObservationOptics {
     targetEnvironment:    Input[TargetEnvironmentInput]    = Input.ignore,
     constraintSet:        Input[ConstraintSetInput]        = Input.ignore,
     scienceRequirements:  Input[ScienceRequirementsInput]  = Input.ignore,
-    scienceConfiguration: Input[ScienceConfigurationInput] = Input.ignore
+    scienceMode:          Input[ScienceModeInput]          = Input.ignore
   ) {
 
     val edit: StateT[EitherInput, ObservationModel, Unit] = {
@@ -188,7 +188,7 @@ object ObservationModel extends ObservationOptics {
         _ <- ObservationModel.targetEnvironment    :! targetEnvironment
         _ <- ObservationModel.constraintSet        :! constraintSet
         _ <- ObservationModel.scienceRequirements  :! scienceRequirements
-        _ <- ObservationModel.scienceConfiguration :? scienceConfiguration
+        _ <- ObservationModel.scienceMode          :? scienceMode
       } yield ()
     }
   }
@@ -212,7 +212,7 @@ object ObservationModel extends ObservationOptics {
         a.targetEnvironment,
         a.constraintSet,
         a.scienceRequirements,
-        a.scienceConfiguration
+        a.scienceMode
       )}
 
   }
@@ -317,8 +317,8 @@ trait ObservationOptics { self: ObservationModel.type =>
   val scienceRequirements: Lens[ObservationModel, ScienceRequirements] =
     Focus[ObservationModel](_.scienceRequirements)
 
-  val scienceConfiguration: Lens[ObservationModel, Option[ScienceConfigurationModel]] =
-    Focus[ObservationModel](_.scienceConfiguration)
+  val scienceMode: Lens[ObservationModel, Option[ScienceMode]] =
+    Focus[ObservationModel](_.scienceMode)
 
   val config: Lens[ObservationModel, Option[ExecutionModel]] =
     Focus[ObservationModel](_.config)

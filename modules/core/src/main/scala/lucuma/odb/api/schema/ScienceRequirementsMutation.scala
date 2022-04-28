@@ -34,7 +34,7 @@ trait ScienceRequirementsMutation {
       "ScienceRequirementsInput",
       "Edit science requirements",
       List(
-        EnumTypeScienceMode.notNullableField("mode"),
+        EnumTypeScienceRequirementMode.notNullableField("mode"),
         InputObjectTypeSpectroscopyScienceRequirements.notNullableField("spectroscopy")
       )
     )

@@ -20,7 +20,7 @@ import scala.collection.immutable.Seq
 object ObservationSchema {
 
   import ConstraintSetSchema.ConstraintSetType
-  import ScienceConfigurationSchema._
+  import ScienceModeSchema._
   import ExecutionSchema.ExecutionType
   import ItcSchema.ItcSuccessType
   import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, NonEmptyStringType, PlannedTimeSummaryType}
@@ -164,11 +164,11 @@ object ObservationSchema {
         ),
 
         Field(
-          name        = "scienceConfiguration",
-          fieldType   = OptionType(ScienceConfigurationType),
+          name        = "scienceMode",
+          fieldType   = OptionType(ScienceModeType),
           description = Some("The science configuration"),
           arguments   = List(ArgumentIncludeDeleted),
-          resolve     = c => c.value.scienceConfiguration
+          resolve     = c => c.value.scienceMode
         ),
 
         Field(

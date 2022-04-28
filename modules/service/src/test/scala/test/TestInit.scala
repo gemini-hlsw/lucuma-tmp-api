@@ -408,7 +408,7 @@ object TestInit {
       targetEnvironment    = TargetEnvironmentInput.asterism(targets.map(_.id)).some,
       constraintSet        = None,
       scienceRequirements  = ScienceRequirementsInput.Default.some,
-      scienceConfiguration = None,
+      scienceMode          = None,
       config               =
         ExecutionModel.Create.gmosSouth(
           GmosModel.CreateSouthStatic.Default,

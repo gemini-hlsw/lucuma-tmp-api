@@ -76,19 +76,19 @@ object ScienceMode {
   }
 
   final case class GmosNorthLongSlitInput(
-    basicConfig:    Input[BasicConfigInput[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu]]    = Input.ignore,
-    advancedConfig: Input[AdvancedConfigInput[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu]] = Input.ignore
+    basic:    Input[BasicConfigInput[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu]]    = Input.ignore,
+    advanced: Input[AdvancedConfigInput[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu]] = Input.ignore
   ) extends EditorInput[GmosNorthLongSlit] {
 
     override val create: ValidatedInput[GmosNorthLongSlit] =
-      (basicConfig.notMissingAndThen("basicConfig")(_.create),
-        advancedConfig.toOption.traverse(_.create)
+      (basic.notMissingAndThen("basicConfig")(_.create),
+        advanced.toOption.traverse(_.create)
       ).mapN { case (b, a) => GmosNorthLongSlit(b, a) }
 
     override def edit: StateT[EitherInput, GmosNorthLongSlit, Unit] =
       for {
-        _ <- GmosNorthLongSlit.basic    :! basicConfig
-        _ <- GmosNorthLongSlit.advanced :? advancedConfig
+        _ <- GmosNorthLongSlit.basic    :! basic
+        _ <- GmosNorthLongSlit.advanced :? advanced
       } yield ()
 
   }
@@ -103,8 +103,8 @@ object ScienceMode {
 
     implicit def EqGmosNorthLongSlitInput: Eq[GmosNorthLongSlitInput] =
       Eq.by { a => (
-        a.basicConfig,
-        a.advancedConfig
+        a.basic,
+        a.advanced
       )}
   }
 
@@ -142,19 +142,19 @@ object ScienceMode {
   }
 
   final case class GmosSouthLongSlitInput(
-    basicConfig:    Input[BasicConfigInput[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu]]    = Input.ignore,
-    advancedConfig: Input[AdvancedConfigInput[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu]] = Input.ignore
+    basic:    Input[BasicConfigInput[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu]]    = Input.ignore,
+    advanced: Input[AdvancedConfigInput[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu]] = Input.ignore
   ) extends EditorInput[GmosSouthLongSlit] {
 
     override val create: ValidatedInput[GmosSouthLongSlit] =
-      (basicConfig.notMissingAndThen("basicConfig")(_.create),
-        advancedConfig.toOption.traverse(_.create)
+      (basic.notMissingAndThen("basicConfig")(_.create),
+        advanced.toOption.traverse(_.create)
       ).mapN { case (b, a) => GmosSouthLongSlit(b, a) }
 
     override def edit: StateT[EitherInput, GmosSouthLongSlit, Unit] =
       for {
-        _ <- GmosSouthLongSlit.basic    :! basicConfig
-        _ <- GmosSouthLongSlit.advanced :? advancedConfig
+        _ <- GmosSouthLongSlit.basic    :! basic
+        _ <- GmosSouthLongSlit.advanced :? advanced
       } yield ()
 
   }
@@ -169,12 +169,12 @@ object ScienceMode {
 
     implicit def EqGmosSouthLongSlitInput: Eq[GmosSouthLongSlitInput] =
       Eq.by { a => (
-        a.basicConfig,
-        a.advancedConfig
+        a.basic,
+        a.advanced
       )}
   }
 
-  val EqScienceMode: Eq[ScienceMode] =
+  implicit val EqScienceMode: Eq[ScienceMode] =
     Eq.instance {
       case (a @ GmosNorthLongSlit(_, _), b @ GmosNorthLongSlit(_, _)) => a === b
       case (a @ GmosSouthLongSlit(_, _), b @ GmosSouthLongSlit(_, _)) => a === b

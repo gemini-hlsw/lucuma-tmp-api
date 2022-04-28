@@ -6,13 +6,12 @@ package lucuma.odb.api.schema
 import cats.syntax.option._
 
 import lucuma.odb.api.model.ConfigurationMode
-import lucuma.odb.api.model.ScienceConfigurationModel
-import lucuma.odb.api.model.ScienceConfigurationModel.Modes
+import lucuma.odb.api.model.ScienceMode
 import lucuma.odb.api.schema.syntax.all._
 
 import sangria.schema._
 
-object ScienceConfigurationSchema {
+object ScienceModeSchema {
   import GmosSchema._
   import InstrumentSchema.EnumTypeInstrument
 
@@ -22,11 +21,11 @@ object ScienceConfigurationSchema {
       "ConfigurationMode"
     )
 
-  def ScienceConfigurationType: ObjectType[Any, ScienceConfigurationModel] =
-    ObjectType[Any, ScienceConfigurationModel](
-      name         = "ScienceConfiguration",
-      description  = "Base science configuration",
-      fields[Any, ScienceConfigurationModel](
+  def ScienceModeType: ObjectType[Any, ScienceMode] =
+    ObjectType[Any, ScienceMode](
+      name         = "ScienceMode",
+      description  = "Base science mode",
+      fields[Any, ScienceMode](
 
         Field(
           name        = "instrument",
@@ -38,32 +37,32 @@ object ScienceConfigurationSchema {
         Field(
           name        = "mode",
           fieldType   = EnumTypeConfigurationMode,
-          description = "Configuration mode".some,
+          description = "Mode type".some,
           resolve     = _.value.mode
         ),
 
         Field(
           name        = "gmosNorthLongSlit",
           fieldType   = OptionType(GmosNLongSlitType),
-          description = "GMOS North Long Slit configuration".some,
+          description = "GMOS North Long Slit mode".some,
           resolve     = _.value.fold(_.some, _ => Option.empty)
         ),
 
         Field(
           name        = "gmosSouthLongSlit",
           fieldType   = OptionType(GmosSLongSlitType),
-          description = "GMOS South Long Slit configuration".some,
+          description = "GMOS South Long Slit mode".some,
           resolve     = _.value.fold(_ => Option.empty, _.some)
         )
       )
     )
 
-  val GmosNLongSlitType: ObjectType[Any, Modes.GmosNorthLongSlit] =
-    ObjectType[Any, Modes.GmosNorthLongSlit](
+  val GmosNLongSlitType: ObjectType[Any, ScienceMode.GmosNorthLongSlit] =
+    ObjectType[Any, ScienceMode.GmosNorthLongSlit](
       name        = "GmosNorthLongSlit",
-      description = "Basic configuration for GMOS North Long Slit",
+      description = "GMOS North Long Slit mode",
 
-      fields[Any, Modes.GmosNorthLongSlit](
+      fields[Any, ScienceMode.GmosNorthLongSlit](
         Field(
           name        = "filter",
           fieldType   = OptionType(EnumTypeGmosNorthFilter),
@@ -87,12 +86,12 @@ object ScienceConfigurationSchema {
       )
     )
 
-  val GmosSLongSlitType: ObjectType[Any, Modes.GmosSouthLongSlit] =
-    ObjectType[Any, Modes.GmosSouthLongSlit](
+  val GmosSLongSlitType: ObjectType[Any, ScienceMode.GmosSouthLongSlit] =
+    ObjectType[Any, ScienceMode.GmosSouthLongSlit](
       name        = "GmosSouthLongSlit",
-      description = "Basic configuration for GMOS South Long Slit",
+      description = "GMOS South Long Slit mode",
 
-      fields[Any, Modes.GmosSouthLongSlit](
+      fields[Any, ScienceMode.GmosSouthLongSlit](
         Field(
           name        = "filter",
           fieldType   = OptionType(EnumTypeGmosSouthFilter),

@@ -16,8 +16,8 @@ object ScienceRequirementsSchema {
   import WavelengthSchema._
   import RefinedSchema._
 
-  implicit val EnumTypeScienceMode: EnumType[ScienceMode] =
-    EnumType.fromEnumerated("ScienceMode", "Mode Spectroscopy/Imaging")
+  implicit val EnumTypeScienceRequirementMode: EnumType[ScienceMode] =
+    EnumType.fromEnumerated("ScienceRequirementMode", "Mode Spectroscopy/Imaging")
 
   implicit val EnumTypeFocalPlane: EnumType[FocalPlane] =
     EnumType.fromEnumerated("FocalPlane", "Focal plane Single/Multi/IFU")
@@ -137,8 +137,8 @@ object ScienceRequirementsSchema {
         fields(
           Field(
             name        = "mode",
-            fieldType   = EnumTypeScienceMode,
-            description = Some("Science mode"),
+            fieldType   = EnumTypeScienceRequirementMode,
+            description = Some("Science requirement mode"),
             resolve     = _.value.mode
           ),
 

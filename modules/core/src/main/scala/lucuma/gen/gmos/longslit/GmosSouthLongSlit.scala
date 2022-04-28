@@ -18,10 +18,10 @@ import lucuma.core.model.SourceProfile
 import lucuma.core.optics.syntax.lens._
 import lucuma.core.optics.syntax.optional._
 import lucuma.gen.gmos.longslit.GmosLongSlit.{AcquisitionSteps, ScienceSteps}
-import lucuma.gen.gmos.longslit.syntax.all._
 import lucuma.itc.client.{ItcClient, ItcResult}
 import lucuma.odb.api.model.GmosModel.{CustomMask, GratingConfig, SouthDynamic, SouthStatic}
-import lucuma.odb.api.model.{ObservationModel, ScienceConfigurationModel, Sequence}
+import lucuma.odb.api.model.{ObservationModel, ScienceMode, Sequence}
+import lucuma.odb.api.model.gmos.syntax.gmosSouthFilter._
 import lucuma.odb.api.repo.OdbRepo
 
 import scala.concurrent.duration._
@@ -46,16 +46,16 @@ object GmosSouthLongSlit {
   ): F[Either[ItcResult.Error, Option[GmosSouthLongSlit[F]]]] =
 
     GmosLongSlit.Input.query(itc, odb, observation, sampling) {
-      case gnls: ScienceConfigurationModel.Modes.GmosSouthLongSlit => gnls
+      case gnls: ScienceMode.GmosSouthLongSlit => gnls
     }.map(_.map(_.map(fromInput[F])))
 
   def fromInput[F[_]: Sync](
-    in: GmosLongSlit.Input[ScienceConfigurationModel.Modes.GmosSouthLongSlit]
+    in: GmosLongSlit.Input[ScienceMode.GmosSouthLongSlit]
   ): GmosSouthLongSlit[F] =
     apply(in.mode, in.λ, in.imageQuality, in.sampling, in.sourceProfile, in.acqTime, in.sciTime, in.exposureCount)
 
   def apply[F[_]: Sync](
-    mode:          ScienceConfigurationModel.Modes.GmosSouthLongSlit,
+    mode:          ScienceMode.GmosSouthLongSlit,
     λ:             Wavelength,
     imageQuality:  ImageQuality,
     sampling:      PosDouble,
@@ -135,7 +135,7 @@ object GmosSouthLongSlit {
   object Science extends GmosSouthSequenceState {
 
     def compute(
-      mode:          ScienceConfigurationModel.Modes.GmosSouthLongSlit,
+      mode:          ScienceMode.GmosSouthLongSlit,
       exposureTime:  SciExposureTime,
       λ:             Wavelength,
       sourceProfile: SourceProfile,
@@ -146,15 +146,15 @@ object GmosSouthLongSlit {
       eval {
         for {
           _  <- SouthDynamic.exposure      := exposureTime.value
-          _  <- SouthDynamic.xBin          := mode.fpu.xbin(sourceProfile, imageQuality, sampling)
-          _  <- SouthDynamic.yBin          := GmosYBinning.Two
+          _  <- SouthDynamic.xBin          := mode.xBin(sourceProfile, imageQuality, sampling)
+          _  <- SouthDynamic.yBin          := mode.yBin
           _  <- SouthDynamic.gratingConfig := GratingConfig(mode.grating, GmosGratingOrder.One, λ).some
           _  <- SouthDynamic.filter        := mode.filter
           _  <- SouthDynamic.fpu           := mode.fpu.asRight.some
           s0 <- scienceStep(0.arcsec, 0.arcsec)
           f0 <- flatStep
 
-          _  <- SouthDynamic.wavelength    := GmosLongSlit.wavelengthDither(λ, mode.grating.Δλ)
+          _  <- SouthDynamic.wavelength    := GmosLongSlit.wavelengthDither(λ, mode.λDithers.last)
           s1 <- scienceStep(0.arcsec, 15.arcsec)
           f1 <- flatStep
         } yield ScienceSteps(s0, f0, s1, f1)
