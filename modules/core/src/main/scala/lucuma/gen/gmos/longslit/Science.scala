@@ -66,6 +66,8 @@ sealed trait Science[D, G, F, U] extends SequenceState[D] {
         _ <- optics.yBin          := mode.yBin
         _ <- optics.ampReadMode   := mode.ampReadMode
         _ <- optics.ampGain       := mode.ampGain
+
+        _ <- optics.roi           := mode.roi
       } yield ()).runS(initialConfig).value
 
     LazyList.unfold((0, init)) { case (i, d) =>
