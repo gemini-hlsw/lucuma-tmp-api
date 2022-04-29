@@ -18,20 +18,25 @@ import lucuma.odb.api.model.StepConfig
 import scala.concurrent.duration._
 
 /**
- * GMOS long slit acquisition step.
+ * GMOS long slit acquisition steps.
+ *
+ * @tparam D dynamic config type
+ * @tparam G grating type
+ * @tparam F filter type
+ * @tparam U FPU type
  */
 sealed trait Acquisition[D, G, F, U] extends SequenceState[D] {
 
   def optics: DynamicOptics[D, G, F, U]
 
   def compute(
-    filters:      NonEmptyList[(F, Wavelength)],
+    acqFilters:   NonEmptyList[(F, Wavelength)],
     fpu:          U,
     exposureTime: AcqExposureTime,
     λ:            Wavelength,
   ): Acquisition.Steps[D] = {
 
-    def filter: F = filters.toList.minBy { case (_, w) =>
+    def filter: F = acqFilters.toList.minBy { case (_, w) =>
       (λ.toPicometers.value.value - w.toPicometers.value.value).abs
     }._1
 

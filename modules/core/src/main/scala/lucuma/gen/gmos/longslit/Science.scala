@@ -23,7 +23,12 @@ import lucuma.odb.api.model.gmos.longslit.{DeltaWavelengthCalculator, LongSlit, 
 import scala.collection.immutable.LazyList
 
 /**
- * GMOS long slit science step
+ * GMOS long slit science atoms
+ *
+ * @tparam D dynamic config type
+ * @tparam G grating type
+ * @tparam F filter type
+ * @tparam U FPU type
  */
 sealed trait Science[D, G, F, U] extends SequenceState[D] {
 
