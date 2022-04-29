@@ -9,10 +9,9 @@ import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import cats.syntax.eq._
 import cats.syntax.functor._
-import cats.syntax.option._
 import eu.timepit.refined.auto._
 import eu.timepit.refined.types.all.{PosDouble, PosInt}
-import lucuma.core.`enum`.{ImageQuality, StepType}
+import lucuma.core.`enum`.{GmosNorthFilter, ImageQuality}
 import lucuma.core.math.Wavelength
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.arb.ArbSourceProfile
@@ -21,6 +20,7 @@ import lucuma.odb.api.model.GmosModel.NorthDynamic
 import lucuma.odb.api.model.ScienceMode
 import lucuma.odb.api.model.{AtomModel, StepModel}
 import lucuma.odb.api.model.arb._
+import lucuma.odb.api.model.gmos.syntax.all._
 import munit.ScalaCheckSuite
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
@@ -82,7 +82,10 @@ final class GmosNorthLongSlitSuite extends ScalaCheckSuite {
 
     forAll { (mode: ScienceMode.GmosNorthLongSlit, sp: SourceProfile, iq: ImageQuality) =>
 
-      val acq = GmosNorthLongSlit.Acquisition.compute(mode.fpu, acqTime, λ)
+      val acq = Acquisition.GmosNorth.compute(
+        GmosNorthFilter.allAcquisition.fproduct(_.wavelength),
+        mode.fpu, acqTime, λ
+      )
       val stp = List(
         RecordedStep(acq.ccd2, isExecuted = true),
         RecordedStep(acq.p10,  isExecuted = true),
@@ -105,7 +108,6 @@ final class GmosNorthLongSlitSuite extends ScalaCheckSuite {
 
   property("science sequence atoms always consist of a flat and science") {
     forAll { (atoms: List[AtomModel[StepModel[NorthDynamic]]]) =>
-
       val obtained = atoms.map { a =>
         a.steps.toList.map { s =>
           s.config.science.as("S").orElse(s.config.gcal.as("F")).getOrElse("X")
@@ -119,7 +121,6 @@ final class GmosNorthLongSlitSuite extends ScalaCheckSuite {
 
   property("science sequence is repeating ABBA") {
     forAll { (atoms: List[AtomModel[StepModel[NorthDynamic]]]) =>
-
       val obtained = atoms.flatMap { a =>
         a.steps.toList.flatMap { s =>
           s.config.science.map(_.offset.q.toAngle.toMicroarcseconds).toList
@@ -134,8 +135,8 @@ final class GmosNorthLongSlitSuite extends ScalaCheckSuite {
   property("skip executed atoms") {
 
     forAll { (mode: ScienceMode.GmosNorthLongSlit, sp: SourceProfile, iq: ImageQuality) =>
-      val sci   = GmosNorthLongSlit.Science.compute(mode, sciTime, λ, sp, iq, sampling)
-      val stp   = sci.atom0.toList.map(c => RecordedStep(c, isExecuted = true))
+      val sci   = Science.GmosNorth.compute(mode, sciTime, λ, sp, iq, sampling)
+      val stp   = sci.head.steps.toList.map(c => RecordedStep(c, isExecuted = true))
       val seq   = longSlit(mode, sp, iq).science(stp)
       val atoms = seq.unsafeRunSync().atoms.flatMap(_.steps.toList).map(_.config)
       assertEquals(atoms.size, (exposureCount.value - 1) * 2)
@@ -145,14 +146,8 @@ final class GmosNorthLongSlitSuite extends ScalaCheckSuite {
   property("executing part of an atom is not executing it at all") {
 
     forAll { (mode: ScienceMode.GmosNorthLongSlit, sp: SourceProfile, iq: ImageQuality) =>
-
-      val sci   = GmosNorthLongSlit.Science.compute(mode, sciTime, λ, sp, iq, sampling)
-
-      val steps =
-        List.unfold(0)(i => if (i < exposureCount) (sci.atom(i), i+1).some else none)
-          .map(nel => if (nel.head.stepType === StepType.Science) nel.head else nel.last)
-          .map(sc => RecordedStep(sc, isExecuted = true))
-
+      val sci   = Science.GmosNorth.compute(mode, sciTime, λ, sp, iq, sampling)
+      val steps = sci.take(exposureCount).toList.map(a => RecordedStep(a.science, isExecuted = true))
       val seq   = longSlit(mode, sp, iq).science(steps)
       val atoms = seq.unsafeRunSync().atoms.flatMap(_.steps.toList).map(_.config)
       assertEquals(atoms.size, exposureCount.value * 2)
@@ -162,13 +157,8 @@ final class GmosNorthLongSlitSuite extends ScalaCheckSuite {
   property("executing all the steps stops the sequence") {
 
     forAll { (mode: ScienceMode.GmosNorthLongSlit, sp: SourceProfile, iq: ImageQuality) =>
-
-      val sci   = GmosNorthLongSlit.Science.compute(mode, sciTime, λ, sp, iq, sampling)
-      val steps =
-        List.unfold(0)(i => if (i < exposureCount) (sci.atom(i), i+1).some else none)
-          .flatMap(nel => nel.toList)
-          .map(sc => RecordedStep(sc, isExecuted = true))
-
+      val sci   = Science.GmosNorth.compute(mode, sciTime, λ, sp, iq, sampling)
+      val steps = sci.take(exposureCount).toList.flatMap(_.steps.toList.map(RecordedStep(_, isExecuted = true)))
       val seq   = longSlit(mode, sp, iq).science(steps)
       val atoms = seq.unsafeRunSync().atoms.flatMap(_.steps.toList).map(_.config)
       assert(atoms.isEmpty)
@@ -179,15 +169,15 @@ final class GmosNorthLongSlitSuite extends ScalaCheckSuite {
 
     forAll { (mode: ScienceMode.GmosNorthLongSlit, sp: SourceProfile, iq: ImageQuality) =>
 
-      val acq   = GmosNorthLongSlit.Acquisition.compute(mode.fpu, acqTime, λ)
-      val sci   = GmosNorthLongSlit.Science.compute(mode, sciTime, λ, sp, iq, sampling)
+      val acq   = Acquisition.GmosNorth.compute(GmosNorthFilter.allAcquisition.fproduct(_.wavelength), mode.fpu, acqTime, λ)
+      val sci   = Science.GmosNorth.compute(mode, sciTime, λ, sp, iq, sampling)
       val steps =
-        List.unfold(0)(i => if (i < exposureCount) (sci.atom(i), i+1).some else none)
-          .flatMap(nel => nel.toList)
-          .flatMap { sc => List(
+        sci.take(exposureCount).toList.flatMap(_.steps.toList).flatMap { sc =>
+          List(
             RecordedStep(sc,       isExecuted = true),
             RecordedStep(acq.ccd2, isExecuted = true)
-          )}
+          )
+        }
 
       val seq   = longSlit(mode, sp, iq).science(steps)
       val atoms = seq.unsafeRunSync().atoms.flatMap(_.steps.toList).map(_.config)

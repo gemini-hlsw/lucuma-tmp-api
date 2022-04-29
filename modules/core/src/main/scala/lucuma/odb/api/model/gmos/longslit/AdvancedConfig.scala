@@ -34,6 +34,12 @@ final case class AdvancedConfig[G, F, U](
 
 object AdvancedConfig extends AdvancedConfigOptics {
 
+  val Q15: Offset.Q =
+    Offset.Q(Angle.arcseconds.reverseGet(15))
+
+  val zeroNm: Quantity[Int, Nanometer] =
+    Quantity[Int, Nanometer](0)
+
   val DefaultYBinning: GmosYBinning =
     GmosYBinning.Two
 
@@ -50,14 +56,13 @@ object AdvancedConfig extends AdvancedConfigOptics {
     grating: G
   )(
     implicit calc: DeltaWavelengthCalculator[G]
-  ): NonEmptyList[Quantity[Int, Nanometer]] =
-      NonEmptyList.of(
-        Quantity[Int, Nanometer](0),
-        calc.Δλ(grating)
-      )
+  ): NonEmptyList[Quantity[Int, Nanometer]] = {
+    val deltaNm = calc.Δλ(grating)
+    NonEmptyList.of(zeroNm, deltaNm, deltaNm, zeroNm)
+  }
 
   val DefaultSpatialOffsets: NonEmptyList[Offset.Q] =
-    NonEmptyList.of(Offset.Q.Zero, Offset.Q(Angle.arcseconds.reverseGet(15)))
+    NonEmptyList.of(Offset.Q.Zero, Q15, Q15, Offset.Q.Zero)
 
   implicit def EqAdvancedConfig[G: Eq, F: Eq, U: Eq]: Eq[AdvancedConfig[G, F, U]] =
     Eq.by { a => (
