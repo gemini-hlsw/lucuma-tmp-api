@@ -7,7 +7,7 @@ import cats.data.{EitherT, StateT}
 import cats.effect.{Async, Ref}
 import cats.implicits._
 import lucuma.core.model.{ConstraintSet, Observation, Program, Target}
-import lucuma.odb.api.model.ObservationModel.{BulkEdit, Create, Edit, Group, ObservationEvent}
+import lucuma.odb.api.model.ObservationModel.{BulkEdit, CloneInput, Create, Edit, Group, ObservationEvent}
 import lucuma.odb.api.model.{ConstraintSetInput, Database, EitherInput, Event, ExecutionModel, InputError, ObservationModel, PlannedTimeSummaryModel, ScienceRequirements, ScienceRequirementsInput, Table}
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.toplevel._
@@ -41,6 +41,8 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
   def insert(input: Create): F[ObservationModel]
 
   def edit(edit: Edit): F[ObservationModel]
+
+  def clone(input: CloneInput): F[ObservationModel]
 
   def groupByTarget(
     pid:            Program.Id,
@@ -173,6 +175,28 @@ object ObservationRepo {
         for {
           o <- databaseRef.modifyState(update.flipF).flatMap(_.liftTo[F])
           _ <- eventService.publish(ObservationModel.ObservationEvent.updated(o))
+        } yield o
+      }
+
+      override def clone(input: CloneInput): F[ObservationModel] = {
+
+        val doClone: F[ObservationModel] =
+          EitherT(
+            for {
+              st <- input.clone
+              o  <- databaseRef.modify { db =>
+                st.run(db)
+                  .fold(
+                    err => (db, InputError.Exception(err).asLeft),
+                    _.map(_.asRight)
+                  )
+              }
+            } yield o
+          ).rethrowT
+
+        for {
+          o <- doClone
+          _ <- eventService.publish(ObservationEvent(_, Event.EditType.Created, o))
         } yield o
       }
 

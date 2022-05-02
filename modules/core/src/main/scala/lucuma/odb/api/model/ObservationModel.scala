@@ -217,6 +217,76 @@ object ObservationModel extends ObservationOptics {
 
   }
 
+  final case class CloneInput(
+    existingObservationId: Observation.Id,
+    suggestedCloneId:      Option[Observation.Id],
+    programId:             Option[Program.Id],
+    subtitle:              Option[NonEmptyString],
+    status:                Option[ObsStatus],
+    activeStatus:          Option[ObsActiveStatus],
+    targetEnvironment:     Option[TargetEnvironmentInput],
+    constraintSet:         Option[ConstraintSetInput],
+    scienceRequirements:   Option[ScienceRequirementsInput],
+    scienceMode:           Option[ScienceModeInput],
+    config:                Option[ExecutionModel.Create]
+  ) {
+
+    def clone[F[_]: Sync]: F[StateT[EitherInput, Database, ObservationModel]] =
+      config.traverse(_.create).map { g =>
+        for {
+          o <- Database.observation.lookupValidated(existingObservationId)
+          i <- Database.observation.getUnusedKey(suggestedCloneId)
+          p <- programId.traverse(Database.program.lookupValidated(_))
+          t  = targetEnvironment.traverse(_.create)
+          c  = constraintSet.traverse(_.create)
+          q  = scienceRequirements.traverse(_.create)
+          u  = scienceMode.traverse(_.create)
+          oʹ = (o, p.sequence, t, c, q, u, g.sequence).mapN { (orig, pʹ, tʹ, cʹ, qʹ, uʹ, gʹ) =>
+            ObservationModel(
+              id                   = i,
+              existence            = Present,
+              programId            = pʹ.map(_.id).getOrElse(orig.programId),
+              subtitle             = subtitle.orElse(orig.subtitle),
+              status               = status.getOrElse(ObsStatus.New),
+              activeStatus         = activeStatus.getOrElse(orig.activeStatus),
+              targetEnvironment    = tʹ.getOrElse(orig.targetEnvironment),
+              constraintSet        = cʹ.getOrElse(orig.constraintSet),
+              scienceRequirements  = qʹ.getOrElse(orig.scienceRequirements),
+              scienceMode          = uʹ.orElse(orig.scienceMode),
+              config               = gʹ.orElse(orig.config),
+              plannedTimeSummary   = orig.plannedTimeSummary  // wrong.  need to remove from observation model
+            )
+          }
+          oʹʹ <- oʹ.traverse(_.validate)
+          _   <- Database.observation.saveNewIfValid(oʹʹ)(_.id)
+          v   <- Database.observation.lookup(i)
+        } yield v
+      }
+
+  }
+
+  object CloneInput {
+
+    implicit val DecoderCloneInput: Decoder[CloneInput] =
+      deriveDecoder[CloneInput]
+
+    implicit val EqCloneInput: Eq[CloneInput] =
+      Eq.by { a => (
+        a.existingObservationId,
+        a.suggestedCloneId,
+        a.programId,
+        a.subtitle,
+        a.status,
+        a.activeStatus,
+        a.targetEnvironment,
+        a.constraintSet,
+        a.scienceRequirements,
+        a.scienceMode,
+        a.config
+      )}
+
+  }
+
   final case class ObservationEvent (
     id:       Long,
     editType: Event.EditType,

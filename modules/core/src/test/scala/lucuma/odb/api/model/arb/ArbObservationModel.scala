@@ -109,6 +109,52 @@ trait ArbObservationModel {
       in.constraintSet
     )}
 
+  implicit val arbObservationModelCloneInput: Arbitrary[ObservationModel.CloneInput] =
+    Arbitrary {
+      for {
+        ex <- arbitrary[Observation.Id]
+        sg <- arbitrary[Option[Observation.Id]]
+        pd <- arbitrary[Option[Program.Id]]
+        nm <- arbitrary[Option[NonEmptyString]]
+        st <- arbitrary[Option[ObsStatus]]
+        as <- arbitrary[Option[ObsActiveStatus]]
+        ts <- arbitrary[Option[TargetEnvironmentInput]]
+        cs <- arbitrary[Option[ConstraintSetInput]]
+      } yield ObservationModel.CloneInput(
+        ex,
+        sg,
+        pd,
+        nm,
+        st,
+        as,
+        ts,
+        cs,
+        None,
+        None,
+        None
+      )
+    }
+
+  implicit val cogObservationModelCloneInput: Cogen[ObservationModel.CloneInput] =
+    Cogen[(
+      Observation.Id,
+      Option[Observation.Id],
+      Option[Program.Id],
+      Option[String],
+      Option[ObsStatus],
+      Option[ObsActiveStatus],
+      Option[TargetEnvironmentInput],
+      Option[ConstraintSetInput]
+    )].contramap { in => (
+      in.existingObservationId,
+      in.suggestedCloneId,
+      in.programId,
+      in.subtitle.map(_.value),
+      in.status,
+      in.activeStatus,
+      in.targetEnvironment,
+      in.constraintSet
+    )}
 }
 
 object ArbObservationModel extends ArbObservationModel
