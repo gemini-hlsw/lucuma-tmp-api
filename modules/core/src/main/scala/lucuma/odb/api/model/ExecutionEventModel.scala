@@ -319,7 +319,8 @@ object ExecutionEventModel {
         DatasetModel(
           datasetId,
           observationId,
-          fn
+          fn,
+          None
         )
       }
 

@@ -4,15 +4,17 @@
 package lucuma.odb.api.model
 package arb
 
-import lucuma.core.model.Observation
-import lucuma.core.util.arb.ArbGid
 import eu.timepit.refined.types.numeric.PosInt
+import lucuma.core.`enum`.DatasetQaState
+import lucuma.core.model.Observation
+import lucuma.core.util.arb.{ArbEnumerated, ArbGid}
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
 
 trait ArbDatasetModel {
 
+  import ArbEnumerated._
   import ArbDatasetFilename._
   import ArbGid._
   import ArbStepModel.{arbStepId, cogStepId}
@@ -40,18 +42,21 @@ trait ArbDatasetModel {
         i <- arbitrary[DatasetModel.Id]
         o <- arbitrary[Observation.Id]
         f <- arbitrary[DatasetFilename]
-      } yield DatasetModel(i, o, f)
+        q <- arbitrary[Option[DatasetQaState]]
+      } yield DatasetModel(i, o, f, q)
     }
 
   implicit val cogDatasetModel: Cogen[DatasetModel] =
     Cogen[(
       DatasetModel.Id,
       Observation.Id,
-      DatasetFilename
+      DatasetFilename,
+      Option[DatasetQaState]
     )].contramap { a => (
       a.id,
       a.observationId,
-      a.filename
+      a.filename,
+      a.qaState
     )}
 
 }

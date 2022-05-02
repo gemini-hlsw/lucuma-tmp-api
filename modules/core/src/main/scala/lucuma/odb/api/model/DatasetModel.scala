@@ -7,15 +7,18 @@ import cats.{Order, Show}
 import cats.syntax.bitraverse._
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.numeric._
+import lucuma.core.`enum`.DatasetQaState
 import lucuma.core.model.Observation
 import lucuma.core.optics.Format
+import monocle.{Lens, Focus}
 
 import scala.util.matching.Regex
 
 final case class DatasetModel(
   id:            DatasetModel.Id,
   observationId: Observation.Id,
-  filename:      DatasetFilename
+  filename:      DatasetFilename,
+  qaState:       Option[DatasetQaState]
 )
 
 object DatasetModel {
@@ -54,7 +57,15 @@ object DatasetModel {
     Order.by { a => (
       a.id,
       a.observationId,
-      a.filename
+      a.filename,
+      a.qaState
     )}
+
+}
+
+sealed trait DatasetModelOptics { self: DatasetModel.type =>
+
+  val qaState: Lens[DatasetModel, Option[DatasetQaState]] =
+    Focus[DatasetModel](_.qaState)
 
 }
