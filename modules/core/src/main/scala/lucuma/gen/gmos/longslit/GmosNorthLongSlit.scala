@@ -6,25 +6,19 @@ package gmos
 package longslit
 
 import cats.effect.Sync
-import cats.syntax.either._
 import cats.syntax.functor._
-import cats.syntax.option._
 import eu.timepit.refined.auto._
 import eu.timepit.refined.types.all.{PosDouble, PosInt}
 import lucuma.core.`enum`._
 import lucuma.core.math.Wavelength
-import lucuma.core.math.syntax.int._
 import lucuma.core.model.SourceProfile
-import lucuma.core.optics.syntax.lens._
-import lucuma.core.optics.syntax.optional._
-import lucuma.gen.gmos.longslit.GmosLongSlit.{AcquisitionSteps, ScienceSteps}
 import lucuma.itc.client.{ItcClient, ItcResult}
 import lucuma.odb.api.model.{ObservationModel, ScienceMode, Sequence}
 import lucuma.odb.api.model.gmos.syntax.gmosNorthFilter._
-import lucuma.odb.api.model.GmosModel.{CustomMask, GratingConfig, NorthDynamic, NorthStatic}
+import lucuma.odb.api.model.GmosModel.{NorthDynamic, NorthStatic}
 import lucuma.odb.api.repo.OdbRepo
 
-import scala.concurrent.duration._
+import scala.collection.immutable.LazyList
 
 sealed trait GmosNorthLongSlit[F[_]] extends GmosNorthGenerator[F]
 
@@ -74,11 +68,14 @@ object GmosNorthLongSlit {
           stageMode     = GmosNorthStageMode.FollowXy
         )
 
-      override def acquisitionSteps: AcquisitionSteps[NorthDynamic] =
-        Acquisition.compute(mode.fpu, acqTime, λ)
+      override def acquisitionSteps: Acquisition.Steps[NorthDynamic] =
+        Acquisition.GmosNorth.compute(
+          GmosNorthFilter.allAcquisition.fproduct(_.wavelength),
+          mode.fpu, acqTime, λ
+        )
 
-      override def scienceSteps: ScienceSteps[NorthDynamic] =
-        Science.compute(mode, sciTime, λ, sourceProfile, imageQuality, sampling)
+      override def scienceAtoms: LazyList[Science.Atom[NorthDynamic]] =
+        Science.GmosNorth.compute(mode, sciTime, λ, sourceProfile, imageQuality, sampling)
 
       override def acquisition(
         recordedSteps: List[RecordedStep[NorthDynamic]]
@@ -90,76 +87,5 @@ object GmosNorthLongSlit {
       ): F[Sequence[NorthDynamic]] =
         longSlitScience(exposureCount, recordedSteps)
     }
-
-  object Acquisition extends GmosNorthSequenceState {
-
-    def compute(
-      fpu:          GmosNorthFpu,
-      exposureTime: AcqExposureTime,
-      λ:            Wavelength,
-    ): AcquisitionSteps[NorthDynamic] = {
-
-      def filter: GmosNorthFilter = GmosNorthFilter.allAcquisition.minBy { f =>
-        (λ.toPicometers.value.value - f.wavelength.toPicometers.value.value).abs
-      }
-
-      eval {
-        for {
-          _  <- NorthDynamic.exposure      := exposureTime.value
-          _  <- NorthDynamic.filter        := filter.some
-          _  <- NorthDynamic.fpu           := none[Either[CustomMask, GmosNorthFpu]]
-          _  <- NorthDynamic.gratingConfig := none[GratingConfig[GmosNorthGrating]]
-          _  <- NorthDynamic.xBin          := GmosXBinning.Two
-          _  <- NorthDynamic.yBin          := GmosYBinning.Two
-          _  <- NorthDynamic.roi           := GmosRoi.Ccd2
-          s0 <- scienceStep(0.arcsec, 0.arcsec)
-
-          _  <- NorthDynamic.exposure      := 20.seconds
-          _  <- NorthDynamic.fpu           := fpu.asRight.some
-          _  <- NorthDynamic.xBin          := GmosXBinning.One
-          _  <- NorthDynamic.yBin          := GmosYBinning.One
-          _  <- NorthDynamic.roi           := GmosRoi.CentralStamp
-          s1 <- scienceStep(10.arcsec, 0.arcsec)
-
-          _  <- NorthDynamic.exposure      := exposureTime.value * 4
-          s2 <- scienceStep(0.arcsec, 0.arcsec)
-
-        } yield AcquisitionSteps(s0, s1, s2)
-      }
-
-    }
-
-  }
-
-  object Science extends GmosNorthSequenceState {
-
-    def compute(
-      mode:          ScienceMode.GmosNorthLongSlit,
-      exposureTime:  SciExposureTime,
-      λ:             Wavelength,
-      sourceProfile: SourceProfile,
-      imageQuality:  ImageQuality,
-      sampling:      PosDouble
-    ): ScienceSteps[NorthDynamic] =
-
-      eval {
-        for {
-          _  <- NorthDynamic.exposure      := exposureTime.value
-          _  <- NorthDynamic.xBin          := mode.xBin(sourceProfile, imageQuality, sampling)
-          _  <- NorthDynamic.yBin          := mode.yBin
-          _  <- NorthDynamic.gratingConfig := GratingConfig(mode.grating, GmosGratingOrder.One, λ).some
-          _  <- NorthDynamic.filter        := mode.filter
-          _  <- NorthDynamic.fpu           := mode.fpu.asRight.some
-          s0 <- scienceStep(0.arcsec, 0.arcsec)
-          f0 <- flatStep
-
-          _  <- NorthDynamic.wavelength    := GmosLongSlit.wavelengthDither(λ, mode.λDithers.last)
-          s1 <- scienceStep(0.arcsec, 15.arcsec)
-          f1 <- flatStep
-        } yield ScienceSteps(s0, f0, s1, f1)
-      }
-
-
-  }
 
 }

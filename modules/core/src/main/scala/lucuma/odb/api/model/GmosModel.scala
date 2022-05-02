@@ -465,14 +465,44 @@ object GmosModel {
 
   }
 
-  sealed trait Dynamic[D, L, U] {
+  sealed trait Dynamic[G, F, U] {
     def exposure:      FiniteDuration
     def readout:       CcdReadout
     def dtax:          GmosDtax
     def roi:           GmosRoi
-    def gratingConfig: Option[GratingConfig[D]]
-    def filter:        Option[L]
+    def gratingConfig: Option[GratingConfig[G]]
+    def filter:        Option[F]
     def fpu:           Option[Either[CustomMask, U]]
+  }
+
+  sealed trait DynamicOptics[D, G, F, U] {
+    def exposure:      Lens[D, FiniteDuration]
+    def readout:       Lens[D, CcdReadout]
+
+    lazy val xBin: Lens[D, GmosXBinning] =
+      readout andThen CcdReadout.xBin
+
+    lazy val yBin: Lens[D, GmosYBinning] =
+      readout andThen CcdReadout.yBin
+
+    lazy val ampReadMode: Lens[D, GmosAmpReadMode] =
+      readout andThen CcdReadout.ampRead
+
+    lazy val ampGain: Lens[D, GmosAmpGain] =
+      readout andThen CcdReadout.ampGain
+
+    def dtax: Lens[D, GmosDtax]
+
+    def roi: Lens[D, GmosRoi]
+
+    def gratingConfig: Lens[D, Option[GratingConfig[G]]]
+
+    def wavelength: Optional[D, Wavelength]
+
+    def filter: Lens[D, Option[F]]
+
+    def fpu: Lens[D, Option[Either[CustomMask, U]]]
+
   }
 
   final case class NorthDynamic (
@@ -500,40 +530,34 @@ object GmosModel {
 
   }
 
-  sealed trait NorthDynamicOptics { self: NorthDynamic.type =>
+  sealed trait NorthDynamicOptics extends DynamicOptics[NorthDynamic, GmosNorthGrating, GmosNorthFilter, GmosNorthFpu] { self: NorthDynamic.type =>
 
-    val exposure: Lens[NorthDynamic, FiniteDuration] =
+    lazy val exposure: Lens[NorthDynamic, FiniteDuration] =
       Focus[NorthDynamic](_.exposure)
 
-    val readout: Lens[NorthDynamic, CcdReadout] =
+    lazy val readout: Lens[NorthDynamic, CcdReadout] =
       Focus[NorthDynamic](_.readout)
 
-    val xBin: Lens[NorthDynamic, GmosXBinning] =
-      readout andThen CcdReadout.xBin
-
-    val yBin: Lens[NorthDynamic, GmosYBinning] =
-      readout andThen CcdReadout.yBin
-
-    val dtax: Lens[NorthDynamic, GmosDtax] =
+    lazy val dtax: Lens[NorthDynamic, GmosDtax] =
       Focus[NorthDynamic](_.dtax)
 
-    val roi: Lens[NorthDynamic, GmosRoi] =
+    lazy val roi: Lens[NorthDynamic, GmosRoi] =
       Focus[NorthDynamic](_.roi)
 
-    val gratingConfig: Lens[NorthDynamic, Option[GratingConfig[GmosNorthGrating]]] =
+    lazy val gratingConfig: Lens[NorthDynamic, Option[GratingConfig[GmosNorthGrating]]] =
       Focus[NorthDynamic](_.gratingConfig)
 
-    val wavelength: Optional[NorthDynamic, Wavelength] =
+    lazy val wavelength: Optional[NorthDynamic, Wavelength] =
       Optional[NorthDynamic, Wavelength](
         _.gratingConfig.map(_.wavelength)
       )(
         λ => gratingConfig.modify(_.map(GratingConfig.wavelength.replace(λ)))
       )
 
-    val filter: Lens[NorthDynamic, Option[GmosNorthFilter]] =
+    lazy val filter: Lens[NorthDynamic, Option[GmosNorthFilter]] =
       Focus[NorthDynamic](_.filter)
 
-    val fpu: Lens[NorthDynamic, Option[Either[CustomMask, GmosNorthFpu]]] =
+    lazy val fpu: Lens[NorthDynamic, Option[Either[CustomMask, GmosNorthFpu]]] =
       Focus[NorthDynamic](_.fpu)
 
   }
@@ -563,40 +587,34 @@ object GmosModel {
 
   }
 
-  sealed trait SouthDynamicOptics { self: SouthDynamic.type =>
+  sealed trait SouthDynamicOptics extends DynamicOptics[SouthDynamic, GmosSouthGrating, GmosSouthFilter, GmosSouthFpu]  { self: SouthDynamic.type =>
 
-    val exposure: Lens[SouthDynamic, FiniteDuration] =
+    lazy val exposure: Lens[SouthDynamic, FiniteDuration] =
       Focus[SouthDynamic](_.exposure)
 
-    val readout: Lens[SouthDynamic, CcdReadout] =
+    lazy val readout: Lens[SouthDynamic, CcdReadout] =
       Focus[SouthDynamic](_.readout)
 
-    val xBin: Lens[SouthDynamic, GmosXBinning] =
-      readout andThen CcdReadout.xBin
-
-    val yBin: Lens[SouthDynamic, GmosYBinning] =
-      readout andThen CcdReadout.yBin
-
-    val dtax: Lens[SouthDynamic, GmosDtax] =
+    lazy val dtax: Lens[SouthDynamic, GmosDtax] =
       Focus[SouthDynamic](_.dtax)
 
-    val roi: Lens[SouthDynamic, GmosRoi] =
+    lazy val roi: Lens[SouthDynamic, GmosRoi] =
       Focus[SouthDynamic](_.roi)
 
-    val gratingConfig: Lens[SouthDynamic, Option[GratingConfig[GmosSouthGrating]]] =
+    lazy val gratingConfig: Lens[SouthDynamic, Option[GratingConfig[GmosSouthGrating]]] =
       Focus[SouthDynamic](_.gratingConfig)
 
-    val wavelength: Optional[SouthDynamic, Wavelength] =
+    lazy val wavelength: Optional[SouthDynamic, Wavelength] =
       Optional[SouthDynamic, Wavelength](
         _.gratingConfig.map(_.wavelength)
       )(
         λ => gratingConfig.modify(_.map(GratingConfig.wavelength.replace(λ)))
       )
 
-    val filter: Lens[SouthDynamic, Option[GmosSouthFilter]] =
+    lazy val filter: Lens[SouthDynamic, Option[GmosSouthFilter]] =
       Focus[SouthDynamic](_.filter)
 
-    val fpu: Lens[SouthDynamic, Option[Either[CustomMask, GmosSouthFpu]]] =
+    lazy val fpu: Lens[SouthDynamic, Option[Either[CustomMask, GmosSouthFpu]]] =
       Focus[SouthDynamic](_.fpu)
 
   }

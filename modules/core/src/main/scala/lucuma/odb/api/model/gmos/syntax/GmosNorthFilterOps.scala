@@ -3,13 +3,14 @@
 
 package lucuma.odb.api.model.gmos.syntax
 
+import cats.data.NonEmptyList
 import lucuma.core.`enum`.GmosNorthFilter
 import lucuma.core.`enum`.GmosNorthFilter.{GPrime, IPrime, RPrime, UPrime, ZPrime}
 
 final class GmosNorthFilterCompanionOps(val self: GmosNorthFilter.type) extends AnyVal {
 
-  def allAcquisition: List[GmosNorthFilter] =
-    List(UPrime, GPrime, RPrime, IPrime, ZPrime)
+  def allAcquisition: NonEmptyList[GmosNorthFilter] =
+    NonEmptyList.of(UPrime, GPrime, RPrime, IPrime, ZPrime)
 
 }
 

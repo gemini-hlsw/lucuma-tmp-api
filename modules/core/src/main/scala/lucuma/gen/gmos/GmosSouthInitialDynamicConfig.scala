@@ -9,14 +9,14 @@ import lucuma.odb.api.model.GmosModel.{CcdReadout, SouthDynamic}
 
 import scala.concurrent.duration._
 
-private[gmos] trait GmosSouthSequenceState extends SequenceState[SouthDynamic] {
+private[gmos] trait GmosSouthInitialDynamicConfig {
 
   /**
    * Starting point, default dynamic configuration for GMOS South.  This will
    * serve as the initial state in state computations that produce sequence
    * steps.
    */
-  override val initialConfig: SouthDynamic =
+  val initialConfig: SouthDynamic =
     SouthDynamic(
       exposure = 0.seconds,
       readout  = CcdReadout(
