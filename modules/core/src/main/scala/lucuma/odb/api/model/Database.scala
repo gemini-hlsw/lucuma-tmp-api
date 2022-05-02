@@ -15,11 +15,12 @@ import scala.collection.immutable.{ListMap, SortedMap}
 
 final case class Database(
   lastEventId:     Long,
+  datasets:        SortedMap[DatasetModel.Id, DatasetModel],
   visitRecords:    SortedMap[Observation.Id, VisitRecords],
   executionEvents: Table[ExecutionEvent.Id, ExecutionEventModel],
   observations:    Table[Observation.Id, ObservationModel],
   programs:        Table[Program.Id, ProgramModel],
-  targets:         Table[Target.Id, TargetModel],
+  targets:         Table[Target.Id, TargetModel]
 )
 
 object Database extends DatabaseOptics {
@@ -27,6 +28,7 @@ object Database extends DatabaseOptics {
   val empty: Database =
     Database(
       lastEventId     = 0L,
+      datasets        = SortedMap.empty,
       visitRecords    = SortedMap.empty,
       executionEvents = Table.empty,
       observations    = Table.empty,
@@ -37,6 +39,7 @@ object Database extends DatabaseOptics {
   implicit val EqDatabase: Eq[Database] =
     Eq.by { a => (
       a.lastEventId,
+      a.datasets,
       a.visitRecords,
       a.executionEvents,
       a.observations,
@@ -62,6 +65,9 @@ sealed trait DatabaseOptics { self: Database.type =>
 
   val lastEventId: Lens[Database, Long] =
     Focus[Database](_.lastEventId)
+
+  val datasets: Lens[Database, SortedMap[DatasetModel.Id, DatasetModel]] =
+    Focus[Database](_.datasets)
 
   val visitRecords: Lens[Database, SortedMap[Observation.Id, VisitRecords]] =
     Focus[Database](_.visitRecords)

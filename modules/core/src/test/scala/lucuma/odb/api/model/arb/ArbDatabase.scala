@@ -118,6 +118,7 @@ trait ArbDatabase extends SplitSetHelper {
         vs <- Gen.listOfN(os.size, arbitrary[VisitRecords])
       } yield Database(
         0L,
+        SortedMap.empty,
         SortedMap.from(os.keys.zip(vs)),
         table(SortedMap.empty[ExecutionEvent.Id, ExecutionEventModel]),
         table(os),
