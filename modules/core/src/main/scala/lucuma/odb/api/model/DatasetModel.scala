@@ -3,23 +3,56 @@
 
 package lucuma.odb.api.model
 
-import cats.Order
+import cats.{Order, Show}
+import cats.syntax.bitraverse._
+import eu.timepit.refined.cats._
 import eu.timepit.refined.types.numeric._
 import lucuma.core.model.Observation
+import lucuma.core.optics.Format
+
+import scala.util.matching.Regex
 
 final case class DatasetModel(
-  stepId:        Step.Id,
-  index:         PosInt,
+  id:            DatasetModel.Id,
   observationId: Observation.Id,
   filename:      DatasetFilename
 )
 
 object DatasetModel {
 
+  final case class Id(
+    stepId: Step.Id,
+    index:  PosInt
+  )
+
+  object Id {
+    implicit val OrderId: Order[Id] =
+      Order.by { a => (a.stepId, a.index) }
+
+    val PosIntPattern: Regex =
+      raw"([1-9a-f][0-9a-f]*)".r
+
+    val fromString: Format[String, Id] =
+      Format(
+        _.split(',').toList match {
+          case List(sid, PosIntPattern(idx)) =>
+            (Step.Id.parse(sid), PosInt.unapply(java.lang.Integer.parseInt(idx)))
+            .bisequence
+            .map { case (sid, idx) => Id(sid, idx) }
+          case _                             =>
+            None
+        },
+        id => s"${Uid[Step.Id].show(id.stepId)},${id.index}"
+      )
+
+    implicit val ShowId: Show[Id] =
+      Show.show[Id](fromString.reverseGet)
+
+  }
+
   implicit val OrderDatasetModel: Order[DatasetModel] =
     Order.by { a => (
-      a.stepId,
-      a.index.value,
+      a.id,
       a.observationId,
       a.filename
     )}

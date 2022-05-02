@@ -140,9 +140,9 @@ object StepRecordSchema {
           resolve     = c =>
             unsafeSelectPageFuture[F, PosInt, DatasetModel](
               c.pagingCursor("index")(IndexCursor.getOption),
-              dm => IndexCursor.reverseGet(dm.index),
+              dm => IndexCursor.reverseGet(dm.id.index),
               o  => Sync[F].delay(
-                ResultPage.fromSeq[DatasetModel, PosInt](c.value.datasets, c.pagingFirst, o, _.index)
+                ResultPage.fromSeq[DatasetModel, PosInt](c.value.datasets, c.pagingFirst, o, _.id.index)
               )
             )
         )

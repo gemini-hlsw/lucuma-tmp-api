@@ -312,8 +312,7 @@ object ExecutionEventModel {
     def toDataset: Option[DatasetModel] =
       filename.map { fn =>
         DatasetModel(
-          stepId,
-          datasetIndex,
+          DatasetModel.Id(stepId, datasetIndex),
           observationId,
           fn
         )

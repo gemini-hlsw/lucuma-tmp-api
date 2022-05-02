@@ -174,8 +174,8 @@ object ExecutionSchema {
           ),
           resolve     = c =>
             unsafeSelectPageFuture[F, (Step.Id, PosInt), DatasetModel](
-              c.pagingCursor("(step-id, index)")(s => StepAndIndexCursor.getOption(s).flatMap(StepAndIndex.unapply)),
-              dm => StepAndIndexCursor.reverseGet(StepAndIndex(dm.stepId, dm.index)),
+              c.pagingCursor("(step-id, index)")(s => DatasetIdCursor.getOption(s).flatMap(DatasetModel.Id.unapply)),
+              dm => DatasetIdCursor.reverseGet(dm.id),
               o  => c.ctx.odbRepo.executionEvent.selectDatasetsPageForObservation(c.value, c.pagingFirst, o)
             )
         ),

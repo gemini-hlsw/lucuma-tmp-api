@@ -336,14 +336,14 @@ object ExecutionEventRepo {
         databaseRef.get.map { db =>
           db.executionEvents.rows.values.collect {
             case de: DatasetEvent if de.observationId === oid => de.toDataset
-          }.toList.flattenOption.distinct.sortBy(dm => (dm.stepId, dm.index))
+          }.toList.flattenOption.distinct.sortBy(_.id)
         }.map { all =>
 
           ResultPage.fromSeq(
             all,
             count,
             after,
-            dm => (dm.stepId, dm.index)
+            dm => (dm.id.stepId, dm.id.index)
           )
 
         }
@@ -357,14 +357,14 @@ object ExecutionEventRepo {
         databaseRef.get.map { db =>
           db.executionEvents.rows.values.collect {
             case de: DatasetEvent if de.stepId === stepId => de.toDataset
-          }.toList.flattenOption.distinct.sortBy(_.index)
+          }.toList.flattenOption.distinct.sortBy(_.id.index)
         }.map { all =>
 
           ResultPage.fromSeq(
             all,
             count,
             after,
-            _.index
+            _.id.index
           )
 
         }

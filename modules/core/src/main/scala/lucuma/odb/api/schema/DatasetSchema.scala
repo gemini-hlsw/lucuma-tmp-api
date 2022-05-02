@@ -3,76 +3,35 @@
 
 package lucuma.odb.api.schema
 
-import cats.{Eq, Show}
-import lucuma.odb.api.model.{DatasetFilename, DatasetModel, Step, Uid}
-import lucuma.odb.api.model.format.ScalarFormat
-import lucuma.odb.api.schema.Paging.Cursor
-import lucuma.odb.api.schema.syntax.scalar._
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
-import eu.timepit.refined.cats._
 import eu.timepit.refined.types.all.PosInt
-import lucuma.core.optics.Format
+import lucuma.odb.api.model.{DatasetFilename, DatasetModel}
+import lucuma.odb.api.model.format.ScalarFormat
 import lucuma.odb.api.repo.OdbCtx
+import lucuma.odb.api.schema.Paging.Cursor
+import lucuma.odb.api.schema.syntax.scalar._
 import monocle.Prism
 import org.typelevel.log4cats.Logger
 import sangria.schema._
-
-import scala.util.matching.Regex
 
 
 object DatasetSchema {
 
   import context._
+  import StepSchema.StepIdType
 
-  private val PosIntPattern: Regex =
-    raw"([1-9a-f][0-9a-f]*)".r
-
-  final case class StepAndIndex(stepId: Step.Id, index: PosInt) {
-
-    override def toString: String =
-      Show[StepAndIndex].show(this)
-
-  }
-
-  object StepAndIndex {
-
-    implicit val EqStepAndIndex: Eq[StepAndIndex] =
-      Eq.by { a => (
-        a.stepId,
-        a.index
-      )}
-
-    val fromString: Format[String, StepAndIndex] =
-      Format(
-        _.split(',').toList match {
-          case List(sid, PosIntPattern(idx)) =>
-            (Step.Id.parse(sid), PosInt.unapply(java.lang.Integer.parseInt(idx)))
-            .bisequence
-            .map { case (sid, idx) => StepAndIndex(sid, idx)}
-          case _                             =>
-            None
-        },
-        sai => s"${Uid[Step.Id].show(sai.stepId)},${sai.index}"
-      )
-
-    implicit val ShowStepAndIndex: Show[StepAndIndex] =
-      Show.show[StepAndIndex](fromString.reverseGet)
-  }
-
-  val StepAndIndexCursor: Prism[Cursor, StepAndIndex] =
-    Prism[Cursor, StepAndIndex] { c =>
-      StepAndIndex.fromString.getOption(c.toString)
-    } { stepAndIndex =>
-      new Cursor(stepAndIndex.toString)
-    }
+  val DatasetIdCursor: Prism[Cursor, DatasetModel.Id] =
+    Prism[Cursor, DatasetModel.Id] { c =>
+      DatasetModel.Id.fromString.getOption(c.toString)
+    } { did => new Cursor(DatasetModel.Id.fromString.reverseGet(did)) }
 
   val IndexCursor: Prism[Cursor, PosInt] =
     Prism[Cursor, PosInt](
       _.toString match {
-        case PosIntPattern(idx) => PosInt.unapply(java.lang.Integer.parseInt(idx))
-        case _                  => None
+        case DatasetModel.Id.PosIntPattern(idx) => PosInt.unapply(java.lang.Integer.parseInt(idx))
+        case _                                  => None
       }
     ) {
       idx => new Cursor(idx.value.toString)
@@ -98,10 +57,17 @@ object DatasetSchema {
         ),
 
         Field(
+          name        = "stepId",
+          fieldType   = StepIdType,
+          description = "Step ID".some,
+          resolve     = _.value.id.stepId
+        ),
+
+        Field(
           name        = "index",
           fieldType   = IntType,
           description = Some("Dataset index"),
-          resolve     = _.value.index.value
+          resolve     = _.value.id.index.value
         ),
 
         Field(
