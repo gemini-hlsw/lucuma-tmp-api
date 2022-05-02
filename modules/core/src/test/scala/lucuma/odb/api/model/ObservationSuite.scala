@@ -14,5 +14,7 @@ final class ObservationSuite extends DisciplineSuite {
   import ArbObservationModel._
 
   checkAll("ObservationModel", EqTests[ObservationModel].eqv)
+  checkAll("ObservationModel.Create", EqTests[ObservationModel.Create].eqv)
+  checkAll("ObservationModel.CloneInput", EqTests[ObservationModel.CloneInput].eqv)
 
 }

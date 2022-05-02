@@ -41,6 +41,19 @@ trait ObservationMutation {
       "Observation description"
     )
 
+  val InputObjectTypeObservationCloneInput: InputObjectType[ObservationModel.CloneInput] =
+    deriveInputObjectType[ObservationModel.CloneInput](
+      InputObjectTypeName("CloneObservationInput"),
+      InputObjectTypeDescription("Parameters for cloning an existing observation.  Unset values will be copied from the existing observation."),
+      ExcludeInputFields("config")
+    )
+
+  val ArgumentObservationCloneInput: Argument[ObservationModel.CloneInput] =
+    InputObjectTypeObservationCloneInput.argument(
+      "input",
+      "Observation clone parameters"
+    )
+
   val InputObjectTypeObservationEdit: InputObjectType[ObservationModel.Edit] =
     deriveInputObjectType[ObservationModel.Edit](
       InputObjectTypeName("EditObservationInput"),
@@ -121,6 +134,14 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.edit(c.arg(ArgumentObservationEdit)))
     )
 
+  def clone[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+    Field(
+      name      = "cloneObservation",
+      fieldType = ObservationType[F],
+      arguments = List(ArgumentObservationCloneInput),
+      resolve   = c => c.observation(_.clone(c.arg(ArgumentObservationCloneInput)))
+    )
+
   def updateAsterism[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name      = "updateAsterism",
@@ -173,6 +194,7 @@ trait ObservationMutation {
     List(
       create,
       update,
+      clone,
       updateAsterism,
       updateTargetEnvironment,
       updateConstraintSet,
