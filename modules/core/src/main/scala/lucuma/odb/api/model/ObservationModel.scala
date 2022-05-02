@@ -247,7 +247,7 @@ object ObservationModel extends ObservationOptics {
               existence            = Present,
               programId            = pʹ.map(_.id).getOrElse(orig.programId),
               subtitle             = subtitle.orElse(orig.subtitle),
-              status               = status.getOrElse(orig.status),
+              status               = status.getOrElse(ObsStatus.New),
               activeStatus         = activeStatus.getOrElse(orig.activeStatus),
               targetEnvironment    = tʹ.getOrElse(orig.targetEnvironment),
               constraintSet        = cʹ.getOrElse(orig.constraintSet),

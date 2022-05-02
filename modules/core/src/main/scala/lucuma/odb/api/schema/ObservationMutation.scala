@@ -44,7 +44,7 @@ trait ObservationMutation {
   val InputObjectTypeObservationCloneInput: InputObjectType[ObservationModel.CloneInput] =
     deriveInputObjectType[ObservationModel.CloneInput](
       InputObjectTypeName("CloneObservationInput"),
-      InputObjectTypeDescription("Parameters for cloning an existing observation.  Unset values will be copied from the existing observation."),
+      InputObjectTypeDescription("Parameters for cloning an existing observation.  The existingObservationId is required, all else is optional. Unset values will be copied from the existing observation, except that status will default to NEW."),
       ExcludeInputFields("config")
     )
 
