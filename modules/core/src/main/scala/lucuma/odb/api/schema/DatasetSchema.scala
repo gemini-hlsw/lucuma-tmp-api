@@ -52,6 +52,26 @@ object DatasetSchema {
       "Dataset QA State"
     )
 
+  val DatasetIdType: ObjectType[Any, DatasetModel.Id] =
+    ObjectType(
+      name     = "DatasetId",
+      fieldsFn = () => fields(
+        Field(
+          name        = "stepId",
+          fieldType   = StepIdType,
+          description = "Step ID".some,
+          resolve     = _.value.stepId
+        ),
+
+        Field(
+          name        = "index",
+          fieldType   = IntType,
+          description = "Dataset index".some,
+          resolve     = _.value.index.value
+        )
+      )
+    )
+
   def DatasetType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], DatasetModel] =
     ObjectType(
       name     = "Dataset",
@@ -65,17 +85,10 @@ object DatasetSchema {
         ),
 
         Field(
-          name        = "stepId",
-          fieldType   = StepIdType,
-          description = "Step ID".some,
-          resolve     = _.value.id.stepId
-        ),
-
-        Field(
-          name        = "index",
-          fieldType   = IntType,
-          description = "Dataset index".some,
-          resolve     = _.value.id.index.value
+          name        = "id",
+          fieldType   = DatasetIdType,
+          description = "Dataset id".some,
+          resolve     = _.value.id
         ),
 
         Field(

@@ -7,10 +7,13 @@ import cats.{Order, Show}
 import cats.syntax.bitraverse._
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.all.PosInt
+import io.circe._
+import io.circe.generic.semiauto._
+import io.circe.refined._
 import lucuma.core.`enum`.DatasetQaState
 import lucuma.core.model.Observation
 import lucuma.core.optics.Format
-import monocle.{Lens, Focus}
+import monocle.{Focus, Lens}
 
 import scala.util.matching.Regex
 
@@ -49,6 +52,9 @@ object DatasetModel extends DatasetModelOptics {
     implicit val ShowId: Show[Id] =
       Show.show[Id](fromString.reverseGet)
 
+    implicit val DecoderId: Decoder[Id] =
+      deriveDecoder[Id]
+
   }
 
   final case class Dataset(
@@ -83,6 +89,18 @@ object DatasetModel extends DatasetModelOptics {
       a.id,
       a.dataset
     )}
+
+  final case class SetDatasetQaStateInput(
+    qaState:    DatasetQaState,
+    datasetIds: List[DatasetModel.Id]
+  )
+
+  object SetDatasetQaStateInput {
+
+    implicit val DecoderSetDatasetQaStateInput: Decoder[SetDatasetQaStateInput] =
+      deriveDecoder[SetDatasetQaStateInput]
+
+  }
 
 }
 
