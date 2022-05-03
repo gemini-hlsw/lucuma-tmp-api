@@ -7,10 +7,12 @@ import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import eu.timepit.refined.types.all.PosInt
+import lucuma.core.`enum`.DatasetQaState
 import lucuma.odb.api.model.{DatasetFilename, DatasetModel}
 import lucuma.odb.api.model.format.ScalarFormat
 import lucuma.odb.api.repo.OdbCtx
 import lucuma.odb.api.schema.Paging.Cursor
+import lucuma.odb.api.schema.syntax.`enum`._
 import lucuma.odb.api.schema.syntax.scalar._
 import monocle.Prism
 import org.typelevel.log4cats.Logger
@@ -44,6 +46,12 @@ object DatasetSchema {
       scalarFormat = ScalarFormat(DatasetFilename.fromString, "N20210519S0001.fits")
     )
 
+  implicit val EnumTypeDatasetQaState: EnumType[DatasetQaState] =
+    EnumType.fromEnumerated(
+      "DatasetQaState",
+      "Dataset QA State"
+    )
+
   def DatasetType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], DatasetModel] =
     ObjectType(
       name     = "Dataset",
@@ -66,15 +74,22 @@ object DatasetSchema {
         Field(
           name        = "index",
           fieldType   = IntType,
-          description = Some("Dataset index"),
+          description = "Dataset index".some,
           resolve     = _.value.id.index.value
         ),
 
         Field(
           name        = "filename",
           fieldType   = DatasetFilenameScalar,
-          description = Some("Dataset filename"),
+          description = "Dataset filename".some,
           resolve     = _.value.dataset.filename
+        ),
+
+        Field(
+          name        = "qaState",
+          fieldType   = OptionType(EnumTypeDatasetQaState),
+          description = "Dataset QA state".some,
+          resolve     = _.value.dataset.qaState
         )
 
       )
