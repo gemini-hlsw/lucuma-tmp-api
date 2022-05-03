@@ -12,31 +12,38 @@ import eu.timepit.refined.types.all.PosInt
 import scala.collection.immutable.SortedMap
 
 final case class DatasetTable(
-  datasets: SortedMap[Step.Id, SortedMap[PosInt, DatasetModel]]
+  datasets: SortedMap[Step.Id, SortedMap[PosInt, DatasetModel.Dataset]]
 ) {
 
   def get(id: DatasetModel.Id): Option[DatasetModel] =
     datasets
       .get(id.stepId)
       .flatMap(_.get(id.index))
+      .map(d => DatasetModel(id, d))
 
   def getAll(sid: Step.Id): List[DatasetModel] =
     datasets
       .get(sid)
       .toList
-      .flatMap(_.toList.sortBy(_._1).map(_._2))
+      .flatMap(_.toList.sortBy(_._1).map { case (idx, d) =>
+        DatasetModel(DatasetModel.Id(sid, idx), d)
+      })
 
   def updated(d: DatasetModel): DatasetTable =
     DatasetTable(
       datasets.updated(
         d.id.stepId,
-        datasets.get(d.id.stepId).fold(SortedMap(d.id.index -> d)) { m =>
-          m.updated(d.id.index, d)
+        datasets.get(d.id.stepId).fold(SortedMap(d.id.index -> d.dataset)) { m =>
+          m.updated(d.id.index, d.dataset)
         }
       )
     )
 
-  def updatedWith(id: DatasetModel.Id)(f: Option[DatasetModel] => Option[DatasetModel]): DatasetTable =
+  def updatedWith(
+    id: DatasetModel.Id
+  )(
+    f: Option[DatasetModel.Dataset] => Option[DatasetModel.Dataset]
+  ): DatasetTable =
     DatasetTable(
       datasets.updatedWith(id.stepId) {
         case Some(tab) => tab.updatedWith(id.index)(f).some

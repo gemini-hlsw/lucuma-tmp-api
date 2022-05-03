@@ -15,10 +15,8 @@ import monocle.{Lens, Focus}
 import scala.util.matching.Regex
 
 final case class DatasetModel(
-  id:            DatasetModel.Id,
-  observationId: Observation.Id,
-  filename:      DatasetFilename,
-  qaState:       Option[DatasetQaState]
+  id:      DatasetModel.Id,
+  dataset: DatasetModel.Dataset
 )
 
 object DatasetModel extends DatasetModelOptics {
@@ -53,19 +51,50 @@ object DatasetModel extends DatasetModelOptics {
 
   }
 
+  final case class Dataset(
+    observationId: Observation.Id,
+    filename:      DatasetFilename,
+    qaState:       Option[DatasetQaState]
+  )
+
+  object Dataset extends DatasetOptics {
+
+    implicit val OrderDataset: Order[Dataset] =
+      Order.by { a => (
+        a.observationId,
+        a.filename,
+        a.qaState
+      )}
+
+  }
+
+  sealed trait DatasetOptics { self: Dataset.type =>
+
+    val filename: Lens[Dataset, DatasetFilename] =
+      Focus[Dataset](_.filename)
+
+    val qaState: Lens[Dataset, Option[DatasetQaState]] =
+      Focus[Dataset](_.qaState)
+
+  }
+
   implicit val OrderDatasetModel: Order[DatasetModel] =
     Order.by { a => (
       a.id,
-      a.observationId,
-      a.filename,
-      a.qaState
+      a.dataset
     )}
 
 }
 
 sealed trait DatasetModelOptics { self: DatasetModel.type =>
 
+  val dataset: Lens[DatasetModel, Dataset] =
+    Focus[DatasetModel](_.dataset)
+
+  val filename: Lens[DatasetModel, DatasetFilename] =
+    dataset andThen DatasetModel.Dataset.filename
+
   val qaState: Lens[DatasetModel, Option[DatasetQaState]] =
-    Focus[DatasetModel](_.qaState)
+    dataset andThen DatasetModel.Dataset.qaState
 
 }

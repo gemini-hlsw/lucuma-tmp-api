@@ -34,7 +34,7 @@ object DatasetRepo {
         databaseRef.modify { db => (
           Database.datasets.modify { t =>
             ids.foldLeft(t) { (tʹ, id) =>
-              tʹ.updatedWith(id)(_.map(DatasetModel.qaState.replace(qa.some)))
+              tʹ.updatedWith(id)(_.map(DatasetModel.Dataset.qaState.replace(qa.some)))
             }
           }(db),
 

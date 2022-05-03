@@ -53,7 +53,7 @@ object DatasetSchema {
           name        = "observation",
           fieldType   = ObservationSchema.ObservationType[F],
           description = Some("Observation associated with this dataset"),
-          resolve     = c => c.observation(_.unsafeSelect(c.value.observationId, includeDeleted = true))
+          resolve     = c => c.observation(_.unsafeSelect(c.value.dataset.observationId, includeDeleted = true))
         ),
 
         Field(
@@ -74,7 +74,7 @@ object DatasetSchema {
           name        = "filename",
           fieldType   = DatasetFilenameScalar,
           description = Some("Dataset filename"),
-          resolve     = _.value.filename
+          resolve     = _.value.dataset.filename
         )
 
       )

@@ -36,27 +36,42 @@ trait ArbDatasetModel {
       a.index.value
     )}
 
+  implicit val arbDataset: Arbitrary[DatasetModel.Dataset] =
+    Arbitrary {
+      for {
+        o <- arbitrary[Observation.Id]
+        f <- arbitrary[DatasetFilename]
+        q <- arbitrary[Option[DatasetQaState]]
+      } yield DatasetModel.Dataset(o, f, q)
+    }
+
+  implicit val cogDataset: Cogen[DatasetModel.Dataset] =
+    Cogen[(
+      Observation.Id,
+      DatasetFilename,
+      Option[DatasetQaState]
+    )].contramap { a => (
+      a.observationId,
+      a.filename,
+      a.qaState
+    )}
+
+
   implicit val arbDatasetModel: Arbitrary[DatasetModel] =
     Arbitrary {
       for {
         i <- arbitrary[DatasetModel.Id]
-        o <- arbitrary[Observation.Id]
-        f <- arbitrary[DatasetFilename]
-        q <- arbitrary[Option[DatasetQaState]]
-      } yield DatasetModel(i, o, f, q)
+        d <- arbitrary[DatasetModel.Dataset]
+      } yield DatasetModel(i, d)
     }
 
   implicit val cogDatasetModel: Cogen[DatasetModel] =
     Cogen[(
       DatasetModel.Id,
-      Observation.Id,
-      DatasetFilename,
-      Option[DatasetQaState]
+      DatasetModel.Dataset
     )].contramap { a => (
       a.id,
-      a.observationId,
-      a.filename,
-      a.qaState
+      a.dataset
     )}
 
 }
