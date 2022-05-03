@@ -5,6 +5,7 @@ package lucuma.odb.api.model
 
 import cats.Eq
 import cats.Order.catsKernelOrderingForOrder
+import cats.syntax.option._
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.all.PosInt
 
@@ -35,6 +36,13 @@ final case class DatasetTable(
       )
     )
 
+  def updatedWith(id: DatasetModel.Id)(f: Option[DatasetModel] => Option[DatasetModel]): DatasetTable =
+    DatasetTable(
+      datasets.updatedWith(id.stepId) {
+        case Some(tab) => tab.updatedWith(id.index)(f).some
+        case None      => f(None).map(d => SortedMap(id.index -> d))
+      }
+    )
 }
 
 object DatasetTable {

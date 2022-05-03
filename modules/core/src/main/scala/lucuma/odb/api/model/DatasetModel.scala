@@ -6,7 +6,7 @@ package lucuma.odb.api.model
 import cats.{Order, Show}
 import cats.syntax.bitraverse._
 import eu.timepit.refined.cats._
-import eu.timepit.refined.types.numeric._
+import eu.timepit.refined.types.all.PosInt
 import lucuma.core.`enum`.DatasetQaState
 import lucuma.core.model.Observation
 import lucuma.core.optics.Format
@@ -21,7 +21,7 @@ final case class DatasetModel(
   qaState:       Option[DatasetQaState]
 )
 
-object DatasetModel {
+object DatasetModel extends DatasetModelOptics {
 
   final case class Id(
     stepId: Step.Id,

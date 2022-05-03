@@ -15,6 +15,8 @@ trait OdbRepo[F[_]] {
 
   def database: Ref[F, Database]
 
+  def dataset: DatasetRepo[F]
+
   def eventService: EventService[F]
 
   def executionEvent: ExecutionEventRepo[F]
@@ -49,6 +51,9 @@ object OdbRepo {
 
       override def eventService: EventService[F] =
         s
+
+      override def dataset: DatasetRepo[F] =
+        DatasetRepo.create(r)
 
       override def executionEvent: ExecutionEventRepo[F] =
         ExecutionEventRepo.create(r)
