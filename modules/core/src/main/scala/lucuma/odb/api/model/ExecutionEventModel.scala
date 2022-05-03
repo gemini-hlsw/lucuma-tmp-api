@@ -361,7 +361,7 @@ object ExecutionEventModel {
         ): StateT[EitherInput, Database, Unit] =
           for {
             d  <- Database.datasets.st.map(_.get(dset.id))
-            _  <- d.fold(Database.datasets.mod_(m => m + (dset.id -> dset))) { existing =>
+            _  <- d.fold(Database.datasets.mod_(_.updated(dset))) { existing =>
               if (existing.filename === dset.filename) empty
               else StateT.setF(InputError(s"Dataset ${Show[DatasetModel.Id].show(dset.id)} has recorded file ${existing.filename} but event has ${dset.filename}").leftNec)
             }
