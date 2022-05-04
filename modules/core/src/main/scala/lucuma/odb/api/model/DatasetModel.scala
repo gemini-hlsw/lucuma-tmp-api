@@ -91,8 +91,10 @@ object DatasetModel extends DatasetModelOptics {
     )}
 
   final case class SetDatasetQaStateInput(
-    qaState:    DatasetQaState,
-    datasetIds: List[DatasetModel.Id]
+    observationId: Observation.Id,
+    stepId:        Option[Step.Id],
+    index:         Option[PosInt],
+    qaState:       DatasetQaState
   )
 
   object SetDatasetQaStateInput {

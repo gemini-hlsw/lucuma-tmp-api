@@ -54,10 +54,24 @@ object DatasetSchema {
       "Dataset QA State"
     )
 
+  val ArgumentDatasetQaState: Argument[DatasetQaState] =
+    Argument(
+      name         = "qaState",
+      argumentType = EnumTypeDatasetQaState,
+      description  = "Dataset QA State"
+    )
+
   val ArgumentDatasetIndex: Argument[PosInt] =
     Argument(
       name         = "index",
       argumentType = PosIntType,
+      description  = "Dataset index"
+    )
+
+  val ArgumentOptionalDatasetIndex: Argument[Option[PosInt]] =
+    Argument(
+      name         = "index",
+      argumentType = OptionInputType(PosIntType),
       description  = "Dataset index"
     )
 

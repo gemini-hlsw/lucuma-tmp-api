@@ -48,7 +48,7 @@ trait DatasetQuery {
       ),
       resolve     = c =>
         unsafeSelectPageFuture[F, DatasetModel.Id, DatasetModel](
-          c.pagingCursor("id")(DatasetIdCursor.getOption),
+          c.pagingCursor("(observation-id,step-id,index)")(DatasetIdCursor.getOption),
           dm => DatasetIdCursor.reverseGet(dm.id),
           o  => c.ctx.odbRepo.dataset.selectDatasetsPage(c.observationId, c.optionalStepId, c.pagingFirst, o)
         )

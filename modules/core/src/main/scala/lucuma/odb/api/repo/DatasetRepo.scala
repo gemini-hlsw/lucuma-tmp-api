@@ -7,7 +7,7 @@ import cats.Functor
 import cats.effect.Ref
 import cats.syntax.functor._
 import cats.syntax.option._
-import cats.Order.catsKernelOrderingForOrder
+import eu.timepit.refined.types.all.PosInt
 import lucuma.core.`enum`.DatasetQaState
 import lucuma.core.model.Observation
 import lucuma.odb.api.model.{Database, DatasetModel, Step}
@@ -31,8 +31,10 @@ sealed trait DatasetRepo[F[_]] {
   ): F[ResultPage[DatasetModel]]
 
   def markQaState(
-    qa:  DatasetQaState,
-    ids: List[DatasetModel.Id],
+    oid:   Observation.Id,
+    sid:   Option[Step.Id],
+    index: Option[PosInt],
+    qa:    DatasetQaState
   ): F[List[DatasetModel]]
 
 }
@@ -48,17 +50,13 @@ object DatasetRepo {
       override def selectDataset(
         id: DatasetModel.Id
       ): F[Option[DatasetModel]] =
-        databaseRef.get.map { db =>
-          db.datasets.get(id)
-        }
+        databaseRef.get.map { db => db.datasets.select(id) }
 
       override def selectDatasets(
         oid: Observation.Id,
         sid: Option[Step.Id]
       ): F[List[DatasetModel]] =
-        databaseRef.get.map { db =>
-          sid.fold(db.datasets.allForObservation(oid))(db.datasets.allForStep(oid, _))
-        }
+        databaseRef.get.map { db => db.datasets.selectAll(oid, sid, None) }
 
       override def selectDatasetsPage(
         oid:   Observation.Id,
@@ -76,21 +74,22 @@ object DatasetRepo {
         }
 
       override def markQaState(
-        qa:  DatasetQaState,
-        ids: List[DatasetModel.Id]
+        oid:   Observation.Id,
+        sid:   Option[Step.Id],
+        index: Option[PosInt],
+        qa:    DatasetQaState
       ): F[List[DatasetModel]] =
 
-        databaseRef.modify { db => (
-          Database.datasets.modify { t =>
-            ids.foldLeft(t) { (tʹ, id) =>
-              tʹ.updatedWith(id)(_.map(DatasetModel.Dataset.qaState.replace(qa.some)))
-            }
-          }(db),
+        databaseRef.modify { db =>
+          val dbʹ =
+            Database.datasets.modify { t =>
+              t.selectAll(oid, sid, index).foldLeft(t) { (tʹ, d) =>
+                tʹ.updatedWith(d.id)(_.map(DatasetModel.Dataset.qaState.replace(qa.some)))
+              }
+            }(db)
 
-          ids.foldLeft(List.empty[DatasetModel]) { (lst, id) =>
-            db.datasets.get(id).fold(lst)(_ :: lst)
-          }.sortBy(_.id)
-        )}
+          (dbʹ, dbʹ.datasets.selectAll(oid, sid, index))
+        }
 
     }
 

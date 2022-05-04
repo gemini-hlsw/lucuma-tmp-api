@@ -188,5 +188,77 @@ class VisitSuite extends OdbSuite {
     List(ClientOption.Http)
   )
 
+  // List the dataset
+  queryTest(
+    query = s"""
+      query ListDatasets {
+        datasets(observationId: "o-2") {
+          nodes {
+            id {
+              observationId
+              stepId
+              index
+            }
+            filename
+            qaState
+          }
+        }
+      }
+    """,
+    expected =json"""
+      {
+        "datasets": {
+          "nodes": [
+            {
+              "id": {
+                "observationId": "o-2",
+                "stepId": ${sid.toString},
+                "index": 1
+              },
+              "filename": "S20220504S0001.fits",
+              "qaState": null
+            }
+          ]
+        }
+      }
+    """,
+    variables = None,
+    List(ClientOption.Http)
+  )
+
+  // Set the QA State
+  queryTest(
+    query = s"""
+      mutation SetQaState {
+        setDatasetQaState(observationId: "o-2", qaState: PASS) {
+          id {
+            observationId
+            stepId
+            index
+          }
+          filename
+          qaState
+        }
+      }
+    """,
+    expected =json"""
+      {
+        "setDatasetQaState": [
+          {
+            "id": {
+              "observationId": "o-2",
+              "stepId": ${sid.toString},
+              "index": 1
+            },
+            "filename": "S20220504S0001.fits",
+            "qaState": "PASS"
+          }
+        ]
+      }
+    """,
+    variables = None,
+    List(ClientOption.Http)
+  )
+
 
 }
