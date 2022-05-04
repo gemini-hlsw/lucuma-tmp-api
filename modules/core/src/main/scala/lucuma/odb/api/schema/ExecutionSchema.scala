@@ -6,7 +6,6 @@ package lucuma.odb.api.schema
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
-import eu.timepit.refined.types.all.PosInt
 import lucuma.core.`enum`.Instrument
 import lucuma.core.model.{ExecutionEvent, Observation}
 import lucuma.gen.SequenceComputation
@@ -173,8 +172,8 @@ object ExecutionSchema {
             ArgumentPagingCursor
           ),
           resolve     = c =>
-            unsafeSelectPageFuture[F, (Observation.Id, Step.Id, PosInt), DatasetModel](
-              c.pagingCursor("(observation-id,step-id,index)")(s => DatasetIdCursor.getOption(s).flatMap(DatasetModel.Id.unapply)),
+            unsafeSelectPageFuture[F, DatasetModel.Id, DatasetModel](
+              c.pagingCursor("(observation-id,step-id,index)")(s => DatasetIdCursor.getOption(s)),
               dm => DatasetIdCursor.reverseGet(dm.id),
               o  => c.ctx.odbRepo.dataset.selectDatasetsPage(c.value, None, c.pagingFirst, o)
             )

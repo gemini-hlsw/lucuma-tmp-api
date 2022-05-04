@@ -8,8 +8,6 @@ import cats.effect.Ref
 import cats.syntax.functor._
 import cats.syntax.option._
 import cats.Order.catsKernelOrderingForOrder
-import eu.timepit.refined.cats._
-import eu.timepit.refined.types.all.PosInt
 import lucuma.core.`enum`.DatasetQaState
 import lucuma.core.model.Observation
 import lucuma.odb.api.model.{Database, DatasetModel, Step}
@@ -29,7 +27,7 @@ sealed trait DatasetRepo[F[_]] {
     oid:   Observation.Id,
     sid:   Option[Step.Id],
     count: Option[Int],
-    after: Option[(Observation.Id, Step.Id, PosInt)]
+    after: Option[DatasetModel.Id]
   ): F[ResultPage[DatasetModel]]
 
   def markQaState(
@@ -66,14 +64,14 @@ object DatasetRepo {
         oid:   Observation.Id,
         sid:   Option[Step.Id],
         count: Option[Int],
-        after: Option[(Observation.Id, Step.Id, PosInt)]
+        after: Option[DatasetModel.Id]
       ): F[ResultPage[DatasetModel]] =
         selectDatasets(oid, sid).map { all =>
           ResultPage.fromSeq(
             all,
             count,
             after,
-            d => (d.id.observationId, d.id.stepId, d.id.index)
+            _.id
           )
         }
 

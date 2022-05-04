@@ -23,6 +23,7 @@ object DatasetSchema {
 
   import context._
   import ObservationSchema.ObservationIdType
+  import RefinedSchema.PosIntType
   import StepSchema.StepIdType
 
   val DatasetIdCursor: Prism[Cursor, DatasetModel.Id] =
@@ -53,6 +54,13 @@ object DatasetSchema {
       "Dataset QA State"
     )
 
+  val ArgumentDatasetIndex: Argument[PosInt] =
+    Argument(
+      name         = "index",
+      argumentType = PosIntType,
+      description  = "Dataset index"
+    )
+
   val DatasetIdType: ObjectType[Any, DatasetModel.Id] =
     ObjectType(
       name     = "DatasetId",
@@ -73,9 +81,9 @@ object DatasetSchema {
 
         Field(
           name        = "index",
-          fieldType   = IntType,
+          fieldType   = PosIntType,
           description = "Dataset index".some,
-          resolve     = _.value.index.value
+          resolve     = _.value.index
         )
       )
     )

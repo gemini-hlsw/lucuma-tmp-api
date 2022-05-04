@@ -39,6 +39,9 @@ final class OdbContextOps[F[_]](val self: Context[OdbCtx[F], _]) {
   def stepId: Step.Id =
     self.arg(StepSchema.ArgumentStepId)
 
+  def optionalStepId: Option[Step.Id] =
+    self.arg(StepSchema.ArgumentOptionalStepId)
+
   def targetId: Target.Id =
     self.arg(TargetSchema.ArgumentTargetId)
 
