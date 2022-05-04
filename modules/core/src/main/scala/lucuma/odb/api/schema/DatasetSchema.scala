@@ -22,6 +22,7 @@ import sangria.schema._
 object DatasetSchema {
 
   import context._
+  import ObservationSchema.ObservationIdType
   import StepSchema.StepIdType
 
   val DatasetIdCursor: Prism[Cursor, DatasetModel.Id] =
@@ -57,6 +58,13 @@ object DatasetSchema {
       name     = "DatasetId",
       fieldsFn = () => fields(
         Field(
+          name        = "observationId",
+          fieldType   = ObservationIdType,
+          description = "Observation ID".some,
+          resolve     = _.value.observationId
+        ),
+
+        Field(
           name        = "stepId",
           fieldType   = StepIdType,
           description = "Step ID".some,
@@ -81,7 +89,7 @@ object DatasetSchema {
           name        = "observation",
           fieldType   = ObservationSchema.ObservationType[F],
           description = Some("Observation associated with this dataset"),
-          resolve     = c => c.observation(_.unsafeSelect(c.value.dataset.observationId, includeDeleted = true))
+          resolve     = c => c.observation(_.unsafeSelect(c.value.id.observationId, includeDeleted = true))
         ),
 
         Field(

@@ -5,18 +5,32 @@ package lucuma.odb.api.repo
 
 import cats.Functor
 import cats.effect.Ref
-//import cats.syntax.functor._
+import cats.syntax.functor._
 import cats.syntax.option._
 import cats.Order.catsKernelOrderingForOrder
+import eu.timepit.refined.cats._
+import eu.timepit.refined.types.all.PosInt
 import lucuma.core.`enum`.DatasetQaState
-//import lucuma.core.model.Observation
-import lucuma.odb.api.model.{Database, DatasetModel}
+import lucuma.core.model.Observation
+import lucuma.odb.api.model.{Database, DatasetModel, Step}
 
 sealed trait DatasetRepo[F[_]] {
 
-//  def datasetsForObservation(
-//    oid: Observation.Id
-//  ): F[List[DatasetModel]]
+  def selectDataset(
+    id: DatasetModel.Id
+  ): F[Option[DatasetModel]]
+
+  def selectDatasets(
+    oid: Observation.Id,
+    sid: Option[Step.Id],
+  ): F[List[DatasetModel]]
+
+  def selectDatasetsPage(
+    oid:   Observation.Id,
+    sid:   Option[Step.Id],
+    count: Option[Int],
+    after: Option[(Observation.Id, Step.Id, PosInt)]
+  ): F[ResultPage[DatasetModel]]
 
   def markQaState(
     qa:  DatasetQaState,
@@ -33,13 +47,35 @@ object DatasetRepo {
 
     new DatasetRepo[F] {
 
-//      override def datasetsForObservation(
-//        oid: Observation.Id
-//      ): F[List[DatasetModel]] =
-//
-//        databaseRef.get.map { db =>
-//          db.datasets.allForStep()
-//        }
+      override def selectDataset(
+        id: DatasetModel.Id
+      ): F[Option[DatasetModel]] =
+        databaseRef.get.map { db =>
+          db.datasets.get(id)
+        }
+
+      override def selectDatasets(
+        oid: Observation.Id,
+        sid: Option[Step.Id]
+      ): F[List[DatasetModel]] =
+        databaseRef.get.map { db =>
+          sid.fold(db.datasets.allForObservation(oid))(db.datasets.allForStep(oid, _))
+        }
+
+      override def selectDatasetsPage(
+        oid:   Observation.Id,
+        sid:   Option[Step.Id],
+        count: Option[Int],
+        after: Option[(Observation.Id, Step.Id, PosInt)]
+      ): F[ResultPage[DatasetModel]] =
+        selectDatasets(oid, sid).map { all =>
+          ResultPage.fromSeq(
+            all,
+            count,
+            after,
+            d => (d.id.observationId, d.id.stepId, d.id.index)
+          )
+        }
 
       override def markQaState(
         qa:  DatasetQaState,

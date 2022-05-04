@@ -312,11 +312,11 @@ object ExecutionEventModel {
   ) extends ExecutionEventModel {
 
     def datasetId: DatasetModel.Id =
-      DatasetModel.Id(stepId, datasetIndex)
+      DatasetModel.Id(observationId, stepId, datasetIndex)
 
     def toDataset: Option[DatasetModel] =
       filename.map { fn =>
-        DatasetModel(datasetId, DatasetModel.Dataset(observationId, fn, None))
+        DatasetModel(datasetId, DatasetModel.Dataset(fn, None))
       }
 
   }

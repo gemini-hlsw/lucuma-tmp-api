@@ -67,13 +67,13 @@ trait OdbSuite extends CatsEffectSuite {
   }
 
   private val server: Resource[IO, Server] =
-    Resource.make(IO.println("  • Server starting..."))(_ => IO.println("  • Server stopped.")) *>
+//    Resource.make(IO.println("  • Server starting..."))(_ => IO.println("  • Server stopped.")) *>
     httpApp.flatMap { app =>
       BlazeServerBuilder[IO]
         .withHttpWebSocketApp(app)
         .bindAny()
         .resource
-        .flatTap(_ => Resource.eval(IO.println("  • Server started.")))
+//        .flatTap(_ => Resource.eval(IO.println("  • Server started.")))
     }
 
   private def transactionalClient(svr: Server): Resource[IO, TransactionalClient[IO, Nothing]] =

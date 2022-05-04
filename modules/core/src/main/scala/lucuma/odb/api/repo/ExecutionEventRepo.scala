@@ -7,10 +7,8 @@ import cats.data.StateT
 import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.all._
 import cats.effect.{Clock, Ref, Sync}
-import eu.timepit.refined.cats._
-import eu.timepit.refined.types.all.PosInt
 import lucuma.core.`enum`.Instrument
-import lucuma.odb.api.model.{Database, DatasetModel, DatasetTable, EitherInput, ExecutionEventModel, InputValidator, Step, StepRecord, ValidatedInput, Visit, VisitRecord, VisitRecords}
+import lucuma.odb.api.model.{Database, DatasetTable, EitherInput, ExecutionEventModel, InputValidator, Step, StepRecord, ValidatedInput, Visit, VisitRecord, VisitRecords}
 import lucuma.odb.api.model.ExecutionEventModel.{DatasetEvent, SequenceEvent, StepEvent}
 import lucuma.odb.api.model.syntax.databasestate._
 import lucuma.odb.api.model.syntax.eitherinput._
@@ -47,20 +45,6 @@ sealed trait ExecutionEventRepo[F[_]] {
     count:    Option[Int],
     afterGid: Option[ExecutionEvent.Id] = None
   ): F[ResultPage[DatasetEvent]]
-
-  /** Page datasets associated with an observation  */
-  def selectDatasetsPageForObservation(
-    oid:   Observation.Id,
-    count: Option[Int],
-    after: Option[(Step.Id, PosInt)] = None
-  ): F[ResultPage[DatasetModel]]
-
-  /** Page datasets associated with an individual step. */
-  def selectDatasetsPageForStep(
-    stepId: Step.Id,
-    count: Option[Int],
-    after: Option[PosInt] = None
-  ): F[ResultPage[DatasetModel]]
 
   def selectStepForId[S, D](
     oid:    Observation.Id,
@@ -171,7 +155,7 @@ object ExecutionEventRepo {
           .values
           .toList
           .sortBy(s => (s.startTime, s.stepId))
-          .map(s => StepRecord.Output.datasets.replace(dsets.allForStep(s.stepId))(s))
+          .map(s => StepRecord.Output.datasets.replace(dsets.allForStep(oid, s.stepId))(s))
       }
 
       private def recordedStep[S, D](
@@ -329,48 +313,6 @@ object ExecutionEventRepo {
             case d @ DatasetEvent(_, _, _, _, _, _, _, _) => d
           }
           ResultPage.fromSeq(events, count, afterGid, _.id)
-        }
-
-      override def selectDatasetsPageForObservation(
-        oid:   Observation.Id,
-        count: Option[Int],
-        after: Option[(Step.Id, PosInt)] = None
-      ): F[ResultPage[DatasetModel]] =
-
-        databaseRef.get.map { db =>
-          db.executionEvents.rows.values.collect {
-            case de: DatasetEvent if de.observationId === oid => de.toDataset
-          }.toList.flattenOption.distinct.sortBy(_.id)
-        }.map { all =>
-
-          ResultPage.fromSeq(
-            all,
-            count,
-            after,
-            dm => (dm.id.stepId, dm.id.index)
-          )
-
-        }
-
-      override def selectDatasetsPageForStep(
-        stepId: Step.Id,
-        count:  Option[Int],
-        after:  Option[PosInt] = None
-      ): F[ResultPage[DatasetModel]] =
-
-        databaseRef.get.map { db =>
-          db.executionEvents.rows.values.collect {
-            case de: DatasetEvent if de.stepId === stepId => de.toDataset
-          }.toList.flattenOption.distinct.sortBy(_.id.index)
-        }.map { all =>
-
-          ResultPage.fromSeq(
-            all,
-            count,
-            after,
-            _.id.index
-          )
-
         }
 
       private def received: F[Instant] =

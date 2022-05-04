@@ -173,10 +173,10 @@ object ExecutionSchema {
             ArgumentPagingCursor
           ),
           resolve     = c =>
-            unsafeSelectPageFuture[F, (Step.Id, PosInt), DatasetModel](
-              c.pagingCursor("(step-id, index)")(s => DatasetIdCursor.getOption(s).flatMap(DatasetModel.Id.unapply)),
+            unsafeSelectPageFuture[F, (Observation.Id, Step.Id, PosInt), DatasetModel](
+              c.pagingCursor("(observation-id,step-id,index)")(s => DatasetIdCursor.getOption(s).flatMap(DatasetModel.Id.unapply)),
               dm => DatasetIdCursor.reverseGet(dm.id),
-              o  => c.ctx.odbRepo.executionEvent.selectDatasetsPageForObservation(c.value, c.pagingFirst, o)
+              o  => c.ctx.odbRepo.dataset.selectDatasetsPage(c.value, None, c.pagingFirst, o)
             )
         ),
 

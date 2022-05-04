@@ -5,51 +5,46 @@ package lucuma.odb.api.model
 
 import cats.Eq
 import cats.Order.catsKernelOrderingForOrder
-import cats.syntax.option._
+import cats.syntax.eq._
 import eu.timepit.refined.cats._
-import eu.timepit.refined.types.all.PosInt
+import eu.timepit.refined.auto._
+import lucuma.core.model.Observation
 
 import scala.collection.immutable.SortedMap
 
 final case class DatasetTable(
-  datasets: SortedMap[Step.Id, SortedMap[PosInt, DatasetModel.Dataset]]
+  datasets: SortedMap[DatasetModel.Id, DatasetModel.Dataset]
 ) {
 
   def get(id: DatasetModel.Id): Option[DatasetModel] =
-    datasets
-      .get(id.stepId)
-      .flatMap(_.get(id.index))
-      .map(d => DatasetModel(id, d))
+    datasets.get(id).map(DatasetModel(id, _))
 
-  def allForStep(sid: Step.Id): List[DatasetModel] =
+  def allForStep(oid: Observation.Id, sid: Step.Id): List[DatasetModel] =
     datasets
-      .get(sid)
+      .iteratorFrom(DatasetModel.Id(oid, sid, 1))
+      .takeWhile { case (id, _) =>
+        id.observationId === oid && id.stepId === sid
+      }
+      .map((DatasetModel.apply _).tupled)
       .toList
-      .flatMap(_.toList.sortBy(_._1).map { case (idx, d) =>
-        DatasetModel(DatasetModel.Id(sid, idx), d)
-      })
+
+  def allForObservation(oid: Observation.Id): List[DatasetModel] =
+    datasets
+      .iteratorFrom(DatasetModel.Id(oid, Step.Id.Min, 1))
+      .takeWhile { case (id, _) => id.observationId === oid }
+      .map((DatasetModel.apply _).tupled)
+      .toList
 
   def updated(d: DatasetModel): DatasetTable =
-    DatasetTable(
-      datasets.updated(
-        d.id.stepId,
-        datasets.get(d.id.stepId).fold(SortedMap(d.id.index -> d.dataset)) { m =>
-          m.updated(d.id.index, d.dataset)
-        }
-      )
-    )
+    DatasetTable(datasets.updated(d.id, d.dataset))
 
   def updatedWith(
     id: DatasetModel.Id
   )(
     f: Option[DatasetModel.Dataset] => Option[DatasetModel.Dataset]
   ): DatasetTable =
-    DatasetTable(
-      datasets.updatedWith(id.stepId) {
-        case Some(tab) => tab.updatedWith(id.index)(f).some
-        case None      => f(None).map(d => SortedMap(id.index -> d))
-      }
-    )
+    DatasetTable(datasets.updatedWith(id)(f))
+
 }
 
 object DatasetTable {

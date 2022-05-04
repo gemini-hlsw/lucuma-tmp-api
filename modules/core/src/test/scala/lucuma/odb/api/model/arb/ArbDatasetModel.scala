@@ -22,16 +22,19 @@ trait ArbDatasetModel {
   implicit val arbDatasetModelId: Arbitrary[DatasetModel.Id] =
     Arbitrary {
       for {
+        o <- arbitrary[Observation.Id]
         s <- arbitrary[Step.Id]
         i <- Gen.posNum[Int]
-      } yield DatasetModel.Id(s, PosInt.unsafeFrom(i))
+      } yield DatasetModel.Id(o, s, PosInt.unsafeFrom(i))
     }
 
   implicit val cogDatasetModelId: Cogen[DatasetModel.Id] =
     Cogen[(
+      Observation.Id,
       Step.Id,
       Int
     )].contramap { a => (
+      a.observationId,
       a.stepId,
       a.index.value
     )}
@@ -39,19 +42,16 @@ trait ArbDatasetModel {
   implicit val arbDataset: Arbitrary[DatasetModel.Dataset] =
     Arbitrary {
       for {
-        o <- arbitrary[Observation.Id]
         f <- arbitrary[DatasetFilename]
         q <- arbitrary[Option[DatasetQaState]]
-      } yield DatasetModel.Dataset(o, f, q)
+      } yield DatasetModel.Dataset(f, q)
     }
 
   implicit val cogDataset: Cogen[DatasetModel.Dataset] =
     Cogen[(
-      Observation.Id,
       DatasetFilename,
       Option[DatasetQaState]
     )].contramap { a => (
-      a.observationId,
       a.filename,
       a.qaState
     )}
