@@ -3,6 +3,7 @@
 
 package lucuma.odb.api.schema
 
+import cats.Applicative
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.flatMap._
@@ -30,9 +31,9 @@ trait ExecutionEventMutation {
   import RefinedSchema.InputObjectPosInt
   import SequenceSchema.EnumTypeSequenceType
   import StepMutation.InputObjectTypeCreateStepConfig
-  import StepSchema.StepIdType
+  import StepSchema.{ArgumentStepId, StepIdType}
   import StepRecordSchema.StepRecordType
-  import VisitRecordSchema.{VisitIdType, VisitRecordType}
+  import VisitRecordSchema.{ArgumentVisitId, VisitIdType, VisitRecordType}
   import syntax.inputobjecttype._
   import context._
 
@@ -55,47 +56,58 @@ trait ExecutionEventMutation {
     staticInput: InputObjectType[SI],
     staticType:  OutputType[S],
     dynamicType: OutputType[D],
-    prism:       Prism[VisitRecords, ListMap[Visit.Id, VisitRecord[S, D]]]
-  )(implicit ev: InputValidator[SI, S]): Field[OdbCtx[F], Unit] =
+    prism:       Prism[VisitRecords, ListMap[Visit.Id, VisitRecord[S, D]]],
+    testing:     Boolean
+  )(implicit ev: InputValidator[SI, S]): Field[OdbCtx[F], Unit] = {
+
+    val vriArg =
+      InputObjectVisitRecordInput[SI](typePrefix, staticInput).argument(
+        "input",
+        "VisitRecord creation parameters"
+      )
+
+    val args = vriArg :: (if (testing) List(ArgumentVisitId) else Nil)
 
     Field(
       name        = s"record${typePrefix.capitalize}Visit",
       fieldType   = VisitRecordType[F, S, D](typePrefix, staticType, dynamicType),
       description = "Record a new visit".some,
-      arguments   = List(
-        InputObjectVisitRecordInput[SI](typePrefix, staticInput).argument(
-          "input",
-          "VisitRecord creation parameters"
-        )
-      ),
+      arguments   = args,
       resolve     = c => {
         val params      = c.arg[VisitRecord.Input[SI]]("input")
         val insertVisit =
           for {
-            vid  <- Visit.Id.random[F]
+            vid  <- if (testing) Applicative[F].pure(c.arg(ArgumentVisitId)) else Visit.Id.random[F]
             rec  <- c.ctx.odbRepo.executionEvent.insertVisit[SI, S, D](vid, params, prism)
           } yield rec
 
         c.unsafeToFuture(insertVisit)
       }
     )
+  }
 
-  def recordGmosNorthVisit[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def recordGmosNorthVisit[F[_]: Dispatcher: Async: Logger](
+    testing: Boolean
+  ): Field[OdbCtx[F], Unit] =
     recordVisit[F, CreateNorthStatic, NorthStatic, NorthDynamic](
       "GmosNorth",
       GmosSchema.InputObjectGmosNorthStaticInput,
       GmosSchema.GmosNorthStaticConfigType,
       GmosSchema.GmosNorthDynamicType,
-      VisitRecords.gmosNorthVisits
+      VisitRecords.gmosNorthVisits,
+      testing
     )
 
-  def recordGmosSouthVisit[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def recordGmosSouthVisit[F[_]: Dispatcher: Async: Logger](
+    testing: Boolean
+  ): Field[OdbCtx[F], Unit] =
     recordVisit[F, CreateSouthStatic, SouthStatic, SouthDynamic](
       "GmosSouth",
       GmosSchema.InputObjectGmosSouthStaticInput,
       GmosSchema.GmosSouthStaticConfigType,
       GmosSchema.GmosSouthDynamicType,
-      VisitRecords.gmosSouthVisits
+      VisitRecords.gmosSouthVisits,
+      testing
     )
 
   def InputObjectStepRecordInput[DI](
@@ -116,48 +128,55 @@ trait ExecutionEventMutation {
     typePrefix:   String,
     dynamicInput: InputObjectType[DI],
     dynamicType:  OutputType[D],
-    prism:        Prism[VisitRecords, ListMap[Visit.Id, VisitRecord[S, D]]]
-  )(implicit ev: InputValidator[DI, D]): Field[OdbCtx[F], Unit] =
+    prism:        Prism[VisitRecords, ListMap[Visit.Id, VisitRecord[S, D]]],
+    testing:      Boolean
+  )(implicit ev: InputValidator[DI, D]): Field[OdbCtx[F], Unit] = {
+
+    val sriArg = InputObjectStepRecordInput[DI](typePrefix, dynamicInput).argument(
+      "input",
+      s"${typePrefix.capitalize} step configuration parameters"
+    )
+
+    val args = sriArg :: (if (testing) List(ArgumentStepId) else Nil)
 
     Field(
       name        = s"record${typePrefix.capitalize}Step",
       fieldType   = StepRecordType[F, D](typePrefix, dynamicType),
       description = "Record a new step".some,
-      arguments   = List(
-        InputObjectStepRecordInput[DI](
-          typePrefix,
-          dynamicInput
-        ).argument(
-          "input",
-          s"${typePrefix.capitalize} step configuration parameters"
-        )
-      ),
+      arguments   = args,
       resolve     = c => {
         val params     = c.arg[StepRecord.Input[DI]]("input")
         val insertStep =
           for {
-            sid <- Step.Id.random[F]
+            sid <- if (testing) Applicative[F].pure(c.arg(ArgumentStepId)) else Step.Id.random[F]
             rec <- c.ctx.odbRepo.executionEvent.insertStep[DI, S, D](sid, params, prism)
           } yield rec
 
         c.unsafeToFuture(insertStep)
       }
     )
+  }
 
-  def recordGmosNorthStep[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def recordGmosNorthStep[F[_]: Dispatcher: Async: Logger](
+    testing: Boolean
+  ): Field[OdbCtx[F], Unit] =
     recordStep[F, CreateNorthDynamic, NorthStatic, NorthDynamic](
       "GmosNorth",
       GmosSchema.InputObjectTypeGmosNorthDynamic,
       GmosSchema.GmosNorthDynamicType,
-      VisitRecords.gmosNorthVisits
+      VisitRecords.gmosNorthVisits,
+      testing
     )
 
-  def recordGmosSouthStep[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def recordGmosSouthStep[F[_]: Dispatcher: Async: Logger](
+    testing: Boolean
+  ): Field[OdbCtx[F], Unit] =
     recordStep[F, CreateSouthDynamic, SouthStatic, SouthDynamic](
       "GmosSouth",
       GmosSchema.InputObjectTypeGmosSouthDynamic,
       GmosSchema.GmosSouthDynamicType,
-      VisitRecords.gmosSouthVisits
+      VisitRecords.gmosSouthVisits,
+      testing
     )
 
   // SequenceEvent ------------------------------------------------------------
@@ -230,15 +249,17 @@ trait ExecutionEventMutation {
 
   // --------------------------------------------------------------------------
 
-  def allFields[F[_]: Dispatcher: Async: Logger]: List[Field[OdbCtx[F], Unit]] =
+  def allFields[F[_]: Dispatcher: Async: Logger](
+    testing: Boolean
+  ): List[Field[OdbCtx[F], Unit]] =
     List(
       addSequenceEvent,
       addStepEvent,
       addDatasetEvent,
-      recordGmosNorthVisit,
-      recordGmosNorthStep,
-      recordGmosSouthVisit,
-      recordGmosSouthStep
+      recordGmosNorthVisit(testing),
+      recordGmosNorthStep(testing),
+      recordGmosSouthVisit(testing),
+      recordGmosSouthStep(testing)
     )
 
 }

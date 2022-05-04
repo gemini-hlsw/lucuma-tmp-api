@@ -171,7 +171,7 @@ object ExecutionEventRepo {
           .values
           .toList
           .sortBy(s => (s.startTime, s.stepId))
-          .map(s => StepRecord.Output.datasets.replace(dsets.getAll(s.stepId))(s))
+          .map(s => StepRecord.Output.datasets.replace(dsets.allForStep(s.stepId))(s))
       }
 
       private def recordedStep[S, D](

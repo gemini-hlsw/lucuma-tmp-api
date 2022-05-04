@@ -14,16 +14,17 @@ import sangria.schema._
  */
 object MutationType {
 
-  def apply[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Unit] =
+  def apply[F[_]: Dispatcher: Async: Logger](
+    testing: Boolean
+  ): ObjectType[OdbCtx[F], Unit] =
     ObjectType(
       name   = "Mutation",
       fields =
-        ProgramMutation.allFields[F]        ++
-        ObservationMutation.allFields[F]    ++
-        TargetMutation.allFields[F]         ++
-        ExecutionEventMutation.allFields[F] ++
+        ProgramMutation.allFields[F]                 ++
+        ObservationMutation.allFields[F]             ++
+        TargetMutation.allFields[F]                  ++
+        ExecutionEventMutation.allFields[F](testing) ++
         DatasetMutation.allFields[F]
-
     )
 
 }

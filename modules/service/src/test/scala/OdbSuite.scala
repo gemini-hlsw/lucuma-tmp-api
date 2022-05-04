@@ -62,18 +62,18 @@ trait OdbSuite extends CatsEffectSuite {
       } yield OdbCtx.create(itc, rpo)
 
     Resource.eval(setupContext).flatMap { ctx =>
-        Main.httpApp(ctx) //, ssoClient))  // TODO: SSO
+        Main.httpApp(ctx, testing = true) //, ssoClient))  // TODO: SSO
     }
   }
 
   private val server: Resource[IO, Server] =
-    // Resource.make(IO.println("  • Server starting..."))(_ => IO.println("  • Server stopped.")) *>
+    Resource.make(IO.println("  • Server starting..."))(_ => IO.println("  • Server stopped.")) *>
     httpApp.flatMap { app =>
       BlazeServerBuilder[IO]
         .withHttpWebSocketApp(app)
         .bindAny()
         .resource
-        // .flatTap(_ => Resource.eval(IO.println("  • Server started.")))
+        .flatTap(_ => Resource.eval(IO.println("  • Server started.")))
     }
 
   private def transactionalClient(svr: Server): Resource[IO, TransactionalClient[IO, Nothing]] =
@@ -134,7 +134,7 @@ trait OdbSuite extends CatsEffectSuite {
     query:     String,
     expected:  Json,
     variables: Option[Json] = None,
-    clients:   List[ClientOption] = ClientOption.All
+    clients:   List[ClientOption] = List(ClientOption.Http)
   ): Unit =
     queryTestImpl(query, expected.asRight, variables, clients)
 
@@ -142,7 +142,7 @@ trait OdbSuite extends CatsEffectSuite {
     query:     String,
     errors:    List[String],
     variables: Option[Json] = None,
-    clients:   List[ClientOption] = ClientOption.All
+    clients:   List[ClientOption] = List(ClientOption.Http)
   ): Unit =
     queryTestImpl(query, errors.asLeft, variables, clients)
 

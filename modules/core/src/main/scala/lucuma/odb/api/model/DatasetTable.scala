@@ -21,7 +21,7 @@ final case class DatasetTable(
       .flatMap(_.get(id.index))
       .map(d => DatasetModel(id, d))
 
-  def getAll(sid: Step.Id): List[DatasetModel] =
+  def allForStep(sid: Step.Id): List[DatasetModel] =
     datasets
       .get(sid)
       .toList

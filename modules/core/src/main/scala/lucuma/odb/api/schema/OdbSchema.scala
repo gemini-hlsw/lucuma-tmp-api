@@ -31,10 +31,12 @@ object OdbSchema {
       }
     )
 
-  def apply[F[_]: Dispatcher: Async: Logger]: Schema[OdbCtx[F], Unit] =
+  def apply[F[_]: Dispatcher: Async: Logger](
+    testing: Boolean
+  ): Schema[OdbCtx[F], Unit] =
     Schema(
       QueryType[F],
-      Some(MutationType[F]),
+      Some(MutationType[F](testing)),
       Some(SubscriptionType[F]),
       additionalTypes =
         ManualConfigSchema.manualConfigImplementations[F] ++

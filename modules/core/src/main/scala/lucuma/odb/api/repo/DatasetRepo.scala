@@ -3,13 +3,20 @@
 
 package lucuma.odb.api.repo
 
+import cats.Functor
 import cats.effect.Ref
+//import cats.syntax.functor._
 import cats.syntax.option._
 import cats.Order.catsKernelOrderingForOrder
 import lucuma.core.`enum`.DatasetQaState
+//import lucuma.core.model.Observation
 import lucuma.odb.api.model.{Database, DatasetModel}
 
 sealed trait DatasetRepo[F[_]] {
+
+//  def datasetsForObservation(
+//    oid: Observation.Id
+//  ): F[List[DatasetModel]]
 
   def markQaState(
     qa:  DatasetQaState,
@@ -20,11 +27,19 @@ sealed trait DatasetRepo[F[_]] {
 
 object DatasetRepo {
 
-  def create[F[_]](
+  def create[F[_]: Functor](
     databaseRef: Ref[F, Database]
   ): DatasetRepo[F] =
 
     new DatasetRepo[F] {
+
+//      override def datasetsForObservation(
+//        oid: Observation.Id
+//      ): F[List[DatasetModel]] =
+//
+//        databaseRef.get.map { db =>
+//          db.datasets.allForStep()
+//        }
 
       override def markQaState(
         qa:  DatasetQaState,

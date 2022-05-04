@@ -341,7 +341,7 @@ object ExecutionEventModel {
       stepId:        Step.Id,
       datasetIndex:  PosInt,
       filename:      Option[DatasetFilename],
-      stageType:     DatasetStageType
+      stage:         DatasetStageType
     ) {
 
       private def recordDataset(
@@ -383,7 +383,7 @@ object ExecutionEventModel {
               received,
               datasetIndex,
               filename,
-              stageType
+              stage
             )
           _ <- recordDataset(e)
           _ <- Database.executionEvent.saveNew(i, e)
@@ -403,7 +403,7 @@ object ExecutionEventModel {
           a.stepId,
           a.datasetIndex.value,
           a.filename,
-          a.stageType
+          a.stage
         )}
     }
 
