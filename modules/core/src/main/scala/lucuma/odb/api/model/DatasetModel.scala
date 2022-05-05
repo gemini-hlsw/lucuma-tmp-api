@@ -90,20 +90,6 @@ object DatasetModel extends DatasetModelOptics {
       a.dataset
     )}
 
-  final case class SetDatasetQaStateInput(
-    observationId: Observation.Id,
-    stepId:        Option[Step.Id],
-    index:         Option[PosInt],
-    qaState:       DatasetQaState
-  )
-
-  object SetDatasetQaStateInput {
-
-    implicit val DecoderSetDatasetQaStateInput: Decoder[SetDatasetQaStateInput] =
-      deriveDecoder[SetDatasetQaStateInput]
-
-  }
-
 }
 
 sealed trait DatasetModelOptics { self: DatasetModel.type =>
