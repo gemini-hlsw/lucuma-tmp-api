@@ -97,6 +97,9 @@ class WithUid(idTag: Char Refined Letter) {
 
   object Id {
 
+    val Min: Id =
+      Id(new UUID(Long.MinValue, Long.MinValue))
+
     implicit val UidId: Uid[Id] =
       Uid.instance(idTag, _.toUuid, apply)
 

@@ -4,7 +4,7 @@
 package lucuma.odb.api.schema
 
 import lucuma.core.model.{ExecutionEvent, Observation, Program, Target}
-import lucuma.odb.api.repo.{ExecutionEventRepo, ObservationRepo, OdbCtx, ProgramRepo, TargetRepo}
+import lucuma.odb.api.repo.{DatasetRepo, ExecutionEventRepo, ObservationRepo, OdbCtx, ProgramRepo, TargetRepo}
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import lucuma.core.util.Gid
@@ -38,6 +38,9 @@ final class OdbContextOps[F[_]](val self: Context[OdbCtx[F], _]) {
 
   def stepId: Step.Id =
     self.arg(StepSchema.ArgumentStepId)
+
+  def optionalStepId: Option[Step.Id] =
+    self.arg(StepSchema.ArgumentOptionalStepId)
 
   def targetId: Target.Id =
     self.arg(TargetSchema.ArgumentTargetId)
@@ -97,6 +100,9 @@ final class OdbContextOps[F[_]](val self: Context[OdbCtx[F], _]) {
 
   def unsafeToFuture[B](fb: F[B])(implicit ev: Dispatcher[F]): Future[B] =
     implicitly[Dispatcher[F]].unsafeToFuture(fb)
+
+  def dataset[B](f: DatasetRepo[F] => F[B])(implicit ev: Dispatcher[F]): Future[B]=
+    unsafeToFuture(f(self.ctx.odbRepo.dataset))
 
   def executionEvent[B](f: ExecutionEventRepo[F] => F[B])(implicit ev: Dispatcher[F]): Future[B] =
     unsafeToFuture(f(self.ctx.odbRepo.executionEvent))

@@ -3,15 +3,16 @@
 
 package lucuma.odb.api.model
 
-import lucuma.odb.api.model.arb._
 import cats.kernel.laws.discipline.EqTests
+import cats.kernel.laws.discipline.OrderTests
+import lucuma.odb.api.model.arb._
 import munit.DisciplineSuite
-
 
 final class DatasetModelSuite extends DisciplineSuite {
 
   import ArbDatasetModel._
 
-  checkAll("DatasetModel", EqTests[DatasetModel].eqv)
+  checkAll("DatasetModel",     EqTests[DatasetModel].eqv)
+  checkAll("DatasetModel.Id",  OrderTests[DatasetModel.Id].order)
 
 }

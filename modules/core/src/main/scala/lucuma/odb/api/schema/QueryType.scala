@@ -20,7 +20,8 @@ object QueryType {
       fields =
         ObservationQuery.allFields[F]   ++
         ProgramQuery.allFields[F]       ++
-        TargetQuery.allFields[F]
+        TargetQuery.allFields[F]        ++
+        DatasetQuery.allFields[F]
     )
 
 }

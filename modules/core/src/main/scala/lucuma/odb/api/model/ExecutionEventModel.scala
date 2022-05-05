@@ -4,8 +4,9 @@
 package lucuma.odb.api.model
 
 import cats.data.StateT
-import cats.{Eq, Order}
+import cats.{Eq, Order, Show}
 import cats.syntax.eq._
+import cats.syntax.either._
 import eu.timepit.refined.types.numeric._
 import org.typelevel.cats.time.instances.instant._
 import io.circe.Decoder
@@ -14,6 +15,7 @@ import io.circe.refined._
 import eu.timepit.refined.auto._
 import lucuma.core.model.{ExecutionEvent, Observation}
 import lucuma.core.util.Enumerated
+import lucuma.odb.api.model.syntax.lens._
 
 import java.time.Instant
 
@@ -309,14 +311,12 @@ object ExecutionEventModel {
     stageType:     DatasetStageType
   ) extends ExecutionEventModel {
 
+    def datasetId: DatasetModel.Id =
+      DatasetModel.Id(observationId, stepId, datasetIndex)
+
     def toDataset: Option[DatasetModel] =
       filename.map { fn =>
-        DatasetModel(
-          stepId,
-          datasetIndex,
-          observationId,
-          fn
-        )
+        DatasetModel(datasetId, DatasetModel.Dataset(fn, None))
       }
 
   }
@@ -341,8 +341,30 @@ object ExecutionEventModel {
       stepId:        Step.Id,
       datasetIndex:  PosInt,
       filename:      Option[DatasetFilename],
-      stageType:     DatasetStageType
+      stage:         DatasetStageType
     ) {
+
+      private def recordDataset(
+        e: DatasetEvent
+      ): StateT[EitherInput, Database, Unit] = {
+
+        val empty: StateT[EitherInput, Database, Unit] =
+          StateT.empty
+
+        def doRecord(
+          dset: DatasetModel
+        ): StateT[EitherInput, Database, Unit] =
+          for {
+            d  <- Database.datasets.st.map(_.select(dset.id))
+            _  <- d.fold(Database.datasets.mod_(_.updated(dset))) { existing =>
+              if (existing.dataset.filename === dset.dataset.filename) empty
+              else StateT.setF(InputError(s"Dataset ${Show[DatasetModel.Id].show(dset.id)} has recorded file ${existing.dataset.filename} but event has ${dset.dataset.filename}").leftNec)
+            }
+          } yield ()
+
+        e.toDataset.fold(empty)(doRecord)
+      }
+
 
       def add(
         received: Instant
@@ -361,8 +383,9 @@ object ExecutionEventModel {
               received,
               datasetIndex,
               filename,
-              stageType
+              stage
             )
+          _ <- recordDataset(e)
           _ <- Database.executionEvent.saveNew(i, e)
         } yield e
 
@@ -380,7 +403,7 @@ object ExecutionEventModel {
           a.stepId,
           a.datasetIndex.value,
           a.filename,
-          a.stageType
+          a.stage
         )}
     }
 

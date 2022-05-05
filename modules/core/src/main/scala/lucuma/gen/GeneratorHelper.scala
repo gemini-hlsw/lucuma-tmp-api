@@ -65,7 +65,7 @@ private[gen] trait GeneratorHelper[D] {
     // static configurations.
 
     def isExecuted(a: A): State[List[RecordedStep[D]], Boolean] = {
-      val steps = atom(a).toList.map(sc => RecordedStep(sc, isExecuted = true))
+      val steps = atom(a).toList.map(sc => RecordedStep(sc, successfullyExecuted = true))
 
       for {
         rs <- State.get[List[RecordedStep[D]]]

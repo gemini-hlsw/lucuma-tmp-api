@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.DatasetModel
+import lucuma.odb.api.model.{DatasetModel, StepQaState, StepRecord}
 import cats.effect.Async
 import cats.effect.kernel.Sync
 import cats.effect.std.Dispatcher
@@ -11,9 +11,9 @@ import cats.syntax.all._
 import eu.timepit.refined.types.all.PosInt
 import eu.timepit.refined.cats._
 import lucuma.core.model.ExecutionEvent
-import lucuma.odb.api.model.StepRecord
 import lucuma.odb.api.model.ExecutionEventModel.{DatasetEvent, StepEvent}
 import lucuma.odb.api.repo.{OdbCtx, ResultPage}
+import lucuma.odb.api.schema.syntax.`enum`._
 import org.typelevel.log4cats.Logger
 import sangria.schema._
 
@@ -27,6 +27,12 @@ object StepRecordSchema {
   import StepSchema.{StepConfigType, StepIdType}
   import TimeSchema.{DurationType, InstantScalar}
   import VisitRecordSchema.VisitIdType
+
+  implicit val EnumTypeStepQaState: EnumType[StepQaState] =
+    EnumType.fromEnumerated(
+      "StepQaState",
+      "Step QA State"
+    )
 
   def StepRecordType[F[_]: Dispatcher: Async: Logger, D](
     typePrefix:  String,
@@ -112,6 +118,13 @@ object StepRecordSchema {
         ),
 
         Field(
+          name        = "stepQaState",
+          fieldType   = OptionType(EnumTypeStepQaState),
+          description = "Step QA state based on a combination of dataset QA states".some,
+          resolve     = _.value.qaState
+        ),
+
+        Field(
           name        = "datasetEvents",
           fieldType   = DatasetEventConnectionType[F],
           description = "Dataset events associated with this step".some,
@@ -140,9 +153,9 @@ object StepRecordSchema {
           resolve     = c =>
             unsafeSelectPageFuture[F, PosInt, DatasetModel](
               c.pagingCursor("index")(IndexCursor.getOption),
-              dm => IndexCursor.reverseGet(dm.index),
+              dm => IndexCursor.reverseGet(dm.id.index),
               o  => Sync[F].delay(
-                ResultPage.fromSeq[DatasetModel, PosInt](c.value.datasets, c.pagingFirst, o, _.index)
+                ResultPage.fromSeq[DatasetModel, PosInt](c.value.datasets, c.pagingFirst, o, _.id.index)
               )
             )
         )

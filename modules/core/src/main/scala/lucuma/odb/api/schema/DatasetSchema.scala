@@ -3,76 +3,39 @@
 
 package lucuma.odb.api.schema
 
-import cats.{Eq, Show}
-import lucuma.odb.api.model.{DatasetFilename, DatasetModel, Step, Uid}
-import lucuma.odb.api.model.format.ScalarFormat
-import lucuma.odb.api.schema.Paging.Cursor
-import lucuma.odb.api.schema.syntax.scalar._
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
-import eu.timepit.refined.cats._
 import eu.timepit.refined.types.all.PosInt
-import lucuma.core.optics.Format
+import lucuma.core.`enum`.DatasetQaState
+import lucuma.odb.api.model.{DatasetFilename, DatasetModel}
+import lucuma.odb.api.model.format.ScalarFormat
 import lucuma.odb.api.repo.OdbCtx
+import lucuma.odb.api.schema.Paging.Cursor
+import lucuma.odb.api.schema.syntax.`enum`._
+import lucuma.odb.api.schema.syntax.scalar._
 import monocle.Prism
 import org.typelevel.log4cats.Logger
 import sangria.schema._
-
-import scala.util.matching.Regex
 
 
 object DatasetSchema {
 
   import context._
+  import ObservationSchema.ObservationIdType
+  import RefinedSchema.PosIntType
+  import StepSchema.StepIdType
 
-  private val PosIntPattern: Regex =
-    raw"([1-9a-f][0-9a-f]*)".r
-
-  final case class StepAndIndex(stepId: Step.Id, index: PosInt) {
-
-    override def toString: String =
-      Show[StepAndIndex].show(this)
-
-  }
-
-  object StepAndIndex {
-
-    implicit val EqStepAndIndex: Eq[StepAndIndex] =
-      Eq.by { a => (
-        a.stepId,
-        a.index
-      )}
-
-    val fromString: Format[String, StepAndIndex] =
-      Format(
-        _.split(',').toList match {
-          case List(sid, PosIntPattern(idx)) =>
-            (Step.Id.parse(sid), PosInt.unapply(java.lang.Integer.parseInt(idx)))
-            .bisequence
-            .map { case (sid, idx) => StepAndIndex(sid, idx)}
-          case _                             =>
-            None
-        },
-        sai => s"${Uid[Step.Id].show(sai.stepId)},${sai.index}"
-      )
-
-    implicit val ShowStepAndIndex: Show[StepAndIndex] =
-      Show.show[StepAndIndex](fromString.reverseGet)
-  }
-
-  val StepAndIndexCursor: Prism[Cursor, StepAndIndex] =
-    Prism[Cursor, StepAndIndex] { c =>
-      StepAndIndex.fromString.getOption(c.toString)
-    } { stepAndIndex =>
-      new Cursor(stepAndIndex.toString)
-    }
+  val DatasetIdCursor: Prism[Cursor, DatasetModel.Id] =
+    Prism[Cursor, DatasetModel.Id] { c =>
+      DatasetModel.Id.fromString.getOption(c.toString)
+    } { did => new Cursor(DatasetModel.Id.fromString.reverseGet(did)) }
 
   val IndexCursor: Prism[Cursor, PosInt] =
     Prism[Cursor, PosInt](
       _.toString match {
-        case PosIntPattern(idx) => PosInt.unapply(java.lang.Integer.parseInt(idx))
-        case _                  => None
+        case DatasetModel.Id.PosIntPattern(idx) => PosInt.unapply(java.lang.Integer.parseInt(idx))
+        case _                                  => None
       }
     ) {
       idx => new Cursor(idx.value.toString)
@@ -85,6 +48,60 @@ object DatasetSchema {
       scalarFormat = ScalarFormat(DatasetFilename.fromString, "N20210519S0001.fits")
     )
 
+  implicit val EnumTypeDatasetQaState: EnumType[DatasetQaState] =
+    EnumType.fromEnumerated(
+      "DatasetQaState",
+      "Dataset QA State"
+    )
+
+  val ArgumentDatasetQaState: Argument[DatasetQaState] =
+    Argument(
+      name         = "qaState",
+      argumentType = EnumTypeDatasetQaState,
+      description  = "Dataset QA State"
+    )
+
+  val ArgumentDatasetIndex: Argument[PosInt] =
+    Argument(
+      name         = "index",
+      argumentType = PosIntType,
+      description  = "Dataset index"
+    )
+
+  val ArgumentOptionalDatasetIndex: Argument[Option[PosInt]] =
+    Argument(
+      name         = "index",
+      argumentType = OptionInputType(PosIntType),
+      description  = "Dataset index"
+    )
+
+  val DatasetIdType: ObjectType[Any, DatasetModel.Id] =
+    ObjectType(
+      name     = "DatasetId",
+      fieldsFn = () => fields(
+        Field(
+          name        = "observationId",
+          fieldType   = ObservationIdType,
+          description = "Observation ID".some,
+          resolve     = _.value.observationId
+        ),
+
+        Field(
+          name        = "stepId",
+          fieldType   = StepIdType,
+          description = "Step ID".some,
+          resolve     = _.value.stepId
+        ),
+
+        Field(
+          name        = "index",
+          fieldType   = PosIntType,
+          description = "Dataset index".some,
+          resolve     = _.value.index
+        )
+      )
+    )
+
   def DatasetType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], DatasetModel] =
     ObjectType(
       name     = "Dataset",
@@ -94,21 +111,28 @@ object DatasetSchema {
           name        = "observation",
           fieldType   = ObservationSchema.ObservationType[F],
           description = Some("Observation associated with this dataset"),
-          resolve     = c => c.observation(_.unsafeSelect(c.value.observationId, includeDeleted = true))
+          resolve     = c => c.observation(_.unsafeSelect(c.value.id.observationId, includeDeleted = true))
         ),
 
         Field(
-          name        = "index",
-          fieldType   = IntType,
-          description = Some("Dataset index"),
-          resolve     = _.value.index.value
+          name        = "id",
+          fieldType   = DatasetIdType,
+          description = "Dataset id".some,
+          resolve     = _.value.id
         ),
 
         Field(
           name        = "filename",
           fieldType   = DatasetFilenameScalar,
-          description = Some("Dataset filename"),
-          resolve     = _.value.filename
+          description = "Dataset filename".some,
+          resolve     = _.value.dataset.filename
+        ),
+
+        Field(
+          name        = "qaState",
+          fieldType   = OptionType(EnumTypeDatasetQaState),
+          description = "Dataset QA state".some,
+          resolve     = _.value.dataset.qaState
         )
 
       )

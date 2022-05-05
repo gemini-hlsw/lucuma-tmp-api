@@ -26,6 +26,13 @@ object StepSchema {
       description  = "Step ID"
     )
 
+  val ArgumentOptionalStepId: Argument[Option[Step.Id]] =
+    Argument(
+      name         = "stepId",
+      argumentType = OptionInputType(StepIdType),
+      description  = "Step ID"
+    )
+
   implicit val EnumTypeBreakpoint: EnumType[model.Breakpoint] =
     EnumType.fromEnumerated[model.Breakpoint](
       "Breakpoint",

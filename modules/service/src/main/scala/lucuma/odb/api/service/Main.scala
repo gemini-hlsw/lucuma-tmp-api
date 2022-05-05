@@ -34,11 +34,12 @@ object Main extends IOApp {
     ctx:        OdbCtx[F],
 // TODO: SSO
 //    userClient: SsoClient[F, User],
+    testing:    Boolean
   ): Resource[F, WebSocketBuilder2[F] => HttpApp[F]] =
     Dispatcher[F].map { implicit d =>
 
       // Our schema is constant for now
-      val schema = OdbSchema[F]
+      val schema = OdbSchema[F](testing)
 
       wsb => Logger.httpApp(logHeaders = true, logBody = false) {
 
@@ -80,7 +81,7 @@ object Main extends IOApp {
       // TODO: SSO
 //      sso       <- Stream.resource(cfg.ssoClient[F])
 //      userClient = sso.map(_.user)
-      httpApp   <- Stream.resource(httpApp(ctx)) //, userClient)) // TODO: SSO
+      httpApp   <- Stream.resource(httpApp(ctx, testing = false)) //, userClient)) // TODO: SSO
       exitCode  <- BlazeServerBuilder[F]
         .bindHttp(cfg.port, "0.0.0.0")
         .withHttpWebSocketApp(httpApp)

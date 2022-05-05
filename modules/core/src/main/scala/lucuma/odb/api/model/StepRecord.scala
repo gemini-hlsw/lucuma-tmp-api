@@ -69,7 +69,8 @@ object StepRecord {
     created:       Instant,
     stepConfig:    StepConfig[D],
     stepEvents:    List[ExecutionEventModel.StepEvent],
-    datasetEvents: List[ExecutionEventModel.DatasetEvent]
+    datasetEvents: List[ExecutionEventModel.DatasetEvent],
+    datasets:      List[DatasetModel]
   ) {
 
     def startTime: Option[Instant] =
@@ -90,6 +91,9 @@ object StepRecord {
     def isExecuted: Boolean =
       stepEvents.exists(_.stage === ExecutionEventModel.StepStageType.EndStep)
 
+    def qaState: Option[StepQaState] =
+      StepQaState.rollup(datasets.map(_.dataset.qaState))
+
     /**
      * Whether this is an acquisition or science step.
      */
@@ -98,9 +102,6 @@ object StepRecord {
         case List(t) => t
         case _       => SequenceModel.SequenceType.Science
       }
-
-    def datasets: List[DatasetModel] =
-      datasetEvents.flatMap(_.toDataset).distinct
 
   }
 
@@ -113,7 +114,7 @@ object StepRecord {
       created:       Instant,
       stepConfig:    StepConfig[D]
     ): Output[D] =
-      Output(observationId, visitId, stepId, created, stepConfig, Nil, Nil)
+      Output(observationId, visitId, stepId, created, stepConfig, Nil, Nil, Nil)
 
     implicit def EqOutput[D: Eq]: Eq[Output[D]] =
       Eq.by { a => (
@@ -124,7 +125,8 @@ object StepRecord {
         a.stepConfig,
         a.sequenceType,
         a.stepEvents,
-        a.datasetEvents
+        a.datasetEvents,
+        a.datasets
       )}
 
     def stepEvents[D]: Lens[Output[D], List[ExecutionEventModel.StepEvent]] =
@@ -132,6 +134,9 @@ object StepRecord {
 
     def datasetEvents[D]: Lens[Output[D], List[ExecutionEventModel.DatasetEvent]] =
       Focus[Output[D]](_.datasetEvents)
+
+    def datasets[D]: Lens[Output[D], List[DatasetModel]] =
+      Focus[Output[D]](_.datasets)
 
   }
 
