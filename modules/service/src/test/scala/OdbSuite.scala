@@ -177,34 +177,36 @@ trait OdbSuite extends CatsEffectSuite {
     clients.foreach(go)
   }
 
-  def subscriptionTest(query: String, mutations: Either[List[(String, Option[Json])], IO[Unit]], expected: List[Json], variables: Option[Json] = None) = {
+  def subscriptionTest(
+    query:     String,
+    mutations: Either[List[(String, Option[Json])], IO[Unit]],
+    expected:  List[Json], variables: Option[Json] = None
+  ): Unit = {
     val suffix = query.linesIterator.dropWhile(_.trim.isEmpty).next().trim + " ..."
     test(s"[sub]  $suffix") {
       Resource.eval(IO(serverFixture()))
         .flatMap(streamingClient)
         .use { conn =>
           val req = conn.subscribe(Operation(query))
-          variables
-            .fold(req.apply)(req.apply) // awkward API
-            .flatMap { sub =>
-              for {
-                _   <- log.debug("*** ----- about to start stream fiber")
-                fib <- sub.stream.compile.toList.start
-                _   <- log.debug("*** ----- pausing a bit")
-                _   <- IO.sleep(500.millis)
-                _   <- log.debug("*** ----- running mutations")
-                _   <- mutations.fold(_.traverse_ { case (query, vars) =>
-                         val req = conn.request(Operation(query))
-                         vars.fold(req.apply)(req.apply)
-                       }, identity)
-                _   <- log.debug("*** ----- pausing a bit")
-                _   <- IO.sleep(200.millis)
-                _   <- log.debug("*** ----- stopping subscription")
-                _   <- sub.stop()
-                _   <- log.debug("*** ----- joining fiber")
-                obt <- fib.joinWithNever
-              } yield assertEquals(obt.map(_.spaces2), expected.map(_.spaces2))  // by comparing strings we get more useful errors
-            }
+          for {
+            _   <- log.debug("*** ----- about to start stream fiber")
+            tup <- variables.fold(req.apply)(req.apply).allocated
+            (stream, close) = tup
+            fib <- stream.compile.toList.start
+            _   <- log.debug("*** ----- pausing a bit")
+            _   <- IO.sleep(500.millis)
+            _   <- log.debug("*** ----- running mutations")
+            _   <- mutations.fold(_.traverse_ { case (query, vars) =>
+                     val req = conn.request(Operation(query))
+                     vars.fold(req.apply)(req.apply)
+                   }, identity)
+            _   <- log.debug("*** ----- pausing a bit")
+            _   <- IO.sleep(200.millis)
+            _   <- log.debug("*** ----- stopping subscription")
+            _   <- close
+            _   <- log.debug("*** ----- joining fiber")
+            obt <- fib.joinWithNever
+          } yield assertEquals(obt.map(_.spaces2), expected.map(_.spaces2))  // by comparing strings we get more useful errors
         }
     }
   }
