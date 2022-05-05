@@ -47,7 +47,7 @@ trait GmosLongSlit[F[_], S, D] extends Generator[F, S, D] with GeneratorHelper[D
         // the initial sequence and everything that may follow.
         val (in, rm) = recordedSteps.slice(i, Int.MaxValue).splitAt(steps.initialAtom.length)
 
-        def isExecuted: Boolean    = in.forall(_.isExecuted)
+        def isExecuted: Boolean    = in.forall(_.successfullyExecuted)
         def repeatingSlit: Boolean = rm.map(_.stepConfig).forall(_ === steps.slit)
 
         // If any of the initial sequence is not yet executed, then we

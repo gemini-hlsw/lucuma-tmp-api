@@ -89,9 +89,9 @@ final class GmosNorthLongSlitSuite extends ScalaCheckSuite {
         mode.fpu, acqTime, λ
       )
       val stp = List(
-        RecordedStep(acq.ccd2, isExecuted = true),
-        RecordedStep(acq.p10,  isExecuted = true),
-        RecordedStep(acq.slit, isExecuted = true)
+        RecordedStep(acq.ccd2, successfullyExecuted = true),
+        RecordedStep(acq.p10,  successfullyExecuted = true),
+        RecordedStep(acq.slit, successfullyExecuted = true)
       )
       val seq   = longSlit(mode, sp, iq).acquisition(stp)
       val atoms = seq.unsafeRunSync().atoms.flatMap(_.steps.toList).map(_.config)
@@ -138,7 +138,7 @@ final class GmosNorthLongSlitSuite extends ScalaCheckSuite {
   property("skip executed atoms") {
     forAll { (mode: ScienceMode.GmosNorthLongSlit, sp: SourceProfile, iq: ImageQuality) =>
       val sci   = Science.GmosNorth.compute(mode, sciTime, λ, sp, iq, sampling)
-      val stp   = sci.head.steps.toList.map(c => RecordedStep(c, isExecuted = true))
+      val stp   = sci.head.steps.toList.map(c => RecordedStep(c, successfullyExecuted = true))
       val seq   = longSlit(mode, sp, iq).science(stp)
       val atoms = seq.unsafeRunSync().atoms.flatMap(_.steps.toList).map(_.config)
       assertEquals(atoms.size, (exposureCount.value - 1) * 2)
@@ -148,7 +148,7 @@ final class GmosNorthLongSlitSuite extends ScalaCheckSuite {
   property("executing part of an atom is not executing it at all") {
     forAll { (mode: ScienceMode.GmosNorthLongSlit, sp: SourceProfile, iq: ImageQuality) =>
       val sci   = Science.GmosNorth.compute(mode, sciTime, λ, sp, iq, sampling)
-      val steps = sci.take(exposureCount).toList.map(a => RecordedStep(a.science, isExecuted = true))
+      val steps = sci.take(exposureCount).toList.map(a => RecordedStep(a.science, successfullyExecuted = true))
       val seq   = longSlit(mode, sp, iq).science(steps)
       val atoms = seq.unsafeRunSync().atoms.flatMap(_.steps.toList).map(_.config)
       assertEquals(atoms.size, exposureCount.value * 2)
@@ -158,7 +158,7 @@ final class GmosNorthLongSlitSuite extends ScalaCheckSuite {
   property("executing all the steps stops the sequence") {
     forAll { (mode: ScienceMode.GmosNorthLongSlit, sp: SourceProfile, iq: ImageQuality) =>
       val sci   = Science.GmosNorth.compute(mode, sciTime, λ, sp, iq, sampling)
-      val steps = sci.take(exposureCount).toList.flatMap(_.steps.toList.map(RecordedStep(_, isExecuted = true)))
+      val steps = sci.take(exposureCount).toList.flatMap(_.steps.toList.map(RecordedStep(_, successfullyExecuted = true)))
       val seq   = longSlit(mode, sp, iq).science(steps)
       val atoms = seq.unsafeRunSync().atoms.flatMap(_.steps.toList).map(_.config)
       assert(atoms.isEmpty)
@@ -172,8 +172,8 @@ final class GmosNorthLongSlitSuite extends ScalaCheckSuite {
       val steps =
         sci.take(exposureCount).toList.flatMap(_.steps.toList).flatMap { sc =>
           List(
-            RecordedStep(sc,       isExecuted = true),
-            RecordedStep(acq.ccd2, isExecuted = true)
+            RecordedStep(sc,       successfullyExecuted = true),
+            RecordedStep(acq.ccd2, successfullyExecuted = true)
           )
         }
 

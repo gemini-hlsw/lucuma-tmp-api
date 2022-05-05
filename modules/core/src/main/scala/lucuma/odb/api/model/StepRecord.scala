@@ -91,6 +91,9 @@ object StepRecord {
     def isExecuted: Boolean =
       stepEvents.exists(_.stage === ExecutionEventModel.StepStageType.EndStep)
 
+    def qaState: Option[StepQaState] =
+      StepQaState.rollup(datasets.map(_.dataset.qaState))
+
     /**
      * Whether this is an acquisition or science step.
      */
