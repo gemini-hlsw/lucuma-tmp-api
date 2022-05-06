@@ -10,12 +10,11 @@ import lucuma.core.`enum`.{GmosNorthFilter, GmosNorthFpu, GmosNorthGrating, Gmos
 import lucuma.core.math.Wavelength
 import lucuma.core.math.syntax.int._
 import lucuma.core.optics.syntax.lens._
+import lucuma.core.syntax.time._
 import lucuma.gen.gmos.{GmosNorthInitialDynamicConfig, GmosSouthInitialDynamicConfig}
 import lucuma.gen.{AcqExposureTime, SequenceState}
 import lucuma.odb.api.model.GmosModel.{CustomMask, DynamicOptics, GratingConfig, NorthDynamic, SouthDynamic}
 import lucuma.odb.api.model.StepConfig
-
-import scala.concurrent.duration._
 
 /**
  * GMOS long slit acquisition steps.

@@ -4,9 +4,8 @@
 package lucuma.gen.gmos
 
 import lucuma.core.`enum`.{GmosAmpCount, GmosAmpGain, GmosAmpReadMode, GmosDtax, GmosRoi, GmosXBinning, GmosYBinning}
+import lucuma.core.syntax.time._
 import lucuma.odb.api.model.GmosModel.{CcdReadout, NorthDynamic}
-
-import scala.concurrent.duration._
 
 private[gmos] trait GmosNorthInitialDynamicConfig {
 

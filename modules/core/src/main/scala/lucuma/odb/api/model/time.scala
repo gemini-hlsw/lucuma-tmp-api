@@ -9,37 +9,36 @@ import eu.timepit.refined.api.Validate.Plain
 import eu.timepit.refined.boolean.{And, Not}
 import eu.timepit.refined.numeric.{Greater, GreaterEqual, Interval, Less, NonNegative}
 import io.circe.Decoder
+import lucuma.core.syntax.time._
 import shapeless.Nat._0
 
-import java.time.{LocalDate, Month}
-import java.util.concurrent.TimeUnit
+import java.time.{Duration, LocalDate, Month}
 
-import scala.concurrent.duration._
 import scala.util.Try
 
 object time {
 
-  implicit val nonNegativeFiniteDurationValidate: Plain[FiniteDuration, GreaterEqual[_0]] =
+  implicit val nonNegativeDurationValidate: Plain[Duration, GreaterEqual[_0]] =
     Validate.fromPredicate(
-      (d: FiniteDuration) => d.length >= 0L,
-      (d: FiniteDuration) => s"$d is not negative",
+      (d: Duration) => d.toNanos >= 0L,
+      (d: Duration) => s"$d is not negative",
       Not(Less(shapeless.nat._0))
     )
 
-  type NonNegativeFiniteDuration = FiniteDuration Refined NonNegative
+  type NonNegativeDuration = Duration Refined NonNegative
 
-  object NonNegativeFiniteDuration extends RefinedTypeOps[NonNegativeFiniteDuration, FiniteDuration] {
+  object NonNegativeDuration extends RefinedTypeOps[NonNegativeDuration, Duration] {
 
-    def zero(unit: TimeUnit): NonNegativeFiniteDuration =
-      unsafeFrom(FiniteDuration(0L, unit))
+    val zero: NonNegativeDuration =
+      unsafeFrom(Duration.ofNanos(0L))
 
   }
 
   // Has to be a def or else there are initialization issues.
-  implicit def nonNegFiniteDurationMonoid: Monoid[NonNegativeFiniteDuration] =
+  implicit def nonNegDurationMonoid: Monoid[NonNegativeDuration] =
     Monoid.instance(
-      NonNegativeFiniteDuration.zero(TimeUnit.DAYS),
-      (a, b) => NonNegativeFiniteDuration.unsafeFrom(a.value + b.value)
+      NonNegativeDuration.zero,
+      (a, b) => NonNegativeDuration.unsafeFrom(a.value + b.value)
     )
 
   implicit val fourDigitYearLocalDateValidate: Plain[LocalDate, Interval.Closed[0, 9999]] =

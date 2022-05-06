@@ -3,6 +3,7 @@
 
 package lucuma.odb.api.model
 
+import lucuma.core.syntax.time._
 import lucuma.core.util.{Display, Enumerated}
 import cats.Eq
 import cats.syntax.option._
@@ -10,30 +11,31 @@ import io.circe.Decoder
 import io.circe.generic.semiauto._
 import monocle.Prism
 
-import scala.concurrent.duration._
+import java.time.Duration
+import java.time.temporal.ChronoUnit
 import scala.math.BigDecimal.RoundingMode
 import scala.util.Try
 
-object FiniteDurationModel {
+object DurationModel {
 
   sealed abstract class Units(
-    val timeUnit: TimeUnit
+    val timeUnit: ChronoUnit
   ) extends Product with Serializable {
 
-    val long: Prism[Long, FiniteDuration] =
-      Prism[Long, FiniteDuration](l => Try(FiniteDuration(l, timeUnit)).toOption)(_.length)
+    val long: Prism[Long, Duration] =
+      Prism[Long, Duration](l => Try(Duration.of(l, timeUnit)).toOption)(_.get(timeUnit))
 
-    def readLong(l: Long): ValidatedInput[FiniteDuration] =
+    def readLong(l: Long): ValidatedInput[Duration] =
       long.getOption(l).toValidNec(
         InputError.fromMessage(
           s"Could not read $l ${timeUnit.toString} as a time amount"
         )
       )
 
-    val decimal: Prism[BigDecimal, FiniteDuration] =
-      Prism[BigDecimal, FiniteDuration](bd => Try(FiniteDuration(bd.setScale(0, RoundingMode.HALF_UP).longValue, timeUnit)).toOption)(fd => BigDecimal(fd.length))
+    val decimal: Prism[BigDecimal, Duration] =
+      Prism[BigDecimal, Duration](bd => Try(Duration.of(bd.setScale(0, RoundingMode.HALF_UP).longValue, timeUnit)).toOption)(fd => BigDecimal(fd.get(timeUnit)))
 
-    def readDecimal(b: BigDecimal): ValidatedInput[FiniteDuration] =
+    def readDecimal(b: BigDecimal): ValidatedInput[Duration] =
       decimal.getOption(b).toValidNec(
         InputError.fromMessage(
           s"Could not read $b ${timeUnit.toString} as a time amount"
@@ -42,12 +44,12 @@ object FiniteDurationModel {
   }
 
   object Units {
-    case object Microseconds extends Units(MICROSECONDS)
-    case object Milliseconds extends Units(MILLISECONDS)
-    case object Seconds      extends Units(SECONDS)
-    case object Minutes      extends Units(MINUTES)
-    case object Hours        extends Units(HOURS)
-    case object Days         extends Units(DAYS)
+    case object Microseconds extends Units(ChronoUnit.MICROS)
+    case object Milliseconds extends Units(ChronoUnit.MILLIS)
+    case object Seconds      extends Units(ChronoUnit.SECONDS)
+    case object Minutes      extends Units(ChronoUnit.MINUTES)
+    case object Hours        extends Units(ChronoUnit.HOURS)
+    case object Days         extends Units(ChronoUnit.DAYS)
 
     val microseconds: Units = Microseconds
     val milliseconds: Units = Milliseconds
@@ -70,7 +72,7 @@ object FiniteDurationModel {
       Display.byShortName(_.timeUnit.name)
   }
 
-  implicit val NumericUnitsFiniteDuration: NumericUnits[FiniteDuration, Units] =
+  implicit val NumericUnitsDuration: NumericUnits[Duration, Units] =
     NumericUnits.fromRead(_.readLong(_), _.readDecimal(_))
 
   final case class Input(
@@ -86,7 +88,7 @@ object FiniteDurationModel {
 
     import Units._
 
-    def toFiniteDuration(n: String): ValidatedInput[FiniteDuration] =
+    def toDuration(n: String): ValidatedInput[Duration] =
       ValidatedInput.requireOne(n,
         microseconds.map(Microseconds.readLong),
         milliseconds.map(Milliseconds.readDecimal),
@@ -105,7 +107,7 @@ object FiniteDurationModel {
     val Empty: Input =
       Input(None, None, None, None, None, None, None, None)
 
-    def apply(fd: FiniteDuration): Input =
+    def apply(fd: Duration): Input =
       fromMicroseconds(fd.toMicros)
 
     def fromMicroseconds(value: Long): Input =

@@ -15,12 +15,12 @@ import eu.timepit.refined.scalacheck.string._
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
-import scala.concurrent.duration.FiniteDuration
+import java.time.Duration
 
 trait ArbGmosModel {
 
   import ArbEnumerated._
-  import ArbFiniteDurationModel._
+  import ArbDurationModel._
   import ArbInput._
   import ArbOffset._
   import ArbOffsetModel._
@@ -360,7 +360,7 @@ trait ArbGmosModel {
   implicit val arbNorthDynamic: Arbitrary[GmosModel.NorthDynamic] =
     Arbitrary {
       for {
-        e <- arbitrary[FiniteDuration]
+        e <- arbitrary[Duration]
         c <- arbitrary[GmosModel.CcdReadout]
         x <- arbitrary[GmosDtax]
         r <- arbitrary[GmosRoi]
@@ -372,7 +372,7 @@ trait ArbGmosModel {
 
   implicit val cogNorthDynamic: Cogen[GmosModel.NorthDynamic] =
     Cogen[(
-      FiniteDuration,
+      Duration,
       GmosModel.CcdReadout,
       GmosDtax,
       GmosRoi,
@@ -394,7 +394,7 @@ trait ArbGmosModel {
   implicit val arbCreateNorthDynamic: Arbitrary[GmosModel.CreateNorthDynamic] =
     Arbitrary {
       for {
-        e <- arbitrary[FiniteDurationModel.Input]
+        e <- arbitrary[DurationModel.Input]
         c <- arbitrary[GmosModel.CreateCcdReadout]
         x <- arbitrary[GmosDtax]
         r <- arbitrary[GmosRoi]
@@ -406,7 +406,7 @@ trait ArbGmosModel {
 
   implicit val cogCreateNorthDynamic: Cogen[GmosModel.CreateNorthDynamic] =
     Cogen[(
-      FiniteDurationModel.Input,
+      DurationModel.Input,
       GmosModel.CreateCcdReadout,
       GmosDtax,
       GmosRoi,
@@ -428,7 +428,7 @@ trait ArbGmosModel {
   implicit val arbSouthDynamic: Arbitrary[GmosModel.SouthDynamic] =
     Arbitrary {
       for {
-        e <- arbitrary[FiniteDuration]
+        e <- arbitrary[Duration]
         c <- arbitrary[GmosModel.CcdReadout]
         x <- arbitrary[GmosDtax]
         r <- arbitrary[GmosRoi]
@@ -440,7 +440,7 @@ trait ArbGmosModel {
 
   implicit val cogSouthDynamic: Cogen[GmosModel.SouthDynamic] =
     Cogen[(
-      FiniteDuration,
+      Duration,
       GmosModel.CcdReadout,
       GmosDtax,
       GmosRoi,
@@ -462,7 +462,7 @@ trait ArbGmosModel {
   implicit val arbCreateSouthDynamic: Arbitrary[GmosModel.CreateSouthDynamic] =
     Arbitrary {
       for {
-        e <- arbitrary[FiniteDurationModel.Input]
+        e <- arbitrary[DurationModel.Input]
         c <- arbitrary[GmosModel.CreateCcdReadout]
         x <- arbitrary[GmosDtax]
         r <- arbitrary[GmosRoi]
@@ -474,7 +474,7 @@ trait ArbGmosModel {
 
   implicit val cogCreateSouthDynamic: Cogen[GmosModel.CreateSouthDynamic] =
     Cogen[(
-      FiniteDurationModel.Input,
+      DurationModel.Input,
       GmosModel.CreateCcdReadout,
       GmosDtax,
       GmosRoi,

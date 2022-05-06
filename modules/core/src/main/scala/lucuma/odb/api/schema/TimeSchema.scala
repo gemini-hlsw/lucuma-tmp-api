@@ -4,14 +4,14 @@
 package lucuma.odb.api.schema
 
 import lucuma.core.optics.Format
-import lucuma.odb.api.model.FiniteDurationModel
+import lucuma.core.syntax.time._
+import lucuma.odb.api.model.DurationModel
 import lucuma.odb.api.model.format.ScalarFormat
 import lucuma.odb.api.schema.syntax.scalar._
 import sangria.schema._
 
-import java.time.Instant
+import java.time.{Duration, Instant}
 
-import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 
 object TimeSchema {
@@ -29,7 +29,7 @@ object TimeSchema {
       scalarFormat =  ScalarFormat(InstantFormat, "2011-12-03T10:15:30Z")
     )
 
-  val DurationType: ObjectType[Any, FiniteDuration] =
+  val DurationType: ObjectType[Any, Duration] =
     ObjectType(
       name        = "Duration",
       description = "Equivalent time amount in several unit options (e.g., 120 seconds or 2 minutes)",
@@ -72,8 +72,8 @@ object TimeSchema {
       )
     )
 
-  val InputObjectTypeDuration: InputObjectType[FiniteDurationModel.Input] =
-    InputObjectType[FiniteDurationModel.Input](
+  val InputObjectTypeDuration: InputObjectType[DurationModel.Input] =
+    InputObjectType[DurationModel.Input](
       "DurationInput",
       "Time duration input",
       List(

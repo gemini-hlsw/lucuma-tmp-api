@@ -9,10 +9,10 @@ import cats.kernel.laws.discipline.EqTests
 import munit.DisciplineSuite
 
 
-final class FiniteDurationModelSuite extends DisciplineSuite {
+final class DurationModelSuite extends DisciplineSuite {
 
-  import ArbFiniteDurationModel._
+  import ArbDurationModel._
 
-  checkAll("FiniteDurationModel.Input", EqTests[FiniteDurationModel.Input].eqv)
+  checkAll("DurationModel.Input", EqTests[DurationModel.Input].eqv)
 
 }

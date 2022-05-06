@@ -16,11 +16,10 @@ import lucuma.core.`enum`.ImageQuality
 import lucuma.core.math.Wavelength
 import lucuma.core.math.units.Nanometer
 import lucuma.core.model.SourceProfile
+import lucuma.core.syntax.time._
 import lucuma.itc.client.{ItcClient, ItcResult}
 import lucuma.odb.api.model.{ObservationModel, ScienceMode, Sequence}
 import lucuma.odb.api.repo.OdbRepo
-
-import scala.concurrent.duration._
 
 trait GmosLongSlit[F[_], S, D] extends Generator[F, S, D] with GeneratorHelper[D] {
 
