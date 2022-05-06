@@ -8,12 +8,11 @@ import cats.syntax.eq._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import lucuma.core.model.Observation
+import lucuma.core.syntax.time._
 import monocle.{Focus, Lens}
 import org.typelevel.cats.time.instances.instant._
 
 import java.time.{Duration, Instant}
-
-import scala.concurrent.duration._
 
 /**
  * A record of an executed step.  StepRecord is expected to be created by
@@ -79,14 +78,13 @@ object StepRecord {
     def endTime:   Option[Instant] =
       stepEvents.lastOption.map(_.received)
 
-    def duration:  FiniteDuration =
-      (for {
-        s <- startTime
-        e <- endTime
-      } yield {
-        val d = Duration.between(s, e)
-        (d.getSeconds * 1000000000 + d.getNano).nanoseconds
-      }).getOrElse(0.nanoseconds)
+    def duration:  Duration =
+      (
+        for {
+          s <- startTime
+          e <- endTime
+        } yield Duration.between(s, e)
+      ).getOrElse(0.nanoseconds)
 
     def isExecuted: Boolean =
       stepEvents.exists(_.stage === ExecutionEventModel.StepStageType.EndStep)

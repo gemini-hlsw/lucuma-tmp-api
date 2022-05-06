@@ -25,7 +25,7 @@ object PlannedTimeSchema {
     def field(
       name: String,
       desc: String,
-      f:    CategorizedTime => NonNegativeFiniteDuration
+      f:    CategorizedTime => NonNegativeDuration
     ): Field[Any, CategorizedTime] =
 
       Field(

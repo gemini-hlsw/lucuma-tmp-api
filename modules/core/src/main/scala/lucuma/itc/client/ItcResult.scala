@@ -7,10 +7,10 @@ import cats.Eq
 import cats.syntax.all._
 import eu.timepit.refined.types.numeric._
 import io.circe.{Decoder, DecodingFailure, HCursor}
+import lucuma.core.syntax.time._
 
 import java.math.MathContext
-import scala.concurrent.duration._
-
+import java.time.Duration
 
 sealed trait ItcResult {
 
@@ -71,7 +71,7 @@ object ItcResult {
   }
 
   final case class Success(
-    exposureTime:  FiniteDuration,
+    exposureTime:  Duration,
     exposures:     Int,
     signalToNoise: PosBigDecimal
   ) extends ItcResult {
@@ -110,7 +110,7 @@ object ItcResult {
   def error(msg: String): ItcResult =
     Error(msg)
 
-  def success(exposureTime: FiniteDuration, exposures: Int, signalToNoise: PosBigDecimal): ItcResult =
+  def success(exposureTime: Duration, exposures: Int, signalToNoise: PosBigDecimal): ItcResult =
     Success(exposureTime, exposures, signalToNoise)
 
 }

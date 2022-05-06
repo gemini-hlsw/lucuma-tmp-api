@@ -17,7 +17,7 @@ final class GmosModelSuite extends DisciplineSuite {
   import ArbOffsetModel._
   import ArbGmosModel._
   import ArbStepModel._
-  import ArbFiniteDurationModel._
+  import ArbDurationModel._
   import ArbWavelengthModel._
 
   checkAll("GmosModel.NodAndShuffle",               EqTests[GmosModel.NodAndShuffle].eqv)

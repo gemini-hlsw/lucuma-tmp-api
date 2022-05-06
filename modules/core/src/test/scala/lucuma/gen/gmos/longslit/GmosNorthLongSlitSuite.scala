@@ -16,6 +16,7 @@ import lucuma.core.`enum`.{GmosNorthFilter, GmosNorthFpu, GmosNorthGrating, Gmos
 import lucuma.core.math.Wavelength
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.arb.ArbSourceProfile
+import lucuma.core.syntax.time._
 import lucuma.core.util.arb.ArbEnumerated
 import lucuma.odb.api.model.GmosModel.NorthDynamic
 import lucuma.odb.api.model.ScienceMode
@@ -27,9 +28,6 @@ import munit.ScalaCheckSuite
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Prop.forAll
-
-import scala.concurrent.duration._
-
 
 final class GmosNorthLongSlitSuite extends ScalaCheckSuite {
 

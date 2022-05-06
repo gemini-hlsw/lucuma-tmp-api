@@ -12,12 +12,11 @@ import lucuma.core.`enum`._
 import lucuma.core.math.syntax.int._
 import lucuma.core.model.Program
 import lucuma.core.optics.syntax.all._
+import lucuma.core.syntax.time._
 import lucuma.odb.api.model.OffsetModel.ComponentInput
 import lucuma.odb.api.model._
 import lucuma.odb.api.model.targetModel.{TargetEnvironmentInput, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
-
-import scala.concurrent.duration._
 
 object TestInit {
 
@@ -284,7 +283,7 @@ object TestInit {
 
   val gmosAc: CreateSouthDynamic =
     CreateSouthDynamic(
-      FiniteDurationModel.Input(10.seconds),
+      DurationModel.Input(10.seconds),
       CreateCcdReadout(
         GmosXBinning.Two,
         GmosYBinning.Two,
@@ -306,7 +305,7 @@ object TestInit {
     edit(ac1) {
       for {
         _ <- step.p                                               := ComponentInput(10.arcsec)
-        _ <- step.exposure                                        := FiniteDurationModel.Input(20.seconds)
+        _ <- step.exposure                                        := DurationModel.Input(20.seconds)
         _ <- step.instrumentConfig.andThen(readout).andThen(xBin) := GmosXBinning.One
         _ <- step.instrumentConfig.andThen(readout).andThen(yBin) := GmosYBinning.One
         _ <- step.instrumentConfig.andThen(roi)                   := GmosRoi.CentralStamp
@@ -315,7 +314,7 @@ object TestInit {
     }
 
   val ac3: CreateStepConfig[CreateSouthDynamic] =
-    (step.exposure := FiniteDurationModel.Input(30.seconds)).runS(ac2).value
+    (step.exposure := DurationModel.Input(30.seconds)).runS(ac2).value
 
   val acquisitionSequence: SequenceModel.Create[CreateSouthDynamic] =
     SequenceModel.Create(
@@ -338,7 +337,7 @@ object TestInit {
   val gmos520: CreateSouthDynamic =
     edit(gmosAc) {
       for {
-        _ <- exposure                 := FiniteDurationModel.Input.fromSeconds(950.0)
+        _ <- exposure                 := DurationModel.Input.fromSeconds(950.0)
         _ <- readout.andThen(ampRead) := GmosAmpReadMode.Slow
         _ <- readout.andThen(xBin)    := GmosXBinning.Two
         _ <- readout.andThen(yBin)    := GmosYBinning.Two
@@ -354,8 +353,8 @@ object TestInit {
       CreateSouthDynamic.instrument.wavelength := WavelengthModel.Input.fromNanometers(525.0)
     )
 
-  val threeSeconds: FiniteDurationModel.Input =
-    FiniteDurationModel.Input.fromSeconds(3.0)
+  val threeSeconds: DurationModel.Input =
+    DurationModel.Input.fromSeconds(3.0)
 
   val flat_520: CreateStepConfig[CreateSouthDynamic] =
     CreateStepConfig.gcal(edit(gmos520)(exposure := threeSeconds), gcal)

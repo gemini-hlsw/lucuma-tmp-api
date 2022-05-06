@@ -4,7 +4,7 @@
 package lucuma.odb.api.model
 package arb
 
-import FiniteDurationModel.{Input, Units}
+import DurationModel.{Input, Units}
 import NumericUnits.{LongInput, DecimalInput}
 
 import lucuma.core.util.arb.ArbEnumerated
@@ -12,7 +12,7 @@ import lucuma.core.util.arb.ArbEnumerated
 import org.scalacheck._
 
 
-trait ArbFiniteDurationModel {
+trait ArbDurationModel {
 
   import ArbEnumerated._
   import GenNumericUnitsInput._
@@ -41,7 +41,7 @@ trait ArbFiniteDurationModel {
   private[this] val hours: Gen[BigDecimal]        = genBigDecimal(c_h)
   private[this] val days: Gen[BigDecimal]         = genBigDecimal(c_d)
 
-  val genFiniteDurationModelInputFromLong: Gen[Input] =
+  val genDurationModelInputFromLong: Gen[Input] =
     Gen.oneOf(
       genLongInput(microseconds, Units.microseconds),
       genLongInput(milliseconds, Units.milliseconds),
@@ -51,7 +51,7 @@ trait ArbFiniteDurationModel {
       genLongInput(days,         Units.days)
     ).map(Input.fromLong)
 
-  val genFiniteDurationModelInputFromDecimal: Gen[Input] =
+  val genDurationModelInputFromDecimal: Gen[Input] =
     Gen.oneOf(
       genLongDecimalInput(microseconds, Units.microseconds),
       genDecimalInput(milliseconds, Units.milliseconds),
@@ -62,7 +62,7 @@ trait ArbFiniteDurationModel {
     ).map(Input.fromDecimal)
 
 
-  implicit val arbFiniteDurationModelInput: Arbitrary[FiniteDurationModel.Input] =
+  implicit val arbDurationModelInput: Arbitrary[DurationModel.Input] =
     Arbitrary {
       Gen.oneOf(
         microseconds.map(Input.fromMicroseconds),
@@ -71,12 +71,12 @@ trait ArbFiniteDurationModel {
         minutes.map(Input.fromMinutes),
         hours.map(Input.fromHours),
         days.map(Input.fromDays),
-        genFiniteDurationModelInputFromLong,
-        genFiniteDurationModelInputFromDecimal
+        genDurationModelInputFromLong,
+        genDurationModelInputFromDecimal
       )
     }
 
-  implicit val cogFiniteDurationModelInput: Cogen[FiniteDurationModel.Input] =
+  implicit val cogDurationModelInput: Cogen[DurationModel.Input] =
     Cogen[(
       Option[Long],        // µs
       Option[BigDecimal],  // ms
@@ -101,4 +101,4 @@ trait ArbFiniteDurationModel {
 
 }
 
-object ArbFiniteDurationModel extends ArbFiniteDurationModel
+object ArbDurationModel extends ArbDurationModel

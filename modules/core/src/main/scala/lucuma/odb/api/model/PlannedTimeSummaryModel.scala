@@ -7,16 +7,17 @@ import cats.{Eq, Monoid}
 import cats.effect.Async
 import cats.syntax.functor._
 import cats.syntax.flatMap._
+import lucuma.core.syntax.time._
 
-import scala.concurrent.duration._
+import java.time.Duration
 import scala.util.Random
 
 final case class PlannedTimeSummaryModel(
-  piTime:        FiniteDuration,
-  unchargedTime: FiniteDuration
+  piTime:        Duration,
+  unchargedTime: Duration
 ) {
 
-  def executionTime: FiniteDuration =
+  def executionTime: Duration =
     piTime + unchargedTime
 
 }

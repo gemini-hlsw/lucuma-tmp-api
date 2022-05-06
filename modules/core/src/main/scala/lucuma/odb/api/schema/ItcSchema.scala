@@ -6,10 +6,6 @@ package lucuma.odb.api.schema
 import lucuma.itc.client.ItcResult
 import sangria.schema.{Field, _}
 
-import java.util.concurrent.TimeUnit
-
-import scala.concurrent.duration.FiniteDuration
-
 object ItcSchema {
 
   import RefinedSchema.PosBigDecimalType
@@ -23,7 +19,7 @@ object ItcSchema {
         Field(
           name      = "exposureTime",
           fieldType = DurationType,
-          resolve   = c => FiniteDuration(c.value.exposureTime.toNanos, TimeUnit.NANOSECONDS)
+          resolve   = _.value.exposureTime
         ),
 
         Field(
