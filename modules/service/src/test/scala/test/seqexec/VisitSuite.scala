@@ -177,11 +177,13 @@ class VisitSuite extends OdbSuite {
       {
         "eventInput": {
           "observationId": "o-2",
-          "visitId": ${vid.toString},
-          "stepId": ${sid.toString},
-          "datasetIndex": 1,
-          "filename": "S20220504S0001.fits",
-          "stage": "START_OBSERVE"
+          "visitId":        ${vid.toString},
+          "stepId":         ${sid.toString},
+          "datasetIndex":   1,
+          "payload": {
+            "stage":    "START_OBSERVE",
+            "filename": "S20220504S0001.fits"
+          }
         }
       }
     """.some,

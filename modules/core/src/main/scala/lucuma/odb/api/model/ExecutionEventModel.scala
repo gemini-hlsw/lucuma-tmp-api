@@ -305,10 +305,10 @@ object ExecutionEventModel {
     visitId:       Visit.Id,
     stepId:        Step.Id,
     received:      Instant,
-
     datasetIndex:  PosInt,
-    filename:      Option[DatasetFilename],
-    stageType:     DatasetStageType
+
+    stageType:     DatasetStageType,
+    filename:      Option[DatasetFilename]
   ) extends ExecutionEventModel {
 
     def datasetId: DatasetModel.Id =
@@ -335,13 +335,28 @@ object ExecutionEventModel {
         a.received
       )}
 
+    final case class Payload(
+      stage:         DatasetStageType,
+      filename:      Option[DatasetFilename]
+    )
+
+    object Payload {
+      implicit val DecoderPayload: Decoder[Payload] =
+        deriveDecoder[Payload]
+
+      implicit val OrderPayload: Order[Payload] =
+        Order.by { a => (
+          a.stage,
+          a.filename
+        )}
+    }
+
     final case class Add(
       observationId: Observation.Id,
       visitId:       Visit.Id,
       stepId:        Step.Id,
       datasetIndex:  PosInt,
-      filename:      Option[DatasetFilename],
-      stage:         DatasetStageType
+      payload:       Payload
     ) {
 
       private def recordDataset(
@@ -382,8 +397,8 @@ object ExecutionEventModel {
               stepId,
               received,
               datasetIndex,
-              filename,
-              stage
+              payload.stage,
+              payload.filename
             )
           _ <- recordDataset(e)
           _ <- Database.executionEvent.saveNew(i, e)
@@ -402,8 +417,7 @@ object ExecutionEventModel {
           a.visitId,
           a.stepId,
           a.datasetIndex.value,
-          a.filename,
-          a.stage
+          a.payload
         )}
     }
 

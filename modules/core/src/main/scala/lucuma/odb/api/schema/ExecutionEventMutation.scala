@@ -227,6 +227,12 @@ trait ExecutionEventMutation {
 
   // DatasetEvent -------------------------------------------------------------
 
+  implicit val InputObjectTypeDatasetEventPayload: InputObjectType[DatasetEvent.Payload] =
+    deriveInputObjectType[DatasetEvent.Payload](
+      InputObjectTypeName("DatasetEventPayloadInput"),
+      InputObjectTypeDescription("DatasetEvent creation payload parameters")
+    )
+
   val InputObjectTypeDatasetEventAdd: InputObjectType[DatasetEvent.Add] =
     deriveInputObjectType[DatasetEvent.Add](
       InputObjectTypeName("AddDatasetEventInput"),
