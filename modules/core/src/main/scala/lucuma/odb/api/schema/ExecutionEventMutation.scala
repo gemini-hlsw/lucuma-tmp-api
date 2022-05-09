@@ -204,6 +204,12 @@ trait ExecutionEventMutation {
 
   // StepEvent ----------------------------------------------------------------
 
+  implicit val InputObjectTypeStepEventPayload: InputObjectType[StepEvent.Payload] =
+    deriveInputObjectType[StepEvent.Payload](
+      InputObjectTypeName("StepEventPayloadInput"),
+      InputObjectTypeDescription("StepEvent creation payload parameters")
+    )
+
   val InputObjectTypeStepEventAdd: InputObjectType[StepEvent.Add] =
     deriveInputObjectType[StepEvent.Add](
       InputObjectTypeName("AddStepEventInput"),

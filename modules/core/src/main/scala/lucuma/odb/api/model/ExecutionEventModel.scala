@@ -206,16 +206,30 @@ object ExecutionEventModel {
         a.stepId,
         a.received,
         a.sequenceType,
-        a.stage,
+        a.stage
       )}
+
+    final case class Payload(
+      sequenceType:  SequenceModel.SequenceType,
+      stage:         StepStageType
+    )
+
+    object Payload {
+      implicit val DecoderPayload: Decoder[Payload] =
+        deriveDecoder[Payload]
+
+      implicit val OrderPayload: Order[Payload] =
+        Order.by { a => (
+          a.sequenceType,
+          a.stage
+        )}
+    }
 
     final case class Add(
       observationId: Observation.Id,
       visitId:       Visit.Id,
       stepId:        Step.Id,
-
-      sequenceType:  SequenceModel.SequenceType,
-      stage:         StepStageType
+      payload:       Payload
     ) {
 
       def add(
@@ -233,8 +247,8 @@ object ExecutionEventModel {
               visitId,
               stepId,
               received,
-              sequenceType,
-              stage
+              payload.sequenceType,
+              payload.stage
             )
           _ <- Database.executionEvent.saveNew(i, e)
         } yield e
@@ -251,8 +265,7 @@ object ExecutionEventModel {
           a.observationId,
           a.visitId,
           a.stepId,
-          a.sequenceType,
-          a.stage
+          a.payload
         )}
 
     }

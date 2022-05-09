@@ -149,8 +149,10 @@ class VisitSuite extends OdbSuite {
           "observationId": "o-2",
           "visitId": ${vid.toString},
           "stepId": ${sid.toString},
-          "sequenceType": "SCIENCE",
-          "stage": "START_STEP"
+          "payload": {
+             "sequenceType": "SCIENCE",
+             "stage": "START_STEP"
+          }
         }
       }
     """.some,

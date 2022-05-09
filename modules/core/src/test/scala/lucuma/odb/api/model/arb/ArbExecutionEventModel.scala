@@ -114,8 +114,7 @@ trait ArbExecutionEventModel {
           oid,
           vid,
           sid,
-          stp,
-          cmd
+          StepEvent.Payload(stp, cmd)
         )
       }
     }
