@@ -166,26 +166,32 @@ class VisitSuite extends OdbSuite {
     query = s"""
       mutation AddDatasetEvent($$eventInput: AddDatasetEventInput!) {
         addDatasetEvent(input: $$eventInput) {
-          stage
+          payload {
+            stage
+          }
         }
       }
     """,
     expected =json"""
       {
         "addDatasetEvent": {
-          "stage": "START_OBSERVE"
+          "payload": {
+             "stage": "START_OBSERVE"
+           }
         }
       }
     """,
     variables = json"""
       {
         "eventInput": {
-          "observationId": "o-2",
-          "visitId":        ${vid.toString},
-          "stepId":         ${sid.toString},
-          "datasetIndex":   1,
+          "visitId": ${vid.toString},
+          "location": {
+            "observationId": "o-2",
+            "stepId":         ${sid.toString},
+            "index":          1
+          },
           "payload": {
-            "stage":    "START_OBSERVE",
+            "stage": "START_OBSERVE",
             "filename": "S20220504S0001.fits"
           }
         }

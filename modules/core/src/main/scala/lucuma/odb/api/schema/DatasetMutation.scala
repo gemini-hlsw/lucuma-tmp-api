@@ -5,16 +5,25 @@ package lucuma.odb.api.schema
 
 import cats.effect.Async
 import cats.effect.std.Dispatcher
+import lucuma.odb.api.model.DatasetModel
 import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
+import sangria.macros.derive._
 import sangria.schema._
 
 trait DatasetMutation {
 
   import DatasetSchema.{ArgumentDatasetQaState, ArgumentOptionalDatasetIndex, DatasetType}
-  import ObservationSchema.ObservationIdArgument
-  import StepSchema.ArgumentOptionalStepId
+  import ObservationSchema.{ObservationIdArgument, ObservationIdType}
+  import RefinedSchema.InputObjectPosInt
+  import StepSchema.{ArgumentOptionalStepId, StepIdType}
   import context._
+
+  implicit val InputObjectTypeDatasetId: InputObjectType[DatasetModel.Id] =
+    deriveInputObjectType[DatasetModel.Id](
+      InputObjectTypeName("DatasetModelIdInput"),
+      InputObjectTypeDescription("Dataset model id creation parameters")
+    )
 
   def setDatasetQaState[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(

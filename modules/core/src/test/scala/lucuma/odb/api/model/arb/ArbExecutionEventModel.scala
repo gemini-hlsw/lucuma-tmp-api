@@ -123,35 +123,35 @@ trait ArbExecutionEventModel {
     Arbitrary {
       for {
         id  <- arbitrary[ExecutionEvent.Id]
-        oid <- arbitrary[Observation.Id]
         vid <- arbitrary[Visit.Id]
-        sid <- arbitrary[Step.Id]
         rec <- arbitrary[Instant]
+        oid <- arbitrary[Observation.Id]
+        sid <- arbitrary[Step.Id]
         idx <- arbitrary[PosInt]
-        fnm <- arbitrary[Option[DatasetFilename]]
         sge <- arbitrary[DatasetStageType]
-      } yield DatasetEvent(id, oid, vid, sid, rec, idx,  sge, fnm)
+        fnm <- arbitrary[Option[DatasetFilename]]
+      } yield DatasetEvent(id, vid, rec, DatasetModel.Id(oid, sid, idx),  DatasetEvent.Payload(sge, fnm))
     }
 
   implicit val cogDatasetEvent: Cogen[DatasetEvent] =
     Cogen[(
       ExecutionEvent.Id,
-      Observation.Id,
       Visit.Id,
-      Step.Id,
       Instant,
+      Observation.Id,
+      Step.Id,
       Int,
-      Option[DatasetFilename],
-      DatasetStageType
+      DatasetStageType,
+      Option[DatasetFilename]
     )].contramap { in => (
       in.id,
-      in.observationId,
       in.visitId,
-      in.stepId,
       in.received,
-      in.datasetIndex.value,
-      in.filename,
-      in.stageType
+      in.location.observationId,
+      in.location.stepId,
+      in.location.index.value,
+      in.payload.stage,
+      in.payload.filename
     )}
 
   def arbDatasetEventAdd(
@@ -164,10 +164,8 @@ trait ArbExecutionEventModel {
         fnm <- arbitrary[Option[DatasetFilename]]
         cmd <- arbitrary[DatasetStageType]
       } yield DatasetEvent.Add(
-        oid,
         vid,
-        sid,
-        PosInt.MinValue,
+        DatasetModel.Id(oid, sid, PosInt.MinValue),
         DatasetEvent.Payload(cmd, fnm)
       )
     }

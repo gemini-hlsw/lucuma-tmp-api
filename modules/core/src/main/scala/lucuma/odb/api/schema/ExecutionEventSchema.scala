@@ -7,6 +7,7 @@ import lucuma.core.model.ExecutionEvent
 import lucuma.odb.api.model.ExecutionEventModel
 import cats.effect.Async
 import cats.effect.std.Dispatcher
+import cats.syntax.option._
 import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
 import sangria.schema._
@@ -18,6 +19,7 @@ object ExecutionEventSchema {
 
   import TimeSchema._
   import ExecutionEventModel._
+  import VisitRecordSchema.VisitIdType
   import syntax.`enum`._
 
   implicit val ExecutionEventIdType: ScalarType[ExecutionEvent.Id] =
@@ -66,6 +68,13 @@ object ExecutionEventSchema {
           fieldType   = ExecutionEventIdType,
           description = Some("Event id"),
           resolve     = _.value.id
+        ),
+
+        Field(
+          name        = "visitId",
+          fieldType   = VisitIdType,
+          description = "Associated visit".some,
+          resolve     = _.value.visitId
         ),
 
         Field(
@@ -130,12 +139,11 @@ object ExecutionEventSchema {
       )
     )
 
-  def DatasetEventType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], DatasetEvent] =
-    ObjectType[OdbCtx[F], DatasetEvent](
-      name        = "DatasetEvent",
-      description = "Dataset-level events",
-      interfaces  = List(PossibleInterface.apply[OdbCtx[F], DatasetEvent](ExecutionEventType[F])),
-      fields      = List[Field[OdbCtx[F], DatasetEvent]](
+  val DatasetEventPayloadType: ObjectType[Any, DatasetEvent.Payload] =
+    ObjectType[Any, DatasetEvent.Payload](
+      name        = "DatasetEventPayload",
+      description = "Dataset event payload",
+      fields      = List[Field[Any, DatasetEvent.Payload]](
 
         Field(
           name        = "filename",
@@ -148,7 +156,30 @@ object ExecutionEventSchema {
           name        = "stage",
           fieldType   = EnumTypeDatasetStage,
           description = Some("Dataset stage"),
-          resolve     = _.value.stageType
+          resolve     = _.value.stage
+        )
+      )
+    )
+
+  def DatasetEventType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], DatasetEvent] =
+    ObjectType[OdbCtx[F], DatasetEvent](
+      name        = "DatasetEvent",
+      description = "Dataset-level events",
+      interfaces  = List(PossibleInterface.apply[OdbCtx[F], DatasetEvent](ExecutionEventType[F])),
+      fields      = List[Field[OdbCtx[F], DatasetEvent]](
+
+        Field(
+          name        = "location",
+          fieldType   = DatasetSchema.DatasetIdType,
+          description = "Identifies the associated dataset".some,
+          resolve     = _.value.datasetId
+        ),
+
+        Field(
+          name        = "payload",
+          fieldType   = DatasetEventPayloadType,
+          description = "Dataset event payload".some,
+          resolve     = _.value.payload
         )
       )
     )

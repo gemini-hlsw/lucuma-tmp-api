@@ -7,11 +7,9 @@ import cats.data.StateT
 import cats.{Eq, Order, Show}
 import cats.syntax.eq._
 import cats.syntax.either._
-import eu.timepit.refined.types.numeric._
 import org.typelevel.cats.time.instances.instant._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
-import io.circe.refined._
 import eu.timepit.refined.auto._
 import lucuma.core.model.{ExecutionEvent, Observation}
 import lucuma.core.util.Enumerated
@@ -26,9 +24,9 @@ sealed trait ExecutionEventModel {
 
   def id:            ExecutionEvent.Id
 
-  def observationId: Observation.Id
-
   def visitId:       Visit.Id
+
+  def observationId: Observation.Id
 
   def received:      Instant
 
@@ -326,21 +324,21 @@ object ExecutionEventModel {
 
   final case class DatasetEvent(
     id:            ExecutionEvent.Id,
-    observationId: Observation.Id,
     visitId:       Visit.Id,
-    stepId:        Step.Id,
     received:      Instant,
-    datasetIndex:  PosInt,
 
-    stageType:     DatasetStageType,
-    filename:      Option[DatasetFilename]
+    location:      DatasetModel.Id,
+    payload:       DatasetEvent.Payload
   ) extends ExecutionEventModel {
 
+    override def observationId: Observation.Id =
+      location.observationId
+
     def datasetId: DatasetModel.Id =
-      DatasetModel.Id(observationId, stepId, datasetIndex)
+      location
 
     def toDataset: Option[DatasetModel] =
-      filename.map { fn =>
+      payload.filename.map { fn =>
         DatasetModel(datasetId, DatasetModel.Dataset(fn, None))
       }
 
@@ -351,12 +349,9 @@ object ExecutionEventModel {
     implicit val OrderDatasetEvent: Order[DatasetEvent] =
       Order.by { a => (
         a.id,
-        a.observationId,
         a.visitId,
-        a.stepId,
-        a.datasetIndex.value,
-        a.filename,
-        a.stageType,
+        a.location,
+        a.payload,
         a.received
       )}
 
@@ -377,10 +372,8 @@ object ExecutionEventModel {
     }
 
     final case class Add(
-      observationId: Observation.Id,
       visitId:       Visit.Id,
-      stepId:        Step.Id,
-      datasetIndex:  PosInt,
+      location:      DatasetModel.Id,
       payload:       Payload
     ) {
 
@@ -412,18 +405,15 @@ object ExecutionEventModel {
 
         for {
           i <- Database.executionEvent.cycleNextUnused
-          _ <- Database.observation.lookup(observationId)
-          _ <- VisitRecords.stepAt(observationId, visitId, stepId)
+          _ <- Database.observation.lookup(location.observationId)
+          _ <- VisitRecords.stepAt(location.observationId, visitId, location.stepId)
           e  =
             DatasetEvent(
               i,
-              observationId,
               visitId,
-              stepId,
               received,
-              datasetIndex,
-              payload.stage,
-              payload.filename
+              location,
+              payload
             )
           _ <- recordDataset(e)
           _ <- Database.executionEvent.saveNew(i, e)
@@ -438,10 +428,8 @@ object ExecutionEventModel {
 
       implicit val OrderAdd: Order[Add] =
         Order.by { a => (
-          a.observationId,
           a.visitId,
-          a.stepId,
-          a.datasetIndex.value,
+          a.location,
           a.payload
         )}
     }

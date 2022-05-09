@@ -25,10 +25,10 @@ import scala.collection.immutable.ListMap
 trait ExecutionEventMutation {
 
   import DatasetSchema.DatasetFilenameScalar
+  import DatasetMutation.InputObjectTypeDatasetId
   import ExecutionEventSchema.{DatasetEventType, EnumTypeDatasetStage, EnumTypeSequenceCommand, EnumTypeStepStage, SequenceEventType, StepEventType}
   import ExecutionEventModel.{DatasetEvent, SequenceEvent, StepEvent}
   import ObservationSchema.ObservationIdType
-  import RefinedSchema.InputObjectPosInt
   import SequenceSchema.EnumTypeSequenceType
   import StepMutation.InputObjectTypeCreateStepConfig
   import StepSchema.{ArgumentStepId, StepIdType}
