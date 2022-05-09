@@ -164,12 +164,6 @@ object SubscriptionType {
           _.value.id
         ) { (_, e) => Set(e.value.programId).pure[F] },
 
-        editedField[F, Target.Id, TargetModel, TargetEvent](
-          "target",
-          ArgumentOptionalTargetId,
-          _.value.id
-        ) { (_, e) => Set(e.value.programId).pure[F] },
-
         // ProgramEvent handled differently.  It would not make sense to
         // filter on program id twice.
         subscriptionField[F, ProgramEvent](
@@ -181,7 +175,13 @@ object SubscriptionType {
             |""".stripMargin,
           EditEventType[F, ProgramModel, ProgramEvent]("ProgramEdit"),
           List(OptionalProgramIdArgument)
-        ) { (c, e) => c.optionalProgramId.fold(true)(_ === e.value.id).pure[F] }
+        ) { (c, e) => c.optionalProgramId.fold(true)(_ === e.value.id).pure[F] },
+
+        editedField[F, Target.Id, TargetModel, TargetEvent](
+          "target",
+          ArgumentOptionalTargetId,
+          _.value.id
+        ) { (_, e) => Set(e.value.programId).pure[F] }
 
       )
     )

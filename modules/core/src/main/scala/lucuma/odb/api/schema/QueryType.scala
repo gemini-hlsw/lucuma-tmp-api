@@ -17,11 +17,12 @@ object QueryType {
   def apply[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Unit] =
     ObjectType(
       name   = "Query",
-      fields =
+      fields = (
         ObservationQuery.allFields[F]   ++
         ProgramQuery.allFields[F]       ++
         TargetQuery.allFields[F]        ++
         DatasetQuery.allFields[F]
+      ).sortBy(_.name)
     )
 
 }

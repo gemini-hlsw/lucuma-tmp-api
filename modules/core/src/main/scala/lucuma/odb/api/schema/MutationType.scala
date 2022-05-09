@@ -19,12 +19,13 @@ object MutationType {
   ): ObjectType[OdbCtx[F], Unit] =
     ObjectType(
       name   = "Mutation",
-      fields =
+      fields = (
         ProgramMutation.allFields[F]                 ++
         ObservationMutation.allFields[F]             ++
         TargetMutation.allFields[F]                  ++
         ExecutionEventMutation.allFields[F](testing) ++
         DatasetMutation.allFields[F]
+      ).sortBy(_.name)
     )
 
 }
