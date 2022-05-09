@@ -134,23 +134,29 @@ class VisitSuite extends OdbSuite {
     query = s"""
       mutation AddStepEvent($$eventInput: AddStepEventInput!) {
         addStepEvent(input: $$eventInput) {
-          stage
+          payload {
+            stage
+          }
         }
       }
     """,
     expected =json"""
       {
         "addStepEvent": {
-          "stage": "START_STEP"
+          "payload": {
+            "stage": "START_STEP"
+          }
         }
       }
     """,
     variables = json"""
       {
         "eventInput": {
-          "observationId": "o-2",
           "visitId": ${vid.toString},
-          "stepId": ${sid.toString},
+          "location": {
+            "observationId": "o-2",
+            "stepId": ${sid.toString}
+          },
           "payload": {
              "sequenceType": "SCIENCE",
              "stage": "START_STEP"

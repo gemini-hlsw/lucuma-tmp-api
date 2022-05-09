@@ -80,40 +80,39 @@ trait ArbExecutionEventModel {
         rec <- arbitrary[Instant]
         tpe <- arbitrary[SequenceModel.SequenceType]
         sge <- arbitrary[StepStageType]
-      } yield StepEvent(id, oid, vid, sid, rec, tpe, sge)
+      } yield StepEvent(id, vid, rec, StepEvent.Location(oid, sid), StepEvent.Payload(tpe, sge))
     }
 
   implicit val cogStepEvent: Cogen[StepEvent] =
     Cogen[(
       ExecutionEvent.Id,
-      Observation.Id,
       Visit.Id,
-      Step.Id,
       Instant,
+      Observation.Id,
+      Step.Id,
       SequenceModel.SequenceType,
       StepStageType
     )].contramap { a => (
       a.id,
-      a.observationId,
       a.visitId,
-      a.stepId,
       a.received,
-      a.sequenceType,
-      a.stage
+      a.location.observationId,
+      a.location.stepId,
+      a.payload.sequenceType,
+      a.payload.stage
     )}
 
   def arbStepEventAdd(
-    oid: Observation.Id,
     vid: Visit.Id,
+    oid: Observation.Id,
     sid: Step.Id,
     stp: SequenceModel.SequenceType
   ): Arbitrary[StepEvent.Add] =
     Arbitrary {
       arbitrary[StepStageType].map { cmd =>
         StepEvent.Add(
-          oid,
           vid,
-          sid,
+          StepEvent.Location(oid, sid),
           StepEvent.Payload(stp, cmd)
         )
       }

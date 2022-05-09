@@ -195,29 +195,45 @@ object ExecutionEventModel {
   }
 
   final case class StepEvent(
-    id:            ExecutionEvent.Id,
-    observationId: Observation.Id,
-    visitId:       Visit.Id,
-    stepId:        Step.Id,
-    received:      Instant,
+    id:       ExecutionEvent.Id,
+    visitId:  Visit.Id,
+    received: Instant,
+    location: StepEvent.Location,
+    payload:  StepEvent.Payload
 
-    sequenceType:  SequenceModel.SequenceType,
-    stage:         StepStageType
+  ) extends ExecutionEventModel {
 
-  ) extends ExecutionEventModel
+    override def observationId: Observation.Id =
+      location.observationId
+
+  }
 
   object StepEvent {
 
     implicit val OrderStepEvent: Order[StepEvent] =
       Order.by { a => (
         a.id,
-        a.observationId,
         a.visitId,
-        a.stepId,
         a.received,
-        a.sequenceType,
-        a.stage
+        a.location,
+        a.payload
       )}
+
+    final case class Location(
+      observationId: Observation.Id,
+      stepId:        Step.Id
+    )
+
+    object Location {
+      implicit val DecoderLocation: Decoder[Location] =
+        deriveDecoder[Location]
+
+      implicit val OrderLocation: Order[Location] =
+        Order.by { a => (
+          a.observationId,
+          a.stepId
+        )}
+    }
 
     final case class Payload(
       sequenceType:  SequenceModel.SequenceType,
@@ -236,10 +252,9 @@ object ExecutionEventModel {
     }
 
     final case class Add(
-      observationId: Observation.Id,
-      visitId:       Visit.Id,
-      stepId:        Step.Id,
-      payload:       Payload
+      visitId:  Visit.Id,
+      location: Location,
+      payload:  Payload
     ) {
 
       def add(
@@ -248,17 +263,15 @@ object ExecutionEventModel {
 
         for {
           i <- Database.executionEvent.cycleNextUnused
-          _ <- Database.observation.lookup(observationId)
-          _ <- VisitRecords.stepAt(observationId, visitId, stepId)
+          _ <- Database.observation.lookup(location.observationId)
+          _ <- VisitRecords.stepAt(location.observationId, visitId, location.stepId)
           e  =
             StepEvent(
               i,
-              observationId,
               visitId,
-              stepId,
               received,
-              payload.sequenceType,
-              payload.stage
+              location,
+              payload
             )
           _ <- Database.executionEvent.saveNew(i, e)
         } yield e
@@ -272,9 +285,8 @@ object ExecutionEventModel {
 
       implicit val OrderAdd: Order[Add] =
         Order.by { a => (
-          a.observationId,
           a.visitId,
-          a.stepId,
+          a.location,
           a.payload
         )}
 
@@ -326,7 +338,6 @@ object ExecutionEventModel {
     id:            ExecutionEvent.Id,
     visitId:       Visit.Id,
     received:      Instant,
-
     location:      DatasetModel.Id,
     payload:       DatasetEvent.Payload
   ) extends ExecutionEventModel {

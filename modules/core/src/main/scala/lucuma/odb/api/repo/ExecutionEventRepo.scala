@@ -147,7 +147,7 @@ object ExecutionEventRepo {
           e match {
             case _: SequenceEvent => m
             case d: DatasetEvent  => m.updatedWith(d.location.stepId)(_.map(x => StepRecord.Output.datasetEvents.modify(_ :+ d)(x)))
-            case s: StepEvent     => m.updatedWith(s.stepId)(_.map(x => StepRecord.Output.stepEvents.modify(_ :+ s)(x)))
+            case s: StepEvent     => m.updatedWith(s.location.stepId)(_.map(x => StepRecord.Output.stepEvents.modify(_ :+ s)(x)))
           }
         }
 
@@ -167,7 +167,7 @@ object ExecutionEventRepo {
 
         val events  = sortedEvents(db) {
           case SequenceEvent(_, o, _, _, _)                       => o === oid
-          case StepEvent(_, o, _, s, _, _, _)                     => o === oid && s === stepId
+          case StepEvent(_, _, _, StepEvent.Location(o, s), _)    => o === oid && s === stepId
           case DatasetEvent(_, _, _, DatasetModel.Id(o, s, _), _) => o === oid && s === stepId
         }
 
@@ -297,7 +297,7 @@ object ExecutionEventRepo {
       ): F[ResultPage[StepEvent]] =
         databaseRef.get.map { db =>
           val events = sortedEvents(db)(_.observationId === oid).collect {
-            case s @ StepEvent(_, _, _, _, _, _, _) => s
+            case s @ StepEvent(_, _, _, _, _) => s
           }
           ResultPage.fromSeq(events, count, afterGid, _.id)
         }

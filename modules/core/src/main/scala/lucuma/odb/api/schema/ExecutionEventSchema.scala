@@ -10,7 +10,7 @@ import cats.effect.std.Dispatcher
 import cats.syntax.option._
 import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
-import sangria.schema._
+import sangria.schema.{Field, _}
 
 
 object ExecutionEventSchema {
@@ -19,6 +19,8 @@ object ExecutionEventSchema {
 
   import TimeSchema._
   import ExecutionEventModel._
+  import ObservationSchema.ObservationIdType
+  import StepSchema.StepIdType
   import VisitRecordSchema.VisitIdType
   import syntax.`enum`._
 
@@ -115,12 +117,35 @@ object ExecutionEventSchema {
       )
     )
 
-  def StepEventType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], StepEvent] =
-    ObjectType[OdbCtx[F], StepEvent](
-      name        = "StepEvent",
-      description = "Step-level events",
-      interfaces  = List(PossibleInterface.apply[OdbCtx[F], StepEvent](ExecutionEventType[F])),
-      fields      = List[Field[OdbCtx[F], StepEvent]](
+  val StepEventLocationType: ObjectType[Any, StepEvent.Location] =
+    ObjectType[Any, StepEvent.Location](
+      name        = "StepEventLocation",
+      description = "Step event location, i.e., to which step the event refers",
+      fields      = List[Field[Any, StepEvent.Location]](
+
+        Field(
+          name        = "observationId",
+          fieldType   = ObservationIdType,
+          description = "Observation containing the step".some,
+          resolve     = _.value.observationId
+        ),
+
+        Field(
+          name        = "stepId",
+          fieldType   = StepIdType,
+          description = "The step id itself".some,
+          resolve     = _.value.stepId
+        )
+
+      )
+
+    )
+
+  val StepEventPayloadType: ObjectType[Any, StepEvent.Payload] =
+    ObjectType[Any, StepEvent.Payload](
+      name        = "StepEventPayload",
+      description = "Step event data",
+      fields      = List[Field[Any, StepEvent.Payload]](
 
         Field(
           name        = "sequenceType",
@@ -134,6 +159,30 @@ object ExecutionEventSchema {
           fieldType   = EnumTypeStepStage,
           description = Some("Step stage"),
           resolve     = _.value.stage
+        )
+      )
+
+    )
+
+  def StepEventType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], StepEvent] =
+    ObjectType[OdbCtx[F], StepEvent](
+      name        = "StepEvent",
+      description = "Step-level events",
+      interfaces  = List(PossibleInterface.apply[OdbCtx[F], StepEvent](ExecutionEventType[F])),
+      fields      = List[Field[OdbCtx[F], StepEvent]](
+
+        Field(
+          name        = "location",
+          fieldType   = StepEventLocationType,
+          description = "Identifies the step to which the event refers".some,
+          resolve     = _.value.location
+        ),
+
+        Field(
+          name        = "payload",
+          fieldType   = StepEventPayloadType,
+          description = "Step event data".some,
+          resolve     = _.value.payload
         )
 
       )

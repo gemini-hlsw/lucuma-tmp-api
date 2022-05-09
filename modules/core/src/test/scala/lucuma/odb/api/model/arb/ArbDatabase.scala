@@ -177,7 +177,7 @@ trait ArbDatabase extends SplitSetHelper {
           sids           = visits(vid).steps.keys.take(sidsSize).toList
 
           stpCnts       <- sids.traverse(tinySize.tupleRight)
-          stpEvents     <- stpCnts.flatTraverse { case (cnt, sid) => Gen.listOfN(cnt, arbStepEventAdd(oid, vid, sid, Science).arbitrary) }
+          stpEvents     <- stpCnts.flatTraverse { case (cnt, sid) => Gen.listOfN(cnt, arbStepEventAdd(vid, oid, sid, Science).arbitrary) }
 
           dstCnts       <- sids.traverse(tinySize.tupleRight)
           dstEvents     <- dstCnts.flatTraverse { case (cnt, sid) => Gen.listOfN(cnt, arbDatasetEventAdd(oid, vid, sid).arbitrary) }
