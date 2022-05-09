@@ -66,7 +66,7 @@ trait ArbExecutionEventModel {
   ): Arbitrary[SequenceEvent.Add] =
     Arbitrary {
       arbitrary[SequenceCommandType].map { cmd =>
-        SequenceEvent.Add(oid, vid, cmd)
+        SequenceEvent.Add(oid, vid, SequenceEvent.Payload(cmd))
       }
     }
 

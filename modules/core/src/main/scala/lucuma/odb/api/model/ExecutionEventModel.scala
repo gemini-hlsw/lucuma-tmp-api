@@ -107,10 +107,22 @@ object ExecutionEventModel {
       )}
     }
 
+    final case class Payload(
+      command: SequenceCommandType
+    )
+
+    object Payload {
+      implicit val DecoderPayload: Decoder[Payload] =
+        deriveDecoder[Payload]
+
+      implicit val OrderPayload: Order[Payload] =
+        Order.by(_.command)
+    }
+
     final case class Add(
       observationId: Observation.Id,
       visitId:       Visit.Id,
-      command:       SequenceCommandType
+      payload:       Payload
     ) {
 
       def add(
@@ -121,7 +133,7 @@ object ExecutionEventModel {
           i <- Database.executionEvent.cycleNextUnused
           _ <- Database.observation.lookup(observationId)
           _ <- VisitRecords.visitAt(observationId, visitId)
-          e  = SequenceEvent(i, observationId, visitId, received, command)
+          e  = SequenceEvent(i, observationId, visitId, received, payload.command)
           _ <- Database.executionEvent.saveNew(i, e)
         } yield e
 
@@ -136,7 +148,7 @@ object ExecutionEventModel {
         Order.by { a => (
           a.observationId,
           a.visitId,
-          a.command
+          a.payload
         )}
 
     }

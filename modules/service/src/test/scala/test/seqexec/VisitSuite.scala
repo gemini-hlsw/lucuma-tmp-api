@@ -68,7 +68,9 @@ class VisitSuite extends OdbSuite {
         "eventInput": {
           "observationId": "o-2",
           "visitId": ${vid.toString},
-          "command": "START"
+          "payload": {
+            "command": "START"
+          }
         }
       }
     """.some,

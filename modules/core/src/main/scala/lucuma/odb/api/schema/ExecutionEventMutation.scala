@@ -181,6 +181,12 @@ trait ExecutionEventMutation {
 
   // SequenceEvent ------------------------------------------------------------
 
+  implicit val InputObjectTypeSequenceEventPayload: InputObjectType[SequenceEvent.Payload] =
+    deriveInputObjectType[SequenceEvent.Payload](
+      InputObjectTypeName("SequenceEventPayloadInput"),
+      InputObjectTypeDescription("SequenceEvent payload creation parameters")
+    )
+
   val InputObjectTypeSequenceEventAdd: InputObjectType[SequenceEvent.Add] =
     deriveInputObjectType[SequenceEvent.Add](
       InputObjectTypeName("AddSequenceEventInput"),
@@ -207,7 +213,7 @@ trait ExecutionEventMutation {
   implicit val InputObjectTypeStepEventPayload: InputObjectType[StepEvent.Payload] =
     deriveInputObjectType[StepEvent.Payload](
       InputObjectTypeName("StepEventPayloadInput"),
-      InputObjectTypeDescription("StepEvent creation payload parameters")
+      InputObjectTypeDescription("StepEvent payload parameters")
     )
 
   val InputObjectTypeStepEventAdd: InputObjectType[StepEvent.Add] =
@@ -236,7 +242,7 @@ trait ExecutionEventMutation {
   implicit val InputObjectTypeDatasetEventPayload: InputObjectType[DatasetEvent.Payload] =
     deriveInputObjectType[DatasetEvent.Payload](
       InputObjectTypeName("DatasetEventPayloadInput"),
-      InputObjectTypeDescription("DatasetEvent creation payload parameters")
+      InputObjectTypeDescription("DatasetEvent payload parameters")
     )
 
   val InputObjectTypeDatasetEventAdd: InputObjectType[DatasetEvent.Add] =
