@@ -104,7 +104,7 @@ object ExecutionEventSchema {
   val SequenceEventLocationType: ObjectType[Any, SequenceEvent.Location] =
     ObjectType[Any, SequenceEvent.Location](
       name        = "SequenceEventLocation",
-      description = "Sequence event location, i.e., to which observation the event refers",
+      description = "Sequence event location, i.e., to which observation the event refers.",
       fields      = List[Field[Any, SequenceEvent.Location]](
 
         Field(
@@ -134,7 +134,7 @@ object ExecutionEventSchema {
   def SequenceEventType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], SequenceEvent] =
     ObjectType[OdbCtx[F], SequenceEvent](
       name        = "SequenceEvent",
-      description = "Sequence-level events",
+      description = "Sequence-level events.  As commands are issued to execute a sequence, corresponding events are generated.",
       interfaces  = List(PossibleInterface.apply[OdbCtx[F], SequenceEvent](ExecutionEventType[F])),
       fields      = List[Field[OdbCtx[F], SequenceEvent]](
 
@@ -195,7 +195,7 @@ object ExecutionEventSchema {
         Field(
           name        = "stage",
           fieldType   = EnumTypeStepStage,
-          description = Some("Step stage"),
+          description = Some("Step execution stage"),
           resolve     = _.value.stage
         )
       )
@@ -205,7 +205,7 @@ object ExecutionEventSchema {
   def StepEventType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], StepEvent] =
     ObjectType[OdbCtx[F], StepEvent](
       name        = "StepEvent",
-      description = "Step-level events",
+      description = "Step-level events.  The execution of a single step will generate multiple events.",
       interfaces  = List(PossibleInterface.apply[OdbCtx[F], StepEvent](ExecutionEventType[F])),
       fields      = List[Field[OdbCtx[F], StepEvent]](
 
@@ -219,7 +219,7 @@ object ExecutionEventSchema {
         Field(
           name        = "payload",
           fieldType   = StepEventPayloadType,
-          description = "Step event data".some,
+          description = "Step event data including the stage of execution through which it is passing.".some,
           resolve     = _.value.payload
         )
 
@@ -229,7 +229,7 @@ object ExecutionEventSchema {
   val DatasetEventLocationType: ObjectType[Any, DatasetEvent.Location] =
     ObjectType[Any, DatasetEvent.Location](
       name        = "DatasetEventLocation",
-      description = "Dataset event location",
+      description = "Dataset event location, pinpointing the observation, step and index of the associated dataset.",
       fields      = List[Field[Any, DatasetEvent.Location]](
         Field(
           name        = "observationId",
@@ -257,7 +257,7 @@ object ExecutionEventSchema {
   val DatasetEventPayloadType: ObjectType[Any, DatasetEvent.Payload] =
     ObjectType[Any, DatasetEvent.Payload](
       name        = "DatasetEventPayload",
-      description = "Dataset event payload",
+      description = "Dataset event payload.",
       fields      = List[Field[Any, DatasetEvent.Payload]](
 
         Field(
@@ -270,7 +270,7 @@ object ExecutionEventSchema {
         Field(
           name        = "stage",
           fieldType   = EnumTypeDatasetStage,
-          description = Some("Dataset stage"),
+          description = Some("Dataset execution stage"),
           resolve     = _.value.stage
         )
       )
@@ -279,7 +279,7 @@ object ExecutionEventSchema {
   def DatasetEventType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], DatasetEvent] =
     ObjectType[OdbCtx[F], DatasetEvent](
       name        = "DatasetEvent",
-      description = "Dataset-level events",
+      description = "Dataset-level events.  A single dataset will be associated with multiple events.",
       interfaces  = List(PossibleInterface.apply[OdbCtx[F], DatasetEvent](ExecutionEventType[F])),
       fields      = List[Field[OdbCtx[F], DatasetEvent]](
 
@@ -293,7 +293,7 @@ object ExecutionEventSchema {
         Field(
           name        = "payload",
           fieldType   = DatasetEventPayloadType,
-          description = "Dataset event payload".some,
+          description = "Dataset event payload, identifying the associated filename and stage of dataset execution".some,
           resolve     = _.value.payload
         )
       )
