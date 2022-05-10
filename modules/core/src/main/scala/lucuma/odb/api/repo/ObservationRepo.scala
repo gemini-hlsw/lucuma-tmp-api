@@ -317,13 +317,12 @@ object ObservationRepo {
 
 
       private def selectObservations(
-        programId:      Option[Program.Id],
-        observationIds: Option[List[Observation.Id]]
+        select: BulkEdit.Select
       ): StateT[EitherInput, Database, List[ObservationModel]] =
         for {
-          p   <- programId.traverse(Database.program.lookup)
+          p   <- select.programId.traverse(Database.program.lookup)
           all <- p.traverse(pm => StateT.inspect[EitherInput, Database, List[ObservationModel]](_.observations.rows.values.filter(_.programId === pm.id).toList))
-          sel <- observationIds.traverse(Database.observation.lookupAll)
+          sel <- select.observationIds.traverse(Database.observation.lookupAll)
         } yield {
           val obsList = (all, sel) match {
             case (Some(a), Some(s)) =>
@@ -345,7 +344,7 @@ object ObservationRepo {
 
         val update =
           for {
-            ini  <- selectObservations(be.selectProgram, be.selectObservations)
+            ini  <- selectObservations(be.select)
             osʹ  <- StateT.liftF(ini.traverse(ObservationModel.targetEnvironment.modifyA(ed.runS)))
             vos  <- osʹ.traverse(_.validate)
             _    <- vos.traverse(o => Database.observation.update(o.id, o))
@@ -392,7 +391,7 @@ object ObservationRepo {
       ): F[List[ObservationModel]] =
 
         bulkEdit(
-          selectObservations(be.selectProgram, be.selectObservations),
+          selectObservations(be.select),
           ObservationModel.constraintSet.transform(be.edit.edit)
         )
 
@@ -401,7 +400,7 @@ object ObservationRepo {
       ): F[List[ObservationModel]] =
 
         bulkEdit(
-          selectObservations(be.selectProgram, be.selectObservations),
+          selectObservations(be.select),
           ObservationModel.scienceRequirements.transform(be.edit.edit)
         )
 

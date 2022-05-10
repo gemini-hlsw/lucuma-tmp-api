@@ -8,6 +8,7 @@ import lucuma.odb.api.model.ObservationModel.BulkEdit
 import lucuma.odb.api.schema.syntax.inputtype._
 import cats.effect.Async
 import cats.effect.std.Dispatcher
+import cats.syntax.option._
 import io.circe.Decoder
 import lucuma.odb.api.model.targetModel.{EditAsterismInput, TargetEnvironmentInput}
 import lucuma.odb.api.repo.OdbCtx
@@ -74,6 +75,19 @@ trait ObservationMutation {
       "Edit observation"
     )
 
+  implicit val InputObjectTypeBulkEditSelect: InputObjectType[BulkEdit.Select] =
+    InputObjectType[BulkEdit.Select](
+      name        = "BulkEditSelectInput",
+      description =
+      """Observation selection.  Choose 'programId' to select all of a program's
+        |observations or else list individual observations in 'observationIds'.
+      """.stripMargin,
+      List(
+        InputField("programId",      OptionInputType(ProgramIdType)),
+        InputField("observationIds", OptionInputType(ListInputType(ObservationIdType)))
+      )
+    )
+
   private def bulkEditArgument[A: Decoder](
     name:       String,
     editType:   InputType[A]
@@ -81,12 +95,14 @@ trait ObservationMutation {
 
     val io: InputObjectType[BulkEdit[A]] =
       InputObjectType[BulkEdit[A]](
-        s"BulkEdit${name.capitalize}Input",
-        "Input for bulk editing multiple observations",
+        name        = s"BulkEdit${name.capitalize}Input",
+        description =
+          """Input for bulk editing multiple observations.  Select observations
+            |with the 'select' input and specify the changes in 'edit'.
+            |""".stripMargin,
         List(
-          InputField("selectProgram",      OptionInputType(ProgramIdType)),
-          InputField("selectObservations", OptionInputType(ListInputType(ObservationIdType))),
-          InputField("edit",               editType)
+          InputField("select", InputObjectTypeBulkEditSelect),
+          InputField("edit",   editType)
         )
       )
 
@@ -142,36 +158,52 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.clone(c.arg(ArgumentObservationCloneInput)))
     )
 
-  def updateAsterism[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def bulkEditAsterism[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name      = "updateAsterism",
-      fieldType = ListType(ObservationType[F]),
-      arguments = List(ArgumentAsterismBulkEdit),
-      resolve   = c => c.observation(_.bulkEditAsterism(c.arg(ArgumentAsterismBulkEdit)))
+      name        = "bulkEditAsterism",
+      description =
+        """Edit asterisms, adding or deleting targets, in (potentially) multiple
+          |observations at once.
+        """.stripMargin.some,
+      fieldType   = ListType(ObservationType[F]),
+      arguments   = List(ArgumentAsterismBulkEdit),
+      resolve     = c => c.observation(_.bulkEditAsterism(c.arg(ArgumentAsterismBulkEdit)))
     )
 
-  def updateTargetEnvironment[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def bulkEditTargetEnvironment[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name      = "updateTargetEnvironment",
-      fieldType = ListType(ObservationType[F]),
-      arguments = List(ArgumentTargetEnvironmentBulkEdit),
-      resolve   = c => c.observation(_.bulkEditTargetEnvironment(c.arg(ArgumentTargetEnvironmentBulkEdit)))
+      name        = "bulkEditTargetEnvironment",
+      description =
+        """Edit target environments, setting an explicit base position or the
+          |asterism, in (potentially) multiple observations at once.
+        """.stripMargin.some,
+      fieldType   = ListType(ObservationType[F]),
+      arguments   = List(ArgumentTargetEnvironmentBulkEdit),
+      resolve     = c => c.observation(_.bulkEditTargetEnvironment(c.arg(ArgumentTargetEnvironmentBulkEdit)))
     )
 
-  def updateConstraintSet[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def bulkEditConstraintSet[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name      = "updateConstraintSet",
-      fieldType = ListType(ObservationType[F]),
-      arguments = List(ArgumentConstraintSetBulkEdit),
-      resolve   = c => c.observation(_.bulkEditConstraintSet(c.arg(ArgumentConstraintSetBulkEdit)))
+      name        = "bulkEditConstraintSet",
+      description =
+        """Edit constraint sets, setting image quality or elevation ranges etc,
+          |in (potentially) multiple observations at once.
+        """.stripMargin.some,
+      fieldType   = ListType(ObservationType[F]),
+      arguments   = List(ArgumentConstraintSetBulkEdit),
+      resolve     = c => c.observation(_.bulkEditConstraintSet(c.arg(ArgumentConstraintSetBulkEdit)))
     )
 
-  def updateScienceRequirements[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def bulkEditScienceRequirements[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name      = "updateScienceRequirements",
-      fieldType = ListType(ObservationType[F]),
-      arguments = List(ArgumentScienceRequirementsBulkEdit),
-      resolve   = c => c.observation(_.bulkEditScienceRequirements(c.arg(ArgumentScienceRequirementsBulkEdit)))
+      name        = "bulkEditScienceRequirements",
+      description =
+        """Edit science requirements in (potentially) multiple observations at
+          |once.
+        """.stripMargin.some,
+      fieldType   = ListType(ObservationType[F]),
+      arguments   = List(ArgumentScienceRequirementsBulkEdit),
+      resolve     = c => c.observation(_.bulkEditScienceRequirements(c.arg(ArgumentScienceRequirementsBulkEdit)))
     )
 
   def delete[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
@@ -195,10 +227,10 @@ trait ObservationMutation {
       create,
       update,
       clone,
-      updateAsterism,
-      updateTargetEnvironment,
-      updateConstraintSet,
-      updateScienceRequirements,
+      bulkEditAsterism,
+      bulkEditTargetEnvironment,
+      bulkEditConstraintSet,
+      bulkEditScienceRequirements,
       delete,
       undelete,
     )

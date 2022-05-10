@@ -24,7 +24,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
   queryTest(
     query ="""
       mutation UpdateTargetEnvironment($envEdit: BulkEditTargetEnvironmentInput!) {
-        updateTargetEnvironment(input: $envEdit) {
+        bulkEditTargetEnvironment(input: $envEdit) {
           id
           targetEnvironment {
             asterism {
@@ -36,7 +36,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
     """,
     expected =json"""
       {
-        "updateTargetEnvironment": [
+        "bulkEditTargetEnvironment": [
           {
             "id": "o-3",
             "targetEnvironment": {
@@ -53,7 +53,9 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
     variables =json"""
       {
         "envEdit": {
-          "selectObservations": [ "o-3" ],
+          "select": {
+            "observationIds": [ "o-3" ]
+          },
           "edit": {
             "asterism": [ "t-2" ]
           }
@@ -66,7 +68,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
   queryTestFailure(
     query ="""
       mutation UpdateTargetEnvironment($envEdit: BulkEditTargetEnvironmentInput!) {
-        updateTargetEnvironment(input: $envEdit) {
+        bulkEditTargetEnvironment(input: $envEdit) {
           id
           targetEnvironment {
             asterism {
@@ -80,7 +82,9 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
     variables =json"""
       {
         "envEdit": {
-          "selectObservations": [ "o-3" ],
+          "select": {
+            "observationIds": [ "o-3" ]
+          },
           "edit": {
             "asterism": [ "t-6" ]
           }
@@ -94,7 +98,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
   queryTest(
     query ="""
       mutation UpdateTargetEnvironment($envEdit: BulkEditTargetEnvironmentInput!) {
-        updateTargetEnvironment(input: $envEdit) {
+        bulkEditTargetEnvironment(input: $envEdit) {
           id
           targetEnvironment {
             explicitBase {
@@ -107,7 +111,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
     """,
     expected =json"""
       {
-        "updateTargetEnvironment": [
+        "bulkEditTargetEnvironment": [
           {
             "id": "o-3",
             "targetEnvironment": {
@@ -127,7 +131,9 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
     variables =json"""
       {
         "envEdit": {
-          "selectObservations": [ "o-3" ],
+          "select": {
+            "observationIds": [ "o-3" ]
+          },
           "edit": {
             "explicitBase": {
               "ra": {

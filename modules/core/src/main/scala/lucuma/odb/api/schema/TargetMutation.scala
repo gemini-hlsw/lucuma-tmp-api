@@ -233,8 +233,10 @@ trait TargetMutation extends TargetScalars {
             t <- c.ctx.odbRepo.target.clone(c.arg(existing), c.arg(suggested))
             _ <- c.ctx.odbRepo.observation.bulkEditAsterism(
               ObservationModel.BulkEdit(
-                c.arg(OptionalListObservationIdArgument).map(_.toList),
-                None,
+                ObservationModel.BulkEdit.Select(
+                  None,
+                  c.arg(OptionalListObservationIdArgument).map(_.toList)
+                ),
                 List(
                   EditAsterismInput.delete(c.arg(existing)),
                   EditAsterismInput.add(t.id)
