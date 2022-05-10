@@ -20,6 +20,7 @@ object ExecutionEventSchema {
   import TimeSchema._
   import ExecutionEventModel._
   import ObservationSchema.ObservationIdType
+  import RefinedSchema.PosIntType
   import StepSchema.StepIdType
   import VisitRecordSchema.VisitIdType
   import syntax.`enum`._
@@ -225,6 +226,34 @@ object ExecutionEventSchema {
       )
     )
 
+  val DatasetEventLocationType: ObjectType[Any, DatasetEvent.Location] =
+    ObjectType[Any, DatasetEvent.Location](
+      name        = "DatasetEventLocation",
+      description = "Dataset event location",
+      fields      = List[Field[Any, DatasetEvent.Location]](
+        Field(
+          name        = "observationId",
+          fieldType   = ObservationIdType,
+          description = "Observation ID".some,
+          resolve     = _.value.observationId
+        ),
+
+        Field(
+          name        = "stepId",
+          fieldType   = StepIdType,
+          description = "Step ID".some,
+          resolve     = _.value.stepId
+        ),
+
+        Field(
+          name        = "index",
+          fieldType   = PosIntType,
+          description = "Dataset index".some,
+          resolve     = _.value.index
+        )
+      )
+    )
+
   val DatasetEventPayloadType: ObjectType[Any, DatasetEvent.Payload] =
     ObjectType[Any, DatasetEvent.Payload](
       name        = "DatasetEventPayload",
@@ -256,9 +285,9 @@ object ExecutionEventSchema {
 
         Field(
           name        = "location",
-          fieldType   = DatasetSchema.DatasetIdType,
+          fieldType   = DatasetEventLocationType,
           description = "Identifies the associated dataset".some,
-          resolve     = _.value.datasetId
+          resolve     = _.value.location
         ),
 
         Field(

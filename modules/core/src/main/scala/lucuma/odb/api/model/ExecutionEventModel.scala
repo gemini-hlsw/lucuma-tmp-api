@@ -9,8 +9,11 @@ import cats.syntax.eq._
 import cats.syntax.either._
 import org.typelevel.cats.time.instances.instant._
 import io.circe.Decoder
+import io.circe.refined._
 import io.circe.generic.semiauto.deriveDecoder
 import eu.timepit.refined.auto._
+import eu.timepit.refined.cats._
+import eu.timepit.refined.types.all.PosInt
 import lucuma.core.model.{ExecutionEvent, Observation}
 import lucuma.core.util.Enumerated
 import lucuma.odb.api.model.syntax.lens._
@@ -355,7 +358,7 @@ object ExecutionEventModel {
     id:            ExecutionEvent.Id,
     visitId:       Visit.Id,
     received:      Instant,
-    location:      DatasetModel.Id,
+    location:      DatasetEvent.Location,
     payload:       DatasetEvent.Payload
   ) extends ExecutionEventModel {
 
@@ -363,7 +366,7 @@ object ExecutionEventModel {
       location.observationId
 
     def datasetId: DatasetModel.Id =
-      location
+      location.toDatasetId
 
     def toDataset: Option[DatasetModel] =
       payload.filename.map { fn =>
@@ -383,6 +386,29 @@ object ExecutionEventModel {
         a.received
       )}
 
+    final case class Location(
+      observationId: Observation.Id,
+      stepId:        Step.Id,
+      index:         PosInt
+    ) {
+
+      def toDatasetId: DatasetModel.Id =
+        DatasetModel.Id(observationId, stepId, index)
+
+    }
+
+    object Location {
+      implicit val DecoderLocation: Decoder[Location] =
+        deriveDecoder[Location]
+
+      implicit val OrderLocation: Order[Location] =
+        Order.by { a => (
+          a.observationId,
+          a.stepId,
+          a.index
+        )}
+    }
+
     final case class Payload(
       stage:         DatasetStageType,
       filename:      Option[DatasetFilename]
@@ -401,7 +427,7 @@ object ExecutionEventModel {
 
     final case class Add(
       visitId:       Visit.Id,
-      location:      DatasetModel.Id,
+      location:      Location,
       payload:       Payload
     ) {
 
