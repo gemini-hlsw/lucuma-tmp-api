@@ -48,7 +48,7 @@ final class ExecutionEventRepoSpec extends ScalaCheckSuite with OdbRepoTest {
        .toMap
 
       val expected = db.executionEvents.rows.values.toList.collect {
-        case StepEvent(_, observationId, _, stepId, _, _, stage) if stage == StepStageType.EndStep =>
+        case StepEvent(_, _, _, StepEvent.Location(observationId, stepId), StepEvent.Payload(_, stage)) if stage == StepStageType.EndStep =>
           (observationId, stepId)
       }.groupBy(_._1)
        .view

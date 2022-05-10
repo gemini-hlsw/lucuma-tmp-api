@@ -181,6 +181,18 @@ trait ExecutionEventMutation {
 
   // SequenceEvent ------------------------------------------------------------
 
+  implicit val InputObjectTypeSequenceEventLocation: InputObjectType[SequenceEvent.Location] =
+    deriveInputObjectType[SequenceEvent.Location](
+      InputObjectTypeName("SequenceEventLocationInput"),
+      InputObjectTypeDescription("SequenceEvent location parameters")
+    )
+
+  implicit val InputObjectTypeSequenceEventPayload: InputObjectType[SequenceEvent.Payload] =
+    deriveInputObjectType[SequenceEvent.Payload](
+      InputObjectTypeName("SequenceEventPayloadInput"),
+      InputObjectTypeDescription("SequenceEvent payload creation parameters")
+    )
+
   val InputObjectTypeSequenceEventAdd: InputObjectType[SequenceEvent.Add] =
     deriveInputObjectType[SequenceEvent.Add](
       InputObjectTypeName("AddSequenceEventInput"),
@@ -189,20 +201,43 @@ trait ExecutionEventMutation {
 
   val ArgumentSequenceEventAdd: Argument[SequenceEvent.Add] =
     InputObjectTypeSequenceEventAdd.argument(
-      "input",
-      "Sequence event description"
+      name        = "input",
+      description =
+      """Describes the sequence event to add.  All events are associated with a
+        |particular visit (see 'record{InstrumentName}Visit').  Sequence events
+        |are further associated with an observation (i.e., its 'location').
+        |Each sequence event 'payload' identifies the sequence command that
+        |acted upon the sequence.
+      """.stripMargin
     )
 
   def addSequenceEvent[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name      = "addSequenceEvent",
-      fieldType = SequenceEventType[F],
-      arguments = List(ArgumentSequenceEventAdd),
-      resolve   = c => c.executionEvent(_.insertSequenceEvent(c.arg(ArgumentSequenceEventAdd)))
+      name        = "addSequenceEvent",
+      description =
+      """Adds a sequence event associated with the given visit. Multiple events
+        |will be produced during the execution of a sequence as it is started,
+        |paused, continued, etc.
+      """.stripMargin.some,
+      fieldType   = SequenceEventType[F],
+      arguments   = List(ArgumentSequenceEventAdd),
+      resolve     = c => c.executionEvent(_.insertSequenceEvent(c.arg(ArgumentSequenceEventAdd)))
     )
 
 
   // StepEvent ----------------------------------------------------------------
+
+  implicit val InputObjectTypeStepEventLocation: InputObjectType[StepEvent.Location] =
+    deriveInputObjectType[StepEvent.Location](
+      InputObjectTypeName("StepEventLocationInput"),
+      InputObjectTypeDescription("StepEvent location parameters")
+    )
+
+  implicit val InputObjectTypeStepEventPayload: InputObjectType[StepEvent.Payload] =
+    deriveInputObjectType[StepEvent.Payload](
+      InputObjectTypeName("StepEventPayloadInput"),
+      InputObjectTypeDescription("StepEvent payload parameters")
+    )
 
   val InputObjectTypeStepEventAdd: InputObjectType[StepEvent.Add] =
     deriveInputObjectType[StepEvent.Add](
@@ -212,20 +247,44 @@ trait ExecutionEventMutation {
 
   val ArgumentStepEventAdd: Argument[StepEvent.Add] =
     InputObjectTypeStepEventAdd.argument(
-      "input",
-      "Step event description"
+      name        = "input",
+      description =
+      """Describes the step event to add.  All events are associated with a
+        |particular visit (see 'record{InstrumentName}Visit'.  Step events are
+        |further associated with an observation and step (i.e., its 'location').
+        |(See also 'record{InstrumentName}Step'.) Each step event 'payload'
+        |identifies the sequence type (acquisition or science) and the stage
+        |through which the step execution is passing.
+      """.stripMargin
     )
 
   def addStepEvent[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name      = "addStepEvent",
-      fieldType = StepEventType[F],
-      arguments = List(ArgumentStepEventAdd),
-      resolve   = c => c.executionEvent(_.insertStepEvent(c.arg(ArgumentStepEventAdd)))
+      name        = "addStepEvent",
+      description =
+      """Adds a new step event associated with the given visit. Multiple events
+        |will be produced during the execution of a single step as it
+        |transitions through configure and observe stages.
+      """.stripMargin.some,
+      fieldType   = StepEventType[F],
+      arguments   = List(ArgumentStepEventAdd),
+      resolve     = c => c.executionEvent(_.insertStepEvent(c.arg(ArgumentStepEventAdd)))
     )
 
 
   // DatasetEvent -------------------------------------------------------------
+
+  implicit val InputObjectTypeDatasetEventLocation: InputObjectType[DatasetEvent.Location] =
+    deriveInputObjectType[DatasetEvent.Location](
+      InputObjectTypeName("DatasetEventLocationInput"),
+      InputObjectTypeDescription("DatasetEvent location parameters")
+    )
+
+  implicit val InputObjectTypeDatasetEventPayload: InputObjectType[DatasetEvent.Payload] =
+    deriveInputObjectType[DatasetEvent.Payload](
+      InputObjectTypeName("DatasetEventPayloadInput"),
+      InputObjectTypeDescription("DatasetEvent payload parameters")
+    )
 
   val InputObjectTypeDatasetEventAdd: InputObjectType[DatasetEvent.Add] =
     deriveInputObjectType[DatasetEvent.Add](
@@ -235,16 +294,29 @@ trait ExecutionEventMutation {
 
   val ArgumentDatasetEventAdd: Argument[DatasetEvent.Add] =
     InputObjectTypeDatasetEventAdd.argument(
-      "input",
-      "Dataset event description"
+      name        = "input",
+      description =
+      """Describes the dataset event to add.  All events are associated with a
+        |particular visit (see 'record{InstrumentName}Visit').  Dataset events
+        |are further associated with an |observation, step and index because a
+        |step may produce multiple datasets.  The three form its 'location'.
+        |(See also 'record{InstrumentName}Step'.) Each dataset event 'payload'
+        |identifies the stage (observe, readout, or write) and possibly the
+        |dataset filename.
+      """.stripMargin
     )
 
   def addDatasetEvent[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name      = "addDatasetEvent",
-      fieldType = DatasetEventType[F],
-      arguments = List(ArgumentDatasetEventAdd),
-      resolve   = c => c.executionEvent(_.insertDatasetEvent(c.arg(ArgumentDatasetEventAdd)))
+      name        = "addDatasetEvent",
+      description =
+      """Adds a new dataset event associated with the given visit.  The
+        |generation of a single dataset will produce multiple events as it
+        |transitions through the observe, readout and write stages.
+      """.stripMargin.some,
+      fieldType   = DatasetEventType[F],
+      arguments   = List(ArgumentDatasetEventAdd),
+      resolve     = c => c.executionEvent(_.insertDatasetEvent(c.arg(ArgumentDatasetEventAdd)))
     )
 
   // --------------------------------------------------------------------------

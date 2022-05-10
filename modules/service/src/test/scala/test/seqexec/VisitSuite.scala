@@ -52,23 +52,31 @@ class VisitSuite extends OdbSuite {
     query = s"""
       mutation AddSequenceEvent($$eventInput: AddSequenceEventInput!) {
         addSequenceEvent(input: $$eventInput) {
-          command
+          payload {
+            command
+          }
         }
       }
     """,
     expected =json"""
       {
         "addSequenceEvent": {
-          "command": "START"
+          "payload": {
+            "command": "START"
+          }
         }
       }
     """,
     variables = json"""
       {
         "eventInput": {
-          "observationId": "o-2",
           "visitId": ${vid.toString},
-          "command": "START"
+          "location": {
+            "observationId": "o-2"
+          },
+          "payload": {
+            "command": "START"
+          }
         }
       }
     """.some,
@@ -132,25 +140,33 @@ class VisitSuite extends OdbSuite {
     query = s"""
       mutation AddStepEvent($$eventInput: AddStepEventInput!) {
         addStepEvent(input: $$eventInput) {
-          stage
+          payload {
+            stage
+          }
         }
       }
     """,
     expected =json"""
       {
         "addStepEvent": {
-          "stage": "START_STEP"
+          "payload": {
+            "stage": "START_STEP"
+          }
         }
       }
     """,
     variables = json"""
       {
         "eventInput": {
-          "observationId": "o-2",
           "visitId": ${vid.toString},
-          "stepId": ${sid.toString},
-          "sequenceType": "SCIENCE",
-          "stage": "START_STEP"
+          "location": {
+            "observationId": "o-2",
+            "stepId": ${sid.toString}
+          },
+          "payload": {
+             "sequenceType": "SCIENCE",
+             "stage": "START_STEP"
+          }
         }
       }
     """.some,
@@ -162,26 +178,34 @@ class VisitSuite extends OdbSuite {
     query = s"""
       mutation AddDatasetEvent($$eventInput: AddDatasetEventInput!) {
         addDatasetEvent(input: $$eventInput) {
-          stage
+          payload {
+            stage
+          }
         }
       }
     """,
     expected =json"""
       {
         "addDatasetEvent": {
-          "stage": "START_OBSERVE"
+          "payload": {
+             "stage": "START_OBSERVE"
+           }
         }
       }
     """,
     variables = json"""
       {
         "eventInput": {
-          "observationId": "o-2",
           "visitId": ${vid.toString},
-          "stepId": ${sid.toString},
-          "datasetIndex": 1,
-          "filename": "S20220504S0001.fits",
-          "stage": "START_OBSERVE"
+          "location": {
+            "observationId": "o-2",
+            "stepId":         ${sid.toString},
+            "index":          1
+          },
+          "payload": {
+            "stage": "START_OBSERVE",
+            "filename": "S20220504S0001.fits"
+          }
         }
       }
     """.some,

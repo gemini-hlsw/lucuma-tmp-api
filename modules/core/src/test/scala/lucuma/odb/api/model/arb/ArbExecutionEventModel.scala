@@ -38,26 +38,26 @@ trait ArbExecutionEventModel {
     Arbitrary {
       for {
         id  <- arbitrary[ExecutionEvent.Id]
-        oid <- arbitrary[Observation.Id]
         vid <- arbitrary[Visit.Id]
         rec <- arbitrary[Instant]
+        oid <- arbitrary[Observation.Id]
         cmd <- arbitrary[SequenceCommandType]
-      } yield SequenceEvent(id, oid, vid, rec, cmd)
+      } yield SequenceEvent(id, vid, rec, SequenceEvent.Location(oid), SequenceEvent.Payload(cmd))
     }
 
   implicit val cogSequenceEvent: Cogen[SequenceEvent] =
     Cogen[(
       ExecutionEvent.Id,
-      Observation.Id,
       Visit.Id,
       Instant,
+      Observation.Id,
       SequenceCommandType
     )].contramap { a => (
       a.id,
-      a.observationId,
       a.visitId,
       a.received,
-      a.command
+      a.location.observationId,
+      a.payload.command
     )}
 
   def arbSequenceEventAdd(
@@ -66,7 +66,7 @@ trait ArbExecutionEventModel {
   ): Arbitrary[SequenceEvent.Add] =
     Arbitrary {
       arbitrary[SequenceCommandType].map { cmd =>
-        SequenceEvent.Add(oid, vid, cmd)
+        SequenceEvent.Add(vid, SequenceEvent.Location(oid), SequenceEvent.Payload(cmd))
       }
     }
 
@@ -80,42 +80,40 @@ trait ArbExecutionEventModel {
         rec <- arbitrary[Instant]
         tpe <- arbitrary[SequenceModel.SequenceType]
         sge <- arbitrary[StepStageType]
-      } yield StepEvent(id, oid, vid, sid, rec, tpe, sge)
+      } yield StepEvent(id, vid, rec, StepEvent.Location(oid, sid), StepEvent.Payload(tpe, sge))
     }
 
   implicit val cogStepEvent: Cogen[StepEvent] =
     Cogen[(
       ExecutionEvent.Id,
-      Observation.Id,
       Visit.Id,
-      Step.Id,
       Instant,
+      Observation.Id,
+      Step.Id,
       SequenceModel.SequenceType,
       StepStageType
     )].contramap { a => (
       a.id,
-      a.observationId,
       a.visitId,
-      a.stepId,
       a.received,
-      a.sequenceType,
-      a.stage
+      a.location.observationId,
+      a.location.stepId,
+      a.payload.sequenceType,
+      a.payload.stage
     )}
 
   def arbStepEventAdd(
-    oid: Observation.Id,
     vid: Visit.Id,
+    oid: Observation.Id,
     sid: Step.Id,
     stp: SequenceModel.SequenceType
   ): Arbitrary[StepEvent.Add] =
     Arbitrary {
       arbitrary[StepStageType].map { cmd =>
         StepEvent.Add(
-          oid,
           vid,
-          sid,
-          stp,
-          cmd
+          StepEvent.Location(oid, sid),
+          StepEvent.Payload(stp, cmd)
         )
       }
     }
@@ -124,35 +122,35 @@ trait ArbExecutionEventModel {
     Arbitrary {
       for {
         id  <- arbitrary[ExecutionEvent.Id]
-        oid <- arbitrary[Observation.Id]
         vid <- arbitrary[Visit.Id]
-        sid <- arbitrary[Step.Id]
         rec <- arbitrary[Instant]
+        oid <- arbitrary[Observation.Id]
+        sid <- arbitrary[Step.Id]
         idx <- arbitrary[PosInt]
-        fnm <- arbitrary[Option[DatasetFilename]]
         sge <- arbitrary[DatasetStageType]
-      } yield DatasetEvent(id, oid, vid, sid, rec, idx, fnm, sge)
+        fnm <- arbitrary[Option[DatasetFilename]]
+      } yield DatasetEvent(id, vid, rec, DatasetEvent.Location(oid, sid, idx),  DatasetEvent.Payload(sge, fnm))
     }
 
   implicit val cogDatasetEvent: Cogen[DatasetEvent] =
     Cogen[(
       ExecutionEvent.Id,
-      Observation.Id,
       Visit.Id,
-      Step.Id,
       Instant,
+      Observation.Id,
+      Step.Id,
       Int,
-      Option[DatasetFilename],
-      DatasetStageType
+      DatasetStageType,
+      Option[DatasetFilename]
     )].contramap { in => (
       in.id,
-      in.observationId,
       in.visitId,
-      in.stepId,
       in.received,
-      in.datasetIndex.value,
-      in.filename,
-      in.stageType
+      in.location.observationId,
+      in.location.stepId,
+      in.location.index.value,
+      in.payload.stage,
+      in.payload.filename
     )}
 
   def arbDatasetEventAdd(
@@ -165,12 +163,9 @@ trait ArbExecutionEventModel {
         fnm <- arbitrary[Option[DatasetFilename]]
         cmd <- arbitrary[DatasetStageType]
       } yield DatasetEvent.Add(
-        oid,
         vid,
-        sid,
-        PosInt.MinValue,
-        fnm,
-        cmd
+        DatasetEvent.Location(oid, sid, PosInt.MinValue),
+        DatasetEvent.Payload(cmd, fnm)
       )
     }
 

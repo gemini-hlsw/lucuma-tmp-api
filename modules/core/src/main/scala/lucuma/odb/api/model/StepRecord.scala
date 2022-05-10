@@ -87,7 +87,7 @@ object StepRecord {
       ).getOrElse(0.nanoseconds)
 
     def isExecuted: Boolean =
-      stepEvents.exists(_.stage === ExecutionEventModel.StepStageType.EndStep)
+      stepEvents.exists(_.payload.stage === ExecutionEventModel.StepStageType.EndStep)
 
     def qaState: Option[StepQaState] =
       StepQaState.rollup(datasets.map(_.dataset.qaState))
@@ -96,7 +96,7 @@ object StepRecord {
      * Whether this is an acquisition or science step.
      */
     def sequenceType: SequenceModel.SequenceType =
-      stepEvents.map(_.sequenceType).distinct match {
+      stepEvents.map(_.payload.sequenceType).distinct match {
         case List(t) => t
         case _       => SequenceModel.SequenceType.Science
       }

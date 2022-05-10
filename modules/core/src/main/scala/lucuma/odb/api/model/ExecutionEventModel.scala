@@ -7,12 +7,13 @@ import cats.data.StateT
 import cats.{Eq, Order, Show}
 import cats.syntax.eq._
 import cats.syntax.either._
-import eu.timepit.refined.types.numeric._
 import org.typelevel.cats.time.instances.instant._
 import io.circe.Decoder
-import io.circe.generic.semiauto.deriveDecoder
 import io.circe.refined._
+import io.circe.generic.semiauto.deriveDecoder
 import eu.timepit.refined.auto._
+import eu.timepit.refined.cats._
+import eu.timepit.refined.types.all.PosInt
 import lucuma.core.model.{ExecutionEvent, Observation}
 import lucuma.core.util.Enumerated
 import lucuma.odb.api.model.syntax.lens._
@@ -26,9 +27,9 @@ sealed trait ExecutionEventModel {
 
   def id:            ExecutionEvent.Id
 
-  def observationId: Observation.Id
-
   def visitId:       Visit.Id
+
+  def observationId: Observation.Id
 
   def received:      Instant
 
@@ -89,28 +90,57 @@ object ExecutionEventModel {
 
   final case class SequenceEvent(
     id:            ExecutionEvent.Id,
-    observationId: Observation.Id,
     visitId:       Visit.Id,
     received:      Instant,
-    command:       SequenceCommandType
-  ) extends ExecutionEventModel
+    location:      SequenceEvent.Location,
+    payload:       SequenceEvent.Payload
+  ) extends ExecutionEventModel {
+
+    override def observationId: Observation.Id =
+      location.observationId
+
+  }
 
   object SequenceEvent {
 
     implicit val OrderSequenceEvent: Order[SequenceEvent] = {
       Order.by { a => (
         a.id,
-        a.observationId,
         a.visitId,
-        a.command,
-        a.received
+        a.received,
+        a.location,
+        a.payload
       )}
     }
 
+    final case class Location(
+      observationId: Observation.Id
+    )
+
+    object Location {
+      implicit val DecoderLocation: Decoder[Location] =
+        deriveDecoder[Location]
+
+      implicit val OrderLocation: Order[Location] =
+        Order.by(_.observationId)
+    }
+
+    final case class Payload(
+      command: SequenceCommandType
+    )
+
+    object Payload {
+      implicit val DecoderPayload: Decoder[Payload] =
+        deriveDecoder[Payload]
+
+      implicit val OrderPayload: Order[Payload] =
+        Order.by(_.command)
+    }
+
     final case class Add(
-      observationId: Observation.Id,
-      visitId:       Visit.Id,
-      command:       SequenceCommandType
+      visitId:  Visit.Id,
+      location: Location,
+      payload:  Payload
     ) {
 
       def add(
@@ -119,9 +149,9 @@ object ExecutionEventModel {
 
         for {
           i <- Database.executionEvent.cycleNextUnused
-          _ <- Database.observation.lookup(observationId)
-          _ <- VisitRecords.visitAt(observationId, visitId)
-          e  = SequenceEvent(i, observationId, visitId, received, command)
+          _ <- Database.observation.lookup(location.observationId)
+          _ <- VisitRecords.visitAt(location.observationId, visitId)
+          e  = SequenceEvent(i, visitId, received, location, payload)
           _ <- Database.executionEvent.saveNew(i, e)
         } yield e
 
@@ -134,9 +164,9 @@ object ExecutionEventModel {
 
       implicit val OrderAdd: Order[Add] =
         Order.by { a => (
-          a.observationId,
           a.visitId,
-          a.command
+          a.location,
+          a.payload
         )}
 
     }
@@ -185,37 +215,66 @@ object ExecutionEventModel {
   }
 
   final case class StepEvent(
-    id:            ExecutionEvent.Id,
-    observationId: Observation.Id,
-    visitId:       Visit.Id,
-    stepId:        Step.Id,
-    received:      Instant,
+    id:       ExecutionEvent.Id,
+    visitId:  Visit.Id,
+    received: Instant,
+    location: StepEvent.Location,
+    payload:  StepEvent.Payload
 
-    sequenceType:  SequenceModel.SequenceType,
-    stage:         StepStageType
+  ) extends ExecutionEventModel {
 
-  ) extends ExecutionEventModel
+    override def observationId: Observation.Id =
+      location.observationId
+
+  }
 
   object StepEvent {
 
     implicit val OrderStepEvent: Order[StepEvent] =
       Order.by { a => (
         a.id,
-        a.observationId,
         a.visitId,
-        a.stepId,
         a.received,
-        a.sequenceType,
-        a.stage,
+        a.location,
+        a.payload
       )}
 
-    final case class Add(
+    final case class Location(
       observationId: Observation.Id,
-      visitId:       Visit.Id,
-      stepId:        Step.Id,
+      stepId:        Step.Id
+    )
 
+    object Location {
+      implicit val DecoderLocation: Decoder[Location] =
+        deriveDecoder[Location]
+
+      implicit val OrderLocation: Order[Location] =
+        Order.by { a => (
+          a.observationId,
+          a.stepId
+        )}
+    }
+
+    final case class Payload(
       sequenceType:  SequenceModel.SequenceType,
       stage:         StepStageType
+    )
+
+    object Payload {
+      implicit val DecoderPayload: Decoder[Payload] =
+        deriveDecoder[Payload]
+
+      implicit val OrderPayload: Order[Payload] =
+        Order.by { a => (
+          a.sequenceType,
+          a.stage
+        )}
+    }
+
+    final case class Add(
+      visitId:  Visit.Id,
+      location: Location,
+      payload:  Payload
     ) {
 
       def add(
@@ -224,17 +283,15 @@ object ExecutionEventModel {
 
         for {
           i <- Database.executionEvent.cycleNextUnused
-          _ <- Database.observation.lookup(observationId)
-          _ <- VisitRecords.stepAt(observationId, visitId, stepId)
+          _ <- Database.observation.lookup(location.observationId)
+          _ <- VisitRecords.stepAt(location.observationId, visitId, location.stepId)
           e  =
             StepEvent(
               i,
-              observationId,
               visitId,
-              stepId,
               received,
-              sequenceType,
-              stage
+              location,
+              payload
             )
           _ <- Database.executionEvent.saveNew(i, e)
         } yield e
@@ -248,11 +305,9 @@ object ExecutionEventModel {
 
       implicit val OrderAdd: Order[Add] =
         Order.by { a => (
-          a.observationId,
           a.visitId,
-          a.stepId,
-          a.sequenceType,
-          a.stage
+          a.location,
+          a.payload
         )}
 
     }
@@ -301,21 +356,20 @@ object ExecutionEventModel {
 
   final case class DatasetEvent(
     id:            ExecutionEvent.Id,
-    observationId: Observation.Id,
     visitId:       Visit.Id,
-    stepId:        Step.Id,
     received:      Instant,
-
-    datasetIndex:  PosInt,
-    filename:      Option[DatasetFilename],
-    stageType:     DatasetStageType
+    location:      DatasetEvent.Location,
+    payload:       DatasetEvent.Payload
   ) extends ExecutionEventModel {
 
+    override def observationId: Observation.Id =
+      location.observationId
+
     def datasetId: DatasetModel.Id =
-      DatasetModel.Id(observationId, stepId, datasetIndex)
+      location.toDatasetId
 
     def toDataset: Option[DatasetModel] =
-      filename.map { fn =>
+      payload.filename.map { fn =>
         DatasetModel(datasetId, DatasetModel.Dataset(fn, None))
       }
 
@@ -326,22 +380,55 @@ object ExecutionEventModel {
     implicit val OrderDatasetEvent: Order[DatasetEvent] =
       Order.by { a => (
         a.id,
-        a.observationId,
         a.visitId,
-        a.stepId,
-        a.datasetIndex.value,
-        a.filename,
-        a.stageType,
+        a.location,
+        a.payload,
         a.received
       )}
 
-    final case class Add(
+    final case class Location(
       observationId: Observation.Id,
-      visitId:       Visit.Id,
       stepId:        Step.Id,
-      datasetIndex:  PosInt,
-      filename:      Option[DatasetFilename],
-      stage:         DatasetStageType
+      index:         PosInt
+    ) {
+
+      def toDatasetId: DatasetModel.Id =
+        DatasetModel.Id(observationId, stepId, index)
+
+    }
+
+    object Location {
+      implicit val DecoderLocation: Decoder[Location] =
+        deriveDecoder[Location]
+
+      implicit val OrderLocation: Order[Location] =
+        Order.by { a => (
+          a.observationId,
+          a.stepId,
+          a.index
+        )}
+    }
+
+    final case class Payload(
+      stage:         DatasetStageType,
+      filename:      Option[DatasetFilename]
+    )
+
+    object Payload {
+      implicit val DecoderPayload: Decoder[Payload] =
+        deriveDecoder[Payload]
+
+      implicit val OrderPayload: Order[Payload] =
+        Order.by { a => (
+          a.stage,
+          a.filename
+        )}
+    }
+
+    final case class Add(
+      visitId:       Visit.Id,
+      location:      Location,
+      payload:       Payload
     ) {
 
       private def recordDataset(
@@ -372,18 +459,15 @@ object ExecutionEventModel {
 
         for {
           i <- Database.executionEvent.cycleNextUnused
-          _ <- Database.observation.lookup(observationId)
-          _ <- VisitRecords.stepAt(observationId, visitId, stepId)
+          _ <- Database.observation.lookup(location.observationId)
+          _ <- VisitRecords.stepAt(location.observationId, visitId, location.stepId)
           e  =
             DatasetEvent(
               i,
-              observationId,
               visitId,
-              stepId,
               received,
-              datasetIndex,
-              filename,
-              stage
+              location,
+              payload
             )
           _ <- recordDataset(e)
           _ <- Database.executionEvent.saveNew(i, e)
@@ -398,12 +482,9 @@ object ExecutionEventModel {
 
       implicit val OrderAdd: Order[Add] =
         Order.by { a => (
-          a.observationId,
           a.visitId,
-          a.stepId,
-          a.datasetIndex.value,
-          a.filename,
-          a.stage
+          a.location,
+          a.payload
         )}
     }
 
