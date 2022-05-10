@@ -25,7 +25,7 @@ class AsterismMutationSuite extends OdbSuite {
   queryTest(
     query ="""
       mutation ReplaceTargets($listEdit: BulkEditAsterismInput!) {
-        updateAsterism(input: $listEdit) {
+        bulkEditAsterism(input: $listEdit) {
           id
           targetEnvironment {
             asterism {
@@ -37,7 +37,7 @@ class AsterismMutationSuite extends OdbSuite {
     """,
     expected =json"""
       {
-        "updateAsterism": [
+        "bulkEditAsterism": [
           {
             "id": "o-3",
             "targetEnvironment": {

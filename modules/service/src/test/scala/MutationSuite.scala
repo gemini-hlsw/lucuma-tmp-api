@@ -10,7 +10,7 @@ class MutationSuite extends OdbSuite {
   queryTest(
     query = """
       mutation BulkEditConstraints($bulkEditConstraints: BulkEditConstraintSetInput!) {
-        updateConstraintSet(input: $bulkEditConstraints) {
+        bulkEditConstraintSet(input: $bulkEditConstraints) {
           id
           constraintSet {
             skyBackground
@@ -20,7 +20,7 @@ class MutationSuite extends OdbSuite {
     """,
     expected = json"""
       {
-        "updateConstraintSet" : [
+        "bulkEditConstraintSet" : [
           {
             "id" : "o-3",
             "constraintSet" : {
@@ -55,7 +55,7 @@ class MutationSuite extends OdbSuite {
     query =
       """
         mutation BulkEditConstraints($bulkEditConstraints: BulkEditConstraintSetInput!) {
-          updateConstraintSet(input: $bulkEditConstraints) {
+          bulkEditConstraintSet(input: $bulkEditConstraints) {
             id
             constraintSet {
               skyBackground

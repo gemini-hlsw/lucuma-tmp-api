@@ -142,33 +142,33 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.clone(c.arg(ArgumentObservationCloneInput)))
     )
 
-  def updateAsterism[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def bulkEditAsterism[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name      = "updateAsterism",
+      name      = "bulkEditAsterism",
       fieldType = ListType(ObservationType[F]),
       arguments = List(ArgumentAsterismBulkEdit),
       resolve   = c => c.observation(_.bulkEditAsterism(c.arg(ArgumentAsterismBulkEdit)))
     )
 
-  def updateTargetEnvironment[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def bulkEditTargetEnvironment[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name      = "updateTargetEnvironment",
+      name      = "bulkEditTargetEnvironment",
       fieldType = ListType(ObservationType[F]),
       arguments = List(ArgumentTargetEnvironmentBulkEdit),
       resolve   = c => c.observation(_.bulkEditTargetEnvironment(c.arg(ArgumentTargetEnvironmentBulkEdit)))
     )
 
-  def updateConstraintSet[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def bulkEditConstraintSet[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name      = "updateConstraintSet",
+      name      = "bulkEditConstraintSet",
       fieldType = ListType(ObservationType[F]),
       arguments = List(ArgumentConstraintSetBulkEdit),
       resolve   = c => c.observation(_.bulkEditConstraintSet(c.arg(ArgumentConstraintSetBulkEdit)))
     )
 
-  def updateScienceRequirements[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def bulkEditScienceRequirements[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name      = "updateScienceRequirements",
+      name      = "bulkEditScienceRequirements",
       fieldType = ListType(ObservationType[F]),
       arguments = List(ArgumentScienceRequirementsBulkEdit),
       resolve   = c => c.observation(_.bulkEditScienceRequirements(c.arg(ArgumentScienceRequirementsBulkEdit)))
@@ -195,10 +195,10 @@ trait ObservationMutation {
       create,
       update,
       clone,
-      updateAsterism,
-      updateTargetEnvironment,
-      updateConstraintSet,
-      updateScienceRequirements,
+      bulkEditAsterism,
+      bulkEditTargetEnvironment,
+      bulkEditConstraintSet,
+      bulkEditScienceRequirements,
       delete,
       undelete,
     )

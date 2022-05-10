@@ -24,7 +24,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
   queryTest(
     query ="""
       mutation UpdateTargetEnvironment($envEdit: BulkEditTargetEnvironmentInput!) {
-        updateTargetEnvironment(input: $envEdit) {
+        bulkEditTargetEnvironment(input: $envEdit) {
           id
           targetEnvironment {
             asterism {
@@ -36,7 +36,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
     """,
     expected =json"""
       {
-        "updateTargetEnvironment": [
+        "bulkEditTargetEnvironment": [
           {
             "id": "o-3",
             "targetEnvironment": {
@@ -66,7 +66,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
   queryTestFailure(
     query ="""
       mutation UpdateTargetEnvironment($envEdit: BulkEditTargetEnvironmentInput!) {
-        updateTargetEnvironment(input: $envEdit) {
+        bulkEditTargetEnvironment(input: $envEdit) {
           id
           targetEnvironment {
             asterism {
@@ -94,7 +94,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
   queryTest(
     query ="""
       mutation UpdateTargetEnvironment($envEdit: BulkEditTargetEnvironmentInput!) {
-        updateTargetEnvironment(input: $envEdit) {
+        bulkEditTargetEnvironment(input: $envEdit) {
           id
           targetEnvironment {
             explicitBase {
@@ -107,7 +107,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
     """,
     expected =json"""
       {
-        "updateTargetEnvironment": [
+        "bulkEditTargetEnvironment": [
           {
             "id": "o-3",
             "targetEnvironment": {
