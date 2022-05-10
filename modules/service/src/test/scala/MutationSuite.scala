@@ -39,7 +39,9 @@ class MutationSuite extends OdbSuite {
     variables = Some(json"""
       {
         "bulkEditConstraints": {
-          "selectObservations": [ "o-3", "o-4" ],
+          "select": {
+            "observationIds": [ "o-3", "o-4" ]
+          },
           "edit": {
             "skyBackground": "GRAY"
           }
@@ -75,7 +77,9 @@ class MutationSuite extends OdbSuite {
     variables = Some(json"""
       {
         "bulkEditConstraints": {
-          "selectObservations": [ "o-3", "o-4" ],
+          "select": {
+            "observationIds": [ "o-3", "o-4" ]
+          },
           "edit": {
             "skyBackground": "GRAY",
             "elevationRange": {

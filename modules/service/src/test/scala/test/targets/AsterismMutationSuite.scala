@@ -64,7 +64,9 @@ class AsterismMutationSuite extends OdbSuite {
     variables =json"""
       {
         "listEdit": {
-          "selectObservations": [ "o-3", "o-4" ],
+          "select": {
+            "observationIds": [ "o-3", "o-4" ]
+          },
           "edit": [
             {
               "delete": "t-4"

@@ -74,6 +74,16 @@ trait ObservationMutation {
       "Edit observation"
     )
 
+  implicit val InputObjectTypeBulkEditSelect: InputObjectType[BulkEdit.Select] =
+    InputObjectType[BulkEdit.Select](
+      name        = "BulkEditSelectInput",
+      description = "Bulk edit observation selection.  Choose either all observations in a program or else list individual observations.",
+      List(
+        InputField("programId",      OptionInputType(ProgramIdType)),
+        InputField("observationIds", OptionInputType(ListInputType(ObservationIdType)))
+      )
+    )
+
   private def bulkEditArgument[A: Decoder](
     name:       String,
     editType:   InputType[A]
@@ -84,9 +94,8 @@ trait ObservationMutation {
         s"BulkEdit${name.capitalize}Input",
         "Input for bulk editing multiple observations",
         List(
-          InputField("selectProgram",      OptionInputType(ProgramIdType)),
-          InputField("selectObservations", OptionInputType(ListInputType(ObservationIdType))),
-          InputField("edit",               editType)
+          InputField("select", InputObjectTypeBulkEditSelect),
+          InputField("edit",   editType)
         )
       )
 
