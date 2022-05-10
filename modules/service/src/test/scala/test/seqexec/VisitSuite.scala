@@ -52,22 +52,28 @@ class VisitSuite extends OdbSuite {
     query = s"""
       mutation AddSequenceEvent($$eventInput: AddSequenceEventInput!) {
         addSequenceEvent(input: $$eventInput) {
-          command
+          payload {
+            command
+          }
         }
       }
     """,
     expected =json"""
       {
         "addSequenceEvent": {
-          "command": "START"
+          "payload": {
+            "command": "START"
+          }
         }
       }
     """,
     variables = json"""
       {
         "eventInput": {
-          "observationId": "o-2",
           "visitId": ${vid.toString},
+          "location": {
+            "observationId": "o-2"
+          },
           "payload": {
             "command": "START"
           }

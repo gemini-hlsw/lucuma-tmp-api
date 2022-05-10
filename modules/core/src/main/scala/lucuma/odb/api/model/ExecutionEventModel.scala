@@ -87,22 +87,39 @@ object ExecutionEventModel {
 
   final case class SequenceEvent(
     id:            ExecutionEvent.Id,
-    observationId: Observation.Id,
     visitId:       Visit.Id,
     received:      Instant,
-    command:       SequenceCommandType
-  ) extends ExecutionEventModel
+    location:      SequenceEvent.Location,
+    payload:       SequenceEvent.Payload
+  ) extends ExecutionEventModel {
+
+    override def observationId: Observation.Id =
+      location.observationId
+
+  }
 
   object SequenceEvent {
 
     implicit val OrderSequenceEvent: Order[SequenceEvent] = {
       Order.by { a => (
         a.id,
-        a.observationId,
         a.visitId,
-        a.command,
-        a.received
+        a.received,
+        a.location,
+        a.payload
       )}
+    }
+
+    final case class Location(
+      observationId: Observation.Id
+    )
+
+    object Location {
+      implicit val DecoderLocation: Decoder[Location] =
+        deriveDecoder[Location]
+
+      implicit val OrderLocation: Order[Location] =
+        Order.by(_.observationId)
     }
 
     final case class Payload(
@@ -118,9 +135,9 @@ object ExecutionEventModel {
     }
 
     final case class Add(
-      observationId: Observation.Id,
-      visitId:       Visit.Id,
-      payload:       Payload
+      visitId:  Visit.Id,
+      location: Location,
+      payload:  Payload
     ) {
 
       def add(
@@ -129,9 +146,9 @@ object ExecutionEventModel {
 
         for {
           i <- Database.executionEvent.cycleNextUnused
-          _ <- Database.observation.lookup(observationId)
-          _ <- VisitRecords.visitAt(observationId, visitId)
-          e  = SequenceEvent(i, observationId, visitId, received, payload.command)
+          _ <- Database.observation.lookup(location.observationId)
+          _ <- VisitRecords.visitAt(location.observationId, visitId)
+          e  = SequenceEvent(i, visitId, received, location, payload)
           _ <- Database.executionEvent.saveNew(i, e)
         } yield e
 
@@ -144,8 +161,8 @@ object ExecutionEventModel {
 
       implicit val OrderAdd: Order[Add] =
         Order.by { a => (
-          a.observationId,
           a.visitId,
+          a.location,
           a.payload
         )}
 

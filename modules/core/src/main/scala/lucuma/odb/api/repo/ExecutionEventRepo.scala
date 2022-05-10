@@ -166,9 +166,9 @@ object ExecutionEventRepo {
       ): Option[StepRecord.Output[D]] = {
 
         val events  = sortedEvents(db) {
-          case SequenceEvent(_, o, _, _, _)                       => o === oid
-          case StepEvent(_, _, _, StepEvent.Location(o, s), _)    => o === oid && s === stepId
-          case DatasetEvent(_, _, _, DatasetModel.Id(o, s, _), _) => o === oid && s === stepId
+          case SequenceEvent(_, _, _, SequenceEvent.Location(o), _) => o === oid
+          case StepEvent(_, _, _, StepEvent.Location(o, s), _)      => o === oid && s === stepId
+          case DatasetEvent(_, _, _, DatasetModel.Id(o, s, _), _)   => o === oid && s === stepId
         }
 
         val stepRec = Database.visitRecordsAt(oid).get(db).toList.flatMap { vrs =>

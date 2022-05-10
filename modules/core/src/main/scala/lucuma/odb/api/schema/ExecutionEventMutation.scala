@@ -181,6 +181,12 @@ trait ExecutionEventMutation {
 
   // SequenceEvent ------------------------------------------------------------
 
+  implicit val InputObjectTypeSequenceEventLocation: InputObjectType[SequenceEvent.Location] =
+    deriveInputObjectType[SequenceEvent.Location](
+      InputObjectTypeName("SequenceEventLocationInput"),
+      InputObjectTypeDescription("SequenceEvent location parameters")
+    )
+
   implicit val InputObjectTypeSequenceEventPayload: InputObjectType[SequenceEvent.Payload] =
     deriveInputObjectType[SequenceEvent.Payload](
       InputObjectTypeName("SequenceEventPayloadInput"),

@@ -38,26 +38,26 @@ trait ArbExecutionEventModel {
     Arbitrary {
       for {
         id  <- arbitrary[ExecutionEvent.Id]
-        oid <- arbitrary[Observation.Id]
         vid <- arbitrary[Visit.Id]
         rec <- arbitrary[Instant]
+        oid <- arbitrary[Observation.Id]
         cmd <- arbitrary[SequenceCommandType]
-      } yield SequenceEvent(id, oid, vid, rec, cmd)
+      } yield SequenceEvent(id, vid, rec, SequenceEvent.Location(oid), SequenceEvent.Payload(cmd))
     }
 
   implicit val cogSequenceEvent: Cogen[SequenceEvent] =
     Cogen[(
       ExecutionEvent.Id,
-      Observation.Id,
       Visit.Id,
       Instant,
+      Observation.Id,
       SequenceCommandType
     )].contramap { a => (
       a.id,
-      a.observationId,
       a.visitId,
       a.received,
-      a.command
+      a.location.observationId,
+      a.payload.command
     )}
 
   def arbSequenceEventAdd(
@@ -66,7 +66,7 @@ trait ArbExecutionEventModel {
   ): Arbitrary[SequenceEvent.Add] =
     Arbitrary {
       arbitrary[SequenceCommandType].map { cmd =>
-        SequenceEvent.Add(oid, vid, SequenceEvent.Payload(cmd))
+        SequenceEvent.Add(vid, SequenceEvent.Location(oid), SequenceEvent.Payload(cmd))
       }
     }
 

@@ -100,6 +100,36 @@ object ExecutionEventSchema {
       PossibleObject[OdbCtx[F], ExecutionEventModel](DatasetEventType[F])
     ))
 
+  val SequenceEventLocationType: ObjectType[Any, SequenceEvent.Location] =
+    ObjectType[Any, SequenceEvent.Location](
+      name        = "SequenceEventLocation",
+      description = "Sequence event location, i.e., to which observation the event refers",
+      fields      = List[Field[Any, SequenceEvent.Location]](
+
+        Field(
+          name        = "observationId",
+          fieldType   = ObservationIdType,
+          description = "Observation containing the sequence".some,
+          resolve     = _.value.observationId
+        )
+
+      )
+    )
+
+  val SequenceEventPayloadType: ObjectType[Any, SequenceEvent.Payload] =
+    ObjectType[Any, SequenceEvent.Payload](
+      name        = "SequenceEventPayload",
+      description = "Sequence event data",
+      fields      = List[Field[Any, SequenceEvent.Payload]](
+        Field(
+          name        = "command",
+          fieldType   = EnumTypeSequenceCommand,
+          description = Some("Sequence command"),
+          resolve     = _.value.command
+        )
+      )
+    )
+
   def SequenceEventType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], SequenceEvent] =
     ObjectType[OdbCtx[F], SequenceEvent](
       name        = "SequenceEvent",
@@ -108,10 +138,17 @@ object ExecutionEventSchema {
       fields      = List[Field[OdbCtx[F], SequenceEvent]](
 
         Field(
-          name        = "command",
-          fieldType   = EnumTypeSequenceCommand,
-          description = Some("Sequence command"),
-          resolve     = _.value.command
+          name        = "location",
+          fieldType   = SequenceEventLocationType,
+          description = "Identifies the observation to which the event refers".some,
+          resolve     = _.value.location
+        ),
+
+        Field(
+          name        = "payload",
+          fieldType   = SequenceEventPayloadType,
+          description = "Sequence event data".some,
+          resolve     = _.value.payload
         )
 
       )
