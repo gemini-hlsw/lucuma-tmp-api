@@ -9,7 +9,7 @@ import cats.implicits._
 import clue.data.Input
 import lucuma.core.model.{ConstraintSet, Observation, Program, Target}
 import lucuma.odb.api.model.ObservationModel.{BulkEdit, CloneInput, Create, Edit, Group, ObservationEvent}
-import lucuma.odb.api.model.{ConstraintSetInput, Database, EitherInput, Event, ExecutionModel, InputError, ObservationModel, PlannedTimeSummaryModel, ScienceModeInput, ScienceRequirements, ScienceRequirementsInput, Table}
+import lucuma.odb.api.model.{ConstraintSetInput, Database, EitherInput, Event, ExecutionModel, InputError, ObservationModel, PlannedTimeSummaryModel, ScienceMode, ScienceModeInput, ScienceRequirements, ScienceRequirementsInput, Table}
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.model.syntax.databasestate._
@@ -74,6 +74,11 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
     pid:            Program.Id,
     includeDeleted: Boolean
   ): F[List[Group[ConstraintSet]]]
+
+  def groupByScienceMode(
+    pid:            Program.Id,
+    includeDeleted: Boolean
+  ): F[List[Group[Option[ScienceMode]]]]
 
   def groupByScienceRequirements(
     pid:            Program.Id,
@@ -314,12 +319,17 @@ object ObservationRepo {
       ): F[List[Group[ConstraintSet]]] =
         groupBy(pid, includeDeleted)(_.constraintSet)
 
+      override def groupByScienceMode(
+        pid:            Program.Id,
+        includeDeleted: Boolean
+      ): F[List[Group[Option[ScienceMode]]]] =
+        groupBy(pid, includeDeleted)(_.scienceMode)
+
       override def groupByScienceRequirements(
         pid:            Program.Id,
         includeDeleted: Boolean
       ): F[List[Group[ScienceRequirements]]] =
         groupBy(pid, includeDeleted)(_.scienceRequirements)
-
 
       private def selectObservations(
         select: BulkEdit.Select
