@@ -50,6 +50,74 @@ class MutationSuite extends OdbSuite {
     """)
   )
 
+  queryTest(
+    query = """
+      mutation BulkEditScienceMode($bulkEditScienceMode: BulkEditScienceModeInput!) {
+        bulkEditScienceMode(input: $bulkEditScienceMode) {
+          id
+          scienceMode {
+            gmosSouthLongSlit {
+              basic {
+                grating
+              }
+              advanced {
+                overrideGrating
+              }
+            }
+          }
+        }
+      }
+    """,
+    expected = json"""
+      {
+        "bulkEditScienceMode" : [
+          {
+            "id" : "o-3",
+            "scienceMode": {
+              "gmosSouthLongSlit": {
+                "basic": {
+                  "grating": "B600_G5323"
+                },
+                "advanced": {
+                  "overrideGrating": "R600_G5324"
+                }
+              }
+            }
+          },
+          {
+            "id" : "o-4",
+            "scienceMode": {
+              "gmosSouthLongSlit": {
+                "basic": {
+                  "grating": "B600_G5323"
+                },
+                "advanced": {
+                  "overrideGrating": "R600_G5324"
+                }
+              }
+            }
+          }
+        ]
+      }
+    """,
+    variables = Some(json"""
+      {
+        "bulkEditScienceMode": {
+          "select": {
+            "observationIds": [ "o-3", "o-4" ]
+          },
+          "edit": {
+            "gmosSouthLongSlit": {
+              "advanced": {
+                "overrideGrating": "R600_G5324"
+              }
+            }
+          }
+        }
+      }
+    """)
+  )
+
   // Attempts to edit the elevation range but it fails because the min range is
   // set to 0.  There should be only one error message even though the edit
   // would be to two observations.
