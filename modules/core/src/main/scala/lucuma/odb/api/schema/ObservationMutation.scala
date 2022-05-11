@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{ConstraintSetInput, ObservationModel, ScienceRequirementsInput}
+import lucuma.odb.api.model.{ConstraintSetInput, ObservationModel, ScienceModeInput, ScienceRequirementsInput}
 import lucuma.odb.api.model.ObservationModel.BulkEdit
 import lucuma.odb.api.schema.syntax.inputtype._
 import cats.effect.Async
@@ -134,6 +134,12 @@ trait ObservationMutation {
       InputObjectTypeScienceRequirements
     )
 
+  val ArgumentScienceModeBulkEdit: Argument[BulkEdit[ScienceModeInput]] =
+    bulkEditArgument[ScienceModeInput](
+      "scienceMode",
+      InputObjectTypeScienceMode
+    )
+
   def create[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name      = "createObservation",
@@ -194,6 +200,19 @@ trait ObservationMutation {
       resolve     = c => c.observation(_.bulkEditConstraintSet(c.arg(ArgumentConstraintSetBulkEdit)))
     )
 
+  def bulkEditScienceMode[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+    Field(
+      name        = "bulkEditScienceMode",
+      description =
+        """Edit the instrument selection and observing mode along with its basic
+          |configuration in (potentially) multiple observations at once.
+        """.stripMargin.some,
+      fieldType   = ListType(ObservationType[F]),
+      arguments   = List(ArgumentScienceModeBulkEdit),
+      resolve     = c => c.observation(_.bulkEditScienceMode(c.arg(ArgumentScienceModeBulkEdit)))
+    )
+
+
   def bulkEditScienceRequirements[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "bulkEditScienceRequirements",
@@ -230,6 +249,7 @@ trait ObservationMutation {
       bulkEditAsterism,
       bulkEditTargetEnvironment,
       bulkEditConstraintSet,
+      bulkEditScienceMode,
       bulkEditScienceRequirements,
       delete,
       undelete,

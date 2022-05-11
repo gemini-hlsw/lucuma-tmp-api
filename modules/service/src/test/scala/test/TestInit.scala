@@ -6,15 +6,17 @@ package test
 import cats.data.State
 import cats.effect.Sync
 import cats.syntax.all._
+import clue.data.syntax._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.parser.decode
-import lucuma.core.`enum`._
+import lucuma.core.`enum`.{ScienceMode => _, _}
 import lucuma.core.math.syntax.int._
 import lucuma.core.model.Program
 import lucuma.core.optics.syntax.all._
 import lucuma.core.syntax.time._
 import lucuma.odb.api.model.OffsetModel.ComponentInput
 import lucuma.odb.api.model._
+import lucuma.odb.api.model.gmos.longslit.BasicConfigInput
 import lucuma.odb.api.model.targetModel.{TargetEnvironmentInput, TargetModel}
 import lucuma.odb.api.repo.OdbRepo
 
@@ -407,7 +409,15 @@ object TestInit {
       targetEnvironment    = TargetEnvironmentInput.asterism(targets.map(_.id)).some,
       constraintSet        = None,
       scienceRequirements  = ScienceRequirementsInput.Default.some,
-      scienceMode          = None,
+      scienceMode          =
+        ScienceModeInput(
+          gmosSouthLongSlit = ScienceMode.GmosSouthLongSlitInput(
+            BasicConfigInput[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu](
+              grating   = GmosSouthGrating.B600_G5323.assign,
+              fpu       = GmosSouthFpu.LongSlit_1_00.assign
+            ).assign
+          ).assign
+        ).some,
       config               =
         ExecutionModel.Create.gmosSouth(
           GmosModel.CreateSouthStatic.Default,
