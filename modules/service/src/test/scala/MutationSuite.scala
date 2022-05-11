@@ -210,9 +210,7 @@ class MutationSuite extends OdbSuite {
       }
     """
   )
-/*
 
- */
   // Attempts to edit the elevation range but it fails because the min range is
   // set to 0.  There should be only one error message even though the edit
   // would be to two observations.
