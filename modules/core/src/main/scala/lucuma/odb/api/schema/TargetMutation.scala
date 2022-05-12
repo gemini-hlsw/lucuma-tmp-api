@@ -249,9 +249,9 @@ trait TargetMutation extends TargetScalars {
     )
   }
 
-  def updateTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def editTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name        = "updateTarget",
+      name        = "editTarget",
       fieldType   = TargetType[F],
       description = "Edits an existing target".some,
       arguments   = List(ArgumentEditTargetInput),
@@ -281,7 +281,7 @@ trait TargetMutation extends TargetScalars {
     List(
       createTarget,
       cloneTarget,
-      updateTarget,
+      editTarget,
       delete,
       undelete
     )
