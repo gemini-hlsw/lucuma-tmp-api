@@ -40,8 +40,7 @@ final case class ObservationModel(
   constraintSet:       ConstraintSet,
   scienceRequirements: ScienceRequirements,
   scienceMode:         Option[ScienceMode],
-  config:              Option[ExecutionModel],
-  plannedTimeSummary:  PlannedTimeSummaryModel
+  config:              Option[ExecutionModel]
 ) {
 
   val validate: StateT[EitherInput, Database, ObservationModel] =
@@ -67,8 +66,7 @@ object ObservationModel extends ObservationOptics {
       o.constraintSet,
       o.scienceRequirements,
       o.scienceMode,
-      o.config,
-      o.plannedTimeSummary
+      o.config
     )}
 
 
@@ -85,9 +83,7 @@ object ObservationModel extends ObservationOptics {
     config:              Option[ExecutionModel.Create]
   ) {
 
-    def create[F[_]: Sync](
-      s: PlannedTimeSummaryModel
-    ): F[StateT[EitherInput, Database, ObservationModel]] =
+    def create[F[_]: Sync]: F[StateT[EitherInput, Database, ObservationModel]] =
       config.traverse(_.create).map { g =>
         for {
           i <- Database.observation.getUnusedKey(observationId)
@@ -108,8 +104,7 @@ object ObservationModel extends ObservationOptics {
               constraintSet        = cʹ.getOrElse(ConstraintSetModel.Default),
               scienceRequirements  = qʹ.getOrElse(ScienceRequirements.Default),
               scienceMode          = uʹ,
-              config               = gʹ,
-              plannedTimeSummary   = s
+              config               = gʹ
             )
           }
           oʹ <- o.traverse(_.validate)
@@ -253,8 +248,7 @@ object ObservationModel extends ObservationOptics {
               constraintSet        = cʹ.getOrElse(orig.constraintSet),
               scienceRequirements  = qʹ.getOrElse(orig.scienceRequirements),
               scienceMode          = uʹ.orElse(orig.scienceMode),
-              config               = gʹ.orElse(orig.config),
-              plannedTimeSummary   = orig.plannedTimeSummary  // wrong.  need to remove from observation model
+              config               = gʹ.orElse(orig.config)
             )
           }
           oʹʹ <- oʹ.traverse(_.validate)

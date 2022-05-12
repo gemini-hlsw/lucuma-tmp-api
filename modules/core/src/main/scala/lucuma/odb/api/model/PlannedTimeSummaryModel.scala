@@ -47,4 +47,14 @@ object PlannedTimeSummaryModel {
   implicit val EqPlannedTimeSummaryModel: Eq[PlannedTimeSummaryModel] =
     Eq.by(t => (t.piTime.toNanos, t.unchargedTime.toNanos))
 
+  // "calculate" the planned time.  want a stable value so ... here's something
+  // random for now
+  def forObservation(o: ObservationModel): PlannedTimeSummaryModel = {
+    val l = o.id.hashCode()
+    PlannedTimeSummaryModel(
+      (((l % 20).abs + 1) * 5).toLong.minutes,
+      (15 - (l % 15).abs).toLong.minutes
+    )
+  }
+
 }

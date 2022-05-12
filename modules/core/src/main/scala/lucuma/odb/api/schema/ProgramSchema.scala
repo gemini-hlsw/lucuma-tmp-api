@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.ProgramModel
+import lucuma.odb.api.model.{PlannedTimeSummaryModel, ProgramModel}
 import lucuma.core.model.Program
 import cats.effect.Async
 import cats.effect.std.Dispatcher
@@ -94,7 +94,7 @@ object ProgramSchema {
           arguments   = List(ArgumentIncludeDeleted),
           resolve     = c => c.observation {
             _.selectPageForProgram(c.value.id, Some(Integer.MAX_VALUE), None, c.includeDeleted)
-             .map(_.nodes.foldMap(_.plannedTimeSummary))
+             .map(_.nodes.foldMap(PlannedTimeSummaryModel.forObservation))
           }
         )
 
