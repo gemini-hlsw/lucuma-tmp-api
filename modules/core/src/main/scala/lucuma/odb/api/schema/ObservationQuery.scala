@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{InputError, ObservationModel, ScienceRequirements}
+import lucuma.odb.api.model.{InputError, ObservationModel, ScienceMode, ScienceRequirements}
 import lucuma.odb.api.repo.{OdbCtx, ResultPage}
 import cats.MonadError
 import cats.effect.Async
@@ -23,6 +23,7 @@ trait ObservationQuery {
   import Paging._
   import ProgramSchema.OptionalProgramIdArgument
   import ObservationSchema.{ObservationIdArgument, ObservationType, ObservationConnectionType, OptionalListObservationIdArgument}
+  import ScienceModeSchema.ScienceModeType
   import ScienceRequirementsSchema.ScienceRequirementsType
   import TargetSchema.TargetType
 
@@ -110,6 +111,17 @@ trait ObservationQuery {
       _.observationIds.head
     )
 
+  def groupByScienceMode[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+
+    ObservationGroupSchema.groupingField[F, Option[ScienceMode], Observation.Id](
+      "scienceMode",
+      "Observations grouped by commonly held science mode",
+      OptionType(ScienceModeType),
+      (repo, pid, includeDeleted) => repo.groupByScienceMode(pid, includeDeleted),
+      _.pagingObservationId,
+      _.observationIds.head
+    )
+
   def groupByScienceRequirements[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
 
     ObservationGroupSchema.groupingField[F, ScienceRequirements, Observation.Id](
@@ -129,6 +141,7 @@ trait ObservationQuery {
       groupByAsterism,
       groupByTargetEnvironment,
       groupByConstraintSet,
+      groupByScienceMode,
       groupByScienceRequirements
     )
 }

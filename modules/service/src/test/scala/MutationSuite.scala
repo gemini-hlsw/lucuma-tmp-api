@@ -118,6 +118,99 @@ class MutationSuite extends OdbSuite {
     """)
   )
 
+  // Now if we group by science mode, 3 and 4 will be together and the others
+  // separate.
+  queryTest(
+    query = """
+      query ObservationsByScienceMode {
+        scienceModeGroup(programId:"p-2") {
+          nodes {
+            scienceMode {
+              gmosSouthLongSlit {
+                advanced {
+                  overrideGrating
+                }
+              }
+            }
+            observationIds
+            observations(first: 10) {
+              nodes {
+                id
+                title
+              }
+            }
+          }
+        }
+      }
+    """,
+    expected = json"""
+      {
+        "scienceModeGroup" : {
+          "nodes" : [
+            {
+              "scienceMode" : {
+                "gmosSouthLongSlit": {
+                  "advanced" : null
+                }
+              },
+              "observationIds" : [
+                "o-2",
+                "o-5",
+                "o-6",
+                "o-7"
+              ],
+              "observations" : {
+                "nodes" : [
+                  {
+                    "id" : "o-2",
+                    "title" : "NGC 5949"
+                  },
+                  {
+                    "id" : "o-5",
+                    "title" : "NGC 3312"
+                  },
+                  {
+                    "id" : "o-6",
+                    "title" : "NGC 5949, NGC 3269, NGC 3312"
+                  },
+                  {
+                    "id" : "o-7",
+                    "title" : ""
+                  }
+                ]
+              }
+            },
+            {
+              "scienceMode" : {
+                "gmosSouthLongSlit": {
+                  "advanced" : {
+                    "overrideGrating" : "R600_G5324"
+                  }
+                }
+              },
+              "observationIds" : [
+                "o-3",
+                "o-4"
+              ],
+              "observations" : {
+                "nodes" : [
+                  {
+                    "id" : "o-3",
+                    "title" : "NGC 3312"
+                  },
+                  {
+                    "id" : "o-4",
+                    "title" : "NGC 3312"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    """
+  )
+
   // Attempts to edit the elevation range but it fails because the min range is
   // set to 0.  There should be only one error message even though the edit
   // would be to two observations.
