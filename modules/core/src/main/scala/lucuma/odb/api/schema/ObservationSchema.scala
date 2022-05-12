@@ -8,7 +8,7 @@ import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.Observation
-import lucuma.odb.api.model.ObservationModel
+import lucuma.odb.api.model.{ObservationModel, PlannedTimeSummaryModel}
 import lucuma.odb.api.repo.OdbCtx
 import lucuma.odb.api.schema.TargetSchema.TargetEnvironmentType
 import org.typelevel.log4cats.Logger
@@ -130,7 +130,7 @@ object ObservationSchema {
           name        = "plannedTime",
           fieldType   = PlannedTimeSummaryType,
           description = Some("Observation planned time calculation."),
-          resolve     = _.value.plannedTimeSummary
+          resolve     = c => PlannedTimeSummaryModel.forObservation(c.value)
         ),
 
         Field(

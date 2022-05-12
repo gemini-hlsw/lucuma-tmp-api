@@ -9,7 +9,7 @@ import cats.implicits._
 import clue.data.Input
 import lucuma.core.model.{ConstraintSet, Observation, Program, Target}
 import lucuma.odb.api.model.ObservationModel.{BulkEdit, CloneInput, Create, Edit, Group, ObservationEvent}
-import lucuma.odb.api.model.{ConstraintSetInput, Database, EitherInput, Event, ExecutionModel, InputError, ObservationModel, PlannedTimeSummaryModel, ScienceMode, ScienceModeInput, ScienceRequirements, ScienceRequirementsInput, Table}
+import lucuma.odb.api.model.{ConstraintSetInput, Database, EitherInput, Event, ExecutionModel, InputError, ObservationModel, ScienceMode, ScienceModeInput, ScienceRequirements, ScienceRequirementsInput, Table}
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.model.syntax.databasestate._
@@ -149,10 +149,10 @@ object ObservationRepo {
       override def insert(newObs: Create): F[ObservationModel] = {
 
         // Create the observation
-        def create(s: PlannedTimeSummaryModel): F[ObservationModel] =
+        val create: F[ObservationModel] =
           EitherT(
             for {
-              st <- newObs.create[F](s)
+              st <- newObs.create[F]
               o  <- databaseRef.modify { db =>
                 st.run(db)
                   .fold(
@@ -164,8 +164,7 @@ object ObservationRepo {
           ).rethrowT
 
         for {
-          s <- PlannedTimeSummaryModel.random[F]
-          o <- create(s)
+          o <- create
           _ <- eventService.publish(ObservationEvent(_, Event.EditType.Created, o))
         } yield o
 

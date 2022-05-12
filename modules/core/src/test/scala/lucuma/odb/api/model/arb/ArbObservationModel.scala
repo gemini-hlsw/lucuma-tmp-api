@@ -34,7 +34,7 @@ trait ArbObservationModel {
         ts <- arbitrary[TargetEnvironmentModel]
         cs <- arbitrary[ConstraintSet]
         sr <- arbitrary[ScienceRequirements]
-      } yield ObservationModel(id, ex, pid, nm, os, as, ts, cs, sr, None, None, PlannedTimeSummaryModel.Zero)
+      } yield ObservationModel(id, ex, pid, nm, os, as, ts, cs, sr, None, None)
     }
 
   implicit val arbObservationModel: Arbitrary[ObservationModel] =
