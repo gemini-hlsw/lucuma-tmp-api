@@ -15,7 +15,7 @@ class SourceProfileSuite extends OdbSuite {
   queryTest(
     query     = """
       mutation EditMagnitude($targetEdit: EditTargetInput!) {
-        updateTarget(input: $targetEdit) {
+        editTarget(input: $targetEdit) {
           id
           name
           sourceProfile {
@@ -35,7 +35,7 @@ class SourceProfileSuite extends OdbSuite {
     """,
     expected  = json"""
       {
-        "updateTarget": {
+        "editTarget": {
           "id": "t-3",
           "name": "NGC 3269",
           "sourceProfile": {
@@ -95,24 +95,26 @@ class SourceProfileSuite extends OdbSuite {
       {
         "targetEdit": {
           "targetId": "t-3",
-          "sourceProfile": {
-            "point": {
-              "bandNormalized": {
-                "editBrightnesses": [
-                  {
-                    "band": "J",
-                    "value": 42.0
-                  },
-                  {
-                    "band": "H",
-                    "error": null
-                  },
-                  {
-                    "band": "U",
-                    "value": 10.0,
-                    "units": "VEGA_MAGNITUDE"
-                  }
-                ]
+          "edit": {
+            "sourceProfile": {
+              "point": {
+                "bandNormalized": {
+                  "editBrightnesses": [
+                    {
+                      "band": "J",
+                      "value": 42.0
+                    },
+                    {
+                      "band": "H",
+                      "error": null
+                    },
+                    {
+                      "band": "U",
+                      "value": 10.0,
+                      "units": "VEGA_MAGNITUDE"
+                    }
+                  ]
+                }
               }
             }
           }
@@ -126,7 +128,7 @@ class SourceProfileSuite extends OdbSuite {
   queryTest(
     query     = """
       mutation EditMagnitude($targetEdit: EditTargetInput!) {
-        updateTarget(input: $targetEdit) {
+        editTarget(input: $targetEdit) {
           id
           name
           sourceProfile {
@@ -146,7 +148,7 @@ class SourceProfileSuite extends OdbSuite {
     """,
     expected  = json"""
       {
-        "updateTarget": {
+        "editTarget": {
           "id": "t-2",
           "name": "NGC 5949",
           "sourceProfile": {
@@ -170,16 +172,18 @@ class SourceProfileSuite extends OdbSuite {
       {
         "targetEdit": {
           "targetId": "t-2",
-          "sourceProfile": {
-            "point": {
-              "bandNormalized": {
-                "brightnesses": [
-                  {
-                    "band": "U",
-                    "value": 10.0,
-                    "units": "VEGA_MAGNITUDE"
-                  }
-                ]
+          "edit": {
+            "sourceProfile": {
+              "point": {
+                "bandNormalized": {
+                  "brightnesses": [
+                    {
+                      "band": "U",
+                      "value": 10.0,
+                      "units": "VEGA_MAGNITUDE"
+                    }
+                  ]
+                }
               }
             }
           }
@@ -193,7 +197,7 @@ class SourceProfileSuite extends OdbSuite {
   queryTest(
     query     = """
       mutation EditMagnitude($targetEdit: EditTargetInput!) {
-        updateTarget(input: $targetEdit) {
+        editTarget(input: $targetEdit) {
           id
           name
           sourceProfile {
@@ -213,7 +217,7 @@ class SourceProfileSuite extends OdbSuite {
     """,
     expected  = json"""
       {
-        "updateTarget": {
+        "editTarget": {
           "id": "t-4",
           "name": "NGC 3312",
           "sourceProfile": {
@@ -237,16 +241,18 @@ class SourceProfileSuite extends OdbSuite {
       {
         "targetEdit": {
           "targetId": "t-4",
-          "sourceProfile": {
-            "point": {
-              "bandNormalized": {
-                "editBrightnesses": [
-                  {
-                    "band": "V",
-                    "error": 10.0
-                  }
-                ],
-                "deleteBrightnesses": [ "B", "J", "H", "K" ]
+          "edit": {
+            "sourceProfile": {
+              "point": {
+                "bandNormalized": {
+                  "editBrightnesses": [
+                    {
+                      "band": "V",
+                      "error": 10.0
+                    }
+                  ],
+                  "deleteBrightnesses": [ "B", "J", "H", "K" ]
+                }
               }
             }
           }

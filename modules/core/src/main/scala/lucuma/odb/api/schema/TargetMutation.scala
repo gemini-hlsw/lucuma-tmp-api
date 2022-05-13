@@ -16,7 +16,7 @@ import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
 import sangria.macros.derive.{ReplaceInputField, _}
 import sangria.marshalling.circe._
-import sangria.schema._
+import sangria.schema.{InputField, _}
 
 
 trait TargetMutation extends TargetScalars {
@@ -24,7 +24,7 @@ trait TargetMutation extends TargetScalars {
   import context._
   import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
   import NumericUnitsSchema._
-  import ProgramSchema.ProgramIdArgument
+  import ProgramSchema.ProgramIdType
   import SourceProfileSchema.InputObjectSourceProfile
   import TargetSchema.{EnumTypeCatalogName, EphemerisKeyTypeEnumType, ArgumentTargetId, TargetIdType, TargetType}
 
@@ -122,18 +122,6 @@ trait TargetMutation extends TargetScalars {
       ReplaceInputField("key",           NonEmptyStringType            .notNullableField("key"          )),
     )
 
-  implicit val InputObjectTypeCreateTarget: InputObjectType[TargetModel.Create] =
-    deriveInputObjectType[TargetModel.Create](
-      InputObjectTypeName("CreateTargetInput"),
-      InputObjectTypeDescription("Target creation parameters")
-    )
-
-  val ArgumentTargetCreate: Argument[TargetModel.Create] =
-    InputObjectTypeCreateTarget.argument(
-      "input",
-      "Target description.  One (and only one) of sidereal or nonsidereal must be specified."
-    )
-
   implicit val InputObjectTypeSidereal: InputObjectType[SiderealInput] =
     deriveInputObjectType[SiderealInput](
       InputObjectTypeName("SiderealInput"),
@@ -148,28 +136,38 @@ trait TargetMutation extends TargetScalars {
       ReplaceInputField("catalogInfo",    InputObjectCatalogInfo   .nullableField("catalogInfo"   ))
     )
 
-  implicit val InputObjectEditTargetInput: InputObjectType[TargetModel.Edit] = {
-
-    // Not able to derive this for some reason, TBD.
-//    deriveInputObjectType[TargetModel.Edit](
-//      InputObjectTypeName("EditTargetInput"),
-//      InputObjectTypeDescription("Single target edit options"),
-//
-//      ReplaceInputField("existence",     EnumTypeExistence.notNullableField("existence")),
-//      ReplaceInputField("name",          NonEmptyStringType.notNullableField("name")),
-//      ReplaceInputField("sourceProfile", InputObjectSourceProfile.notNullableField("sourceProfile"))
-//    )
-
-    InputObjectType[TargetModel.Edit](
-      "EditTargetInput",
-      "Single target edit options",
+  implicit val InputObjectTypeTarget: InputObjectType[TargetModel.TargetInput] =
+    InputObjectType[TargetModel.TargetInput](
+      "TargetInput",
+      "Target properties",
       List(
-        InputField("targetId",      TargetIdType),
-        InputField("existence",     OptionInputType(EnumTypeExistence)),
         InputField("name",          OptionInputType(NonEmptyStringType)),
         InputField("sidereal",      OptionInputType(InputObjectTypeSidereal)),
         InputField("nonsidereal",   OptionInputType(InputObjectTypeNonsidereal)),
         InputField("sourceProfile", OptionInputType(InputObjectSourceProfile))
+      )
+    )
+
+  implicit val InputObjectTypeCreateTarget: InputObjectType[TargetModel.Create] =
+    deriveInputObjectType[TargetModel.Create](
+      InputObjectTypeName("CreateTargetInput"),
+      InputObjectTypeDescription("Target creation parameters")
+    )
+
+  val ArgumentTargetCreate: Argument[TargetModel.Create] =
+    InputObjectTypeCreateTarget.argument(
+      "input",
+      "Target description.  One (and only one) of sidereal or nonsidereal must be specified."
+    )
+
+  implicit val InputObjectEditTargetInput: InputObjectType[TargetModel.Edit] = {
+    InputObjectType[TargetModel.Edit](
+      "EditTargetInput",
+      "Target edit options",
+      List(
+        InputField("targetId",  TargetIdType),
+        InputField("edit",      OptionInputType(InputObjectTypeTarget)),
+        InputField("existence", OptionInputType(EnumTypeExistence))
       )
     )
   }
@@ -201,8 +199,8 @@ trait TargetMutation extends TargetScalars {
       name        = "createTarget",
       fieldType   = TargetType[F],
       description = "Creates a new target according to the provided parameters.  Only one of sidereal or nonsidereal may be specified.".some,
-      arguments   = List(ProgramIdArgument, ArgumentTargetCreate),
-      resolve     = c => c.target(_.insert(c.programId, c.arg(ArgumentTargetCreate)))
+      arguments   = List(ArgumentTargetCreate),
+      resolve     = c => c.target(_.insert(c.arg(ArgumentTargetCreate)))
     )
 
   def cloneTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] = {

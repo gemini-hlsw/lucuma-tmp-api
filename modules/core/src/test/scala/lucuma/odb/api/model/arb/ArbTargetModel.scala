@@ -6,6 +6,7 @@ package arb
 
 import cats.Order.catsKernelOrderingForOrder
 import clue.data.Input
+import clue.data.syntax._
 import eu.timepit.refined.scalacheck.string._
 import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.`enum`.EphemerisKeyType
@@ -149,27 +150,27 @@ trait ArbTargetModel {
   implicit val arbCreateTarget: Arbitrary[TargetModel.Create] =
     Arbitrary {
       for {
-        t <- arbitrary[Option[Target.Id]]
+        p <- arbitrary[Program.Id]
         m <- arbitrary[NonEmptyString]
         s <- arbitrary[Option[SiderealInput]]
         n <- arbitrary[Option[NonsiderealInput]]
-        p <- arbitrary[SourceProfileInput]
-      } yield TargetModel.Create(t, m, s, n, p)
+        r <- arbitrary[SourceProfileInput]
+      } yield TargetModel.Create(p, TargetModel.TargetInput(m.assign, s, n, r.assign))
     }
 
   implicit val cogCreateTarget: Cogen[TargetModel.Create] =
     Cogen[(
-      Option[Target.Id],
-      String,
+      Program.Id,
+      Option[String],
       Option[SiderealInput],
       Option[NonsiderealInput],
-      SourceProfileInput
+      Option[SourceProfileInput]
     )].contramap { a => (
-      a.targetId,
-      a.name.value,
-      a.sidereal,
-      a.nonsidereal,
-      a.sourceProfile
+      a.programId,
+      a.create.name.toOption.map(_.value),
+      a.create.sidereal,
+      a.create.nonsidereal,
+      a.create.sourceProfile.toOption
     )}
 
   implicit val arbEditAsterismInput: Arbitrary[EditAsterismInput] =

@@ -272,8 +272,10 @@ object TestInit {
 """
   )
 
-  val targets: Either[Exception, List[TargetModel.Create]] =
-    targetsJson.traverse(decode[TargetModel.Create])
+  def targets(pid: Program.Id): Either[Exception, List[TargetModel.Create]] =
+    targetsJson.traverse(decode[TargetModel.TargetInput]).map { in =>
+      in.map(TargetModel.Create(pid, _))
+    }
 
   import GmosModel.{CreateCcdReadout, CreateSouthDynamic}
   import CreateCcdReadout.{ampRead, xBin, yBin}
@@ -444,8 +446,8 @@ object TestInit {
                 NonEmptyString.from("An Empty Placeholder Program").toOption
               )
             )
-      cs <- targets.liftTo[F]
-      ts <- cs.init.traverse(repo.target.insert(p.id, _))
+      cs <- targets(p.id).liftTo[F]
+      ts <- cs.init.traverse(repo.target.insert(_))
       _  <- repo.observation.insert(obs(p.id, ts.headOption.toList)) // 2
       _  <- repo.observation.insert(obs(p.id, ts.lastOption.toList)) // 3
       _  <- repo.observation.insert(obs(p.id, ts.lastOption.toList)) // 4
@@ -465,13 +467,13 @@ object TestInit {
             )
 
       // Add an unused target (t-5 NGC 4749)
-      _  <- repo.target.insert(p.id, cs.last)
+      _  <- repo.target.insert(cs.last)
 
       _  <- repo.observation.insert(obs(p.id, ts))                   // 6
       _  <- repo.observation.insert(obs(p.id, Nil))                  // 7
 
       // Add an unused target for the otherwise empty program. (t-6)
-      _  <- repo.target.insert(p3.id, cs.last)
+      _  <- repo.target.insert(cs.last.copy(programId = p3.id))
 
     } yield ()
 

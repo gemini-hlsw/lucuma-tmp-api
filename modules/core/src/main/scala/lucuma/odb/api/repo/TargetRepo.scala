@@ -112,7 +112,7 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
     oid: Observation.Id
   ): F[TargetEnvironmentModel]
 
-  def insert(programId: Program.Id, newTarget: TargetModel.Create): F[TargetModel]
+  def insert(newTarget: TargetModel.Create): F[TargetModel]
 
   def edit(edit: TargetModel.Edit): F[TargetModel]
 
@@ -262,7 +262,6 @@ object TargetRepo {
         unsafeSelect(id)(selectObservationTargetEnvironment)
 
       override def insert(
-        programId: Program.Id,
         newTarget: TargetModel.Create
       ): F[TargetModel] = {
 
@@ -270,7 +269,7 @@ object TargetRepo {
           EitherT(
             databaseRef.modify { db =>
               newTarget
-                .create(programId)
+                .createTarget
                 .run(db)
                 .fold(
                   err => (db, InputError.Exception(err).asLeft),

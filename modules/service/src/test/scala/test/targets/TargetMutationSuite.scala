@@ -13,7 +13,7 @@ class TargetMutationSuite extends OdbSuite {
   queryTest(
     query = """
       mutation UpdateScienceTarget($targetEdit: EditTargetInput!) {
-        updateTarget(input: $targetEdit) {
+        editTarget(input: $targetEdit) {
           id
           name
           sidereal {
@@ -24,7 +24,7 @@ class TargetMutationSuite extends OdbSuite {
     """,
     expected = json"""
       {
-        "updateTarget": {
+        "editTarget": {
           "id": "t-4",
           "name": "NGC 3312",
           "sidereal": {
@@ -37,8 +37,10 @@ class TargetMutationSuite extends OdbSuite {
       {
         "targetEdit": {
           "targetId": "t-4",
-          "sidereal": {
-            "parallax": null
+          "edit": {
+            "sidereal": {
+              "parallax": null
+            }
           }
         }
       }

@@ -228,8 +228,10 @@ object Init {
   )
 
 
-  val targets: Either[Exception, List[TargetModel.Create]] =
-    targetsJson.traverse(decode[TargetModel.Create])
+  def targets(pid: Program.Id): Either[Exception, List[TargetModel.Create]] =
+    targetsJson.traverse(decode[TargetModel.TargetInput]).map { in =>
+      in.map(TargetModel.Create(pid, _))
+    }
 
   import GmosModel.{CreateCcdReadout, CreateSouthDynamic}
   import StepConfig.CreateStepConfig
@@ -449,8 +451,8 @@ object Init {
                 NonEmptyString.from("An Empty Placeholder Program").toOption
               )
             )
-      cs <- targets.liftTo[F]
-      ts <- cs.traverse(repo.target.insert(p.id, _))
+      cs <- targets(p.id).liftTo[F]
+      ts <- cs.traverse(repo.target.insert(_))
       _  <- repo.observation.insert(gmosSouthAutoObs(p.id, ts.headOption))
       _  <- repo.observation.insert(gmosSouthAutoObs(p.id, ts.lastOption))
       _  <- repo.observation.insert(gmosSouthManualObs(p.id, None))

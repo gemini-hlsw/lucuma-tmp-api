@@ -13,7 +13,7 @@ class TargetRenameMutationSuite extends OdbSuite {
   queryTest(
     query ="""
       mutation UpdateTarget($renameEdit: EditTargetInput!) {
-        updateTarget(input: $renameEdit) {
+        editTarget(input: $renameEdit) {
           id
           name
         }
@@ -21,7 +21,7 @@ class TargetRenameMutationSuite extends OdbSuite {
     """,
     expected = json"""
       {
-        "updateTarget": {
+        "editTarget": {
           "id": "t-4",
           "name": "NGC 3312*"
         }
@@ -31,7 +31,9 @@ class TargetRenameMutationSuite extends OdbSuite {
       {
         "renameEdit": {
           "targetId": "t-4",
-          "name": "NGC 3312*"
+          "edit": {
+            "name": "NGC 3312*"
+          }
         }
       }
     """.some,
