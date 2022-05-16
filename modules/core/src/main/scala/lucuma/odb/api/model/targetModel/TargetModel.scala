@@ -5,8 +5,11 @@ package lucuma.odb.api.model.targetModel
 
 import cats.{Eq, Order}
 import cats.data.{StateT, Validated}
+import cats.kernel.Order.catsKernelOrderingForOrder
 import cats.syntax.apply._
+import cats.syntax.eq._
 import cats.syntax.option._
+import cats.syntax.traverse._
 import clue.data.Input
 import clue.data.syntax._
 import eu.timepit.refined.cats._
@@ -14,7 +17,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
-import lucuma.core.model.{Program, SourceProfile, Target}
+import lucuma.core.model.{Observation, Program, SourceProfile, Target}
 import lucuma.odb.api.model.{Database, EditorInput, EitherInput, Event, Existence, InputError, TopLevelModel, ValidatedInput}
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
@@ -61,7 +64,7 @@ object TargetModel extends TargetModelOptics {
     }
   }
 
-  final case class TargetInput(
+  final case class PropertiesInput(
     name:          Input[NonEmptyString]     = Input.ignore,
     sidereal:      Option[SiderealInput]     = None,
     nonsidereal:   Option[NonsiderealInput]  = None,
@@ -102,16 +105,16 @@ object TargetModel extends TargetModelOptics {
     }
   }
 
-  object TargetInput {
+  object PropertiesInput {
 
     import io.circe.generic.extras.semiauto._
     import io.circe.generic.extras.Configuration
     implicit val customConfig: Configuration = Configuration.default.withDefaults
 
-    implicit val DecoderInput: Decoder[TargetInput] =
-      deriveConfiguredDecoder[TargetInput]
+    implicit val DecoderInput: Decoder[PropertiesInput] =
+      deriveConfiguredDecoder[PropertiesInput]
 
-    implicit val EqTargetInput: Eq[TargetInput] =
+    implicit val EqTargetInput: Eq[PropertiesInput] =
       Eq.by { a => (
         a.name,
         a.sidereal,
@@ -121,9 +124,9 @@ object TargetModel extends TargetModelOptics {
 
   }
 
-  final case class Create(
+  final case class CreateInput(
     programId: Program.Id,
-    create:    TargetInput
+    create:    PropertiesInput
   ) {
 
     val createTarget: StateT[EitherInput, Database, TargetModel] =
@@ -138,70 +141,136 @@ object TargetModel extends TargetModelOptics {
 
   }
 
-  object Create {
+  object CreateInput {
 
     def sidereal(
       programId:     Program.Id,
       name:          NonEmptyString,
       input:         SiderealInput,
       sourceProfile: SourceProfileInput
-    ): Create =
-      Create(programId, TargetInput(name.assign, input.some, None, sourceProfile.assign))
+    ): CreateInput =
+      CreateInput(programId, PropertiesInput(name.assign, input.some, None, sourceProfile.assign))
 
     def nonsidereal(
       programId:     Program.Id,
       name:          NonEmptyString,
       input:         NonsiderealInput,
       sourceProfile: SourceProfileInput
-    ): Create =
-      Create(programId, TargetInput(name.assign, None, input.some, sourceProfile.assign))
+    ): CreateInput =
+      CreateInput(programId, PropertiesInput(name.assign, None, input.some, sourceProfile.assign))
 
-    implicit val DecoderCreate: Decoder[Create] =
-      deriveDecoder[Create]
+    implicit val DecoderCreate: Decoder[CreateInput] =
+      deriveDecoder[CreateInput]
 
-    implicit val EqCreate: Eq[Create] =
+    implicit val EqCreate: Eq[CreateInput] =
       Eq.by { a => (
         a.programId,
         a.create
       )}
   }
 
-  final case class Edit(
-    targetId:  Target.Id,
-    edit:      Input[TargetInput] = Input.ignore,
-    existence: Input[Existence]   = Input.ignore
+  final case class SelectInput(
+    programId:      Option[Program.Id],
+    observationId:  Option[Observation.Id],
+    observationIds: Option[List[Observation.Id]],
+    targetId:       Option[Target.Id],
+    targetIds:      Option[List[Target.Id]]
+  ) {
+
+    val go: StateT[EitherInput, Database, List[TargetModel]] =
+      for {
+        p   <- programId.traverse(Database.program.lookup)
+        ts0 <- p.traverse(pm => StateT.inspect[EitherInput, Database, List[TargetModel]](_.targets.rows.values.filter(_.programId === pm.id).toList))
+        o   <- observationId.traverse(Database.observation.lookup)
+        ts1 <- o.map(_.targetEnvironment.asterism.toList).traverse(Database.target.lookupAll)
+        os  <- observationIds.traverse(Database.observation.lookupAll)
+        ts2 <- os.map(_.flatMap(_.targetEnvironment.asterism.toList)).traverse(Database.target.lookupAll)
+        ts3 <- targetId.traverse(Database.target.lookup).map(_.map(t => List(t)))
+        ts4 <- targetIds.traverse(Database.target.lookupAll)
+      } yield
+        (ts0.toList ::: ts1.toList ::: ts2.toList ::: ts3.toList ::: ts4.toList)
+          .flatten
+          .distinctBy(_.id)
+          .sortBy(_.id)
+
+  }
+
+  object SelectInput {
+
+    implicit val DecoderSelect: Decoder[SelectInput] =
+      deriveDecoder[SelectInput]
+
+    implicit val EqSelect: Eq[SelectInput] =
+      Eq.by { a => (
+        a.programId,
+        a.observationId,
+        a.observationIds,
+        a.targetId,
+        a.targetIds
+      )}
+
+  }
+
+  final case class PatchInput(
+    target:    Input[PropertiesInput] = Input.ignore,
+    existence: Input[Existence]       = Input.ignore
   ) {
 
     val editor: StateT[EitherInput, TargetModel, Unit] = {
-
       val validArgs =
         (existence.validateIsNotNull("existence"),
-         edit.validateIsNotNull("edit")
+         target.validateIsNotNull("target")
         ).tupled
 
       for {
         args <- validArgs.liftState
         (e, _) = args
         _ <- TargetModel.existence := e
-        _ <- TargetModel.target    :< edit.toOption.map(_.edit)
+        _ <- TargetModel.target    :< target.toOption.map(_.edit)
       } yield ()
     }
 
   }
 
-  object Edit {
+  object PatchInput {
     import io.circe.generic.extras.semiauto._
     import io.circe.generic.extras.Configuration
     implicit val customConfig: Configuration = Configuration.default.withDefaults
 
-    implicit val DecoderEdit: Decoder[Edit] =
-      deriveConfiguredDecoder[Edit]
+    implicit val DecoderEdit: Decoder[PatchInput] =
+      deriveConfiguredDecoder[PatchInput]
 
-    implicit val EqEdit: Eq[Edit] =
+    implicit val EqEdit: Eq[PatchInput] =
       Eq.by { a => (
-        a.targetId,
-        a.edit,
+        a.target,
         a.existence
+      )}
+
+  }
+
+  final case class EditInput(
+    select: SelectInput,
+    patch:  PatchInput
+  ) {
+
+    val editor: StateT[EitherInput, Database, List[TargetModel]] =
+      for {
+        ts  <- select.go
+        tsʹ <- StateT.liftF[EitherInput, Database, List[TargetModel]](ts.traverse(patch.editor.runS))
+        _   <- tsʹ.traverse(t => Database.target.update(t.id, t))
+      } yield tsʹ
+
+  }
+
+  object EditInput {
+
+    implicit val DecoderEditInput: Decoder[EditInput] =
+      deriveDecoder[EditInput]
+
+    implicit val EqEditInput: Eq[EditInput] =
+      Eq.by { a => (
+        a.select,
+        a.patch
       )}
 
   }

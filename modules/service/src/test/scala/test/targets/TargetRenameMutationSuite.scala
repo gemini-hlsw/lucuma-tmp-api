@@ -21,18 +21,24 @@ class TargetRenameMutationSuite extends OdbSuite {
     """,
     expected = json"""
       {
-        "editTarget": {
-          "id": "t-4",
-          "name": "NGC 3312*"
-        }
+        "editTarget": [
+          {
+            "id": "t-4",
+            "name": "NGC 3312*"
+          }
+        ]
       }
     """,
     variables = json"""
       {
         "renameEdit": {
-          "targetId": "t-4",
-          "edit": {
-            "name": "NGC 3312*"
+          "select": {
+            "targetIds": [ "t-4" ]
+          },
+          "patch": {
+            "target": {
+              "name": "NGC 3312*"
+            }
           }
         }
       }

@@ -272,9 +272,9 @@ object TestInit {
 """
   )
 
-  def targets(pid: Program.Id): Either[Exception, List[TargetModel.Create]] =
-    targetsJson.traverse(decode[TargetModel.TargetInput]).map { in =>
-      in.map(TargetModel.Create(pid, _))
+  def targets(pid: Program.Id): Either[Exception, List[TargetModel.CreateInput]] =
+    targetsJson.traverse(decode[TargetModel.PropertiesInput]).map { in =>
+      in.map(TargetModel.CreateInput(pid, _))
     }
 
   import GmosModel.{CreateCcdReadout, CreateSouthDynamic}

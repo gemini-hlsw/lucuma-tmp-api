@@ -112,9 +112,11 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
     oid: Observation.Id
   ): F[TargetEnvironmentModel]
 
-  def insert(newTarget: TargetModel.Create): F[TargetModel]
+  def insert(newTarget: TargetModel.CreateInput): F[TargetModel]
 
-  def edit(edit: TargetModel.Edit): F[TargetModel]
+//  def edit(edit: TargetModel.Edit): F[TargetModel]
+
+  def bulkEdit(edit: TargetModel.EditInput): F[List[TargetModel]]
 
   /**
    * Clones the target referenced by `existingTid`.  Uses the `suggestedTid` for
@@ -262,7 +264,7 @@ object TargetRepo {
         unsafeSelect(id)(selectObservationTargetEnvironment)
 
       override def insert(
-        newTarget: TargetModel.Create
+        newTarget: TargetModel.CreateInput
       ): F[TargetModel] = {
 
         val create: F[TargetModel] =
@@ -284,23 +286,29 @@ object TargetRepo {
         } yield t
       }
 
-      override def edit(
-        targetEditor: TargetModel.Edit
-      ): F[TargetModel] = {
+//      override def edit(
+//        targetEditor: TargetModel.Edit
+//      ): F[TargetModel] = {
+//
+//        val update: StateT[EitherInput, Database, TargetModel] =
+//          for {
+//            initial <- Database.target.lookup(targetEditor.targetId)
+//            edited  <- StateT.liftF(targetEditor.editor.runS(initial))
+//            _       <- Database.target.update(targetEditor.targetId, edited)
+//          } yield edited
+//
+//        for {
+//          t <- databaseRef.modifyState(update.flipF).flatMap(_.liftTo[F])
+//          _ <- eventService.publish(TargetEvent.updated(t))
+//        } yield t
+//
+//      }
 
-        val update: StateT[EitherInput, Database, TargetModel] =
-          for {
-            initial <- Database.target.lookup(targetEditor.targetId)
-            edited  <- StateT.liftF(targetEditor.editor.runS(initial))
-            _       <- Database.target.update(targetEditor.targetId, edited)
-          } yield edited
-
+      override def bulkEdit(bulkEdit: TargetModel.EditInput): F[List[TargetModel]] =
         for {
-          t <- databaseRef.modifyState(update.flipF).flatMap(_.liftTo[F])
-          _ <- eventService.publish(TargetEvent.updated(t))
-        } yield t
-
-      }
+          ts <- databaseRef.modifyState(bulkEdit.editor.flipF).flatMap(_.liftTo[F])
+          _  <- ts.traverse(t => eventService.publish(TargetEvent.updated(t)))
+        } yield ts
 
       override def clone(
         existingTid:  Target.Id,

@@ -147,7 +147,7 @@ trait ArbTargetModel {
       a.catalogInfo
     )}
 
-  implicit val arbCreateTarget: Arbitrary[TargetModel.Create] =
+  implicit val arbCreateTarget: Arbitrary[TargetModel.CreateInput] =
     Arbitrary {
       for {
         p <- arbitrary[Program.Id]
@@ -155,10 +155,10 @@ trait ArbTargetModel {
         s <- arbitrary[Option[SiderealInput]]
         n <- arbitrary[Option[NonsiderealInput]]
         r <- arbitrary[SourceProfileInput]
-      } yield TargetModel.Create(p, TargetModel.TargetInput(m.assign, s, n, r.assign))
+      } yield TargetModel.CreateInput(p, TargetModel.PropertiesInput(m.assign, s, n, r.assign))
     }
 
-  implicit val cogCreateTarget: Cogen[TargetModel.Create] =
+  implicit val cogCreateTarget: Cogen[TargetModel.CreateInput] =
     Cogen[(
       Program.Id,
       Option[String],

@@ -24,22 +24,28 @@ class TargetMutationSuite extends OdbSuite {
     """,
     expected = json"""
       {
-        "editTarget": {
-          "id": "t-4",
-          "name": "NGC 3312",
-          "sidereal": {
-            "parallax": null
+        "editTarget": [
+          {
+            "id": "t-4",
+            "name": "NGC 3312",
+            "sidereal": {
+              "parallax": null
+            }
           }
-        }
+        ]
       }
     """,
     variables = json"""
       {
         "targetEdit": {
-          "targetId": "t-4",
-          "edit": {
-            "sidereal": {
-              "parallax": null
+          "select": {
+            "targetId": "t-4"
+          },
+          "patch": {
+            "target": {
+              "sidereal": {
+                "parallax": null
+              }
             }
           }
         }
