@@ -15,9 +15,11 @@ class TargetMutationSuite extends OdbSuite {
       mutation UpdateScienceTarget($targetEdit: EditTargetInput!) {
         editTarget(input: $targetEdit) {
           id
-          name
-          sidereal {
-            parallax { microarcseconds }
+          properties {
+            name
+            sidereal {
+              parallax { microarcseconds }
+            }
           }
         }
       }
@@ -27,9 +29,11 @@ class TargetMutationSuite extends OdbSuite {
         "editTarget": [
           {
             "id": "t-4",
-            "name": "NGC 3312",
-            "sidereal": {
-              "parallax": null
+            "properties": {
+              "name": "NGC 3312",
+              "sidereal": {
+                "parallax": null
+              }
             }
           }
         ]
@@ -42,7 +46,7 @@ class TargetMutationSuite extends OdbSuite {
             "targetId": "t-4"
           },
           "patch": {
-            "target": {
+            "properties": {
               "sidereal": {
                 "parallax": null
               }
@@ -59,7 +63,9 @@ class TargetMutationSuite extends OdbSuite {
       mutation DeleteTarget {
         deleteTarget(targetId: "t-4") {
           id
-          name
+          properties {
+            name
+          }
           existence
         }
       }
@@ -68,7 +74,9 @@ class TargetMutationSuite extends OdbSuite {
       {
         "deleteTarget": {
           "id": "t-4",
-          "name": "NGC 3312",
+          "properties": {
+            "name": "NGC 3312"
+          },
           "existence": "DELETED"
         }
       }
@@ -83,7 +91,9 @@ class TargetMutationSuite extends OdbSuite {
       mutation CloneTarget {
         cloneTarget(existingTargetId: "t-4", suggestedCloneId: "t-abc") {
           id
-          name
+          properties {
+            name
+          }
           existence
         }
       }
@@ -92,7 +102,9 @@ class TargetMutationSuite extends OdbSuite {
       {
         "cloneTarget": {
           "id": "t-abc",
-          "name": "NGC 3312",
+          "properties": {
+            "name": "NGC 3312"
+          },
           "existence": "PRESENT"
         }
       }

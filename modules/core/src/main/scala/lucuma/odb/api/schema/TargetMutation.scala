@@ -181,8 +181,8 @@ trait TargetMutation extends TargetScalars {
       "TargetPatchInput",
       "Description of updates to the target properties",
       List(
-        InputField("target",    OptionInputType(InputObjectTypeTargetProperties)),
-        InputField("existence", OptionInputType(EnumTypeExistence))
+        InputField("properties", OptionInputType(InputObjectTypeTargetProperties)),
+        InputField("existence",  OptionInputType(EnumTypeExistence))
       )
     )
 

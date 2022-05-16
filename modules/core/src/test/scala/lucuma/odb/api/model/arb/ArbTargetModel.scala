@@ -167,10 +167,10 @@ trait ArbTargetModel {
       Option[SourceProfileInput]
     )].contramap { a => (
       a.programId,
-      a.create.name.toOption.map(_.value),
-      a.create.sidereal,
-      a.create.nonsidereal,
-      a.create.sourceProfile.toOption
+      a.properties.name.toOption.map(_.value),
+      a.properties.sidereal,
+      a.properties.nonsidereal,
+      a.properties.sourceProfile.toOption
     )}
 
   implicit val arbEditAsterismInput: Arbitrary[EditAsterismInput] =

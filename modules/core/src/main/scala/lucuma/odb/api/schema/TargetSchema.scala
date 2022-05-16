@@ -350,6 +350,43 @@ object TargetSchema extends TargetScalars {
       )
     )
 
+  val TargetPropertiesType: ObjectType[Any, Target] =
+    ObjectType[Any, Target](
+      name        = "TargetProperties",
+      description = "Target properties",
+      fieldsFn    = () => fields[Any, Target](
+
+        Field(
+          name        = "name",
+          fieldType   = NonEmptyStringType,
+          description = Some("Target name."),
+          resolve     = _.value.name
+        ),
+
+        Field(
+          name        = "sourceProfile",
+          fieldType   = SourceProfileType,
+          description = "source profile".some ,
+          resolve     = _.value.sourceProfile
+        ),
+
+        Field(
+          name        = "sidereal",
+          fieldType   = OptionType(SiderealType),
+          description = "Sidereal tracking information, if this is a sidereal target".some,
+          resolve     = c => Target.sidereal.getOption(c.value)
+        ),
+
+        Field(
+          name        = "nonsidereal",
+          fieldType   = OptionType(NonsiderealType),
+          description = "Nonsidereal tracking information, if this is a nonsidereal target".some,
+          resolve     = c => Target.nonsidereal.getOption(c.value)
+        )
+
+      )
+    )
+
   def TargetType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], TargetModel] =
 
     ObjectType[OdbCtx[F], TargetModel](
@@ -372,13 +409,6 @@ object TargetSchema extends TargetScalars {
         ),
 
         Field(
-          name        = "name",
-          fieldType   = NonEmptyStringType,
-          description = Some("Target name."),
-          resolve     = _.value.target.name
-        ),
-
-        Field(
           name        = "program",
           fieldType   = ProgramType[F],
           description = "Program that contains this target".some,
@@ -389,24 +419,10 @@ object TargetSchema extends TargetScalars {
         ),
 
         Field(
-          name        = "sourceProfile",
-          fieldType   = SourceProfileType,
-          description = "source profile".some ,
-          resolve     = _.value.target.sourceProfile
-        ),
-
-        Field(
-          name        = "sidereal",
-          fieldType   = OptionType(SiderealType),
-          description = "Sidereal tracking information, if this is a sidereal target".some,
-          resolve     = c => Target.sidereal.getOption(c.value.target)
-        ),
-
-        Field(
-          name        = "nonsidereal",
-          fieldType   = OptionType(NonsiderealType),
-          description = "Nonsidereal tracking information, if this is a nonsidereal target".some,
-          resolve     = c => Target.nonsidereal.getOption(c.value.target)
+          name        = "properties",
+          fieldType   = TargetPropertiesType,
+          description = Some("Target properties."),
+          resolve     = _.value.target
         )
 
       )

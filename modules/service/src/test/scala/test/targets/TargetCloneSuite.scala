@@ -14,7 +14,9 @@ class TargetCloneSuite extends OdbSuite {
       mutation CloneTarget {
         cloneTarget(existingTargetId: "t-4", suggestedCloneId: "t-abc") {
           id
-          name
+          properties {
+            name
+          }
           existence
         }
       }
@@ -23,7 +25,9 @@ class TargetCloneSuite extends OdbSuite {
       {
         "cloneTarget": {
           "id": "t-abc",
-          "name": "NGC 3312",
+          "properties": {
+            "name": "NGC 3312"
+          },
           "existence": "PRESENT"
         }
       }
@@ -38,7 +42,9 @@ class TargetCloneSuite extends OdbSuite {
       mutation CloneAndReplaceTarget {
         cloneTarget(existingTargetId: "t-4", suggestedCloneId: "t-a", observationIds: [ "o-3", "o-4" ]) {
           id
-          name
+          properties {
+            name
+          }
         }
       }
     """,
@@ -46,7 +52,9 @@ class TargetCloneSuite extends OdbSuite {
       {
         "cloneTarget": {
           "id": "t-a",
-          "name": "NGC 3312"
+          "properties": {
+            "name": "NGC 3312"
+          }
         }
       }
     """,
@@ -69,7 +77,9 @@ class TargetCloneSuite extends OdbSuite {
             observationIds
             asterism {
               id
-              name
+              properties {
+                name
+              }
             }
           }
         }
@@ -86,7 +96,9 @@ class TargetCloneSuite extends OdbSuite {
               "asterism": [
                 {
                   "id": "t-2",
-                  "name": "NGC 5949"
+                  "properties": {
+                    "name": "NGC 5949"
+                  }
                 }
               ]
             },
@@ -98,7 +110,9 @@ class TargetCloneSuite extends OdbSuite {
               "asterism": [
                 {
                   "id": "t-a",
-                  "name": "NGC 3312"
+                  "properties": {
+                    "name": "NGC 3312"
+                  }
                 }
               ]
             },
@@ -109,7 +123,9 @@ class TargetCloneSuite extends OdbSuite {
               "asterism": [
                 {
                   "id": "t-4",
-                  "name": "NGC 3312"
+                  "properties": {
+                    "name": "NGC 3312"
+                  }
                 }
               ]
             },
@@ -120,15 +136,21 @@ class TargetCloneSuite extends OdbSuite {
               "asterism": [
                 {
                   "id": "t-2",
-                  "name": "NGC 5949"
+                  "properties": {
+                    "name": "NGC 5949"
+                  }
                 },
                 {
                   "id": "t-3",
-                  "name": "NGC 3269"
+                  "properties": {
+                    "name": "NGC 3269"
+                  }
                 },
                 {
                   "id": "t-4",
-                  "name": "NGC 3312"
+                  "properties": {
+                    "name": "NGC 3312"
+                  }
                 }
               ]
             },

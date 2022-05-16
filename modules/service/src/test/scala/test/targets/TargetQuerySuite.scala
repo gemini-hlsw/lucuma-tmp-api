@@ -24,14 +24,18 @@ class TargetQuerySuite extends OdbSuite {
     query ="""
       query ScienceTargetForObservation {
         firstScienceTarget(observationId: "o-2") {
-          name
+          properties {
+            name
+          }
         }
       }
     """,
     expected =json"""
       {
         "firstScienceTarget": {
-          "name": "NGC 5949"
+          "properties": {
+            "name": "NGC 5949"
+          }
         }
       }
     """
@@ -42,7 +46,9 @@ class TargetQuerySuite extends OdbSuite {
     query ="""
       query AsterismForObservation {
         asterism(observationId: "o-6") {
-          name
+          properties {
+            name
+          }
         }
       }
     """,
@@ -50,13 +56,19 @@ class TargetQuerySuite extends OdbSuite {
       {
         "asterism": [
           {
-            "name": "NGC 5949"
+            "properties": {
+              "name": "NGC 5949"
+            }
           },
           {
-            "name": "NGC 3269"
+            "properties": {
+              "name": "NGC 3269"
+            }
           },
           {
-            "name": "NGC 3312"
+            "properties": {
+              "name": "NGC 3312"
+            }
           }
         ]
       }
@@ -73,7 +85,9 @@ class TargetQuerySuite extends OdbSuite {
             dec { dms }
           }
           firstScienceTarget {
-            name
+            properties {
+              name
+            }
           }
         }
       }
@@ -90,7 +104,9 @@ class TargetQuerySuite extends OdbSuite {
             }
           },
           "firstScienceTarget": {
-            "name": "NGC 3312"
+            "properties": {
+              "name": "NGC 3312"
+            }
           }
         }
       }
@@ -111,7 +127,9 @@ class TargetQuerySuite extends OdbSuite {
           nodes {
             observationIds
             target {
-              name
+              properties {
+                name
+              }
             }
           }
         }
@@ -127,7 +145,9 @@ class TargetQuerySuite extends OdbSuite {
                 "o-6"
               ],
               "target": {
-                "name": "NGC 5949"
+                "properties": {
+                  "name": "NGC 5949"
+                }
               }
             },
             {
@@ -135,7 +155,9 @@ class TargetQuerySuite extends OdbSuite {
                 "o-6"
               ],
               "target": {
-                "name": "NGC 3269"
+                "properties": {
+                  "name": "NGC 3269"
+                }
               }
             },
             {
@@ -146,14 +168,18 @@ class TargetQuerySuite extends OdbSuite {
                 "o-6"
               ],
               "target": {
-                "name": "NGC 3312"
+                "properties": {
+                  "name": "NGC 3312"
+                }
               }
             },
             {
               "observationIds": [
               ],
               "target": {
-                "name": "NGC 4749"
+                "properties": {
+                  "name": "NGC 4749"
+                }
               }
             }
           ]
@@ -176,7 +202,9 @@ class TargetQuerySuite extends OdbSuite {
           nodes {
             observationIds
             asterism {
-              name
+              properties {
+                name
+              }
             }
           }
         }
@@ -192,7 +220,9 @@ class TargetQuerySuite extends OdbSuite {
               ],
               "asterism": [
                 {
-                  "name": "NGC 5949"
+                  "properties": {
+                    "name": "NGC 5949"
+                  }
                 }
               ]
             },
@@ -204,7 +234,9 @@ class TargetQuerySuite extends OdbSuite {
               ],
               "asterism": [
                 {
-                  "name": "NGC 3312"
+                  "properties": {
+                    "name": "NGC 3312"
+                  }
                 }
               ]
             },
@@ -214,13 +246,19 @@ class TargetQuerySuite extends OdbSuite {
               ],
               "asterism": [
                 {
-                  "name": "NGC 5949"
+                  "properties": {
+                    "name": "NGC 5949"
+                  }
                 },
                 {
-                  "name": "NGC 3269"
+                  "properties": {
+                    "name": "NGC 3269"
+                  }
                 },
                 {
-                  "name": "NGC 3312"
+                  "properties": {
+                    "name": "NGC 3312"
+                  }
                 }
               ]
             },
@@ -253,7 +291,9 @@ class TargetQuerySuite extends OdbSuite {
                 dec { dms }
               }
               asterism {
-                name
+                properties {
+                  name
+                }
               }
             }
           }
@@ -272,7 +312,9 @@ class TargetQuerySuite extends OdbSuite {
                 "explicitBase" : null,
                 "asterism" : [
                   {
-                    "name" : "NGC 5949"
+                    "properties": {
+                      "name" : "NGC 5949"
+                    }
                   }
                 ]
               }
@@ -286,7 +328,9 @@ class TargetQuerySuite extends OdbSuite {
                 "explicitBase" : null,
                 "asterism" : [
                   {
-                    "name" : "NGC 3312"
+                    "properties": {
+                      "name" : "NGC 3312"
+                    }
                   }
                 ]
               }
@@ -306,7 +350,9 @@ class TargetQuerySuite extends OdbSuite {
                 },
                 "asterism" : [
                   {
-                    "name" : "NGC 3312"
+                    "properties": {
+                      "name" : "NGC 3312"
+                    }
                   }
                 ]
               }
@@ -319,13 +365,19 @@ class TargetQuerySuite extends OdbSuite {
                 "explicitBase" : null,
                 "asterism" : [
                   {
-                    "name" : "NGC 5949"
+                    "properties": {
+                      "name" : "NGC 5949"
+                    }
                   },
                   {
-                    "name" : "NGC 3269"
+                    "properties": {
+                      "name" : "NGC 3269"
+                    }
                   },
                   {
-                    "name" : "NGC 3312"
+                    "properties": {
+                      "name" : "NGC 3312"
+                    }
                   }
                 ]
               }

@@ -125,8 +125,8 @@ object TargetModel extends TargetModelOptics {
   }
 
   final case class CreateInput(
-    programId: Program.Id,
-    create:    PropertiesInput
+    programId:  Program.Id,
+    properties: PropertiesInput
   ) {
 
     val createTarget: StateT[EitherInput, Database, TargetModel] =
@@ -134,7 +134,7 @@ object TargetModel extends TargetModelOptics {
       for {
         i <- Database.target.cycleNextUnused
         _ <- Database.program.lookup(programId)
-        t  = create.create.map(TargetModel(i, Existence.Present, programId, _, observed = false))
+        t  = properties.create.map(TargetModel(i, Existence.Present, programId, _, observed = false))
         _ <- Database.target.saveNewIfValid(t)(_.id)
         r <- Database.target.lookup(i)
       } yield r
@@ -165,7 +165,7 @@ object TargetModel extends TargetModelOptics {
     implicit val EqCreate: Eq[CreateInput] =
       Eq.by { a => (
         a.programId,
-        a.create
+        a.properties
       )}
   }
 
@@ -212,21 +212,21 @@ object TargetModel extends TargetModelOptics {
   }
 
   final case class PatchInput(
-    target:    Input[PropertiesInput] = Input.ignore,
-    existence: Input[Existence]       = Input.ignore
+    properties: Input[PropertiesInput] = Input.ignore,
+    existence:  Input[Existence]       = Input.ignore
   ) {
 
     val editor: StateT[EitherInput, TargetModel, Unit] = {
       val validArgs =
         (existence.validateIsNotNull("existence"),
-         target.validateIsNotNull("target")
+         properties.validateIsNotNull("properties")
         ).tupled
 
       for {
         args <- validArgs.liftState
         (e, _) = args
         _ <- TargetModel.existence := e
-        _ <- TargetModel.target    :< target.toOption.map(_.edit)
+        _ <- TargetModel.target    :< properties.toOption.map(_.edit)
       } yield ()
     }
 
@@ -242,7 +242,7 @@ object TargetModel extends TargetModelOptics {
 
     implicit val EqEdit: Eq[PatchInput] =
       Eq.by { a => (
-        a.target,
+        a.properties,
         a.existence
       )}
 
