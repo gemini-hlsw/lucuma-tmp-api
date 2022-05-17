@@ -4,6 +4,7 @@
 package test
 package targets
 
+import cats.syntax.option._
 import io.circe.literal._
 
 class TargetCloneSuite extends OdbSuite {
@@ -11,9 +12,8 @@ class TargetCloneSuite extends OdbSuite {
   // Clone an existing deleted, target.
   queryTest(
     query ="""
-      mutation CloneTarget {
-        cloneTarget(existingTargetId: "t-4", suggestedCloneId: "t-abc") {
-          id
+      mutation CloneTarget($cloneInput: CloneTargetInput!) {
+        cloneTarget(input: $cloneInput) {
           properties {
             name
           }
@@ -24,24 +24,34 @@ class TargetCloneSuite extends OdbSuite {
     expected =json"""
       {
         "cloneTarget": {
-          "id": "t-abc",
           "properties": {
-            "name": "NGC 3312"
+            "name": "Biff"
           },
           "existence": "PRESENT"
         }
       }
     """,
-    None,
+    variables = json"""
+      {
+        "cloneInput": {
+          "targetId": "t-4",
+          "patch": {
+            "properties": {
+              "name": "Biff"
+            }
+          }
+        }
+      }
+    """.some,
     clients = List(ClientOption.Http)
   )
 
+  //clexistingTargetId: "t-4", suggestedCloneId: "t-a", observationIds: [ "o-3", "o-4" ]) {
   // Clone an existing target and replace it in observations 3 and 4
   queryTest(
     query ="""
-      mutation CloneAndReplaceTarget {
-        cloneTarget(existingTargetId: "t-4", suggestedCloneId: "t-a", observationIds: [ "o-3", "o-4" ]) {
-          id
+      mutation CloneAndReplaceTarget($cloneInput: CloneTargetInput!) {
+        cloneTarget(input: $cloneInput) {
           properties {
             name
           }
@@ -51,14 +61,25 @@ class TargetCloneSuite extends OdbSuite {
     expected =json"""
       {
         "cloneTarget": {
-          "id": "t-a",
           "properties": {
-            "name": "NGC 3312"
+            "name": "NGC 3312 (2)"
           }
         }
       }
     """,
-    None,
+    variables = json"""
+      {
+        "cloneInput": {
+          "targetId": "t-4",
+          "patch": {
+            "properties": {
+              "name": "NGC 3312 (2)"
+            }
+          },
+          "replaceIn": [ "o-3", "o-4" ]
+        }
+      }
+    """.some,
     clients = List(ClientOption.Http)
   )
 
@@ -76,7 +97,6 @@ class TargetCloneSuite extends OdbSuite {
           nodes {
             observationIds
             asterism {
-              id
               properties {
                 name
               }
@@ -95,7 +115,6 @@ class TargetCloneSuite extends OdbSuite {
               ],
               "asterism": [
                 {
-                  "id": "t-2",
                   "properties": {
                     "name": "NGC 5949"
                   }
@@ -109,9 +128,8 @@ class TargetCloneSuite extends OdbSuite {
               ],
               "asterism": [
                 {
-                  "id": "t-a",
                   "properties": {
-                    "name": "NGC 3312"
+                    "name": "NGC 3312 (2)"
                   }
                 }
               ]
@@ -122,7 +140,6 @@ class TargetCloneSuite extends OdbSuite {
               ],
               "asterism": [
                 {
-                  "id": "t-4",
                   "properties": {
                     "name": "NGC 3312"
                   }
@@ -135,19 +152,16 @@ class TargetCloneSuite extends OdbSuite {
               ],
               "asterism": [
                 {
-                  "id": "t-2",
                   "properties": {
                     "name": "NGC 5949"
                   }
                 },
                 {
-                  "id": "t-3",
                   "properties": {
                     "name": "NGC 3269"
                   }
                 },
                 {
-                  "id": "t-4",
                   "properties": {
                     "name": "NGC 3312"
                   }

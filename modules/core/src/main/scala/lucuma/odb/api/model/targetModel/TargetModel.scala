@@ -197,6 +197,12 @@ object TargetModel extends TargetModelOptics {
 
   object SelectInput {
 
+    val Empty: SelectInput =
+      SelectInput(None, None, None, None, None)
+
+    def targetId(tid: Target.Id): SelectInput =
+      Empty.copy(targetId = tid.some)
+
     implicit val DecoderSelect: Decoder[SelectInput] =
       deriveDecoder[SelectInput]
 
@@ -271,6 +277,26 @@ object TargetModel extends TargetModelOptics {
       Eq.by { a => (
         a.select,
         a.patch
+      )}
+
+  }
+
+  final case class CloneInput(
+    targetId:  Target.Id,
+    patch:     Option[PatchInput],
+    replaceIn: Option[List[Observation.Id]]
+  )
+
+  object CloneInput {
+
+    implicit val DecoderCloneInput: Decoder[CloneInput] =
+      deriveDecoder[CloneInput]
+
+    implicit val EqCloneInput: Eq[CloneInput] =
+      Eq.by { a => (
+        a.targetId,
+        a.patch,
+        a.replaceIn
       )}
 
   }

@@ -88,9 +88,8 @@ class TargetMutationSuite extends OdbSuite {
   // Clone an existing deleted, target.
   queryTest(
     query ="""
-      mutation CloneTarget {
-        cloneTarget(existingTargetId: "t-4", suggestedCloneId: "t-abc") {
-          id
+      mutation CloneTarget($cloneInput: CloneTargetInput!) {
+        cloneTarget(input: $cloneInput) {
           properties {
             name
           }
@@ -101,7 +100,6 @@ class TargetMutationSuite extends OdbSuite {
     expected =json"""
       {
         "cloneTarget": {
-          "id": "t-abc",
           "properties": {
             "name": "NGC 3312"
           },
@@ -109,7 +107,13 @@ class TargetMutationSuite extends OdbSuite {
         }
       }
     """,
-    None,
+    variables = json"""
+      {
+        "cloneInput": {
+          "targetId": "t-4"
+        }
+      }
+    """.some,
     clients = List(ClientOption.Http)
   )
 }

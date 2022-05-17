@@ -123,8 +123,7 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
    * its ID if it is supplied by the caller and not currently in use.
    */
   def clone(
-    existingTid:  Target.Id,
-    suggestedTid: Option[Target.Id]
+    cloneInput: TargetModel.CloneInput
   ): F[TargetModel]
 
 }
@@ -311,17 +310,23 @@ object TargetRepo {
         } yield ts
 
       override def clone(
-        existingTid:  Target.Id,
-        suggestedTid: Option[Target.Id]
+        cloneInput: TargetModel.CloneInput
       ): F[TargetModel] = {
 
         val update: StateT[EitherInput, Database, TargetModel] =
           for {
-            t <- Database.target.lookup(existingTid)
-            i <- Database.target.getUnusedKey(suggestedTid)
-            c  = t.clone(i)
-            _ <- Database.target.saveNew(i, c)
-          } yield c
+            t  <- Database.target.lookup(cloneInput.targetId)
+            i  <- Database.target.cycleNextUnused
+            c   = t.clone(i)
+            _  <- Database.target.saveNew(i, c)
+            cʹ <- cloneInput.patch.fold(StateT.pure[EitherInput, Database, TargetModel](c)) { p =>
+              TargetModel.EditInput(
+                TargetModel.SelectInput.targetId(i),
+                p
+              ).editor.map(_.head)
+            }
+          } yield cʹ
+
 
         for {
           t <- databaseRef.modifyState(update.flipF).flatMap(_.liftTo[F])

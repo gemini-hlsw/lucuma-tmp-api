@@ -11,7 +11,6 @@ import cats.syntax.option._
 import lucuma.odb.api.model.{CoordinatesModel, DeclinationModel, ObservationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
 import lucuma.odb.api.model.targetModel.{CatalogInfoInput, EditAsterismInput, NonsiderealInput, SiderealInput, TargetEnvironmentInput, TargetModel}
 import lucuma.odb.api.schema.syntax.`enum`._
-import lucuma.core.model.Target
 import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
 import sangria.macros.derive.{ReplaceInputField, _}
@@ -218,6 +217,18 @@ trait TargetMutation extends TargetScalars {
       InputObjectTypeDescription("Add or delete targets in an asterism")
     )
 
+  implicit val InputObjectCloneTarget: InputObjectType[TargetModel.CloneInput] =
+    deriveInputObjectType[TargetModel.CloneInput](
+      InputObjectTypeName("CloneTargetInput"),
+      InputObjectTypeDescription("Describes a target clone operation, making any edits in the patch parameter and replacing the target in the selected observations")
+    )
+
+  val ArgumentCloneTarget: Argument[TargetModel.CloneInput] =
+    InputObjectCloneTarget.argument(
+      "input",
+      "Parameters for cloning an existing target"
+    )
+
   def createTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "createTarget",
@@ -228,39 +239,25 @@ trait TargetMutation extends TargetScalars {
     )
 
   def cloneTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] = {
-    import ObservationSchema.OptionalListObservationIdArgument
-
-    val existing: Argument[Target.Id] =
-      Argument(
-        name         = "existingTargetId",
-        argumentType = TargetIdType,
-        description  = "The existing target's id"
-      )
-
-    val suggested: Argument[Option[Target.Id]] =
-      Argument(
-        name         = "suggestedCloneId",
-        argumentType = OptionInputType(TargetIdType),
-        description  = "The new target clone's id (will be generated if not supplied)"
-      )
 
     Field(
       name        = "cloneTarget",
       fieldType   = TargetType[F],
       description = "Makes a copy of an existing target, setting it to unobserved and to PRESENT.  If observationIds is specified, the clone will replace the existing target in those observations".some,
-      arguments   = List(existing, suggested, OptionalListObservationIdArgument),
+      arguments   = List(ArgumentCloneTarget),
       resolve     = c => {
+        val cloneInput = c.arg(ArgumentCloneTarget)
         c.unsafeToFuture(
           for {
-            t <- c.ctx.odbRepo.target.clone(c.arg(existing), c.arg(suggested))
+            t <- c.ctx.odbRepo.target.clone(cloneInput)
             _ <- c.ctx.odbRepo.observation.bulkEditAsterism(
               ObservationModel.BulkEdit(
                 ObservationModel.BulkEdit.Select(
                   None,
-                  c.arg(OptionalListObservationIdArgument).map(_.toList)
+                  cloneInput.replaceIn //toList.flatten//).map(_.toList)
                 ),
                 List(
-                  EditAsterismInput.delete(c.arg(existing)),
+                  EditAsterismInput.delete(cloneInput.targetId),
                   EditAsterismInput.add(t.id)
                 )
               )
