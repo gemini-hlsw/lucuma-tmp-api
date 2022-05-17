@@ -285,24 +285,6 @@ object TargetRepo {
         } yield t
       }
 
-//      override def edit(
-//        targetEditor: TargetModel.Edit
-//      ): F[TargetModel] = {
-//
-//        val update: StateT[EitherInput, Database, TargetModel] =
-//          for {
-//            initial <- Database.target.lookup(targetEditor.targetId)
-//            edited  <- StateT.liftF(targetEditor.editor.runS(initial))
-//            _       <- Database.target.update(targetEditor.targetId, edited)
-//          } yield edited
-//
-//        for {
-//          t <- databaseRef.modifyState(update.flipF).flatMap(_.liftTo[F])
-//          _ <- eventService.publish(TargetEvent.updated(t))
-//        } yield t
-//
-//      }
-
       override def bulkEdit(bulkEdit: TargetModel.EditInput): F[List[TargetModel]] =
         for {
           ts <- databaseRef.modifyState(bulkEdit.editor.flipF).flatMap(_.liftTo[F])

@@ -238,8 +238,7 @@ trait TargetMutation extends TargetScalars {
       resolve     = c => c.target(_.insert(c.arg(ArgumentTargetCreate)))
     )
 
-  def cloneTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] = {
-
+  def cloneTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "cloneTarget",
       fieldType   = TargetType[F],
@@ -254,7 +253,7 @@ trait TargetMutation extends TargetScalars {
               ObservationModel.BulkEdit(
                 ObservationModel.BulkEdit.Select(
                   None,
-                  cloneInput.replaceIn //toList.flatten//).map(_.toList)
+                  cloneInput.replaceIn
                 ),
                 List(
                   EditAsterismInput.delete(cloneInput.targetId),
@@ -266,7 +265,6 @@ trait TargetMutation extends TargetScalars {
         )
       }
     )
-  }
 
   def editTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
