@@ -15,11 +15,9 @@ class TargetMutationSuite extends OdbSuite {
       mutation UpdateScienceTarget($targetEdit: EditTargetInput!) {
         editTarget(input: $targetEdit) {
           id
-          properties {
-            name
-            sidereal {
-              parallax { microarcseconds }
-            }
+          name
+          sidereal {
+            parallax { microarcseconds }
           }
         }
       }
@@ -29,11 +27,9 @@ class TargetMutationSuite extends OdbSuite {
         "editTarget": [
           {
             "id": "t-4",
-            "properties": {
-              "name": "NGC 3312",
-              "sidereal": {
-                "parallax": null
-              }
+            "name": "NGC 3312",
+            "sidereal": {
+              "parallax": null
             }
           }
         ]
@@ -46,10 +42,8 @@ class TargetMutationSuite extends OdbSuite {
             "targetId": "t-4"
           },
           "patch": {
-            "properties": {
-              "sidereal": {
-                "parallax": null
-              }
+            "sidereal": {
+              "parallax": null
             }
           }
         }
@@ -63,9 +57,7 @@ class TargetMutationSuite extends OdbSuite {
       mutation DeleteTarget {
         deleteTarget(targetId: "t-4") {
           id
-          properties {
-            name
-          }
+          name
           existence
         }
       }
@@ -74,9 +66,7 @@ class TargetMutationSuite extends OdbSuite {
       {
         "deleteTarget": {
           "id": "t-4",
-          "properties": {
-            "name": "NGC 3312"
-          },
+          "name": "NGC 3312",
           "existence": "DELETED"
         }
       }
@@ -90,9 +80,7 @@ class TargetMutationSuite extends OdbSuite {
     query ="""
       mutation CloneTarget($cloneInput: CloneTargetInput!) {
         cloneTarget(input: $cloneInput) {
-          properties {
-            name
-          }
+          name
           existence
         }
       }
@@ -100,9 +88,7 @@ class TargetMutationSuite extends OdbSuite {
     expected =json"""
       {
         "cloneTarget": {
-          "properties": {
-            "name": "NGC 3312"
-          },
+          "name": "NGC 3312",
           "existence": "PRESENT"
         }
       }

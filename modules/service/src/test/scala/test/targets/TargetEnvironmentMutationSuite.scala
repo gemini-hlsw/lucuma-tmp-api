@@ -28,9 +28,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
           id
           targetEnvironment {
             asterism {
-              properties {
-                name
-              }
+              name
             }
           }
         }
@@ -44,9 +42,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
             "targetEnvironment": {
               "asterism": [
                 {
-                  "properties": {
-                    "name": "NGC 5949"
-                  }
+                  "name": "NGC 5949"
                 }
               ]
             }
@@ -80,9 +76,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
           id
           targetEnvironment {
             asterism {
-              properties {
-                name
-              }
+              name
             }
           }
         }

@@ -144,7 +144,8 @@ trait TargetMutation extends TargetScalars {
         InputField("name",          OptionInputType(NonEmptyStringType)),
         InputField("sidereal",      OptionInputType(InputObjectTypeSidereal)),
         InputField("nonsidereal",   OptionInputType(InputObjectTypeNonsidereal)),
-        InputField("sourceProfile", OptionInputType(InputObjectSourceProfile))
+        InputField("sourceProfile", OptionInputType(InputObjectSourceProfile)),
+        InputField("existence",     OptionInputType(EnumTypeExistence))
       )
     )
 
@@ -175,23 +176,13 @@ trait TargetMutation extends TargetScalars {
       )
     )
 
-  implicit val InputObjectTypeTargetPatch: InputObjectType[TargetModel.PatchInput] =
-    InputObjectType[TargetModel.PatchInput](
-      "TargetPatchInput",
-      "Description of updates to the target properties",
-      List(
-        InputField("properties", OptionInputType(InputObjectTypeTargetProperties)),
-        InputField("existence",  OptionInputType(EnumTypeExistence))
-      )
-    )
-
   implicit val InputObjectTypeEditTarget: InputObjectType[TargetModel.EditInput] =
     InputObjectType[TargetModel.EditInput](
       "EditTargetInput",
       "Target selection and update description.",
       List(
         InputField("select", InputObjectTypeTargetSelect),
-        InputField("patch",  InputObjectTypeTargetPatch)
+        InputField("patch",  InputObjectTypeTargetProperties)
       )
     )
 

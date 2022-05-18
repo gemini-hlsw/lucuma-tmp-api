@@ -15,9 +15,7 @@ class TargetRenameMutationSuite extends OdbSuite {
       mutation UpdateTarget($renameEdit: EditTargetInput!) {
         editTarget(input: $renameEdit) {
           id
-          properties {
-            name
-          }
+          name
         }
       }
     """,
@@ -26,9 +24,7 @@ class TargetRenameMutationSuite extends OdbSuite {
         "editTarget": [
           {
             "id": "t-4",
-            "properties": {
-              "name": "NGC 3312*"
-             }
+            "name": "NGC 3312*"
           }
         ]
       }
@@ -40,9 +36,7 @@ class TargetRenameMutationSuite extends OdbSuite {
             "targetIds": [ "t-4" ]
           },
           "patch": {
-            "properties": {
-              "name": "NGC 3312*"
-            }
+            "name": "NGC 3312*"
           }
         }
       }

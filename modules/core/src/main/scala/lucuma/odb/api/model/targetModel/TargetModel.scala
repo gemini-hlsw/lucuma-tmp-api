@@ -18,7 +18,7 @@ import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
 import lucuma.core.model.{Observation, Program, SourceProfile, Target}
-import lucuma.odb.api.model.{Database, EditorInput, EitherInput, Event, Existence, InputError, TopLevelModel, ValidatedInput}
+import lucuma.odb.api.model.{Database, EitherInput, Event, Existence, InputError, TopLevelModel, ValidatedInput}
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.validatedinput._
@@ -72,10 +72,11 @@ object TargetModel extends TargetModelOptics {
     name:          Input[NonEmptyString]     = Input.ignore,
     sidereal:      Option[SiderealInput]     = None,
     nonsidereal:   Option[NonsiderealInput]  = None,
-    sourceProfile: Input[SourceProfileInput] = Input.ignore
-  ) extends EditorInput[Target] {
+    sourceProfile: Input[SourceProfileInput] = Input.ignore,
+    existence:     Input[Existence]          = Input.ignore
+  ) {
 
-    override val create: ValidatedInput[Target] =
+    val createTarget: ValidatedInput[Target] =
       (name.notMissing("name"),
        sourceProfile.notMissing("sourceProfile")
       ).tupled.andThen { case (n, sp) =>
@@ -86,7 +87,12 @@ object TargetModel extends TargetModelOptics {
         )
       }
 
-    override val edit: StateT[EitherInput, Target, Unit] = {
+    def create(id: Target.Id, pid: Program.Id): ValidatedInput[TargetModel] =
+      createTarget.map { t =>
+        TargetModel(id, existence.toOption.getOrElse(Existence.Present), pid, t, observed = false)
+      }
+
+    val editTarget: StateT[EitherInput, Target, Unit] = {
       val validArgs =
         (name.validateIsNotNull("name"),
          sourceProfile.validateIsNotNull("sourceProfile"),
@@ -107,6 +113,13 @@ object TargetModel extends TargetModelOptics {
         )
       } yield ()
     }
+
+    val edit: StateT[EitherInput, TargetModel, Unit] =
+      for {
+        e <- existence.validateIsNotNull("existence").liftState[TargetModel]
+        _ <- TargetModel.existence := e
+        _ <- TargetModel.target.transform(editTarget)
+      } yield ()
   }
 
   object PropertiesInput {
@@ -123,7 +136,8 @@ object TargetModel extends TargetModelOptics {
         a.name,
         a.sidereal,
         a.nonsidereal,
-        a.sourceProfile
+        a.sourceProfile,
+        a.existence
       )}
 
   }
@@ -138,7 +152,7 @@ object TargetModel extends TargetModelOptics {
       for {
         i <- Database.target.cycleNextUnused
         _ <- Database.program.lookup(programId)
-        t  = properties.create.map(TargetModel(i, Existence.Present, programId, _, observed = false))
+        t  = properties.create(i, programId)
         _ <- Database.target.saveNewIfValid(t)(_.id)
         r <- Database.target.lookup(i)
       } yield r
@@ -221,52 +235,15 @@ object TargetModel extends TargetModelOptics {
 
   }
 
-  final case class PatchInput(
-    properties: Input[PropertiesInput] = Input.ignore,
-    existence:  Input[Existence]       = Input.ignore
-  ) {
-
-    val editor: StateT[EitherInput, TargetModel, Unit] = {
-      val validArgs =
-        (existence.validateIsNotNull("existence"),
-         properties.validateIsNotNull("properties")
-        ).tupled
-
-      for {
-        args <- validArgs.liftState
-        (e, _) = args
-        _ <- TargetModel.existence := e
-        _ <- TargetModel.target    :< properties.toOption.map(_.edit)
-      } yield ()
-    }
-
-  }
-
-  object PatchInput {
-    import io.circe.generic.extras.semiauto._
-    import io.circe.generic.extras.Configuration
-    implicit val customConfig: Configuration = Configuration.default.withDefaults
-
-    implicit val DecoderPatchInput: Decoder[PatchInput] =
-      deriveConfiguredDecoder[PatchInput]
-
-    implicit val EqPatchInput: Eq[PatchInput] =
-      Eq.by { a => (
-        a.properties,
-        a.existence
-      )}
-
-  }
-
   final case class EditInput(
     select: SelectInput,
-    patch:  PatchInput
+    patch:  PropertiesInput
   ) {
 
     val editor: StateT[EitherInput, Database, List[TargetModel]] =
       for {
         ts  <- select.go
-        tsʹ <- StateT.liftF[EitherInput, Database, List[TargetModel]](ts.traverse(patch.editor.runS))
+        tsʹ <- StateT.liftF[EitherInput, Database, List[TargetModel]](ts.traverse(patch.edit.runS))
         _   <- tsʹ.traverse(t => Database.target.update(t.id, t))
       } yield tsʹ
 
@@ -287,7 +264,7 @@ object TargetModel extends TargetModelOptics {
 
   final case class CloneInput(
     targetId:  Target.Id,
-    patch:     Option[PatchInput],
+    patch:     Option[PropertiesInput],
     replaceIn: Option[List[Observation.Id]]
   ) {
 

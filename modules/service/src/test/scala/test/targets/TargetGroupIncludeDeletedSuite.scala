@@ -51,9 +51,7 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
           nodes {
             observationIds
             target {
-              properties {
-                name
-              }
+              name
             }
           }
         }
@@ -69,9 +67,7 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
                 "o-6"
               ],
               "target": {
-                "properties": {
-                  "name": "NGC 5949"
-                }
+                "name": "NGC 5949"
               }
             },
             {
@@ -82,18 +78,14 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
                 "o-6"
               ],
               "target": {
-                "properties": {
-                  "name": "NGC 3312"
-                }
+                "name": "NGC 3312"
               }
             },
             {
               "observationIds": [
               ],
               "target": {
-                "properties": {
-                  "name": "NGC 4749"
-                }
+                "name": "NGC 4749"
               }
             }
           ]
@@ -116,9 +108,7 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
           nodes {
             observationIds
             target {
-              properties {
-                name
-              }
+              name
             }
           }
         }
@@ -134,9 +124,7 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
                 "o-6"
               ],
               "target": {
-                "properties": {
-                  "name": "NGC 5949"
-                }
+                "name": "NGC 5949"
               }
             },
             {
@@ -144,9 +132,7 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
                 "o-6"
               ],
               "target": {
-                "properties": {
-                  "name": "NGC 3269"
-                }
+                "name": "NGC 3269"
               }
             },
             {
@@ -157,18 +143,14 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
                 "o-6"
               ],
               "target": {
-                "properties": {
-                  "name": "NGC 3312"
-                }
+                "name": "NGC 3312"
               }
             },
             {
               "observationIds": [
               ],
               "target": {
-                "properties": {
-                  "name": "NGC 4749"
-                }
+                "name": "NGC 4749"
               }
             }
           ]
@@ -192,9 +174,7 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
           nodes {
             observationIds
             asterism {
-              properties {
-                name
-              }
+              name
             }
           }
         }
@@ -210,9 +190,7 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
               ],
               "asterism": [
                 {
-                  "properties": {
-                    "name": "NGC 5949"
-                  }
+                  "name": "NGC 5949"
                 }
               ]
             },
@@ -224,9 +202,7 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
               ],
               "asterism": [
                 {
-                  "properties": {
-                    "name": "NGC 3312"
-                  }
+                  "name": "NGC 3312"
                 }
               ]
             },
@@ -236,14 +212,10 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
               ],
               "asterism": [
                 {
-                  "properties": {
-                    "name": "NGC 5949"
-                  }
+                  "name": "NGC 5949"
                 },
                 {
-                  "properties": {
-                    "name": "NGC 3312"
-                  }
+                  "name": "NGC 3312"
                 }
               ]
             },
@@ -278,9 +250,7 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
                 dec { dms }
               }
               asterism {
-                properties {
-                  name
-                }
+                name
               }
             }
           }
@@ -299,9 +269,7 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
                 "explicitBase" : null,
                 "asterism" : [
                   {
-                    "properties": {
-                      "name" : "NGC 5949"
-                    }
+                    "name" : "NGC 5949"
                   }
                 ]
               }
@@ -315,9 +283,7 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
                 "explicitBase" : null,
                 "asterism" : [
                   {
-                    "properties": {
-                      "name" : "NGC 3312"
-                    }
+                    "name" : "NGC 3312"
                   }
                 ]
               }
@@ -337,9 +303,7 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
                 },
                 "asterism" : [
                   {
-                    "properties": {
-                      "name" : "NGC 3312"
-                    }
+                    "name" : "NGC 3312"
                   }
                 ]
               }
@@ -352,14 +316,10 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
                 "explicitBase" : null,
                 "asterism" : [
                   {
-                    "properties": {
-                      "name" : "NGC 5949"
-                    }
+                    "name" : "NGC 5949"
                   },
                   {
-                    "properties": {
-                      "name" : "NGC 3312"
-                    }
+                    "name" : "NGC 3312"
                   }
                 ]
               }
