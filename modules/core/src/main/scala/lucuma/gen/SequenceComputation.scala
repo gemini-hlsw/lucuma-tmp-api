@@ -14,7 +14,7 @@ import lucuma.core.model.Observation
 import lucuma.gen.gmos.longslit.{GmosNorthLongSlit, GmosSouthLongSlit}
 import lucuma.gen.gmos.{GmosNorthGenerator, GmosSouthGenerator}
 import lucuma.itc.client.{ItcClient, ItcResult}
-import lucuma.odb.api.model.{ExecutionContext, ExecutionModel, GmosModel, ObservationModel, ScienceMode, Visit, VisitRecord, VisitRecords}
+import lucuma.odb.api.model.{ExecutionContext, ExecutionModel, GmosModel, InputError, ObservationModel, ScienceMode, Visit, VisitRecord, VisitRecords}
 import lucuma.odb.api.repo.OdbRepo
 
 /**
@@ -47,12 +47,15 @@ object SequenceComputation {
     odb: OdbRepo[F]
   ): F[Option[ExecutionContext]] = {
 
+    def toInputError(result: ItcResult.Error): InputError.Exception =
+      InputError.fromMessage(result.msg).toException
+
     def run[S, D, G <: Generator[F, S, D]](
       inst: Instrument.Config[S, D],
       queryResult: F[Either[ItcResult.Error, Option[G]]]
     ): F[Option[ExecutionContext]] =
       queryResult
-        .flatMap(_.leftMap(e => new Exception(e.msg)).liftTo[F])
+        .flatMap(_.leftMap(toInputError).liftTo[F])
         .flatMap(_.traverse(inst.run(oid, odb, _)))
 
     def go(o: ObservationModel): F[Option[ExecutionContext]] =
