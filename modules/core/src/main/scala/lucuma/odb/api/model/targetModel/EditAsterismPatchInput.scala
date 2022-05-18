@@ -16,7 +16,7 @@ import lucuma.odb.api.model.{EitherInput, InputError}
 import lucuma.odb.api.model.syntax.lens._
 
 
-final case class EditAsterismInput(
+final case class EditAsterismPatchInput(
   add:    Option[Target.Id],
   delete: Option[Target.Id]
 ) {
@@ -31,27 +31,27 @@ final case class EditAsterismInput(
 
 }
 
-object EditAsterismInput {
+object EditAsterismPatchInput {
 
-  implicit val DecoderEditTargetInput: Decoder[EditAsterismInput] =
-    deriveDecoder[EditAsterismInput]
+  implicit val DecoderEditTargetInput: Decoder[EditAsterismPatchInput] =
+    deriveDecoder[EditAsterismPatchInput]
 
-  implicit val EqEditTargetInput: Eq[EditAsterismInput] =
+  implicit val EqEditTargetInput: Eq[EditAsterismPatchInput] =
     Eq.by { a => (
       a.add,
       a.delete
     )}
 
-  val Empty: EditAsterismInput =
-    EditAsterismInput(None, None)
+  val Empty: EditAsterismPatchInput =
+    EditAsterismPatchInput(None, None)
 
-  def add(tid: Target.Id): EditAsterismInput =
+  def add(tid: Target.Id): EditAsterismPatchInput =
     Empty.copy(add = tid.some)
 
-  def delete(tid: Target.Id): EditAsterismInput =
+  def delete(tid: Target.Id): EditAsterismPatchInput =
     Empty.copy(delete = tid.some)
 
-  def multiEditor(inputs: List[EditAsterismInput]): StateT[EitherInput, TargetEnvironmentModel, Unit] =
+  def multiEditor(inputs: List[EditAsterismPatchInput]): StateT[EitherInput, TargetEnvironmentModel, Unit] =
     inputs.traverse(_.editor).void
 
 }

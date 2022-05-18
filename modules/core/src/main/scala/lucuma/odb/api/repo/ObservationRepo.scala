@@ -12,7 +12,7 @@ import lucuma.odb.api.model.{Database, EitherInput, Event, ExecutionModel, Input
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.model.syntax.databasestate._
 import lucuma.odb.api.model.syntax.eitherinput._
-import lucuma.odb.api.model.targetModel.{EditAsterismInput, TargetEnvironmentModel, TargetModel}
+import lucuma.odb.api.model.targetModel.{EditAsterismPatchInput, TargetEnvironmentModel, TargetModel}
 
 import scala.collection.immutable.SortedSet
 
@@ -84,7 +84,7 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
   ): F[List[Group[ScienceRequirements]]]
 
   def bulkEditAsterism(
-    be: BulkEdit[Seq[EditAsterismInput]]
+    be: BulkEdit[Seq[EditAsterismPatchInput]]
   ): F[List[ObservationModel]]
 
 }
@@ -336,9 +336,9 @@ object ObservationRepo {
       }
 
       override def bulkEditAsterism(
-        be: BulkEdit[Seq[EditAsterismInput]]
+        be: BulkEdit[Seq[EditAsterismPatchInput]]
       ): F[List[ObservationModel]] =
-        doBulkEditTargets(be, EditAsterismInput.multiEditor(be.edit.toList))
+        doBulkEditTargets(be, EditAsterismPatchInput.multiEditor(be.patch.toList))
 
     }
 }

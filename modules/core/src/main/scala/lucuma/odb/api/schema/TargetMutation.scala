@@ -9,7 +9,7 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
 import lucuma.odb.api.model.{CoordinatesModel, DeclinationModel, ObservationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
-import lucuma.odb.api.model.targetModel.{CatalogInfoInput, EditAsterismInput, NonsiderealInput, SiderealInput, TargetEnvironmentInput, TargetModel}
+import lucuma.odb.api.model.targetModel.{CatalogInfoInput, EditAsterismPatchInput, NonsiderealInput, SiderealInput, TargetEnvironmentInput, TargetModel}
 import lucuma.odb.api.schema.syntax.`enum`._
 import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
@@ -202,9 +202,9 @@ trait TargetMutation extends TargetScalars {
       )
     )
 
-  implicit val InputObjectTypeEditAsterism: InputObjectType[EditAsterismInput] =
-    deriveInputObjectType[EditAsterismInput](
-      InputObjectTypeName("EditAsterismInput"),
+  implicit val InputObjectTypeEditAsterism: InputObjectType[EditAsterismPatchInput] =
+    deriveInputObjectType[EditAsterismPatchInput](
+      InputObjectTypeName("EditAsterismPatchInput"),
       InputObjectTypeDescription("Add or delete targets in an asterism")
     )
 
@@ -247,8 +247,8 @@ trait TargetMutation extends TargetScalars {
                   cloneInput.replaceIn
                 ),
                 List(
-                  EditAsterismInput.delete(cloneInput.targetId),
-                  EditAsterismInput.add(t.id)
+                  EditAsterismPatchInput.delete(cloneInput.targetId),
+                  EditAsterismPatchInput.add(t.id)
                 )
               )
             )

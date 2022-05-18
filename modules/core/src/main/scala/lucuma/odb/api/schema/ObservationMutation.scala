@@ -10,7 +10,7 @@ import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.option._
 import io.circe.Decoder
-import lucuma.odb.api.model.targetModel.EditAsterismInput
+import lucuma.odb.api.model.targetModel.EditAsterismPatchInput
 import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
 import sangria.macros.derive._
@@ -119,14 +119,14 @@ trait ObservationMutation {
 
     val io: InputObjectType[BulkEdit[A]] =
       InputObjectType[BulkEdit[A]](
-        name        = s"BulkEdit${name.capitalize}Input",
+        name        = s"Edit${name.capitalize}Input",
         description =
           """Input for bulk editing multiple observations.  Select observations
             |with the 'select' input and specify the changes in 'edit'.
             |""".stripMargin,
         List(
           InputField("select", InputObjectTypeBulkEditSelect),
-          InputField("edit",   editType)
+          InputField("patch",  editType)
         )
       )
 
@@ -134,8 +134,8 @@ trait ObservationMutation {
 
   }
 
-  val ArgumentAsterismBulkEdit: Argument[BulkEdit[Seq[EditAsterismInput]]] =
-    bulkEditArgument[Seq[EditAsterismInput]](
+  val ArgumentEditAsterism: Argument[BulkEdit[Seq[EditAsterismPatchInput]]] =
+    bulkEditArgument[Seq[EditAsterismPatchInput]](
       "asterism",
       ListInputType(InputObjectTypeEditAsterism)
     )
@@ -165,16 +165,16 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.clone(c.arg(ArgumentObservationCloneInput)))
     )
 
-  def bulkEditAsterism[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def editAsterism[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name        = "bulkEditAsterism",
+      name        = "editAsterism",
       description =
         """Edit asterisms, adding or deleting targets, in (potentially) multiple
           |observations at once.
         """.stripMargin.some,
       fieldType   = ListType(ObservationType[F]),
-      arguments   = List(ArgumentAsterismBulkEdit),
-      resolve     = c => c.observation(_.bulkEditAsterism(c.arg(ArgumentAsterismBulkEdit)))
+      arguments   = List(ArgumentEditAsterism),
+      resolve     = c => c.observation(_.bulkEditAsterism(c.arg(ArgumentEditAsterism)))
     )
 
   def delete[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
@@ -198,7 +198,7 @@ trait ObservationMutation {
       create,
       editObservation,
       clone,
-      bulkEditAsterism,
+      editAsterism,
       delete,
       undelete,
     )

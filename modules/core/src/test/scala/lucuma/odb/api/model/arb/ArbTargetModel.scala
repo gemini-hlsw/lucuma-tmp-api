@@ -173,15 +173,15 @@ trait ArbTargetModel {
       a.properties.sourceProfile.toOption
     )}
 
-  implicit val arbEditAsterismInput: Arbitrary[EditAsterismInput] =
+  implicit val arbEditAsterismInput: Arbitrary[EditAsterismPatchInput] =
     Arbitrary {
       for {
         a <- arbitrary[Option[Target.Id]]
         d <- arbitrary[Option[Target.Id]]
-      } yield EditAsterismInput(a, d)
+      } yield EditAsterismPatchInput(a, d)
     }
 
-  implicit val cogEditAsterismInput: Cogen[EditAsterismInput] =
+  implicit val cogEditAsterismInput: Cogen[EditAsterismPatchInput] =
     Cogen[(
       Option[Target.Id],
       Option[Target.Id]
