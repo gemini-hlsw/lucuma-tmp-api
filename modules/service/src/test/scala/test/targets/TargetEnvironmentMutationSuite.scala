@@ -57,10 +57,8 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
             "observationIds": [ "o-3" ]
           },
           "patch": {
-            "properties": {
-              "targetEnvironment": {
-                "asterism": [ "t-2" ]
-              }
+            "targetEnvironment": {
+              "asterism": [ "t-2" ]
             }
           }
         }
@@ -90,10 +88,8 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
             "observationIds": [ "o-3" ]
           },
           "patch": {
-            "properties": {
-              "targetEnvironment": {
-                "asterism": [ "t-6" ]
-              }
+            "targetEnvironment": {
+              "asterism": [ "t-6" ]
             }
           }
         }
@@ -143,15 +139,13 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
             "observationIds": [ "o-3" ]
           },
           "patch": {
-            "properties": {
-              "targetEnvironment": {
-                "explicitBase": {
-                  "ra": {
-                    "hms": "01:00:00.00"
-                  },
-                  "dec": {
-                    "dms": "02:00:00.00"
-                  }
+            "targetEnvironment": {
+              "explicitBase": {
+                "ra": {
+                  "hms": "01:00:00.00"
+                },
+                "dec": {
+                  "dms": "02:00:00.00"
                 }
               }
             }

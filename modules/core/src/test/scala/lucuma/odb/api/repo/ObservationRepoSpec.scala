@@ -6,7 +6,6 @@ package lucuma.odb.api.repo
 import cats.syntax.all._
 import cats.kernel.instances.order._
 import clue.data.Input
-import clue.data.syntax._
 import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.odb.api.model.{Database, ObservationModel, ProgramModel}
 import lucuma.odb.api.model.arb.ArbDatabase
@@ -92,14 +91,12 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
       val (_, obs) = runEditTest(t) { o =>
         ObservationModel.EditInput(
           ObservationModel.SelectInput.observationId(o.id),
-          ObservationModel.PatchInput(
-            ObservationModel.PropertiesInput(
-              subtitle = Input(NonEmptyString.unsafeFrom("Biff"))
-            ).assign
+          ObservationModel.PropertiesInput(
+            subtitle = Input(NonEmptyString.unsafeFrom("Biff"))
           )
         )
       }
-      assert(obs.properties.subtitle.contains(NonEmptyString.unsafeFrom("Biff")))
+      assert(obs.subtitle.contains(NonEmptyString.unsafeFrom("Biff")))
     }
 
   }
@@ -109,10 +106,8 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
       val (before, after) = runEditTest(t) { o =>
         ObservationModel.EditInput(
           ObservationModel.SelectInput.observationId(o.id),
-          ObservationModel.PatchInput(
-            ObservationModel.PropertiesInput(
-              subtitle = o.properties.subtitle.fold(Input.ignore[NonEmptyString])(n => Input(n))
-            ).assign
+          ObservationModel.PropertiesInput(
+            subtitle = o.subtitle.fold(Input.ignore[NonEmptyString])(n => Input(n))
           )
         )
       }

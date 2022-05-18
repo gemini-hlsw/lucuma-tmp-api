@@ -43,10 +43,8 @@ class MutationSuite extends OdbSuite {
             "observationIds": [ "o-3", "o-4" ]
           },
           "patch": {
-            "properties": {
-              "constraintSet": {
-                "skyBackground": "GRAY"
-              }
+            "constraintSet": {
+              "skyBackground": "GRAY"
             }
           }
         }
@@ -111,12 +109,10 @@ class MutationSuite extends OdbSuite {
             "observationIds": [ "o-3", "o-4" ]
           },
           "patch": {
-            "properties": {
-              "scienceMode": {
-                "gmosSouthLongSlit": {
-                  "advanced": {
-                    "overrideGrating": "R600_G5324"
-                  }
+            "scienceMode": {
+              "gmosSouthLongSlit": {
+                "advanced": {
+                  "overrideGrating": "R600_G5324"
                 }
               }
             }
@@ -250,14 +246,12 @@ class MutationSuite extends OdbSuite {
             "observationIds": [ "o-3", "o-4" ]
           },
           "patch": {
-            "properties": {
-              "constraintSet": {
-                "skyBackground": "GRAY",
-                "elevationRange": {
-                  "airMass": {
-                    "min": 0.0,
-                    "max": 2.0
-                  }
+            "constraintSet": {
+              "skyBackground": "GRAY",
+              "elevationRange": {
+                "airMass": {
+                  "min": 0.0,
+                  "max": 2.0
                 }
               }
             }

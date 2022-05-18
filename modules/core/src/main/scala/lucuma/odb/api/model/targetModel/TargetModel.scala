@@ -200,9 +200,9 @@ object TargetModel extends TargetModelOptics {
         p   <- programId.traverse(Database.program.lookup)
         ts0 <- p.traverse(pm => StateT.inspect[EitherInput, Database, List[TargetModel]](_.targets.rows.values.filter(_.programId === pm.id).toList))
         o   <- observationId.traverse(Database.observation.lookup)
-        ts1 <- o.map(_.properties.targetEnvironment.asterism.toList).traverse(Database.target.lookupAll)
+        ts1 <- o.map(_.targetEnvironment.asterism.toList).traverse(Database.target.lookupAll)
         os  <- observationIds.traverse(Database.observation.lookupAll)
-        ts2 <- os.map(_.flatMap(_.properties.targetEnvironment.asterism.toList)).traverse(Database.target.lookupAll)
+        ts2 <- os.map(_.flatMap(_.targetEnvironment.asterism.toList)).traverse(Database.target.lookupAll)
         ts3 <- targetId.traverse(Database.target.lookup).map(_.map(t => List(t)))
         ts4 <- targetIds.traverse(Database.target.lookupAll)
       } yield

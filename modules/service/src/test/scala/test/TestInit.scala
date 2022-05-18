@@ -459,14 +459,12 @@ object TestInit {
       _  <- repo.observation.edit(
               ObservationModel.EditInput(
                 ObservationModel.SelectInput.observationIds(List(o.id)),
-                ObservationModel.PatchInput(
-                  properties = ObservationModel.PropertiesInput(
-                    targetEnvironment = TargetEnvironmentInput.explicitBase(
-                      CoordinatesModel.Input(
-                          RightAscensionModel.Input.fromDegrees(159.2583),
-                          DeclinationModel.Input.fromDegrees(-27.5650)
-                      )
-                    ).assign
+                ObservationModel.PropertiesInput(
+                  targetEnvironment = TargetEnvironmentInput.explicitBase(
+                    CoordinatesModel.Input(
+                        RightAscensionModel.Input.fromDegrees(159.2583),
+                        DeclinationModel.Input.fromDegrees(-27.5650)
+                    )
                   ).assign
                 )
               )

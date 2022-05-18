@@ -36,7 +36,7 @@ trait ArbObservationModel {
         ts <- arbitrary[TargetEnvironmentModel]
         cs <- arbitrary[ConstraintSet]
         sr <- arbitrary[ScienceRequirements]
-      } yield ObservationModel(id, ex, pid, ObservationModel.Properties(nm, os, as, ts, cs, sr, None, None))
+      } yield ObservationModel(id, pid, ex, nm, os, as, ts, cs, sr, None, None)
     }
 
   implicit val arbObservationModel: Arbitrary[ObservationModel] =
@@ -50,8 +50,8 @@ trait ArbObservationModel {
   implicit val cogObservationModel: Cogen[ObservationModel] =
     Cogen[(
       Observation.Id,
-      Existence,
       Program.Id,
+      Existence,
       Option[String],
       ObsStatus,
       ObsActiveStatus,
@@ -59,13 +59,13 @@ trait ArbObservationModel {
       ScienceRequirements
     )].contramap { in => (
       in.id,
-      in.existence,
       in.programId,
-      in.properties.subtitle.map(_.value),
-      in.properties.status,
-      in.properties.activeStatus,
-      in.properties.constraintSet,
-      in.properties.scienceRequirements
+      in.existence,
+      in.subtitle.map(_.value),
+      in.status,
+      in.activeStatus,
+      in.constraintSet,
+      in.scienceRequirements
     )}
 
   implicit val arbObservationModelPropertiesInput: Arbitrary[ObservationModel.PropertiesInput] =
@@ -103,23 +103,6 @@ trait ArbObservationModel {
       in.constraintSet
     )}
 
-  implicit val arbObservationModelPatchInput: Arbitrary[ObservationModel.PatchInput] =
-    Arbitrary {
-      for {
-        p <- arbitrary[Input[ObservationModel.PropertiesInput]]
-        e <- arbitrary[Input[Existence]]
-      } yield ObservationModel.PatchInput(p, e)
-    }
-
-  implicit val cogObservationModelPatchInput: Cogen[ObservationModel.PatchInput] =
-    Cogen[(
-      Input[ObservationModel.PropertiesInput],
-      Input[Existence]
-    )].contramap { in => (
-      in.properties,
-      in.existence
-    )}
-
   implicit val arbObservationModelCreate: Arbitrary[ObservationModel.CreateInput] =
     Arbitrary {
       for {
@@ -141,14 +124,14 @@ trait ArbObservationModel {
     Arbitrary {
       for {
         ex <- arbitrary[Observation.Id]
-        pi <- arbitrary[Option[ObservationModel.PatchInput]]
+        pi <- arbitrary[Option[ObservationModel.PropertiesInput]]
       } yield ObservationModel.CloneInput(ex, pi)
     }
 
   implicit val cogObservationModelCloneInput: Cogen[ObservationModel.CloneInput] =
     Cogen[(
       Observation.Id,
-      Option[ObservationModel.PatchInput]
+      Option[ObservationModel.PropertiesInput]
     )].contramap { in => (
       in.observationId,
       in.patch

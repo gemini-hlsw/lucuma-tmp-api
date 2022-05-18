@@ -126,7 +126,7 @@ object ObservationRepo {
         oid:            Observation.Id,
         includeDeleted: Boolean
       ): F[Option[ExecutionModel]] =
-        select(oid, includeDeleted).map(_.flatMap(_.properties.config))
+        select(oid, includeDeleted).map(_.flatMap(_.config))
 
       override def insert(newObs: CreateInput): F[ObservationModel] = {
 
@@ -187,7 +187,7 @@ object ObservationRepo {
               .rows
               .values
               .filter(o => (o.programId === pid) && (includeDeleted || o.isPresent))
-              .flatMap(o => o.properties.targetEnvironment.asterism.toList.tupleRight(o.id))
+              .flatMap(o => o.targetEnvironment.asterism.toList.tupleRight(o.id))
               .groupMap(_._1)(_._2)
               .view
               .filterKeys(tid => includeDeleted || db.targets.rows(tid).isPresent)
@@ -253,7 +253,7 @@ object ObservationRepo {
         includeDeleted: Boolean
       ): F[List[Group[SortedSet[Target.Id]]]] =
         groupByWithTables(pid, includeDeleted) { (t, o) =>
-          o.properties.targetEnvironment.asterism.filter(tid => includeDeleted || t.targets.rows(tid).isPresent)
+          o.targetEnvironment.asterism.filter(tid => includeDeleted || t.targets.rows(tid).isPresent)
         }
 
       override def groupByAsterismInstantiated(
@@ -273,26 +273,26 @@ object ObservationRepo {
        groupByWithTables(pid, includeDeleted) { (t, o) =>
          TargetEnvironmentModel.asterism.modify {
            _.filter(tid => includeDeleted || t.targets.rows(tid).isPresent)
-         }(o.properties.targetEnvironment)
+         }(o.targetEnvironment)
        }
 
       override def groupByConstraintSet(
         pid:            Program.Id,
         includeDeleted: Boolean
       ): F[List[Group[ConstraintSet]]] =
-        groupBy(pid, includeDeleted)(_.properties.constraintSet)
+        groupBy(pid, includeDeleted)(_.constraintSet)
 
       override def groupByScienceMode(
         pid:            Program.Id,
         includeDeleted: Boolean
       ): F[List[Group[Option[ScienceMode]]]] =
-        groupBy(pid, includeDeleted)(_.properties.scienceMode)
+        groupBy(pid, includeDeleted)(_.scienceMode)
 
       override def groupByScienceRequirements(
         pid:            Program.Id,
         includeDeleted: Boolean
       ): F[List[Group[ScienceRequirements]]] =
-        groupBy(pid, includeDeleted)(_.properties.scienceRequirements)
+        groupBy(pid, includeDeleted)(_.scienceRequirements)
 
       private def selectObservations(
         select: BulkEdit.Select

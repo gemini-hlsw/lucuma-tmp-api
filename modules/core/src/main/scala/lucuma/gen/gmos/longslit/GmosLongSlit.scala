@@ -127,14 +127,14 @@ object GmosLongSlit {
     ): Option[Input[M]] =
 
       for {
-        mode     <- observation.properties.scienceMode.collect(f)
-        λ        <- observation.properties.scienceRequirements.spectroscopy.wavelength
+        mode     <- observation.scienceMode.collect(f)
+        λ        <- observation.scienceRequirements.spectroscopy.wavelength
         sciTime  <- SciExposureTime.from(itc.exposureTime)
         expCount <- PosInt.from(itc.exposures).toOption
       } yield Input[M](
         mode,
         λ,
-        observation.properties.constraintSet.imageQuality,
+        observation.constraintSet.imageQuality,
         sampling,
         sourceProfile,
         GmosLongSlit.acquisitionExposureTime,

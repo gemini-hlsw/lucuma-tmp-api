@@ -40,7 +40,8 @@ trait ObservationMutation {
         InputObjectTypeTargetEnvironment.optionField("targetEnvironment", "The targetEnvironment defaults to empty if not specified on creation, and may be edited but not deleted"),
         InputObjectTypeConstraintSet.optionField("constraintSet", "The constraintSet defaults to standard values if not specified on creation, and may be edited but not deleted"),
         InputObjectTypeScienceRequirements.optionField("scienceRequirements", "The scienceRequirements defaults to spectroscopy if not specified on creation, and may be edited but not deleted"),
-        InputObjectTypeScienceMode.optionField("scienceMode", "The scienceMode describes the chosen observing mode and instrument, is optional and may be deleted")
+        InputObjectTypeScienceMode.optionField("scienceMode", "The scienceMode describes the chosen observing mode and instrument, is optional and may be deleted"),
+        EnumTypeExistence.optionField("existence", "Whether the observation is considered deleted (defaults to PRESENT) but may be edited")
       )
     )
 
@@ -69,23 +70,13 @@ trait ObservationMutation {
       )
     )
 
-  implicit val InputObjectTypeObservationPatch: InputObjectType[ObservationModel.PatchInput] =
-    InputObjectType[ObservationModel.PatchInput](
-      "ObservationPatchInput",
-      "Description of updates to observation properties",
-      List(
-        InputField("properties", OptionInputType(InputObjectTypeObservationProperties)),
-        InputField("existence",  OptionInputType(EnumTypeExistence))
-      )
-    )
-
   val InputObjectTypeObservationEdit: InputObjectType[ObservationModel.EditInput] =
     InputObjectType[ObservationModel.EditInput](
       "EditObservationInput",
       "Observation selection and update description",
       List(
         InputField("select", InputObjectTypeObservationSelect),
-        InputField("patch",  InputObjectTypeObservationPatch)
+        InputField("patch",  InputObjectTypeObservationProperties)
       )
     )
 

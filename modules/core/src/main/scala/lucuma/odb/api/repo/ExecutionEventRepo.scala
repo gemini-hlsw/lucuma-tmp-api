@@ -216,7 +216,7 @@ object ExecutionEventRepo {
         oid:  Observation.Id,
       ): F[List[StepRecord.Output[_]]] =
         databaseRef.get.map { db =>
-          db.observations.rows.get(oid).flatMap(_.properties.config).map(_.instrument match {
+          db.observations.rows.get(oid).flatMap(_.config).map(_.instrument match {
             // How do you do this without breaking out the various cases?
             case Instrument.GmosNorth => recordedSteps(db, oid, VisitRecords.listGmosNorthVisits)
             case Instrument.GmosSouth => recordedSteps(db, oid, VisitRecords.listGmosSouthVisits)
