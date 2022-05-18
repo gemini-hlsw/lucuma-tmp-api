@@ -114,8 +114,6 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
 
   def insert(newTarget: TargetModel.CreateInput): F[TargetModel]
 
-//  def edit(edit: TargetModel.Edit): F[TargetModel]
-
   def edit(edit: TargetModel.EditInput): F[List[TargetModel]]
 
   /**
