@@ -83,7 +83,7 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
     includeDeleted: Boolean
   ): F[List[Group[ScienceRequirements]]]
 
-  def bulkEditAsterism(
+  def editAsterism(
     be: BulkEdit[Seq[EditAsterismPatchInput]]
   ): F[List[ObservationModel]]
 
@@ -294,26 +294,6 @@ object ObservationRepo {
       ): F[List[Group[ScienceRequirements]]] =
         groupBy(pid, includeDeleted)(_.scienceRequirements)
 
-      private def selectObservations(
-        select: BulkEdit.Select
-      ): StateT[EitherInput, Database, List[ObservationModel]] =
-        for {
-          p   <- select.programId.traverse(Database.program.lookup)
-          all <- p.traverse(pm => StateT.inspect[EitherInput, Database, List[ObservationModel]](_.observations.rows.values.filter(_.programId === pm.id).toList))
-          sel <- select.observationIds.traverse(Database.observation.lookupAll)
-        } yield {
-          val obsList = (all, sel) match {
-            case (Some(a), Some(s)) =>
-              val keep = a.map(_.id).toSet ++ s.map(_.id)
-              (a ++ s).filter(o => keep(o.id))
-
-            case _                  =>
-              (all orElse sel).toList.flatten
-          }
-
-          obsList.distinctBy(_.id).sortBy(_.id)
-        }
-
       // A bulk edit for target environment with a post-observation validation
       private def doBulkEditTargets(
         be: BulkEdit[_],
@@ -322,7 +302,7 @@ object ObservationRepo {
 
         val update =
           for {
-            ini  <- selectObservations(be.select)
+            ini  <- be.select.go
             osʹ  <- StateT.liftF(ini.traverse(ObservationModel.targetEnvironment.modifyA(ed.runS)))
             vos  <- osʹ.traverse(_.validate)
             _    <- vos.traverse(o => Database.observation.update(o.id, o))
@@ -335,7 +315,7 @@ object ObservationRepo {
 
       }
 
-      override def bulkEditAsterism(
+      override def editAsterism(
         be: BulkEdit[Seq[EditAsterismPatchInput]]
       ): F[List[ObservationModel]] =
         doBulkEditTargets(be, EditAsterismPatchInput.multiEditor(be.patch.toList))

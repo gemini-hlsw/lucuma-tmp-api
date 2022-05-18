@@ -240,11 +240,10 @@ trait TargetMutation extends TargetScalars {
         c.unsafeToFuture(
           for {
             t <- c.ctx.odbRepo.target.clone(cloneInput)
-            _ <- c.ctx.odbRepo.observation.bulkEditAsterism(
+            _ <- c.ctx.odbRepo.observation.editAsterism(
               ObservationModel.BulkEdit(
-                ObservationModel.BulkEdit.Select(
-                  None,
-                  cloneInput.replaceIn
+                ObservationModel.SelectInput.observationIds(
+                  cloneInput.replaceIn.toList.flatten
                 ),
                 List(
                   EditAsterismPatchInput.delete(cloneInput.targetId),

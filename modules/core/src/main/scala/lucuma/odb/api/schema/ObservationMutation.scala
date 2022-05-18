@@ -99,19 +99,6 @@ trait ObservationMutation {
     )
 
 
-  implicit val InputObjectTypeBulkEditSelect: InputObjectType[BulkEdit.Select] =
-    InputObjectType[BulkEdit.Select](
-      name        = "BulkEditSelectInput",
-      description =
-      """Observation selection.  Choose 'programId' to select all of a program's
-        |observations or else list individual observations in 'observationIds'.
-      """.stripMargin,
-      List(
-        InputField("programId",      OptionInputType(ProgramIdType)),
-        InputField("observationIds", OptionInputType(ListInputType(ObservationIdType)))
-      )
-    )
-
   private def bulkEditArgument[A: Decoder](
     name:       String,
     editType:   InputType[A]
@@ -125,7 +112,7 @@ trait ObservationMutation {
             |with the 'select' input and specify the changes in 'edit'.
             |""".stripMargin,
         List(
-          InputField("select", InputObjectTypeBulkEditSelect),
+          InputField("select", InputObjectTypeObservationSelect),
           InputField("patch",  editType)
         )
       )
@@ -174,7 +161,7 @@ trait ObservationMutation {
         """.stripMargin.some,
       fieldType   = ListType(ObservationType[F]),
       arguments   = List(ArgumentEditAsterism),
-      resolve     = c => c.observation(_.bulkEditAsterism(c.arg(ArgumentEditAsterism)))
+      resolve     = c => c.observation(_.editAsterism(c.arg(ArgumentEditAsterism)))
     )
 
   def delete[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
