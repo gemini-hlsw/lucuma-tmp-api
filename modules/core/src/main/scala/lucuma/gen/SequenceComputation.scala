@@ -29,7 +29,7 @@ object SequenceComputation {
   ): F[Option[ExecutionContext]] = {
 
     def run(o: ObservationModel): F[Option[ExecutionContext]] =
-      o.config.flatMap {
+      o.properties.config.flatMap {
         case gn: ExecutionModel.GmosNorth => Instrument.GmosNorth.run(oid, odb, GmosNorthGenerator.manual(gn)).some
         case gs: ExecutionModel.GmosSouth => Instrument.GmosSouth.run(oid, odb, GmosSouthGenerator.manual(gs)).some
         case _                            => None
@@ -56,7 +56,7 @@ object SequenceComputation {
         .flatMap(_.traverse(inst.run(oid, odb, _)))
 
     def go(o: ObservationModel): F[Option[ExecutionContext]] =
-      o.scienceMode.flatTraverse {
+      o.properties.scienceMode.flatTraverse {
         case _: ScienceMode.GmosNorthLongSlit =>
           run(Instrument.GmosNorth, GmosNorthLongSlit.query(itc, odb, o))
         case _: ScienceMode.GmosSouthLongSlit =>

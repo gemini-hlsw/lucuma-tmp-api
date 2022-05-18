@@ -198,7 +198,7 @@ trait TargetMutation extends TargetScalars {
   val ArgumentEditTargetInput: Argument[TargetModel.EditInput] =
     InputObjectTypeEditTarget.argument(
       "input",
-      "Parameters for editing an existing target. "
+      "Parameters for editing existing targets. "
     )
 
   implicit val InputObjectTypeTargetEnvironment: InputObjectType[TargetEnvironmentInput] =
@@ -272,7 +272,7 @@ trait TargetMutation extends TargetScalars {
       fieldType   = ListType(TargetType[F]),
       description = "Edits existing targets".some,
       arguments   = List(ArgumentEditTargetInput),
-      resolve     = c => c.target(_.bulkEdit(c.arg(ArgumentEditTargetInput)))
+      resolve     = c => c.target(_.edit(c.arg(ArgumentEditTargetInput)))
     )
 
     def delete[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =

@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.repo
 
-import cats.data.{EitherT, StateT}
+import cats.data.EitherT
 import cats.Order.catsKernelOrderingForOrder
 import cats.effect.{Async, Ref}
 import cats.syntax.applicative._
@@ -14,7 +14,7 @@ import cats.syntax.functor._
 import cats.syntax.traverse._
 import lucuma.core.model.{Observation, Program, Target}
 import lucuma.core.util.Gid
-import lucuma.odb.api.model.{Database, EitherInput, Event, InputError, Table}
+import lucuma.odb.api.model.{Database, Event, InputError, Table}
 import lucuma.odb.api.model.targetModel._
 import lucuma.odb.api.model.targetModel.TargetModel.TargetEvent
 import lucuma.odb.api.model.syntax.toplevel._
@@ -116,7 +116,7 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
 
 //  def edit(edit: TargetModel.Edit): F[TargetModel]
 
-  def bulkEdit(edit: TargetModel.EditInput): F[List[TargetModel]]
+  def edit(edit: TargetModel.EditInput): F[List[TargetModel]]
 
   /**
    * Clones the target referenced by `existingTid`.  Uses the `suggestedTid` for
@@ -185,7 +185,7 @@ object TargetRepo {
             .rows
             .values
             .filter(o => o.programId === pid && (includeDeleted || o.isPresent))
-            .map(_.targetEnvironment.asterism)
+            .map(_.properties.targetEnvironment.asterism)
             .reduceOption(_.union(_))
             .getOrElse(SortedSet.empty[Target.Id])
         }
@@ -202,7 +202,7 @@ object TargetRepo {
               .observations
               .rows
               .get(oid)
-              .map(_.targetEnvironment.asterism)
+              .map(_.properties.targetEnvironment.asterism)
               .getOrElse(SortedSet.empty[Target.Id])
           }.reduceOption(_.union(_))
            .getOrElse(SortedSet.empty[Target.Id])
@@ -240,7 +240,7 @@ object TargetRepo {
             .rows
             .values
             .filter(o => o.programId === pid && (includeDeleted || o.isPresent))
-            .map(_.targetEnvironment.asterism)
+            .map(_.properties.targetEnvironment.asterism)
             .toList
             .distinct
             .map(_.map(tab.targets.rows.apply).filter(t => includeDeleted || t.isPresent))
@@ -255,7 +255,7 @@ object TargetRepo {
       override def selectObservationTargetEnvironment(
         id: Observation.Id
       ): F[Option[TargetEnvironmentModel]] =
-        databaseRef.get.map(_.observations.rows.get(id).map(_.targetEnvironment))
+        databaseRef.get.map(_.observations.rows.get(id).map(_.properties.targetEnvironment))
 
       override def unsafeSelectObservationTargetEnvironment(
         id: Observation.Id
@@ -285,37 +285,20 @@ object TargetRepo {
         } yield t
       }
 
-      override def bulkEdit(bulkEdit: TargetModel.EditInput): F[List[TargetModel]] =
+      override def edit(editInput: TargetModel.EditInput): F[List[TargetModel]] =
         for {
-          ts <- databaseRef.modifyState(bulkEdit.editor.flipF).flatMap(_.liftTo[F])
+          ts <- databaseRef.modifyState(editInput.editor.flipF).flatMap(_.liftTo[F])
           _  <- ts.traverse(t => eventService.publish(TargetEvent.updated(t)))
         } yield ts
 
       override def clone(
         cloneInput: TargetModel.CloneInput
-      ): F[TargetModel] = {
-
-        val update: StateT[EitherInput, Database, TargetModel] =
-          for {
-            t  <- Database.target.lookup(cloneInput.targetId)
-            i  <- Database.target.cycleNextUnused
-            c   = t.clone(i)
-            _  <- Database.target.saveNew(i, c)
-            cʹ <- cloneInput.patch.fold(StateT.pure[EitherInput, Database, TargetModel](c)) { p =>
-              TargetModel.EditInput(
-                TargetModel.SelectInput.targetId(i),
-                p
-              ).editor.map(_.head)
-            }
-          } yield cʹ
-
-
+      ): F[TargetModel] =
         for {
-          t <- databaseRef.modifyState(update.flipF).flatMap(_.liftTo[F])
+          t <- databaseRef.modifyState(cloneInput.go.flipF).flatMap(_.liftTo[F])
           _ <- eventService.publish(TargetEvent.created(t))
         } yield t
 
-      }
 
     }
 }

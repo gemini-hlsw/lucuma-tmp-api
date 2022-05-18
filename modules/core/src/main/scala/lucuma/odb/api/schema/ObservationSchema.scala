@@ -98,7 +98,7 @@ object ObservationSchema {
           fieldType   = StringType,
           description = Some("Observation title generated from id and targets"),
           resolve     = c => {
-            val targets = c.value.targetEnvironment.asterism.toList.flatTraverse { tid =>
+            val targets = c.value.properties.targetEnvironment.asterism.toList.flatTraverse { tid =>
               c.ctx.odbRepo.target.selectTarget(tid).map(_.map(_.target.name.value).toList)
             }
             c.unsafeToFuture(targets.map(_.mkString(", ")))
@@ -109,21 +109,21 @@ object ObservationSchema {
           name        = "subtitle",
           fieldType   = OptionType(NonEmptyStringType),
           description = Some("User-supplied observation-identifying detail information"),
-          resolve     = _.value.subtitle
+          resolve     = _.value.properties.subtitle
         ),
 
         Field(
           name        = "status",
           fieldType   = ObsStatusType,
           description = Some("Observation status"),
-          resolve     = _.value.status
+          resolve     = _.value.properties.status
         ),
 
         Field(
           name        = "activeStatus",
           fieldType   = ObsActiveStatusType,
           description = "Observation operational status".some,
-          resolve     = _.value.activeStatus
+          resolve     = _.value.properties.activeStatus
         ),
 
         Field(
@@ -152,7 +152,7 @@ object ObservationSchema {
           name        = "constraintSet",
           fieldType   = ConstraintSetType,
           description = Some("The constraint set for the observation"),
-          resolve     = c => c.value.constraintSet
+          resolve     = c => c.value.properties.constraintSet
         ),
 
         Field(
@@ -160,7 +160,7 @@ object ObservationSchema {
           fieldType   = ScienceRequirementsType[F],
           description = Some("The top level science requirements"),
           arguments   = List(ArgumentIncludeDeleted),
-          resolve     = c => c.value.scienceRequirements
+          resolve     = c => c.value.properties.scienceRequirements
         ),
 
         Field(
@@ -168,7 +168,7 @@ object ObservationSchema {
           fieldType   = OptionType(ScienceModeType),
           description = Some("The science configuration"),
           arguments   = List(ArgumentIncludeDeleted),
-          resolve     = c => c.value.scienceMode
+          resolve     = c => c.value.properties.scienceMode
         ),
 
         Field(
@@ -188,7 +188,7 @@ object ObservationSchema {
           name        = "manualConfig",
           fieldType   = OptionType(ManualConfigSchema.ManualConfigType[F]),
           description = Some("Manual instrument configuration"),
-          resolve     = _.value.config
+          resolve     = _.value.properties.config
         ),
 
         Field(

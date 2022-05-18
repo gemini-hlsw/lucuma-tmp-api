@@ -39,7 +39,7 @@ object ItcSpectroscopyInput {
       }.map(_._1)
 
     def band: Option[Band] =
-      o.scienceRequirements.spectroscopy.wavelength.flatMap { w =>
+      o.properties.scienceRequirements.spectroscopy.wavelength.flatMap { w =>
         SourceProfile
           .integratedBrightnesses
           .getOption(t.sourceProfile)
@@ -59,11 +59,11 @@ object ItcSpectroscopyInput {
       }
 
     for {
-      w   <- o.scienceRequirements.spectroscopy.wavelength
-      s2n <- o.scienceRequirements.spectroscopy.signalToNoise
+      w   <- o.properties.scienceRequirements.spectroscopy.wavelength
+      s2n <- o.properties.scienceRequirements.spectroscopy.signalToNoise
       b   <- band
       r   <- radialVelocity
-      c   <- o.scienceMode
+      c   <- o.properties.scienceMode
     } yield
       ItcSpectroscopyInput(
         w,
@@ -71,7 +71,7 @@ object ItcSpectroscopyInput {
         t.sourceProfile,
         b,
         r,
-        o.constraintSet,
+        o.properties.constraintSet,
         List(c)
       )
   }

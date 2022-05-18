@@ -41,7 +41,11 @@ final case class TargetModel(
     target.name
 
   def clone(newId: Target.Id): TargetModel =
-    copy(id = newId, existence = Existence.Present, observed = false)
+    copy(
+      id        = newId,
+      existence = Existence.Present,
+      observed  = false
+    )
 
 }
 
@@ -182,9 +186,9 @@ object TargetModel extends TargetModelOptics {
         p   <- programId.traverse(Database.program.lookup)
         ts0 <- p.traverse(pm => StateT.inspect[EitherInput, Database, List[TargetModel]](_.targets.rows.values.filter(_.programId === pm.id).toList))
         o   <- observationId.traverse(Database.observation.lookup)
-        ts1 <- o.map(_.targetEnvironment.asterism.toList).traverse(Database.target.lookupAll)
+        ts1 <- o.map(_.properties.targetEnvironment.asterism.toList).traverse(Database.target.lookupAll)
         os  <- observationIds.traverse(Database.observation.lookupAll)
-        ts2 <- os.map(_.flatMap(_.targetEnvironment.asterism.toList)).traverse(Database.target.lookupAll)
+        ts2 <- os.map(_.flatMap(_.properties.targetEnvironment.asterism.toList)).traverse(Database.target.lookupAll)
         ts3 <- targetId.traverse(Database.target.lookup).map(_.map(t => List(t)))
         ts4 <- targetIds.traverse(Database.target.lookupAll)
       } yield
@@ -243,10 +247,10 @@ object TargetModel extends TargetModelOptics {
     import io.circe.generic.extras.Configuration
     implicit val customConfig: Configuration = Configuration.default.withDefaults
 
-    implicit val DecoderEdit: Decoder[PatchInput] =
+    implicit val DecoderPatchInput: Decoder[PatchInput] =
       deriveConfiguredDecoder[PatchInput]
 
-    implicit val EqEdit: Eq[PatchInput] =
+    implicit val EqPatchInput: Eq[PatchInput] =
       Eq.by { a => (
         a.properties,
         a.existence
@@ -285,7 +289,23 @@ object TargetModel extends TargetModelOptics {
     targetId:  Target.Id,
     patch:     Option[PatchInput],
     replaceIn: Option[List[Observation.Id]]
-  )
+  ) {
+
+    val go: StateT[EitherInput, Database, TargetModel] =
+      for {
+        t  <- Database.target.lookup(targetId)
+        i  <- Database.target.cycleNextUnused
+        c   = t.clone(i)
+        _  <- Database.target.saveNew(i, c)
+        cʹ <- patch.fold(StateT.pure[EitherInput, Database, TargetModel](c)) { p =>
+          TargetModel.EditInput(
+            TargetModel.SelectInput.targetId(i),
+            p
+          ).editor.map(_.head)
+        }
+      } yield cʹ
+
+  }
 
   object CloneInput {
 

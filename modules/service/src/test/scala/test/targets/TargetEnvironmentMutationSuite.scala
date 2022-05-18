@@ -23,8 +23,8 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
   // In o-3, replace NGC 3312 with NGC 5949
   queryTest(
     query ="""
-      mutation UpdateTargetEnvironment($envEdit: BulkEditTargetEnvironmentInput!) {
-        bulkEditTargetEnvironment(input: $envEdit) {
+      mutation UpdateTargetEnvironment($envEdit: EditObservationInput!) {
+        editObservation(input: $envEdit) {
           id
           targetEnvironment {
             asterism {
@@ -38,7 +38,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
     """,
     expected =json"""
       {
-        "bulkEditTargetEnvironment": [
+        "editObservation": [
           {
             "id": "o-3",
             "targetEnvironment": {
@@ -60,8 +60,12 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
           "select": {
             "observationIds": [ "o-3" ]
           },
-          "edit": {
-            "asterism": [ "t-2" ]
+          "patch": {
+            "properties": {
+              "targetEnvironment": {
+                "asterism": [ "t-2" ]
+              }
+            }
           }
         }
       }
@@ -71,8 +75,8 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
   //
   queryTestFailure(
     query ="""
-      mutation UpdateTargetEnvironment($envEdit: BulkEditTargetEnvironmentInput!) {
-        bulkEditTargetEnvironment(input: $envEdit) {
+      mutation UpdateTargetEnvironment($envEdit: EditObservationInput!) {
+        editObservation(input: $envEdit) {
           id
           targetEnvironment {
             asterism {
@@ -91,8 +95,12 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
           "select": {
             "observationIds": [ "o-3" ]
           },
-          "edit": {
-            "asterism": [ "t-6" ]
+          "patch": {
+            "properties": {
+              "targetEnvironment": {
+                "asterism": [ "t-6" ]
+              }
+            }
           }
         }
       }
@@ -103,8 +111,8 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
   // Add an explicit base to o-3
   queryTest(
     query ="""
-      mutation UpdateTargetEnvironment($envEdit: BulkEditTargetEnvironmentInput!) {
-        bulkEditTargetEnvironment(input: $envEdit) {
+      mutation UpdateTargetEnvironment($envEdit: EditObservationInput!) {
+        editObservation(input: $envEdit) {
           id
           targetEnvironment {
             explicitBase {
@@ -117,7 +125,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
     """,
     expected =json"""
       {
-        "bulkEditTargetEnvironment": [
+        "editObservation": [
           {
             "id": "o-3",
             "targetEnvironment": {
@@ -140,13 +148,17 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
           "select": {
             "observationIds": [ "o-3" ]
           },
-          "edit": {
-            "explicitBase": {
-              "ra": {
-                "hms": "01:00:00.00"
-              },
-              "dec": {
-                "dms": "02:00:00.00"
+          "patch": {
+            "properties": {
+              "targetEnvironment": {
+                "explicitBase": {
+                  "ra": {
+                    "hms": "01:00:00.00"
+                  },
+                  "dec": {
+                    "dms": "02:00:00.00"
+                  }
+                }
               }
             }
           }

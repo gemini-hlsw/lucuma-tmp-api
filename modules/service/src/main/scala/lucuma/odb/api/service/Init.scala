@@ -6,6 +6,7 @@ package lucuma.odb.api.service
 import cats.data.State
 import cats.effect.Sync
 import cats.syntax.all._
+import clue.data.Input
 import clue.data.syntax._
 import eu.timepit.refined.auto._
 import eu.timepit.refined.types.numeric.PosBigDecimal
@@ -358,45 +359,46 @@ object Init {
   def baseObs(
     pid:   Program.Id,
     target: Option[TargetModel]
-  ): ObservationModel.Create =
-    ObservationModel.Create(
-      observationId        = None,
+  ): ObservationModel.CreateInput =
+    ObservationModel.CreateInput(
       programId            = pid,
-      subtitle             = None,
-      status               = ObsStatus.New.some,
-      activeStatus         = ObsActiveStatus.Active.some,
-      targetEnvironment    = target.fold(none[TargetEnvironmentInput]) { sidereal =>
-        TargetEnvironmentInput.asterism(sidereal.id).some
-      },
-      constraintSet        = ConstraintSetInput(
-        imageQuality    = ImageQuality.PointOne.assign,
-        cloudExtinction = CloudExtinction.PointOne.assign,
-        skyBackground   = SkyBackground.Dark.assign,
-        waterVapor      = WaterVapor.Wet.assign,
-        elevationRange  = ElevationRangeInput(
-          airMass = AirMassRangeInput(
-            min = BigDecimal(1.0).some,
-            max = BigDecimal(1.75).some
+      properties           = ObservationModel.PropertiesInput(
+        subtitle             = Input.ignore,
+        status               = ObsStatus.New.assign,
+        activeStatus         = ObsActiveStatus.Active.assign,
+        targetEnvironment    = target.fold(Input.ignore[TargetEnvironmentInput]) { sidereal =>
+          TargetEnvironmentInput.asterism(sidereal.id).assign
+        },
+        constraintSet        = ConstraintSetInput(
+          imageQuality    = ImageQuality.PointOne.assign,
+          cloudExtinction = CloudExtinction.PointOne.assign,
+          skyBackground   = SkyBackground.Dark.assign,
+          waterVapor      = WaterVapor.Wet.assign,
+          elevationRange  = ElevationRangeInput(
+            airMass = AirMassRangeInput(
+              min = BigDecimal(1.0).some,
+              max = BigDecimal(1.75).some
+            ).assign
           ).assign
-        ).assign
-      ).some,
-      scienceRequirements  =
-        ScienceRequirementsInput(
-          ScienceModeEnum.Spectroscopy.assign,
-          SpectroscopyScienceRequirementsInput(
-            wavelength    = WavelengthModel.Input.fromNanometers(520).assign,
-            signalToNoise = PosBigDecimal.unsafeFrom(700).assign
-          ).assign
-        ).some,
-      scienceMode = None,
-      config               = None
+        ).assign,
+        scienceRequirements  =
+          ScienceRequirementsInput(
+            ScienceModeEnum.Spectroscopy.assign,
+            SpectroscopyScienceRequirementsInput(
+              wavelength    = WavelengthModel.Input.fromNanometers(520).assign,
+              signalToNoise = PosBigDecimal.unsafeFrom(700).assign
+            ).assign
+          ).assign,
+        scienceMode = Input.ignore,
+        config      = Input.ignore
+      ).some
     )
 
   def gmosSouthAutoObs(
     pid:   Program.Id,
     target: Option[TargetModel]
-  ): ObservationModel.Create =
-    ObservationModel.Create.scienceMode.replace(
+  ): ObservationModel.CreateInput =
+    ObservationModel.CreateInput.scienceMode.replace(
         ScienceModeInput(
           gmosSouthLongSlit = ScienceMode.GmosSouthLongSlitInput(
             BasicConfigInput[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu](
@@ -404,26 +406,26 @@ object Init {
               fpu       = GmosSouthFpu.LongSlit_1_00.assign
             ).assign
           ).assign
-        ).some
+        ).assign
     )(baseObs(pid, target))
 
   def gmosSouthManualObs(
     pid:   Program.Id,
     target: Option[TargetModel]
-  ): ObservationModel.Create =
-    ObservationModel.Create.config.replace(
+  ): ObservationModel.CreateInput =
+    ObservationModel.CreateInput.config.replace(
       ExecutionModel.Create.gmosSouth(
         GmosModel.CreateSouthStatic.Default,
         acquisitionSequence,
         scienceSequence
-      ).some
+      ).assign
     )(baseObs(pid, target))
 
   def gmosNorthAutoObs(
     pid:   Program.Id,
     target: Option[TargetModel]
-  ): ObservationModel.Create =
-    ObservationModel.Create.scienceMode.replace(
+  ): ObservationModel.CreateInput =
+    ObservationModel.CreateInput.scienceMode.replace(
         ScienceModeInput(
           gmosNorthLongSlit = ScienceMode.GmosNorthLongSlitInput(
             BasicConfigInput[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu](
@@ -431,7 +433,7 @@ object Init {
               fpu       = GmosNorthFpu.LongSlit_1_00.assign
             ).assign
           ).assign
-        ).some
+        ).assign
     )(baseObs(pid, target))
 
   /**

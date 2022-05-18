@@ -75,7 +75,7 @@ class ItcClient[F[_]: Async: Logger](
     val targets: EitherT[F, ItcResult.Error, List[Target]] =
       observation.flatMap { o =>
         EitherT(
-          o.targetEnvironment.asterism.toList.flatTraverse {
+          o.properties.targetEnvironment.asterism.toList.flatTraverse {
             tid => odb.target.selectTarget(tid, includeDeleted).map(_.map(_.target).toList)
           }.map {
             case Nil => ItcResult.Error(s"Observation $oid has no targets").asLeft

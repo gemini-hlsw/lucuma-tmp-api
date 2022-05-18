@@ -6,6 +6,7 @@ package test
 import cats.data.State
 import cats.effect.Sync
 import cats.syntax.all._
+import clue.data.Input
 import clue.data.syntax._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.parser.decode
@@ -401,31 +402,32 @@ object TestInit {
   def obs(
     pid:     Program.Id,
     targets: List[TargetModel]
-  ): ObservationModel.Create =
-    ObservationModel.Create(
-      observationId        = None,
+  ): ObservationModel.CreateInput =
+    ObservationModel.CreateInput(
       programId            = pid,
-      subtitle             = None,
-      status               = ObsStatus.New.some,
-      activeStatus         = ObsActiveStatus.Active.some,
-      targetEnvironment    = TargetEnvironmentInput.asterism(targets.map(_.id)).some,
-      constraintSet        = None,
-      scienceRequirements  = ScienceRequirementsInput.Default.some,
-      scienceMode          =
-        ScienceModeInput(
-          gmosSouthLongSlit = ScienceMode.GmosSouthLongSlitInput(
-            BasicConfigInput[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu](
-              grating   = GmosSouthGrating.B600_G5323.assign,
-              fpu       = GmosSouthFpu.LongSlit_1_00.assign
+      properties           = ObservationModel.PropertiesInput(
+        subtitle             = Input.ignore,
+        status               = ObsStatus.New.assign,
+        activeStatus         = ObsActiveStatus.Active.assign,
+        targetEnvironment    = TargetEnvironmentInput.asterism(targets.map(_.id)).assign,
+        constraintSet        = Input.ignore,
+        scienceRequirements  = ScienceRequirementsInput.Default.assign,
+        scienceMode          =
+          ScienceModeInput(
+            gmosSouthLongSlit = ScienceMode.GmosSouthLongSlitInput(
+              BasicConfigInput[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu](
+                grating   = GmosSouthGrating.B600_G5323.assign,
+                fpu       = GmosSouthFpu.LongSlit_1_00.assign
+              ).assign
             ).assign
+          ).assign,
+        config               =
+          ExecutionModel.Create.gmosSouth(
+            GmosModel.CreateSouthStatic.Default,
+            acquisitionSequence,
+            scienceSequence
           ).assign
-        ).some,
-      config               =
-        ExecutionModel.Create.gmosSouth(
-          GmosModel.CreateSouthStatic.Default,
-          acquisitionSequence,
-          scienceSequence
-        ).some
+      ).some
     )
 
   /**
@@ -454,14 +456,18 @@ object TestInit {
       o  <- repo.observation.insert(obs(p.id, ts.lastOption.toList)) // 5
 
       // Add an explicit base to the last observation's target environment
-      _  <- repo.observation.bulkEditTargetEnvironment(
-              ObservationModel.BulkEdit.observations(
-                List(o.id),
-                TargetEnvironmentInput.explicitBase(
-                  CoordinatesModel.Input(
-                      RightAscensionModel.Input.fromDegrees(159.2583),
-                      DeclinationModel.Input.fromDegrees(-27.5650)
-                  )
+      _  <- repo.observation.edit(
+              ObservationModel.EditInput(
+                ObservationModel.SelectInput.observationIds(List(o.id)),
+                ObservationModel.PatchInput(
+                  properties = ObservationModel.PropertiesInput(
+                    targetEnvironment = TargetEnvironmentInput.explicitBase(
+                      CoordinatesModel.Input(
+                          RightAscensionModel.Input.fromDegrees(159.2583),
+                          DeclinationModel.Input.fromDegrees(-27.5650)
+                      )
+                    ).assign
+                  ).assign
                 )
               )
             )

@@ -6,15 +6,13 @@ package lucuma.odb.api.repo
 import cats.data.{EitherT, StateT}
 import cats.effect.{Async, Ref}
 import cats.implicits._
-import clue.data.Input
 import lucuma.core.model.{ConstraintSet, Observation, Program, Target}
-import lucuma.odb.api.model.ObservationModel.{BulkEdit, CloneInput, Create, Edit, Group, ObservationEvent}
-import lucuma.odb.api.model.{ConstraintSetInput, Database, EitherInput, Event, ExecutionModel, InputError, ObservationModel, ScienceMode, ScienceModeInput, ScienceRequirements, ScienceRequirementsInput, Table}
-import lucuma.odb.api.model.syntax.lens._
+import lucuma.odb.api.model.ObservationModel.{BulkEdit, CloneInput, CreateInput, EditInput, Group, ObservationEvent}
+import lucuma.odb.api.model.{Database, EitherInput, Event, ExecutionModel, InputError, ObservationModel, ScienceMode, ScienceRequirements, Table}
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.model.syntax.databasestate._
 import lucuma.odb.api.model.syntax.eitherinput._
-import lucuma.odb.api.model.targetModel.{EditAsterismInput, TargetEnvironmentInput, TargetEnvironmentModel, TargetModel}
+import lucuma.odb.api.model.targetModel.{EditAsterismInput, TargetEnvironmentModel, TargetModel}
 
 import scala.collection.immutable.SortedSet
 
@@ -39,9 +37,9 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
     includeDeleted: Boolean                = false
   ): F[Option[ExecutionModel]]
 
-  def insert(input: Create): F[ObservationModel]
+  def insert(input: CreateInput): F[ObservationModel]
 
-  def edit(edit: Edit): F[ObservationModel]
+  def edit(edit: EditInput): F[List[ObservationModel]]
 
   def clone(input: CloneInput): F[ObservationModel]
 
@@ -89,22 +87,6 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
     be: BulkEdit[Seq[EditAsterismInput]]
   ): F[List[ObservationModel]]
 
-  def bulkEditTargetEnvironment(
-    be: BulkEdit[TargetEnvironmentInput]
-  ): F[List[ObservationModel]]
-
-  def bulkEditConstraintSet(
-    be: BulkEdit[ConstraintSetInput]
-  ): F[List[ObservationModel]]
-
-  def bulkEditScienceMode(
-    be: BulkEdit[ScienceModeInput]
-  ): F[List[ObservationModel]]
-
-  def bulkEditScienceRequirements(
-    be: BulkEdit[ScienceRequirementsInput]
-  ): F[List[ObservationModel]]
-
 }
 
 object ObservationRepo {
@@ -144,9 +126,9 @@ object ObservationRepo {
         oid:            Observation.Id,
         includeDeleted: Boolean
       ): F[Option[ExecutionModel]] =
-        select(oid, includeDeleted).map(_.flatMap(_.config))
+        select(oid, includeDeleted).map(_.flatMap(_.properties.config))
 
-      override def insert(newObs: Create): F[ObservationModel] = {
+      override def insert(newObs: CreateInput): F[ObservationModel] = {
 
         // Create the observation
         val create: F[ObservationModel] =
@@ -170,44 +152,26 @@ object ObservationRepo {
 
       }
 
-      override def edit(
-        edit: Edit
-      ): F[ObservationModel] = {
-        val update: StateT[EitherInput, Database, ObservationModel] =
+      override def edit(editInput: ObservationModel.EditInput): F[List[ObservationModel]] = {
+        val editAndValidate =
           for {
-            initial   <- Database.observation.lookup(edit.observationId)
-            edited    <- StateT.liftF(edit.edit.runS(initial))
-            validated <- edited.validate
-            _         <- Database.observation.update(edit.observationId, validated)
-          } yield validated
+            os  <- editInput.editor
+            osʹ <- os.traverse(_.validate)
+          } yield osʹ
 
         for {
-          o <- databaseRef.modifyState(update.flipF).flatMap(_.liftTo[F])
-          _ <- eventService.publish(ObservationModel.ObservationEvent.updated(o))
-        } yield o
+          os <- databaseRef.modifyState(editAndValidate.flipF).flatMap(_.liftTo[F])
+          _  <- os.traverse(o => eventService.publish(ObservationEvent.updated(o)))
+        } yield os
       }
 
-      override def clone(input: CloneInput): F[ObservationModel] = {
-
-        val doClone: F[ObservationModel] =
-          EitherT(
-            for {
-              st <- input.clone
-              o  <- databaseRef.modify { db =>
-                st.run(db)
-                  .fold(
-                    err => (db, InputError.Exception(err).asLeft),
-                    _.map(_.asRight)
-                  )
-              }
-            } yield o
-          ).rethrowT
-
+      override def clone(
+        cloneInput: CloneInput
+      ): F[ObservationModel] =
         for {
-          o <- doClone
+          o <- databaseRef.modifyState(cloneInput.go.flipF).flatMap(_.liftTo[F])
           _ <- eventService.publish(ObservationEvent(_, Event.EditType.Created, o))
         } yield o
-      }
 
       // Targets are different because they exist apart from observations.
       // In other words, there are targets which no observations reference.
@@ -223,7 +187,7 @@ object ObservationRepo {
               .rows
               .values
               .filter(o => (o.programId === pid) && (includeDeleted || o.isPresent))
-              .flatMap(o => o.targetEnvironment.asterism.toList.tupleRight(o.id))
+              .flatMap(o => o.properties.targetEnvironment.asterism.toList.tupleRight(o.id))
               .groupMap(_._1)(_._2)
               .view
               .filterKeys(tid => includeDeleted || db.targets.rows(tid).isPresent)
@@ -289,7 +253,7 @@ object ObservationRepo {
         includeDeleted: Boolean
       ): F[List[Group[SortedSet[Target.Id]]]] =
         groupByWithTables(pid, includeDeleted) { (t, o) =>
-          o.targetEnvironment.asterism.filter(tid => includeDeleted || t.targets.rows(tid).isPresent)
+          o.properties.targetEnvironment.asterism.filter(tid => includeDeleted || t.targets.rows(tid).isPresent)
         }
 
       override def groupByAsterismInstantiated(
@@ -309,26 +273,26 @@ object ObservationRepo {
        groupByWithTables(pid, includeDeleted) { (t, o) =>
          TargetEnvironmentModel.asterism.modify {
            _.filter(tid => includeDeleted || t.targets.rows(tid).isPresent)
-         }(o.targetEnvironment)
+         }(o.properties.targetEnvironment)
        }
 
       override def groupByConstraintSet(
         pid:            Program.Id,
         includeDeleted: Boolean
       ): F[List[Group[ConstraintSet]]] =
-        groupBy(pid, includeDeleted)(_.constraintSet)
+        groupBy(pid, includeDeleted)(_.properties.constraintSet)
 
       override def groupByScienceMode(
         pid:            Program.Id,
         includeDeleted: Boolean
       ): F[List[Group[Option[ScienceMode]]]] =
-        groupBy(pid, includeDeleted)(_.scienceMode)
+        groupBy(pid, includeDeleted)(_.properties.scienceMode)
 
       override def groupByScienceRequirements(
         pid:            Program.Id,
         includeDeleted: Boolean
       ): F[List[Group[ScienceRequirements]]] =
-        groupBy(pid, includeDeleted)(_.scienceRequirements)
+        groupBy(pid, includeDeleted)(_.properties.scienceRequirements)
 
       private def selectObservations(
         select: BulkEdit.Select
@@ -371,61 +335,10 @@ object ObservationRepo {
 
       }
 
-      override def bulkEditTargetEnvironment(
-        be: BulkEdit[TargetEnvironmentInput]
-      ): F[List[ObservationModel]] =
-        doBulkEditTargets(be, be.edit.edit)
-
       override def bulkEditAsterism(
         be: BulkEdit[Seq[EditAsterismInput]]
       ): F[List[ObservationModel]] =
         doBulkEditTargets(be, EditAsterismInput.multiEditor(be.edit.toList))
-
-      private def bulkEdit(
-        initialObsList: StateT[EitherInput, Database, List[ObservationModel]],
-        editor:         StateT[EitherInput, ObservationModel, Unit]
-      ): F[List[ObservationModel]] = {
-
-        val update: StateT[EitherInput, Database, List[ObservationModel]] =
-          for {
-            initial <- initialObsList
-            edited  <- StateT.liftF(initial.traverse(editor.runS))
-            _       <- edited.traverse(o => Database.observation.update(o.id, o))
-          } yield edited
-
-        for {
-          os <- databaseRef.modifyState(update.flipF).flatMap(_.liftTo[F])
-          _  <- os.traverse_(o => eventService.publish(ObservationModel.ObservationEvent.updated(o)))
-        } yield os
-
-      }
-
-      override def bulkEditConstraintSet(
-        be: BulkEdit[ConstraintSetInput]
-      ): F[List[ObservationModel]] =
-
-        bulkEdit(
-          selectObservations(be.select),
-          ObservationModel.constraintSet.transform(be.edit.edit)
-        )
-
-      override def bulkEditScienceMode(
-        be: BulkEdit[ScienceModeInput]
-      ): F[List[ObservationModel]] =
-
-        bulkEdit(
-          selectObservations(be.select),
-          ObservationModel.scienceMode :? Input.assign(be.edit)
-        )
-
-      override def bulkEditScienceRequirements(
-        be: BulkEdit[ScienceRequirementsInput]
-      ): F[List[ObservationModel]] =
-
-        bulkEdit(
-          selectObservations(be.select),
-          ObservationModel.scienceRequirements.transform(be.edit.edit)
-        )
 
     }
 }
