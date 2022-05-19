@@ -40,7 +40,6 @@ class TargetCloneSuite extends OdbSuite {
     clients = List(ClientOption.Http)
   )
 
-  //clexistingTargetId: "t-4", suggestedCloneId: "t-a", observationIds: [ "o-3", "o-4" ]) {
   // Clone an existing target and replace it in observations 3 and 4
   queryTest(
     query ="""
