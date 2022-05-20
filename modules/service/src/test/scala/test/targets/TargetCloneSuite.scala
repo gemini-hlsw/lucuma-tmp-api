@@ -4,6 +4,7 @@
 package test
 package targets
 
+import cats.syntax.option._
 import io.circe.literal._
 
 class TargetCloneSuite extends OdbSuite {
@@ -11,9 +12,8 @@ class TargetCloneSuite extends OdbSuite {
   // Clone an existing deleted, target.
   queryTest(
     query ="""
-      mutation CloneTarget {
-        cloneTarget(existingTargetId: "t-4", suggestedCloneId: "t-abc") {
-          id
+      mutation CloneTarget($cloneInput: CloneTargetInput!) {
+        cloneTarget(input: $cloneInput) {
           name
           existence
         }
@@ -22,22 +22,29 @@ class TargetCloneSuite extends OdbSuite {
     expected =json"""
       {
         "cloneTarget": {
-          "id": "t-abc",
-          "name": "NGC 3312",
+          "name": "Biff",
           "existence": "PRESENT"
         }
       }
     """,
-    None,
+    variables = json"""
+      {
+        "cloneInput": {
+          "targetId": "t-4",
+          "patch": {
+            "name": "Biff"
+          }
+        }
+      }
+    """.some,
     clients = List(ClientOption.Http)
   )
 
   // Clone an existing target and replace it in observations 3 and 4
   queryTest(
     query ="""
-      mutation CloneAndReplaceTarget {
-        cloneTarget(existingTargetId: "t-4", suggestedCloneId: "t-a", observationIds: [ "o-3", "o-4" ]) {
-          id
+      mutation CloneAndReplaceTarget($cloneInput: CloneTargetInput!) {
+        cloneTarget(input: $cloneInput) {
           name
         }
       }
@@ -45,12 +52,21 @@ class TargetCloneSuite extends OdbSuite {
     expected =json"""
       {
         "cloneTarget": {
-          "id": "t-a",
-          "name": "NGC 3312"
+          "name": "NGC 3312 (2)"
         }
       }
     """,
-    None,
+    variables = json"""
+      {
+        "cloneInput": {
+          "targetId": "t-4",
+          "patch": {
+            "name": "NGC 3312 (2)"
+          },
+          "replaceIn": [ "o-3", "o-4" ]
+        }
+      }
+    """.some,
     clients = List(ClientOption.Http)
   )
 
@@ -68,7 +84,6 @@ class TargetCloneSuite extends OdbSuite {
           nodes {
             observationIds
             asterism {
-              id
               name
             }
           }
@@ -85,7 +100,6 @@ class TargetCloneSuite extends OdbSuite {
               ],
               "asterism": [
                 {
-                  "id": "t-2",
                   "name": "NGC 5949"
                 }
               ]
@@ -97,8 +111,7 @@ class TargetCloneSuite extends OdbSuite {
               ],
               "asterism": [
                 {
-                  "id": "t-a",
-                  "name": "NGC 3312"
+                  "name": "NGC 3312 (2)"
                 }
               ]
             },
@@ -108,7 +121,6 @@ class TargetCloneSuite extends OdbSuite {
               ],
               "asterism": [
                 {
-                  "id": "t-4",
                   "name": "NGC 3312"
                 }
               ]
@@ -119,15 +131,12 @@ class TargetCloneSuite extends OdbSuite {
               ],
               "asterism": [
                 {
-                  "id": "t-2",
                   "name": "NGC 5949"
                 },
                 {
-                  "id": "t-3",
                   "name": "NGC 3269"
                 },
                 {
-                  "id": "t-4",
                   "name": "NGC 3312"
                 }
               ]

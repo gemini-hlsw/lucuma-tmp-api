@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.repo
 
-import cats.data.{EitherT, StateT}
+import cats.data.EitherT
 import cats.Order.catsKernelOrderingForOrder
 import cats.effect.{Async, Ref}
 import cats.syntax.applicative._
@@ -14,7 +14,7 @@ import cats.syntax.functor._
 import cats.syntax.traverse._
 import lucuma.core.model.{Observation, Program, Target}
 import lucuma.core.util.Gid
-import lucuma.odb.api.model.{Database, EitherInput, Event, InputError, Table}
+import lucuma.odb.api.model.{Database, Event, InputError, Table}
 import lucuma.odb.api.model.targetModel._
 import lucuma.odb.api.model.targetModel.TargetModel.TargetEvent
 import lucuma.odb.api.model.syntax.toplevel._
@@ -112,17 +112,16 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
     oid: Observation.Id
   ): F[TargetEnvironmentModel]
 
-  def insert(programId: Program.Id, newTarget: TargetModel.Create): F[TargetModel]
+  def insert(newTarget: TargetModel.CreateInput): F[TargetModel]
 
-  def edit(edit: TargetModel.Edit): F[TargetModel]
+  def edit(edit: TargetModel.EditInput): F[List[TargetModel]]
 
   /**
    * Clones the target referenced by `existingTid`.  Uses the `suggestedTid` for
    * its ID if it is supplied by the caller and not currently in use.
    */
   def clone(
-    existingTid:  Target.Id,
-    suggestedTid: Option[Target.Id]
+    cloneInput: TargetModel.CloneInput
   ): F[TargetModel]
 
 }
@@ -262,15 +261,14 @@ object TargetRepo {
         unsafeSelect(id)(selectObservationTargetEnvironment)
 
       override def insert(
-        programId: Program.Id,
-        newTarget: TargetModel.Create
+        newTarget: TargetModel.CreateInput
       ): F[TargetModel] = {
 
         val create: F[TargetModel] =
           EitherT(
             databaseRef.modify { db =>
               newTarget
-                .create(programId)
+                .createTarget
                 .run(db)
                 .fold(
                   err => (db, InputError.Exception(err).asLeft),
@@ -285,43 +283,20 @@ object TargetRepo {
         } yield t
       }
 
-      override def edit(
-        targetEditor: TargetModel.Edit
-      ): F[TargetModel] = {
-
-        val update: StateT[EitherInput, Database, TargetModel] =
-          for {
-            initial <- Database.target.lookup(targetEditor.targetId)
-            edited  <- StateT.liftF(targetEditor.editor.runS(initial))
-            _       <- Database.target.update(targetEditor.targetId, edited)
-          } yield edited
-
+      override def edit(editInput: TargetModel.EditInput): F[List[TargetModel]] =
         for {
-          t <- databaseRef.modifyState(update.flipF).flatMap(_.liftTo[F])
-          _ <- eventService.publish(TargetEvent.updated(t))
-        } yield t
-
-      }
+          ts <- databaseRef.modifyState(editInput.editor.flipF).flatMap(_.liftTo[F])
+          _  <- ts.traverse(t => eventService.publish(TargetEvent.updated(t)))
+        } yield ts
 
       override def clone(
-        existingTid:  Target.Id,
-        suggestedTid: Option[Target.Id]
-      ): F[TargetModel] = {
-
-        val update: StateT[EitherInput, Database, TargetModel] =
-          for {
-            t <- Database.target.lookup(existingTid)
-            i <- Database.target.getUnusedKey(suggestedTid)
-            c  = t.clone(i)
-            _ <- Database.target.saveNew(i, c)
-          } yield c
-
+        cloneInput: TargetModel.CloneInput
+      ): F[TargetModel] =
         for {
-          t <- databaseRef.modifyState(update.flipF).flatMap(_.liftTo[F])
+          t <- databaseRef.modifyState(cloneInput.go.flipF).flatMap(_.liftTo[F])
           _ <- eventService.publish(TargetEvent.created(t))
         } yield t
 
-      }
 
     }
 }

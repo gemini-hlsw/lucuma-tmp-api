@@ -6,6 +6,7 @@ package test
 import cats.data.State
 import cats.effect.Sync
 import cats.syntax.all._
+import clue.data.Input
 import clue.data.syntax._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.parser.decode
@@ -272,8 +273,10 @@ object TestInit {
 """
   )
 
-  val targets: Either[Exception, List[TargetModel.Create]] =
-    targetsJson.traverse(decode[TargetModel.Create])
+  def targets(pid: Program.Id): Either[Exception, List[TargetModel.CreateInput]] =
+    targetsJson.traverse(decode[TargetModel.PropertiesInput]).map { in =>
+      in.map(TargetModel.CreateInput(pid, _))
+    }
 
   import GmosModel.{CreateCcdReadout, CreateSouthDynamic}
   import CreateCcdReadout.{ampRead, xBin, yBin}
@@ -399,31 +402,32 @@ object TestInit {
   def obs(
     pid:     Program.Id,
     targets: List[TargetModel]
-  ): ObservationModel.Create =
-    ObservationModel.Create(
-      observationId        = None,
+  ): ObservationModel.CreateInput =
+    ObservationModel.CreateInput(
       programId            = pid,
-      subtitle             = None,
-      status               = ObsStatus.New.some,
-      activeStatus         = ObsActiveStatus.Active.some,
-      targetEnvironment    = TargetEnvironmentInput.asterism(targets.map(_.id)).some,
-      constraintSet        = None,
-      scienceRequirements  = ScienceRequirementsInput.Default.some,
-      scienceMode          =
-        ScienceModeInput(
-          gmosSouthLongSlit = ScienceMode.GmosSouthLongSlitInput(
-            BasicConfigInput[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu](
-              grating   = GmosSouthGrating.B600_G5323.assign,
-              fpu       = GmosSouthFpu.LongSlit_1_00.assign
+      properties           = ObservationModel.PropertiesInput(
+        subtitle             = Input.ignore,
+        status               = ObsStatus.New.assign,
+        activeStatus         = ObsActiveStatus.Active.assign,
+        targetEnvironment    = TargetEnvironmentInput.asterism(targets.map(_.id)).assign,
+        constraintSet        = Input.ignore,
+        scienceRequirements  = ScienceRequirementsInput.Default.assign,
+        scienceMode          =
+          ScienceModeInput(
+            gmosSouthLongSlit = ScienceMode.GmosSouthLongSlitInput(
+              BasicConfigInput[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu](
+                grating   = GmosSouthGrating.B600_G5323.assign,
+                fpu       = GmosSouthFpu.LongSlit_1_00.assign
+              ).assign
             ).assign
+          ).assign,
+        config               =
+          ExecutionModel.Create.gmosSouth(
+            GmosModel.CreateSouthStatic.Default,
+            acquisitionSequence,
+            scienceSequence
           ).assign
-        ).some,
-      config               =
-        ExecutionModel.Create.gmosSouth(
-          GmosModel.CreateSouthStatic.Default,
-          acquisitionSequence,
-          scienceSequence
-        ).some
+      ).some
     )
 
   /**
@@ -444,34 +448,36 @@ object TestInit {
                 NonEmptyString.from("An Empty Placeholder Program").toOption
               )
             )
-      cs <- targets.liftTo[F]
-      ts <- cs.init.traverse(repo.target.insert(p.id, _))
+      cs <- targets(p.id).liftTo[F]
+      ts <- cs.init.traverse(repo.target.insert(_))
       _  <- repo.observation.insert(obs(p.id, ts.headOption.toList)) // 2
       _  <- repo.observation.insert(obs(p.id, ts.lastOption.toList)) // 3
       _  <- repo.observation.insert(obs(p.id, ts.lastOption.toList)) // 4
       o  <- repo.observation.insert(obs(p.id, ts.lastOption.toList)) // 5
 
       // Add an explicit base to the last observation's target environment
-      _  <- repo.observation.bulkEditTargetEnvironment(
-              ObservationModel.BulkEdit.observations(
-                List(o.id),
-                TargetEnvironmentInput.explicitBase(
-                  CoordinatesModel.Input(
-                      RightAscensionModel.Input.fromDegrees(159.2583),
-                      DeclinationModel.Input.fromDegrees(-27.5650)
-                  )
+      _  <- repo.observation.edit(
+              ObservationModel.EditInput(
+                ObservationModel.SelectInput.observationIds(List(o.id)),
+                ObservationModel.PropertiesInput(
+                  targetEnvironment = TargetEnvironmentInput.explicitBase(
+                    CoordinatesModel.Input(
+                        RightAscensionModel.Input.fromDegrees(159.2583),
+                        DeclinationModel.Input.fromDegrees(-27.5650)
+                    )
+                  ).assign
                 )
               )
             )
 
       // Add an unused target (t-5 NGC 4749)
-      _  <- repo.target.insert(p.id, cs.last)
+      _  <- repo.target.insert(cs.last)
 
       _  <- repo.observation.insert(obs(p.id, ts))                   // 6
       _  <- repo.observation.insert(obs(p.id, Nil))                  // 7
 
       // Add an unused target for the otherwise empty program. (t-6)
-      _  <- repo.target.insert(p3.id, cs.last)
+      _  <- repo.target.insert(cs.last.copy(programId = p3.id))
 
     } yield ()
 

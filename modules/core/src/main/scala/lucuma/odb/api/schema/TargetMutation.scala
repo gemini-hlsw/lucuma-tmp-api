@@ -9,14 +9,13 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
 import lucuma.odb.api.model.{CoordinatesModel, DeclinationModel, ObservationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
-import lucuma.odb.api.model.targetModel.{CatalogInfoInput, EditAsterismInput, NonsiderealInput, SiderealInput, TargetEnvironmentInput, TargetModel}
+import lucuma.odb.api.model.targetModel.{CatalogInfoInput, EditAsterismPatchInput, NonsiderealInput, SiderealInput, TargetEnvironmentInput, TargetModel}
 import lucuma.odb.api.schema.syntax.`enum`._
-import lucuma.core.model.Target
 import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
 import sangria.macros.derive.{ReplaceInputField, _}
 import sangria.marshalling.circe._
-import sangria.schema._
+import sangria.schema.{InputField, _}
 
 
 trait TargetMutation extends TargetScalars {
@@ -24,7 +23,8 @@ trait TargetMutation extends TargetScalars {
   import context._
   import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
   import NumericUnitsSchema._
-  import ProgramSchema.ProgramIdArgument
+  import ObservationSchema.ObservationIdType
+  import ProgramSchema.ProgramIdType
   import SourceProfileSchema.InputObjectSourceProfile
   import TargetSchema.{EnumTypeCatalogName, EphemerisKeyTypeEnumType, ArgumentTargetId, TargetIdType, TargetType}
 
@@ -122,18 +122,6 @@ trait TargetMutation extends TargetScalars {
       ReplaceInputField("key",           NonEmptyStringType            .notNullableField("key"          )),
     )
 
-  implicit val InputObjectTypeCreateTarget: InputObjectType[TargetModel.Create] =
-    deriveInputObjectType[TargetModel.Create](
-      InputObjectTypeName("CreateTargetInput"),
-      InputObjectTypeDescription("Target creation parameters")
-    )
-
-  val ArgumentTargetCreate: Argument[TargetModel.Create] =
-    InputObjectTypeCreateTarget.argument(
-      "input",
-      "Target description.  One (and only one) of sidereal or nonsidereal must be specified."
-    )
-
   implicit val InputObjectTypeSidereal: InputObjectType[SiderealInput] =
     deriveInputObjectType[SiderealInput](
       InputObjectTypeName("SiderealInput"),
@@ -148,36 +136,58 @@ trait TargetMutation extends TargetScalars {
       ReplaceInputField("catalogInfo",    InputObjectCatalogInfo   .nullableField("catalogInfo"   ))
     )
 
-  implicit val InputObjectEditTargetInput: InputObjectType[TargetModel.Edit] = {
-
-    // Not able to derive this for some reason, TBD.
-//    deriveInputObjectType[TargetModel.Edit](
-//      InputObjectTypeName("EditTargetInput"),
-//      InputObjectTypeDescription("Single target edit options"),
-//
-//      ReplaceInputField("existence",     EnumTypeExistence.notNullableField("existence")),
-//      ReplaceInputField("name",          NonEmptyStringType.notNullableField("name")),
-//      ReplaceInputField("sourceProfile", InputObjectSourceProfile.notNullableField("sourceProfile"))
-//    )
-
-    InputObjectType[TargetModel.Edit](
-      "EditTargetInput",
-      "Single target edit options",
+  implicit val InputObjectTypeTargetProperties: InputObjectType[TargetModel.PropertiesInput] =
+    InputObjectType[TargetModel.PropertiesInput](
+      "TargetPropertiesInput",
+      "Target properties",
       List(
-        InputField("targetId",      TargetIdType),
-        InputField("existence",     OptionInputType(EnumTypeExistence)),
         InputField("name",          OptionInputType(NonEmptyStringType)),
         InputField("sidereal",      OptionInputType(InputObjectTypeSidereal)),
         InputField("nonsidereal",   OptionInputType(InputObjectTypeNonsidereal)),
-        InputField("sourceProfile", OptionInputType(InputObjectSourceProfile))
+        InputField("sourceProfile", OptionInputType(InputObjectSourceProfile)),
+        InputField("existence",     OptionInputType(EnumTypeExistence))
       )
     )
-  }
 
-  val ArgumentEditTargetInput: Argument[TargetModel.Edit] =
-    InputObjectEditTargetInput.argument(
+  implicit val InputObjectTypeCreateTarget: InputObjectType[TargetModel.CreateInput] =
+    deriveInputObjectType[TargetModel.CreateInput](
+      InputObjectTypeName("CreateTargetInput"),
+      InputObjectTypeDescription("Target creation parameters")
+    )
+
+  val ArgumentTargetCreate: Argument[TargetModel.CreateInput] =
+    InputObjectTypeCreateTarget.argument(
       "input",
-      "Parameters for editing an existing target. Nonsidereal edits are ignored for sidereal targets and vice versa."
+      "Target description.  One (and only one) of sidereal or nonsidereal must be specified."
+    )
+
+  implicit val InputObjectTypeTargetSelect: InputObjectType[TargetModel.SelectInput] =
+    InputObjectType[TargetModel.SelectInput](
+      "TargetSelectInput",
+      """Choose programId to include all of its targets, observationIds to
+       |include each listed observation's targets, or else individual targets
+       |via targetIds.""".stripMargin,
+      List(
+        InputField("programId",      OptionInputType(ProgramIdType)),
+        InputField("observationIds", OptionInputType(ListInputType(ObservationIdType))),
+        InputField("targetIds",      OptionInputType(ListInputType(TargetIdType)))
+      )
+    )
+
+  implicit val InputObjectTypeEditTarget: InputObjectType[TargetModel.EditInput] =
+    InputObjectType[TargetModel.EditInput](
+      "EditTargetInput",
+      "Target selection and update description.",
+      List(
+        InputField("select", InputObjectTypeTargetSelect),
+        InputField("patch",  InputObjectTypeTargetProperties)
+      )
+    )
+
+  val ArgumentEditTargetInput: Argument[TargetModel.EditInput] =
+    InputObjectTypeEditTarget.argument(
+      "input",
+      "Parameters for editing existing targets. "
     )
 
   implicit val InputObjectTypeTargetEnvironment: InputObjectType[TargetEnvironmentInput] =
@@ -190,10 +200,22 @@ trait TargetMutation extends TargetScalars {
       )
     )
 
-  implicit val InputObjectTypeEditAsterism: InputObjectType[EditAsterismInput] =
-    deriveInputObjectType[EditAsterismInput](
-      InputObjectTypeName("EditAsterismInput"),
+  implicit val InputObjectTypeEditAsterism: InputObjectType[EditAsterismPatchInput] =
+    deriveInputObjectType[EditAsterismPatchInput](
+      InputObjectTypeName("EditAsterismPatchInput"),
       InputObjectTypeDescription("Add or delete targets in an asterism")
+    )
+
+  implicit val InputObjectCloneTarget: InputObjectType[TargetModel.CloneInput] =
+    deriveInputObjectType[TargetModel.CloneInput](
+      InputObjectTypeName("CloneTargetInput"),
+      InputObjectTypeDescription("Describes a target clone operation, making any edits in the patch parameter and replacing the target in the selected observations")
+    )
+
+  val ArgumentCloneTarget: Argument[TargetModel.CloneInput] =
+    InputObjectCloneTarget.argument(
+      "input",
+      "Parameters for cloning an existing target"
     )
 
   def createTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
@@ -201,45 +223,29 @@ trait TargetMutation extends TargetScalars {
       name        = "createTarget",
       fieldType   = TargetType[F],
       description = "Creates a new target according to the provided parameters.  Only one of sidereal or nonsidereal may be specified.".some,
-      arguments   = List(ProgramIdArgument, ArgumentTargetCreate),
-      resolve     = c => c.target(_.insert(c.programId, c.arg(ArgumentTargetCreate)))
+      arguments   = List(ArgumentTargetCreate),
+      resolve     = c => c.target(_.insert(c.arg(ArgumentTargetCreate)))
     )
 
-  def cloneTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] = {
-    import ObservationSchema.OptionalListObservationIdArgument
-
-    val existing: Argument[Target.Id] =
-      Argument(
-        name         = "existingTargetId",
-        argumentType = TargetIdType,
-        description  = "The existing target's id"
-      )
-
-    val suggested: Argument[Option[Target.Id]] =
-      Argument(
-        name         = "suggestedCloneId",
-        argumentType = OptionInputType(TargetIdType),
-        description  = "The new target clone's id (will be generated if not supplied)"
-      )
-
+  def cloneTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "cloneTarget",
       fieldType   = TargetType[F],
       description = "Makes a copy of an existing target, setting it to unobserved and to PRESENT.  If observationIds is specified, the clone will replace the existing target in those observations".some,
-      arguments   = List(existing, suggested, OptionalListObservationIdArgument),
+      arguments   = List(ArgumentCloneTarget),
       resolve     = c => {
+        val cloneInput = c.arg(ArgumentCloneTarget)
         c.unsafeToFuture(
           for {
-            t <- c.ctx.odbRepo.target.clone(c.arg(existing), c.arg(suggested))
-            _ <- c.ctx.odbRepo.observation.bulkEditAsterism(
+            t <- c.ctx.odbRepo.target.clone(cloneInput)
+            _ <- c.ctx.odbRepo.observation.editAsterism(
               ObservationModel.BulkEdit(
-                ObservationModel.BulkEdit.Select(
-                  None,
-                  c.arg(OptionalListObservationIdArgument).map(_.toList)
+                ObservationModel.SelectInput.observationIds(
+                  cloneInput.replaceIn.toList.flatten
                 ),
                 List(
-                  EditAsterismInput.delete(c.arg(existing)),
-                  EditAsterismInput.add(t.id)
+                  EditAsterismPatchInput.delete(cloneInput.targetId),
+                  EditAsterismPatchInput.add(t.id)
                 )
               )
             )
@@ -247,13 +253,12 @@ trait TargetMutation extends TargetScalars {
         )
       }
     )
-  }
 
-  def updateTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def editTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name        = "updateTarget",
-      fieldType   = TargetType[F],
-      description = "Edits an existing target".some,
+      name        = "editTarget",
+      fieldType   = ListType(TargetType[F]),
+      description = "Edits existing targets".some,
       arguments   = List(ArgumentEditTargetInput),
       resolve     = c => c.target(_.edit(c.arg(ArgumentEditTargetInput)))
     )
@@ -281,7 +286,7 @@ trait TargetMutation extends TargetScalars {
     List(
       createTarget,
       cloneTarget,
-      updateTarget,
+      editTarget,
       delete,
       undelete
     )

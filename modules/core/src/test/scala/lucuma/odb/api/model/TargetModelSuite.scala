@@ -32,11 +32,11 @@ final class TargetModelSuite extends DisciplineSuite {
   checkAll("TargetModel", EqTests[TargetModel].eqv)
   checkAll("TargetEnvironmentModel", EqTests[TargetEnvironmentModel].eqv)
 
-  checkAll("TargetModel.Create", EqTests[TargetModel.Create].eqv)
+  checkAll("TargetModel.Create", EqTests[TargetModel.CreateInput].eqv)
   checkAll("NonsiderealInput", EqTests[NonsiderealInput].eqv)
   checkAll("SiderealInput", EqTests[SiderealInput].eqv)
 
-  checkAll("EditTargetInput", EqTests[EditAsterismInput].eqv)
+  checkAll("EditTargetInput", EqTests[EditAsterismPatchInput].eqv)
 
   checkAll("TargetEnvironmentInput", EqTests[TargetEnvironmentInput].eqv)
 

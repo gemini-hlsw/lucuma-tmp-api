@@ -67,21 +67,21 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
   private def runEditTest(
     t: Database
   )(
-    f: ObservationModel => ObservationModel.Edit
+    f: ObservationModel => ObservationModel.EditInput
   ): (ObservationModel, ObservationModel) =
 
     runTest(t) { odb =>
       for {
         // Insert a program and observation to insure that at least one exists
         p  <- odb.program.insert(ProgramModel.Create(None, None))
-        _  <- odb.observation.insert(ObservationModel.Create.empty(p.id))
+        _  <- odb.observation.insert(ObservationModel.CreateInput.empty(p.id))
 
         // Pick whatever the first observation may be
         tʹ    <- odb.database.get
         before = tʹ.observations.rows.values.head
 
         // Do the prescribed edit.
-        after <- odb.observation.edit(f(before))
+        after <- odb.observation.edit(f(before)).map(_.head)
       } yield (before, after)
     }
 
@@ -89,7 +89,12 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
 
     forAll { (t: Database) =>
       val (_, obs) = runEditTest(t) { o =>
-        ObservationModel.Edit(o.id, subtitle = Input(NonEmptyString.unsafeFrom("Biff")))
+        ObservationModel.EditInput(
+          ObservationModel.SelectInput.observationId(o.id),
+          ObservationModel.PropertiesInput(
+            subtitle = Input(NonEmptyString.unsafeFrom("Biff"))
+          )
+        )
       }
       assert(obs.subtitle.contains(NonEmptyString.unsafeFrom("Biff")))
     }
@@ -99,7 +104,12 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
   property("simple non-edit") {
     forAll { (t: Database) =>
       val (before, after) = runEditTest(t) { o =>
-        ObservationModel.Edit(o.id, subtitle = o.subtitle.fold(Input.ignore[NonEmptyString])(n => Input(n)))
+        ObservationModel.EditInput(
+          ObservationModel.SelectInput.observationId(o.id),
+          ObservationModel.PropertiesInput(
+            subtitle = o.subtitle.fold(Input.ignore[NonEmptyString])(n => Input(n))
+          )
+        )
       }
       assertEquals(after, before)
     }

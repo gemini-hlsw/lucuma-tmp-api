@@ -372,13 +372,6 @@ object TargetSchema extends TargetScalars {
         ),
 
         Field(
-          name        = "name",
-          fieldType   = NonEmptyStringType,
-          description = Some("Target name."),
-          resolve     = _.value.target.name
-        ),
-
-        Field(
           name        = "program",
           fieldType   = ProgramType[F],
           description = "Program that contains this target".some,
@@ -386,6 +379,13 @@ object TargetSchema extends TargetScalars {
           resolve     = c => c.unsafeToFuture(
             c.ctx.odbRepo.program.unsafeSelect(c.value.programId, c.includeDeleted)
           )
+        ),
+
+        Field(
+          name        = "name",
+          fieldType   = NonEmptyStringType,
+          description = Some("Target name."),
+          resolve     = _.value.target.name
         ),
 
         Field(

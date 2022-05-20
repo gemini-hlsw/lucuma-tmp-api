@@ -4,6 +4,7 @@
 package lucuma.odb.api.model
 package arb
 
+import clue.data.Input
 import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.{ConstraintSet, Observation, Program}
 import lucuma.core.model.arb.ArbConstraintSet
@@ -16,6 +17,7 @@ import org.scalacheck.Arbitrary.arbitrary
 
 trait ArbObservationModel {
 
+  import ArbInput._
   import ArbConstraintSet._
   import ArbConstraintSetInput._
   import ArbScienceRequirements._
@@ -34,7 +36,7 @@ trait ArbObservationModel {
         ts <- arbitrary[TargetEnvironmentModel]
         cs <- arbitrary[ConstraintSet]
         sr <- arbitrary[ScienceRequirements]
-      } yield ObservationModel(id, ex, pid, nm, os, as, ts, cs, sr, None, None)
+      } yield ObservationModel(id, pid, ex, nm, os, as, ts, cs, sr, None, None)
     }
 
   implicit val arbObservationModel: Arbitrary[ObservationModel] =
@@ -48,8 +50,8 @@ trait ArbObservationModel {
   implicit val cogObservationModel: Cogen[ObservationModel] =
     Cogen[(
       Observation.Id,
-      Existence,
       Program.Id,
+      Existence,
       Option[String],
       ObsStatus,
       ObsActiveStatus,
@@ -57,8 +59,8 @@ trait ArbObservationModel {
       ScienceRequirements
     )].contramap { in => (
       in.id,
-      in.existence,
       in.programId,
+      in.existence,
       in.subtitle.map(_.value),
       in.status,
       in.activeStatus,
@@ -66,42 +68,34 @@ trait ArbObservationModel {
       in.scienceRequirements
     )}
 
-  implicit val arbObservationModelCreate: Arbitrary[ObservationModel.Create] =
+  implicit val arbObservationModelPropertiesInput: Arbitrary[ObservationModel.PropertiesInput] =
     Arbitrary {
       for {
-        id <- arbitrary[Option[Observation.Id]]
-        pd <- arbitrary[Program.Id]
-        nm <- arbitrary[Option[NonEmptyString]]
-        st <- arbitrary[Option[ObsStatus]]
-        as <- arbitrary[Option[ObsActiveStatus]]
-        ts <- arbitrary[Option[TargetEnvironmentInput]]
-        cs <- arbitrary[Option[ConstraintSetInput]]
-      } yield ObservationModel.Create(
-        id,
-        pd,
+        nm <- arbitrary[Input[NonEmptyString]]
+        st <- arbitrary[Input[ObsStatus]]
+        as <- arbitrary[Input[ObsActiveStatus]]
+        ts <- arbitrary[Input[TargetEnvironmentInput]]
+        cs <- arbitrary[Input[ConstraintSetInput]]
+      } yield ObservationModel.PropertiesInput(
         nm,
         st,
         as,
         ts,
         cs,
-        None,
-        None,
-        None
+        Input.ignore,
+        Input.ignore,
+        Input.ignore
       )
     }
 
-  implicit val cogObservationModelCreate: Cogen[ObservationModel.Create] =
+  implicit val cogObservationModelPropertiesInput: Cogen[ObservationModel.PropertiesInput] =
     Cogen[(
-      Option[Observation.Id],
-      Program.Id,
-      Option[String],
-      Option[ObsStatus],
-      Option[ObsActiveStatus],
-      Option[TargetEnvironmentInput],
-      Option[ConstraintSetInput]
+      Input[String],
+      Input[ObsStatus],
+      Input[ObsActiveStatus],
+      Input[TargetEnvironmentInput],
+      Input[ConstraintSetInput]
     )].contramap { in => (
-      in.observationId,
-      in.programId,
       in.subtitle.map(_.value),
       in.status,
       in.activeStatus,
@@ -109,51 +103,38 @@ trait ArbObservationModel {
       in.constraintSet
     )}
 
+  implicit val arbObservationModelCreate: Arbitrary[ObservationModel.CreateInput] =
+    Arbitrary {
+      for {
+        pd <- arbitrary[Program.Id]
+        pr <- arbitrary[Option[ObservationModel.PropertiesInput]]
+      } yield ObservationModel.CreateInput(pd, pr)
+    }
+
+  implicit val cogObservationModelCreate: Cogen[ObservationModel.CreateInput] =
+    Cogen[(
+      Program.Id,
+      Option[ObservationModel.PropertiesInput]
+    )].contramap { in => (
+      in.programId,
+      in.properties
+    )}
+
   implicit val arbObservationModelCloneInput: Arbitrary[ObservationModel.CloneInput] =
     Arbitrary {
       for {
         ex <- arbitrary[Observation.Id]
-        sg <- arbitrary[Option[Observation.Id]]
-        pd <- arbitrary[Option[Program.Id]]
-        nm <- arbitrary[Option[NonEmptyString]]
-        st <- arbitrary[Option[ObsStatus]]
-        as <- arbitrary[Option[ObsActiveStatus]]
-        ts <- arbitrary[Option[TargetEnvironmentInput]]
-        cs <- arbitrary[Option[ConstraintSetInput]]
-      } yield ObservationModel.CloneInput(
-        ex,
-        sg,
-        pd,
-        nm,
-        st,
-        as,
-        ts,
-        cs,
-        None,
-        None,
-        None
-      )
+        pi <- arbitrary[Option[ObservationModel.PropertiesInput]]
+      } yield ObservationModel.CloneInput(ex, pi)
     }
 
   implicit val cogObservationModelCloneInput: Cogen[ObservationModel.CloneInput] =
     Cogen[(
       Observation.Id,
-      Option[Observation.Id],
-      Option[Program.Id],
-      Option[String],
-      Option[ObsStatus],
-      Option[ObsActiveStatus],
-      Option[TargetEnvironmentInput],
-      Option[ConstraintSetInput]
+      Option[ObservationModel.PropertiesInput]
     )].contramap { in => (
-      in.existingObservationId,
-      in.suggestedCloneId,
-      in.programId,
-      in.subtitle.map(_.value),
-      in.status,
-      in.activeStatus,
-      in.targetEnvironment,
-      in.constraintSet
+      in.observationId,
+      in.patch
     )}
 }
 

@@ -13,7 +13,7 @@ class TargetMutationSuite extends OdbSuite {
   queryTest(
     query = """
       mutation UpdateScienceTarget($targetEdit: EditTargetInput!) {
-        updateTarget(input: $targetEdit) {
+        editTarget(input: $targetEdit) {
           id
           name
           sidereal {
@@ -24,21 +24,27 @@ class TargetMutationSuite extends OdbSuite {
     """,
     expected = json"""
       {
-        "updateTarget": {
-          "id": "t-4",
-          "name": "NGC 3312",
-          "sidereal": {
-            "parallax": null
+        "editTarget": [
+          {
+            "id": "t-4",
+            "name": "NGC 3312",
+            "sidereal": {
+              "parallax": null
+            }
           }
-        }
+        ]
       }
     """,
     variables = json"""
       {
         "targetEdit": {
-          "targetId": "t-4",
-          "sidereal": {
-            "parallax": null
+          "select": {
+            "targetIds": [ "t-4" ]
+          },
+          "patch": {
+            "sidereal": {
+              "parallax": null
+            }
           }
         }
       }
@@ -72,9 +78,8 @@ class TargetMutationSuite extends OdbSuite {
   // Clone an existing deleted, target.
   queryTest(
     query ="""
-      mutation CloneTarget {
-        cloneTarget(existingTargetId: "t-4", suggestedCloneId: "t-abc") {
-          id
+      mutation CloneTarget($cloneInput: CloneTargetInput!) {
+        cloneTarget(input: $cloneInput) {
           name
           existence
         }
@@ -83,13 +88,18 @@ class TargetMutationSuite extends OdbSuite {
     expected =json"""
       {
         "cloneTarget": {
-          "id": "t-abc",
           "name": "NGC 3312",
           "existence": "PRESENT"
         }
       }
     """,
-    None,
+    variables = json"""
+      {
+        "cloneInput": {
+          "targetId": "t-4"
+        }
+      }
+    """.some,
     clients = List(ClientOption.Http)
   )
 }

@@ -3,14 +3,14 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{ConstraintSetInput, ObservationModel, ScienceModeInput, ScienceRequirementsInput}
+import lucuma.odb.api.model.ObservationModel
 import lucuma.odb.api.model.ObservationModel.BulkEdit
 import lucuma.odb.api.schema.syntax.inputtype._
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.option._
 import io.circe.Decoder
-import lucuma.odb.api.model.targetModel.{EditAsterismInput, TargetEnvironmentInput}
+import lucuma.odb.api.model.targetModel.EditAsterismPatchInput
 import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
 import sangria.macros.derive._
@@ -29,64 +29,73 @@ trait ObservationMutation {
   import TargetMutation.{InputObjectTypeEditAsterism, InputObjectTypeTargetEnvironment}
   import syntax.inputobjecttype._
 
-  val InputObjectTypeObservationCreate: InputObjectType[ObservationModel.Create] =
-    deriveInputObjectType[ObservationModel.Create](
-      InputObjectTypeName("CreateObservationInput"),
-      InputObjectTypeDescription("Observation creation parameters"),
-      ExcludeInputFields("config")  // TODO
+  implicit val InputObjectTypeObservationProperties: InputObjectType[ObservationModel.PropertiesInput] =
+    InputObjectType[ObservationModel.PropertiesInput](
+      "ObservationPropertiesInput",
+      "Observation properties",
+      List(
+        NonEmptyStringType.optionField("subtitle", "Subtitle adds additional detail to the target-based observation title, and is both optional and nullable"),
+        ObsStatusType.optionField("status", "The observation status will default to New if not specified when an observation is created and may be edited but not deleted"),
+        ObsActiveStatusType.optionField("activeStatus", "The observation active status will default to Active if not specified when an observation is created and may be edited but not deleted"),
+        InputObjectTypeTargetEnvironment.optionField("targetEnvironment", "The targetEnvironment defaults to empty if not specified on creation, and may be edited but not deleted"),
+        InputObjectTypeConstraintSet.optionField("constraintSet", "The constraintSet defaults to standard values if not specified on creation, and may be edited but not deleted"),
+        InputObjectTypeScienceRequirements.optionField("scienceRequirements", "The scienceRequirements defaults to spectroscopy if not specified on creation, and may be edited but not deleted"),
+        InputObjectTypeScienceMode.optionField("scienceMode", "The scienceMode describes the chosen observing mode and instrument, is optional and may be deleted"),
+        EnumTypeExistence.optionField("existence", "Whether the observation is considered deleted (defaults to PRESENT) but may be edited")
+      )
     )
 
-  val ArgumentObservationCreate: Argument[ObservationModel.Create] =
+  val InputObjectTypeObservationCreate: InputObjectType[ObservationModel.CreateInput] =
+    deriveInputObjectType[ObservationModel.CreateInput](
+      InputObjectTypeName("CreateObservationInput"),
+      InputObjectTypeDescription("Observation creation parameters")
+    )
+
+  val ArgumentObservationCreate: Argument[ObservationModel.CreateInput] =
     InputObjectTypeObservationCreate.argument(
       "input",
       "Observation description"
     )
 
-  val InputObjectTypeObservationCloneInput: InputObjectType[ObservationModel.CloneInput] =
-    deriveInputObjectType[ObservationModel.CloneInput](
-      InputObjectTypeName("CloneObservationInput"),
-      InputObjectTypeDescription("Parameters for cloning an existing observation.  The existingObservationId is required, all else is optional. Unset values will be copied from the existing observation, except that status will default to NEW."),
-      ExcludeInputFields("config")
-    )
-
-  val ArgumentObservationCloneInput: Argument[ObservationModel.CloneInput] =
-    InputObjectTypeObservationCloneInput.argument(
-      "input",
-      "Observation clone parameters"
-    )
-
-  val InputObjectTypeObservationEdit: InputObjectType[ObservationModel.Edit] =
-    deriveInputObjectType[ObservationModel.Edit](
-      InputObjectTypeName("EditObservationInput"),
-      InputObjectTypeDescription("Edit observation"),
-      ReplaceInputField("existence",            EnumTypeExistence.notNullableField("existence")),
-      ReplaceInputField("subtitle",             NonEmptyStringType.nullableField("subtitle")),
-      ReplaceInputField("status",               ObsStatusType.notNullableField("status")),
-      ReplaceInputField("activeStatus",         ObsActiveStatusType.notNullableField("activeStatus")),
-      ReplaceInputField("targetEnvironment",    InputObjectTypeTargetEnvironment.notNullableField("targetEnvironment")),
-      ReplaceInputField("constraintSet",        InputObjectTypeConstraintSet.notNullableField("constraintSet")),
-      ReplaceInputField("scienceRequirements",  InputObjectTypeScienceRequirements.notNullableField("scienceRequirements")),
-      ReplaceInputField("scienceMode",          InputObjectTypeScienceMode.nullableField("scienceMode"))
-    )
-
-  val ArgumentObservationEdit: Argument[ObservationModel.Edit] =
-    InputObjectTypeObservationEdit.argument(
-      "input",
-      "Edit observation"
-    )
-
-  implicit val InputObjectTypeBulkEditSelect: InputObjectType[BulkEdit.Select] =
-    InputObjectType[BulkEdit.Select](
-      name        = "BulkEditSelectInput",
-      description =
-      """Observation selection.  Choose 'programId' to select all of a program's
-        |observations or else list individual observations in 'observationIds'.
-      """.stripMargin,
+  implicit val InputObjectTypeObservationSelect: InputObjectType[ObservationModel.SelectInput] =
+    InputObjectType[ObservationModel.SelectInput](
+      "ObservationSelectInput",
+      """Choose programId to include all of its observations, or else a
+        |collection of observationIds to include particular observations.""".stripMargin,
       List(
         InputField("programId",      OptionInputType(ProgramIdType)),
         InputField("observationIds", OptionInputType(ListInputType(ObservationIdType)))
       )
     )
+
+  val InputObjectTypeObservationEdit: InputObjectType[ObservationModel.EditInput] =
+    InputObjectType[ObservationModel.EditInput](
+      "EditObservationInput",
+      "Observation selection and update description",
+      List(
+        InputField("select", InputObjectTypeObservationSelect),
+        InputField("patch",  InputObjectTypeObservationProperties)
+      )
+    )
+
+  val ArgumentObservationEdit: Argument[ObservationModel.EditInput] =
+    InputObjectTypeObservationEdit.argument(
+      "input",
+      "Parameters for editing existing observations"
+    )
+
+  val InputObjectTypeObservationCloneInput: InputObjectType[ObservationModel.CloneInput] =
+    deriveInputObjectType[ObservationModel.CloneInput](
+      InputObjectTypeName("CloneObservationInput"),
+      InputObjectTypeDescription("Describes an observation clone operation, making any edits in the patch parameter.  The observation status in the cloned observation defaults to NEW."),
+    )
+
+  val ArgumentObservationCloneInput: Argument[ObservationModel.CloneInput] =
+    InputObjectTypeObservationCloneInput.argument(
+      "input",
+      "Parameters for cloning an existing observation"
+    )
+
 
   private def bulkEditArgument[A: Decoder](
     name:       String,
@@ -95,14 +104,14 @@ trait ObservationMutation {
 
     val io: InputObjectType[BulkEdit[A]] =
       InputObjectType[BulkEdit[A]](
-        name        = s"BulkEdit${name.capitalize}Input",
+        name        = s"Edit${name.capitalize}Input",
         description =
           """Input for bulk editing multiple observations.  Select observations
             |with the 'select' input and specify the changes in 'edit'.
             |""".stripMargin,
         List(
-          InputField("select", InputObjectTypeBulkEditSelect),
-          InputField("edit",   editType)
+          InputField("select", InputObjectTypeObservationSelect),
+          InputField("patch",  editType)
         )
       )
 
@@ -110,48 +119,25 @@ trait ObservationMutation {
 
   }
 
-  val ArgumentAsterismBulkEdit: Argument[BulkEdit[Seq[EditAsterismInput]]] =
-    bulkEditArgument[Seq[EditAsterismInput]](
+  val ArgumentEditAsterism: Argument[BulkEdit[Seq[EditAsterismPatchInput]]] =
+    bulkEditArgument[Seq[EditAsterismPatchInput]](
       "asterism",
       ListInputType(InputObjectTypeEditAsterism)
     )
 
-  val ArgumentTargetEnvironmentBulkEdit: Argument[BulkEdit[TargetEnvironmentInput]] =
-    bulkEditArgument[TargetEnvironmentInput](
-      "targetEnvironment",
-      InputObjectTypeTargetEnvironment
-    )
-
-  val ArgumentConstraintSetBulkEdit: Argument[BulkEdit[ConstraintSetInput]] =
-    bulkEditArgument[ConstraintSetInput](
-      "constraintSet",
-      InputObjectTypeConstraintSet
-    )
-
-  val ArgumentScienceRequirementsBulkEdit: Argument[BulkEdit[ScienceRequirementsInput]] =
-    bulkEditArgument[ScienceRequirementsInput](
-      "scienceRequirements",
-      InputObjectTypeScienceRequirements
-    )
-
-  val ArgumentScienceModeBulkEdit: Argument[BulkEdit[ScienceModeInput]] =
-    bulkEditArgument[ScienceModeInput](
-      "scienceMode",
-      InputObjectTypeScienceMode
-    )
-
   def create[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name      = "createObservation",
-      fieldType = OptionType(ObservationType[F]),
-      arguments = List(ArgumentObservationCreate),
-      resolve   = c => c.observation(_.insert(c.arg(ArgumentObservationCreate)))
+      name        = "createObservation",
+      fieldType   = ObservationType[F],
+      description = "Creates a new observation according to provided parameters".some,
+      arguments   = List(ArgumentObservationCreate),
+      resolve     = c => c.observation(_.insert(c.arg(ArgumentObservationCreate)))
     )
 
-  def update[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def editObservation[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name      = "updateObservation",
-      fieldType = ObservationType[F],
+      name      = "editObservation",
+      fieldType = ListType(ObservationType[F]),
       arguments = List(ArgumentObservationEdit),
       resolve   = c => c.observation(_.edit(c.arg(ArgumentObservationEdit)))
     )
@@ -164,65 +150,16 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.clone(c.arg(ArgumentObservationCloneInput)))
     )
 
-  def bulkEditAsterism[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def editAsterism[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name        = "bulkEditAsterism",
+      name        = "editAsterism",
       description =
         """Edit asterisms, adding or deleting targets, in (potentially) multiple
           |observations at once.
         """.stripMargin.some,
       fieldType   = ListType(ObservationType[F]),
-      arguments   = List(ArgumentAsterismBulkEdit),
-      resolve     = c => c.observation(_.bulkEditAsterism(c.arg(ArgumentAsterismBulkEdit)))
-    )
-
-  def bulkEditTargetEnvironment[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
-    Field(
-      name        = "bulkEditTargetEnvironment",
-      description =
-        """Edit target environments, setting an explicit base position or the
-          |asterism, in (potentially) multiple observations at once.
-        """.stripMargin.some,
-      fieldType   = ListType(ObservationType[F]),
-      arguments   = List(ArgumentTargetEnvironmentBulkEdit),
-      resolve     = c => c.observation(_.bulkEditTargetEnvironment(c.arg(ArgumentTargetEnvironmentBulkEdit)))
-    )
-
-  def bulkEditConstraintSet[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
-    Field(
-      name        = "bulkEditConstraintSet",
-      description =
-        """Edit constraint sets, setting image quality or elevation ranges etc,
-          |in (potentially) multiple observations at once.
-        """.stripMargin.some,
-      fieldType   = ListType(ObservationType[F]),
-      arguments   = List(ArgumentConstraintSetBulkEdit),
-      resolve     = c => c.observation(_.bulkEditConstraintSet(c.arg(ArgumentConstraintSetBulkEdit)))
-    )
-
-  def bulkEditScienceMode[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
-    Field(
-      name        = "bulkEditScienceMode",
-      description =
-        """Edit the instrument selection and observing mode along with its basic
-          |configuration in (potentially) multiple observations at once.
-        """.stripMargin.some,
-      fieldType   = ListType(ObservationType[F]),
-      arguments   = List(ArgumentScienceModeBulkEdit),
-      resolve     = c => c.observation(_.bulkEditScienceMode(c.arg(ArgumentScienceModeBulkEdit)))
-    )
-
-
-  def bulkEditScienceRequirements[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
-    Field(
-      name        = "bulkEditScienceRequirements",
-      description =
-        """Edit science requirements in (potentially) multiple observations at
-          |once.
-        """.stripMargin.some,
-      fieldType   = ListType(ObservationType[F]),
-      arguments   = List(ArgumentScienceRequirementsBulkEdit),
-      resolve     = c => c.observation(_.bulkEditScienceRequirements(c.arg(ArgumentScienceRequirementsBulkEdit)))
+      arguments   = List(ArgumentEditAsterism),
+      resolve     = c => c.observation(_.editAsterism(c.arg(ArgumentEditAsterism)))
     )
 
   def delete[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
@@ -244,13 +181,9 @@ trait ObservationMutation {
   def allFields[F[_]: Dispatcher: Async: Logger]: List[Field[OdbCtx[F], Unit]] =
     List(
       create,
-      update,
+      editObservation,
       clone,
-      bulkEditAsterism,
-      bulkEditTargetEnvironment,
-      bulkEditConstraintSet,
-      bulkEditScienceMode,
-      bulkEditScienceRequirements,
+      editAsterism,
       delete,
       undelete,
     )

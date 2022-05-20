@@ -9,8 +9,8 @@ class MutationSuite extends OdbSuite {
 
   queryTest(
     query = """
-      mutation BulkEditConstraints($bulkEditConstraints: BulkEditConstraintSetInput!) {
-        bulkEditConstraintSet(input: $bulkEditConstraints) {
+      mutation BulkEditConstraints($bulkEditConstraints: EditObservationInput!) {
+        editObservation(input: $bulkEditConstraints) {
           id
           constraintSet {
             skyBackground
@@ -20,7 +20,7 @@ class MutationSuite extends OdbSuite {
     """,
     expected = json"""
       {
-        "bulkEditConstraintSet" : [
+        "editObservation" : [
           {
             "id" : "o-3",
             "constraintSet" : {
@@ -42,8 +42,10 @@ class MutationSuite extends OdbSuite {
           "select": {
             "observationIds": [ "o-3", "o-4" ]
           },
-          "edit": {
-            "skyBackground": "GRAY"
+          "patch": {
+            "constraintSet": {
+              "skyBackground": "GRAY"
+            }
           }
         }
       }
@@ -52,8 +54,8 @@ class MutationSuite extends OdbSuite {
 
   queryTest(
     query = """
-      mutation BulkEditScienceMode($bulkEditScienceMode: BulkEditScienceModeInput!) {
-        bulkEditScienceMode(input: $bulkEditScienceMode) {
+      mutation BulkEditScienceMode($bulkEditScienceMode: EditObservationInput!) {
+        editObservation(input: $bulkEditScienceMode) {
           id
           scienceMode {
             gmosSouthLongSlit {
@@ -70,7 +72,7 @@ class MutationSuite extends OdbSuite {
     """,
     expected = json"""
       {
-        "bulkEditScienceMode" : [
+        "editObservation" : [
           {
             "id" : "o-3",
             "scienceMode": {
@@ -106,10 +108,12 @@ class MutationSuite extends OdbSuite {
           "select": {
             "observationIds": [ "o-3", "o-4" ]
           },
-          "edit": {
-            "gmosSouthLongSlit": {
-              "advanced": {
-                "overrideGrating": "R600_G5324"
+          "patch": {
+            "scienceMode": {
+              "gmosSouthLongSlit": {
+                "advanced": {
+                  "overrideGrating": "R600_G5324"
+                }
               }
             }
           }
@@ -217,8 +221,8 @@ class MutationSuite extends OdbSuite {
   queryTestFailure(
     query =
       """
-        mutation BulkEditConstraints($bulkEditConstraints: BulkEditConstraintSetInput!) {
-          bulkEditConstraintSet(input: $bulkEditConstraints) {
+        mutation BulkEditConstraints($bulkEditConstraints: EditObservationInput!) {
+          editObservation(input: $bulkEditConstraints) {
             id
             constraintSet {
               skyBackground
@@ -241,12 +245,14 @@ class MutationSuite extends OdbSuite {
           "select": {
             "observationIds": [ "o-3", "o-4" ]
           },
-          "edit": {
-            "skyBackground": "GRAY",
-            "elevationRange": {
-              "airMass": {
-                "min": 0.0,
-                "max": 2.0
+          "patch": {
+            "constraintSet": {
+              "skyBackground": "GRAY",
+              "elevationRange": {
+                "airMass": {
+                  "min": 0.0,
+                  "max": 2.0
+                }
               }
             }
           }
