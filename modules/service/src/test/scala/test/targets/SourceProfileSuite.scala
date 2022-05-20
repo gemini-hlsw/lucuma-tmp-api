@@ -97,7 +97,7 @@ class SourceProfileSuite extends OdbSuite {
       {
         "targetEdit": {
           "select": {
-            "targetId": "t-3"
+            "targetIds": [ "t-3" ]
           },
           "patch": {
             "sourceProfile": {
@@ -178,7 +178,7 @@ class SourceProfileSuite extends OdbSuite {
       {
         "targetEdit": {
           "select": {
-            "targetId": "t-2"
+            "targetIds": [ "t-2" ]
           },
           "patch": {
             "sourceProfile": {
@@ -251,7 +251,7 @@ class SourceProfileSuite extends OdbSuite {
       {
         "targetEdit": {
           "select": {
-            "targetId": "t-4"
+            "targetIds": [ "t-4" ]
           },
           "patch": {
             "sourceProfile": {

@@ -232,7 +232,6 @@ object ObservationModel extends ObservationOptics {
 
   final case class SelectInput(
     programId:      Option[Program.Id],
-    observationId:  Option[Observation.Id],
     observationIds: Option[List[Observation.Id]]
   ) {
 
@@ -242,22 +241,21 @@ object ObservationModel extends ObservationOptics {
         os0 <- p.traverse { pm =>
           StateT.inspect[EitherInput, Database, List[ObservationModel]](_.observations.rows.values.filter(_.programId === pm.id).toList)
         }.map(_.toList.flatten)
-        os1 <- observationId.traverse(Database.observation.lookup).map(_.toList)
-        os2 <- observationIds.traverse(Database.observation.lookupAll).map(_.toList.flatten)
-      } yield (os0 ::: os1 ::: os2).distinctBy(_.id).sortBy(_.id)
+        os1 <- observationIds.traverse(Database.observation.lookupAll).map(_.toList.flatten)
+      } yield (os0 ::: os1).distinctBy(_.id).sortBy(_.id)
 
   }
 
   object SelectInput {
 
     val Empty: SelectInput =
-      SelectInput(None, None, None)
+      SelectInput(None, None)
 
     def programId(pid: Program.Id): SelectInput =
       Empty.copy(programId = pid.some)
 
     def observationId(oid: Observation.Id): SelectInput =
-      Empty.copy(observationId = oid.some)
+      Empty.copy(observationIds = List(oid).some)
 
     def observationIds(oids: List[Observation.Id]): SelectInput =
       Empty.copy(observationIds = oids.some)
@@ -268,7 +266,6 @@ object ObservationModel extends ObservationOptics {
     implicit val EqSelect: Eq[SelectInput] =
       Eq.by { a => (
         a.programId,
-        a.observationId,
         a.observationIds
       )}
 

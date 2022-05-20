@@ -39,7 +39,7 @@ class TargetMutationSuite extends OdbSuite {
       {
         "targetEdit": {
           "select": {
-            "targetId": "t-4"
+            "targetIds": [ "t-4" ]
           },
           "patch": {
             "sidereal": {

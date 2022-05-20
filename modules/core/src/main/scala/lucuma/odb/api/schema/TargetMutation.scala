@@ -164,14 +164,12 @@ trait TargetMutation extends TargetScalars {
   implicit val InputObjectTypeTargetSelect: InputObjectType[TargetModel.SelectInput] =
     InputObjectType[TargetModel.SelectInput](
       "TargetSelectInput",
-      """Choose programId to include all of its targets, observationId, or
-       | observationIds to include their targets, or else individual targets
-       | via targetId or targetIds.""".stripMargin,
+      """Choose programId to include all of its targets, observationIds to
+       |include each listed observation's targets, or else individual targets
+       |via targetIds.""".stripMargin,
       List(
         InputField("programId",      OptionInputType(ProgramIdType)),
-        InputField("observationId",  OptionInputType(ObservationIdType)),
         InputField("observationIds", OptionInputType(ListInputType(ObservationIdType))),
-        InputField("targetId",       OptionInputType(TargetIdType)),
         InputField("targetIds",      OptionInputType(ListInputType(TargetIdType)))
       )
     )

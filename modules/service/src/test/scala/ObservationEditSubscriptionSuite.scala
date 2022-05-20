@@ -34,7 +34,7 @@ class ObservationEditSubscriptionSuite extends OdbSuite {
       {
         "editObservation": {
           "select": {
-            "observationId": "o-2"
+            "observationIds": [ "o-2" ]
           },
           "patch": {
             "subtitle": $newName

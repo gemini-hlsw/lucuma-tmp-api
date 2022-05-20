@@ -60,12 +60,10 @@ trait ObservationMutation {
   implicit val InputObjectTypeObservationSelect: InputObjectType[ObservationModel.SelectInput] =
     InputObjectType[ObservationModel.SelectInput](
       "ObservationSelectInput",
-      """Choose programId to include all of its observations, or else a single
-        |observationId, or a collection of observationIds to include
-        |particular observations.""".stripMargin,
+      """Choose programId to include all of its observations, or else a
+        |collection of observationIds to include particular observations.""".stripMargin,
       List(
         InputField("programId",      OptionInputType(ProgramIdType)),
-        InputField("observationId",  OptionInputType(ObservationIdType)),
         InputField("observationIds", OptionInputType(ListInputType(ObservationIdType)))
       )
     )

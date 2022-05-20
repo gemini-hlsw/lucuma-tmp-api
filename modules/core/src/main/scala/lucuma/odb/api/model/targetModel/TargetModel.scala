@@ -189,9 +189,7 @@ object TargetModel extends TargetModelOptics {
 
   final case class SelectInput(
     programId:      Option[Program.Id],
-    observationId:  Option[Observation.Id],
     observationIds: Option[List[Observation.Id]],
-    targetId:       Option[Target.Id],
     targetIds:      Option[List[Target.Id]]
   ) {
 
@@ -199,14 +197,11 @@ object TargetModel extends TargetModelOptics {
       for {
         p   <- programId.traverse(Database.program.lookup)
         ts0 <- p.traverse(pm => StateT.inspect[EitherInput, Database, List[TargetModel]](_.targets.rows.values.filter(_.programId === pm.id).toList))
-        o   <- observationId.traverse(Database.observation.lookup)
-        ts1 <- o.map(_.targetEnvironment.asterism.toList).traverse(Database.target.lookupAll)
         os  <- observationIds.traverse(Database.observation.lookupAll)
-        ts2 <- os.map(_.flatMap(_.targetEnvironment.asterism.toList)).traverse(Database.target.lookupAll)
-        ts3 <- targetId.traverse(Database.target.lookup).map(_.map(t => List(t)))
-        ts4 <- targetIds.traverse(Database.target.lookupAll)
+        ts1 <- os.map(_.flatMap(_.targetEnvironment.asterism.toList)).traverse(Database.target.lookupAll)
+        ts2 <- targetIds.traverse(Database.target.lookupAll)
       } yield
-        (ts0.toList ::: ts1.toList ::: ts2.toList ::: ts3.toList ::: ts4.toList)
+        (ts0.toList ::: ts1.toList ::: ts2.toList)
           .flatten
           .distinctBy(_.id)
           .sortBy(_.id)
@@ -216,10 +211,10 @@ object TargetModel extends TargetModelOptics {
   object SelectInput {
 
     val Empty: SelectInput =
-      SelectInput(None, None, None, None, None)
+      SelectInput(None, None, None)
 
     def targetId(tid: Target.Id): SelectInput =
-      Empty.copy(targetId = tid.some)
+      Empty.copy(targetIds = List(tid).some)
 
     implicit val DecoderSelect: Decoder[SelectInput] =
       deriveDecoder[SelectInput]
@@ -227,9 +222,7 @@ object TargetModel extends TargetModelOptics {
     implicit val EqSelect: Eq[SelectInput] =
       Eq.by { a => (
         a.programId,
-        a.observationId,
         a.observationIds,
-        a.targetId,
         a.targetIds
       )}
 
