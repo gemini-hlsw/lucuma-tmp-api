@@ -12,6 +12,7 @@ trait ScienceModeMutation {
 
   import syntax.inputtype._
   import GmosSchema._
+  import WavelengthSchema.InputWavelength
 
   def inputObjectTypeGmosLongSlitBasicConfig[G, F, U](
     siteName:    String,
@@ -55,6 +56,7 @@ trait ScienceModeMutation {
       s"Gmos${siteName.capitalize}LongSlitAdvancedConfigInput",
       s"Edit or create GMOS ${siteName.capitalize} Long Slit advanced configuration",
       List(
+        InputWavelength.nullableField("overrideWavelength"),
         gratingEnum.nullableField("overrideGrating"),
         filterEnum.nullableField("overrideFilter"),
         fpuEnum.nullableField("overrideFpu"),

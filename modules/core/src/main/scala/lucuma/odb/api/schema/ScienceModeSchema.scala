@@ -108,6 +108,13 @@ object ScienceModeSchema {
       fields[Any, AdvancedConfig[G, F, U]](
 
         Field(
+          name        = "overrideWavelength",
+          fieldType   = OptionType(WavelengthSchema.WavelengthType),
+          description = "Overrides the science requirement wavelength".some,
+          resolve     = _.value.overrideWavelength
+        ),
+
+        Field(
           name        = "overrideGrating",
           fieldType   = OptionType(gratingEnum),
           description = "GMOS North Grating override, taking the place of the basic configuration grating".some,

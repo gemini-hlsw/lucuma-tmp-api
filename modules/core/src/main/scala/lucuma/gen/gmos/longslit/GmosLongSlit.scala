@@ -23,6 +23,8 @@ import lucuma.odb.api.repo.OdbRepo
 
 trait GmosLongSlit[F[_], S, D] extends Generator[F, S, D] with GeneratorHelper[D] {
 
+  def λ: Wavelength
+
   def acquisitionSteps: Acquisition.Steps[D]
 
   def scienceAtoms: LazyList[Science.Atom[D]]
@@ -90,7 +92,7 @@ object GmosLongSlit {
 
   final case class Input[M](
     mode:          M,
-    λ:             Wavelength,
+    requirementλ:  Wavelength,
     imageQuality:  ImageQuality,
     sampling:      PosDouble,
     sourceProfile: SourceProfile,

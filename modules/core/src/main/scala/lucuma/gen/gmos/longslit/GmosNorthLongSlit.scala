@@ -45,11 +45,11 @@ object GmosNorthLongSlit {
   def fromInput[F[_]: Sync](
     in: GmosLongSlit.Input[ScienceMode.GmosNorthLongSlit]
   ): GmosNorthLongSlit[F] =
-    apply(in.mode, in.λ, in.imageQuality, in.sampling, in.sourceProfile, in.acqTime, in.sciTime, in.exposureCount)
+    apply(in.mode, in.requirementλ, in.imageQuality, in.sampling, in.sourceProfile, in.acqTime, in.sciTime, in.exposureCount)
 
   def apply[F[_]: Sync](
     mode:          ScienceMode.GmosNorthLongSlit,
-    λ:             Wavelength,
+    requirementλ:  Wavelength,
     imageQuality:  ImageQuality,
     sampling:      PosDouble,
     sourceProfile: SourceProfile,
@@ -59,6 +59,9 @@ object GmosNorthLongSlit {
   ): GmosNorthLongSlit[F] =
 
     new GmosNorthLongSlit[F] with GmosLongSlit[F, NorthStatic, NorthDynamic] {
+
+      override val λ: Wavelength =
+        mode.advanced.flatMap(_.overrideWavelength).getOrElse(requirementλ)
 
       override def static: NorthStatic =
         NorthStatic(
