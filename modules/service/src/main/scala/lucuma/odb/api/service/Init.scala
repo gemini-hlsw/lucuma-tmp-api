@@ -376,8 +376,8 @@ object Init {
           waterVapor      = WaterVapor.Wet.assign,
           elevationRange  = ElevationRangeInput(
             airMass = AirMassRangeInput(
-              min = BigDecimal(1.0).some,
-              max = BigDecimal(1.75).some
+              min = PosBigDecimal.unsafeFrom(1.0).some,
+              max = PosBigDecimal.unsafeFrom(1.75).some
             ).assign
           ).assign
         ).assign,

@@ -3,13 +3,15 @@
 
 package lucuma.odb.api.schema
 
+import eu.timepit.refined.types.all.PosBigDecimal
 import lucuma.core.enum.{CloudExtinction, ImageQuality, SkyBackground, WaterVapor}
 import lucuma.core.model.{ConstraintSet, ElevationRange}
 import lucuma.odb.api.schema.syntax.all._
-
 import sangria.schema._
 
 object ConstraintSetSchema {
+
+  import RefinedSchema.PosBigDecimalType
 
   implicit val EnumTypeCloudExtinction: EnumType[CloudExtinction] =
     EnumType.fromEnumerated("CloudExtinction", "Cloud extinction")
@@ -30,15 +32,15 @@ object ConstraintSetSchema {
         fields(
           Field(
             name        = "min",
-            fieldType   = BigDecimalType,
+            fieldType   = PosBigDecimalType,
             description = Some("Minimum AirMass (unitless)"),
-            resolve     = _.value.min.value
+            resolve     = c => PosBigDecimal.unsafeFrom(c.value.min.value)
           ),
           Field(
             name        = "max",
-            fieldType   = BigDecimalType,
+            fieldType   = PosBigDecimalType,
             description = Some("Maximum AirMass (unitless)"),
-            resolve     = _.value.max.value
+            resolve     = c => PosBigDecimal.unsafeFrom(c.value.max.value)
           )
         )
     )

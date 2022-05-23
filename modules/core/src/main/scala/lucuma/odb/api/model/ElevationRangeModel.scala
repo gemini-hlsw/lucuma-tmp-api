@@ -9,9 +9,12 @@ import cats.syntax.all._
 import clue.data.Input
 import clue.data.syntax._
 import eu.timepit.refined.api.Refined
+import eu.timepit.refined.cats._
 import eu.timepit.refined.numeric.Interval.Closed
+import eu.timepit.refined.types.all.PosBigDecimal
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
+import io.circe.refined._
 import lucuma.core.model.ElevationRange
 import lucuma.core.model.ElevationRange.HourAngle.DecimalHour
 import lucuma.odb.api.model.syntax.validatedinput._
@@ -65,8 +68,8 @@ object ElevationRangeInput {
 }
 
 final case class AirMassRangeInput(
-  min: Option[BigDecimal],
-  max: Option[BigDecimal]
+  min: Option[PosBigDecimal],
+  max: Option[PosBigDecimal]
 ) extends EditorInput[ElevationRange.AirMass] {
 
   import ElevationRange.AirMass
@@ -79,10 +82,10 @@ final case class AirMassRangeInput(
 
   override val create: ValidatedInput[AirMass] = {
 
-    def checkRange(name: String, value: Option[BigDecimal]): ValidatedInput[Refined[BigDecimal, Closed[MinValue.type, MaxValue.type]]] =
+    def checkRange(name: String, value: Option[PosBigDecimal]): ValidatedInput[Refined[BigDecimal, Closed[MinValue.type, MaxValue.type]]] =
       value
         .toValidNec(InputError.fromMessage(s""""$name" parameter of AirMass must be defined on creation"""))
-        .andThen(v => ValidatedInput.closedInterval(name, v, MinValue, MaxValue))
+        .andThen(v => ValidatedInput.closedInterval(name, v.value, MinValue, MaxValue))
 
     (checkRange("min", min),
      checkRange("max", max)
@@ -93,8 +96,8 @@ final case class AirMassRangeInput(
 
   override val edit: StateT[EitherInput, AirMass, Unit] = {
     val validArgs = (
-      min.traverse(n => ValidatedInput.closedInterval("min", n, MinValue, MaxValue)),
-      max.traverse(x => ValidatedInput.closedInterval("max", x, MinValue, MaxValue))
+      min.traverse(n => ValidatedInput.closedInterval("min", n.value, MinValue, MaxValue)),
+      max.traverse(x => ValidatedInput.closedInterval("max", x.value, MinValue, MaxValue))
     ).tupled
 
     for {

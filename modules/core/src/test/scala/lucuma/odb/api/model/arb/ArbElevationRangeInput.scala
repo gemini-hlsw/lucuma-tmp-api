@@ -6,6 +6,8 @@ package lucuma.odb.api.model.arb
 import clue.data.Input
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.scalacheck._
+import eu.timepit.refined.types.all.PosBigDecimal
+import lucuma.core.math.arb.ArbRefined
 import lucuma.core.model.ElevationRange
 import lucuma.core.util.arb.ArbEnumerated
 import lucuma.odb.api.model.{AirMassRangeInput, ElevationRangeInput, HourAngleRangeInput}
@@ -17,6 +19,7 @@ trait ArbElevationRangeInput {
 
   import ArbEnumerated._
   import ArbInput._
+  import ArbRefined._
 
   implicit val arbDecimalValue: Arbitrary[AirMass.DecimalValue] =
     Arbitrary {
@@ -36,19 +39,19 @@ trait ArbElevationRangeInput {
   implicit val arbAirMassRangeInput: Arbitrary[AirMassRangeInput] =
     Arbitrary {
       for {
-        min        <- arbitrary[Option[BigDecimal]]
-        max        <- arbitrary[Option[BigDecimal]]
+        min        <- arbitrary[Option[PosBigDecimal]]
+        max        <- arbitrary[Option[PosBigDecimal]]
         arc1        = AirMassRangeInput(min, max)
         // make at least some of them valid
         minInRange <- arbitrary[Option[AirMass.DecimalValue]]
         maxInRange <- arbitrary[Option[AirMass.DecimalValue]]
-        arc2        = AirMassRangeInput(minInRange.map(_.value), maxInRange.map(_.value))
+        arc2        = AirMassRangeInput(minInRange.map(v => PosBigDecimal.unsafeFrom(v.value)), maxInRange.map(v => PosBigDecimal.unsafeFrom(v.value)))
         arc        <- Gen.oneOf(arc1, arc2)
       } yield arc
     }
 
   implicit val cogAirmassRangeInput: Cogen[AirMassRangeInput] =
-    Cogen[(Option[BigDecimal], Option[BigDecimal])].contramap(c => (c.min, c.max))
+    Cogen[(Option[PosBigDecimal], Option[PosBigDecimal])].contramap(c => (c.min, c.max))
 
   implicit val arbHourAngleRangeInput: Arbitrary[HourAngleRangeInput] =
     Arbitrary {
