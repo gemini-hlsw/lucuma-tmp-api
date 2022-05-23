@@ -48,22 +48,22 @@ object GeneralSchema {
 
         Field(
           name        = "pi",
-          fieldType   = DurationType,
-          description = Some("The portion of planned time that will be charged"),
+          fieldType   = NonNegativeDurationType,
+          description = "The portion of planned time that will be charged".some,
           resolve     = _.value.piTime
         ),
 
         Field(
           name        = "uncharged",
-          fieldType   = DurationType,
-          description = Some("The portion of planned time that will not be charged"),
+          fieldType   = NonNegativeDurationType,
+          description = "The portion of planned time that will not be charged".some,
           resolve     = _.value.unchargedTime
         ),
 
         Field(
           name        = "execution",
-          fieldType   = DurationType,
-          description = Some("The total estimated execution time"),
+          fieldType   = NonNegativeDurationType,
+          description = "The total estimated execution time".some,
           resolve     = _.value.executionTime
         )
 

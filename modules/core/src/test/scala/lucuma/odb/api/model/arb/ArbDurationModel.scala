@@ -4,88 +4,62 @@
 package lucuma.odb.api.model
 package arb
 
-import DurationModel.{Input, Units}
-import NumericUnits.{LongInput, DecimalInput}
-
+import lucuma.core.math.arb.ArbRefined
+import DurationModel.NonNegDurationInput
+import eu.timepit.refined.types.all.{NonNegBigDecimal, NonNegLong}
 import lucuma.core.util.arb.ArbEnumerated
-
 import org.scalacheck._
 
 
 trait ArbDurationModel {
 
   import ArbEnumerated._
-  import GenNumericUnitsInput._
+  import ArbRefined._
 
-  private[this] val c_µs = 1L
+  private[this] val c_µs = 1000L
   private[this] val c_ms = c_µs * 1000L
   private[this] val c_s  = c_ms * 1000L
   private[this] val c_m  = c_s  * 60L
   private[this] val c_h  = c_m  * 60L
   private[this] val c_d  = c_h  * 24L
 
-  private def genBigDecimal(c: Long): Gen[BigDecimal] = {
-    val max = Long.MaxValue/c
+  private def genBigDecimal(c: Long): Gen[NonNegBigDecimal] = {
+    val max = Long.MaxValue/c-1
     for {
-      h <- Gen.chooseNum(-max, max)
+      h <- Gen.chooseNum(0, max)
       f <- Gen.chooseNum(0, 499)
-    } yield BigDecimal(h) + BigDecimal(f)/1000
+    } yield NonNegBigDecimal.unsafeFrom(BigDecimal(h) + BigDecimal(f)/1000)
   }
 
-  private[this] val microseconds: Gen[Long]       =
-    Gen.chooseNum[Long](-Long.MaxValue, Long.MaxValue)
+  private[this] val microseconds: Gen[NonNegLong]       =
+    Gen.chooseNum[Long](0L, Long.MaxValue/1000-1).map(NonNegLong.unsafeFrom)
 
-  private[this] val milliseconds: Gen[BigDecimal] = genBigDecimal(c_ms)
-  private[this] val seconds: Gen[BigDecimal]      = genBigDecimal(c_s)
-  private[this] val minutes: Gen[BigDecimal]      = genBigDecimal(c_m)
-  private[this] val hours: Gen[BigDecimal]        = genBigDecimal(c_h)
-  private[this] val days: Gen[BigDecimal]         = genBigDecimal(c_d)
+  private[this] val milliseconds: Gen[NonNegBigDecimal] = genBigDecimal(c_ms)
+  private[this] val seconds: Gen[NonNegBigDecimal]      = genBigDecimal(c_s)
+  private[this] val minutes: Gen[NonNegBigDecimal]      = genBigDecimal(c_m)
+  private[this] val hours: Gen[NonNegBigDecimal]        = genBigDecimal(c_h)
+  private[this] val days: Gen[NonNegBigDecimal]         = genBigDecimal(c_d)
 
-  val genDurationModelInputFromLong: Gen[Input] =
-    Gen.oneOf(
-      genLongInput(microseconds, Units.microseconds),
-      genLongInput(milliseconds, Units.milliseconds),
-      genLongInput(seconds,      Units.seconds),
-      genLongInput(minutes,      Units.minutes),
-      genLongInput(hours,        Units.hours),
-      genLongInput(days,         Units.days)
-    ).map(Input.fromLong)
-
-  val genDurationModelInputFromDecimal: Gen[Input] =
-    Gen.oneOf(
-      genLongDecimalInput(microseconds, Units.microseconds),
-      genDecimalInput(milliseconds, Units.milliseconds),
-      genDecimalInput(seconds,      Units.seconds),
-      genDecimalInput(minutes,      Units.minutes),
-      genDecimalInput(hours,        Units.hours),
-      genDecimalInput(days,         Units.days)
-    ).map(Input.fromDecimal)
-
-
-  implicit val arbDurationModelInput: Arbitrary[DurationModel.Input] =
+  implicit val arbDurationModelInput: Arbitrary[DurationModel.NonNegDurationInput] =
     Arbitrary {
       Gen.oneOf(
-        microseconds.map(Input.fromMicroseconds),
-        milliseconds.map(Input.fromMilliseconds),
-        seconds.map(Input.fromSeconds),
-        minutes.map(Input.fromMinutes),
-        hours.map(Input.fromHours),
-        days.map(Input.fromDays),
-        genDurationModelInputFromLong,
-        genDurationModelInputFromDecimal
+        microseconds.map(NonNegDurationInput.fromMicroseconds),
+        milliseconds.map(NonNegDurationInput.fromMilliseconds),
+        seconds.map(NonNegDurationInput.fromSeconds),
+        minutes.map(NonNegDurationInput.fromMinutes),
+        hours.map(NonNegDurationInput.fromHours),
+        days.map(NonNegDurationInput.fromDays),
       )
     }
 
-  implicit val cogDurationModelInput: Cogen[DurationModel.Input] =
+  implicit val cogDurationModelInput: Cogen[DurationModel.NonNegDurationInput] =
     Cogen[(
-      Option[Long],        // µs
-      Option[BigDecimal],  // ms
-      Option[BigDecimal],  // s
-      Option[BigDecimal],  // m
-      Option[BigDecimal],  // h
-      Option[BigDecimal],  // d
-      Option[LongInput[Units]],
-      Option[DecimalInput[Units]]
+      Option[NonNegLong],        // µs
+      Option[NonNegBigDecimal],  // ms
+      Option[NonNegBigDecimal],  // s
+      Option[NonNegBigDecimal],  // m
+      Option[NonNegBigDecimal],  // h
+      Option[NonNegBigDecimal]   // d
     )].contramap { in =>
       (
         in.microseconds,
@@ -93,9 +67,7 @@ trait ArbDurationModel {
         in.seconds,
         in.minutes,
         in.hours,
-        in.days,
-        in.fromLong,
-        in.fromDecimal
+        in.days
       )
     }
 

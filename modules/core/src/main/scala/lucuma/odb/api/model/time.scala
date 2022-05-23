@@ -12,33 +12,38 @@ import io.circe.Decoder
 import lucuma.core.syntax.time._
 import shapeless.Nat._0
 
+import java.time.temporal.Temporal
 import java.time.{Duration, LocalDate, Month}
 
 import scala.util.Try
 
 object time {
 
-  implicit val nonNegativeDurationValidate: Plain[Duration, GreaterEqual[_0]] =
+  implicit val nonNegDurationValidate: Plain[Duration, GreaterEqual[_0]] =
     Validate.fromPredicate(
       (d: Duration) => d.toNanos >= 0L,
       (d: Duration) => s"$d is not negative",
       Not(Less(shapeless.nat._0))
     )
 
-  type NonNegativeDuration = Duration Refined NonNegative
+  type NonNegDuration = Duration Refined NonNegative
 
-  object NonNegativeDuration extends RefinedTypeOps[NonNegativeDuration, Duration] {
+  object NonNegDuration extends RefinedTypeOps[NonNegDuration, Duration] {
 
-    val zero: NonNegativeDuration =
+    val zero: NonNegDuration =
       unsafeFrom(Duration.ofNanos(0L))
+
+    def between(startInclusive: Temporal, endExclusive: Temporal): NonNegDuration =
+      NonNegDuration.unapply(Duration.between(startInclusive, endExclusive))
+        .getOrElse(zero)
 
   }
 
   // Has to be a def or else there are initialization issues.
-  implicit def nonNegDurationMonoid: Monoid[NonNegativeDuration] =
+  implicit def nonNegDurationMonoid: Monoid[NonNegDuration] =
     Monoid.instance(
-      NonNegativeDuration.zero,
-      (a, b) => NonNegativeDuration.unsafeFrom(a.value + b.value)
+      NonNegDuration.zero,
+      (a, b) => NonNegDuration.unsafeFrom(a.value + b.value)
     )
 
   implicit val fourDigitYearLocalDateValidate: Plain[LocalDate, Interval.Closed[0, 9999]] =

@@ -3,16 +3,20 @@
 
 package lucuma.odb.api.model
 
-import lucuma.core.syntax.time._
-import lucuma.core.util.{Display, Enumerated}
 import cats.Eq
 import cats.syntax.option._
+import eu.timepit.refined.cats._
+import eu.timepit.refined.types.all.{NonNegBigDecimal, NonNegLong}
 import io.circe.Decoder
 import io.circe.generic.semiauto._
-import monocle.Prism
+import io.circe.refined._
+import lucuma.core.syntax.time._
+import lucuma.core.util.{Display, Enumerated}
+import lucuma.odb.api.model.time.NonNegDuration
 
 import java.time.Duration
 import java.time.temporal.ChronoUnit
+
 import scala.math.BigDecimal.RoundingMode
 import scala.util.Try
 
@@ -22,25 +26,25 @@ object DurationModel {
     val timeUnit: ChronoUnit
   ) extends Product with Serializable {
 
-    val long: Prism[Long, Duration] =
-      Prism[Long, Duration](l => Try(Duration.of(l, timeUnit)).toOption)(_.get(timeUnit))
-
-    def readLong(l: Long): ValidatedInput[Duration] =
-      long.getOption(l).toValidNec(
-        InputError.fromMessage(
-          s"Could not read $l ${timeUnit.toString} as a time amount"
+    def readLong(nnl: NonNegLong): ValidatedInput[NonNegDuration] =
+      Try(Duration.of(nnl.value, timeUnit))
+        .toOption
+        .flatMap(NonNegDuration.from(_).toOption)
+        .toValidNec(
+          InputError.fromMessage(
+            s"Could not read $nnl ${timeUnit.toString} as a time amount"
+          )
         )
-      )
 
-    val decimal: Prism[BigDecimal, Duration] =
-      Prism[BigDecimal, Duration](bd => Try(Duration.of(bd.setScale(0, RoundingMode.HALF_UP).longValue, timeUnit)).toOption)(fd => BigDecimal(fd.get(timeUnit)))
-
-    def readDecimal(b: BigDecimal): ValidatedInput[Duration] =
-      decimal.getOption(b).toValidNec(
-        InputError.fromMessage(
-          s"Could not read $b ${timeUnit.toString} as a time amount"
+    def readDecimal(nnbd: NonNegBigDecimal): ValidatedInput[NonNegDuration] =
+      Try(Duration.of(nnbd.value.setScale(0, RoundingMode.HALF_UP).longValue, timeUnit))
+        .toOption
+        .flatMap(NonNegDuration.from(_).toOption)
+        .toValidNec(
+          InputError.fromMessage(
+            s"Could not read ${nnbd.value} ${timeUnit.toString} as a time amount"
+          )
         )
-      )
   }
 
   object Units {
@@ -72,81 +76,66 @@ object DurationModel {
       Display.byShortName(_.timeUnit.name)
   }
 
-  implicit val NumericUnitsDuration: NumericUnits[Duration, Units] =
-    NumericUnits.fromRead(_.readLong(_), _.readDecimal(_))
-
-  final case class Input(
-    microseconds: Option[Long],
-    milliseconds: Option[BigDecimal],
-    seconds:      Option[BigDecimal],
-    minutes:      Option[BigDecimal],
-    hours:        Option[BigDecimal],
-    days:         Option[BigDecimal],
-    fromLong:     Option[NumericUnits.LongInput[Units]],
-    fromDecimal:  Option[NumericUnits.DecimalInput[Units]]
+  final case class NonNegDurationInput(
+    microseconds: Option[NonNegLong],
+    milliseconds: Option[NonNegBigDecimal],
+    seconds:      Option[NonNegBigDecimal],
+    minutes:      Option[NonNegBigDecimal],
+    hours:        Option[NonNegBigDecimal],
+    days:         Option[NonNegBigDecimal]
   ) {
 
     import Units._
 
-    def toDuration(n: String): ValidatedInput[Duration] =
+    def toNonNegDuration(n: String): ValidatedInput[NonNegDuration] =
       ValidatedInput.requireOne(n,
         microseconds.map(Microseconds.readLong),
         milliseconds.map(Milliseconds.readDecimal),
         seconds     .map(Seconds.readDecimal),
         minutes     .map(Minutes.readDecimal),
         hours       .map(Hours.readDecimal),
-        days        .map(Days.readDecimal),
-        fromLong    .map(_.read),
-        fromDecimal .map(_.read)
+        days        .map(Days.readDecimal)
       )
 
   }
 
-  object Input {
+  object NonNegDurationInput {
 
-    val Empty: Input =
-      Input(None, None, None, None, None, None, None, None)
+    val Empty: NonNegDurationInput =
+      NonNegDurationInput(None, None, None, None, None, None)
 
-    def apply(fd: Duration): Input =
-      fromMicroseconds(fd.toMicros)
+    def unsafeFromDuration(fd: Duration): NonNegDurationInput =
+      fromMicroseconds(NonNegLong.unsafeFrom(fd.toMicros))
 
-    def fromMicroseconds(value: Long): Input =
+    def fromMicroseconds(value: NonNegLong): NonNegDurationInput =
       Empty.copy(microseconds = Some(value))
 
-    def fromMilliseconds(value: BigDecimal): Input =
+    def fromMilliseconds(value: NonNegBigDecimal): NonNegDurationInput =
       Empty.copy(milliseconds = Some(value))
 
-    def fromSeconds(value: BigDecimal): Input =
+    def fromSeconds(value: NonNegBigDecimal): NonNegDurationInput =
       Empty.copy(seconds = Some(value))
 
-    def fromMinutes(value: BigDecimal): Input =
+    def fromMinutes(value: NonNegBigDecimal): NonNegDurationInput =
       Empty.copy(minutes = Some(value))
 
-    def fromHours(value: BigDecimal): Input =
+    def fromHours(value: NonNegBigDecimal): NonNegDurationInput =
       Empty.copy(hours = Some(value))
 
-    def fromDays(value: BigDecimal): Input =
+    def fromDays(value: NonNegBigDecimal): NonNegDurationInput =
       Empty.copy(days = Some(value))
 
-    def fromLong(value: NumericUnits.LongInput[Units]): Input =
-      Empty.copy(fromLong = Some(value))
+    implicit val DecoderNonNegDurationInput: Decoder[NonNegDurationInput] =
+      deriveDecoder[NonNegDurationInput]
 
-    def fromDecimal(value: NumericUnits.DecimalInput[Units]): Input =
-      Empty.copy(fromDecimal = Some(value))
-
-    implicit val DecoderInput: Decoder[Input] =
-      deriveDecoder[Input]
-
-    implicit val EqInput: Eq[Input] =
+    implicit val EqNonNegDurationInput: Eq[NonNegDurationInput] =
       Eq.by(in => (
         in.microseconds,
         in.milliseconds,
         in.seconds,
         in.minutes,
         in.hours,
-        in.days,
-        in.fromLong,
-        in.fromDecimal
+        in.days
       ))
   }
 

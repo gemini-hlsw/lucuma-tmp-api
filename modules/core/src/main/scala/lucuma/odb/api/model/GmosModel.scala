@@ -11,15 +11,16 @@ import cats.Eq
 import cats.data.{State, Validated}
 import cats.syntax.all._
 import clue.data.Input
+import eu.timepit.refined.cats._
 import eu.timepit.refined.types.all._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import io.circe.generic.extras.semiauto.deriveConfiguredDecoder
 import io.circe.generic.extras.Configuration
-import java.time.Duration
+import lucuma.odb.api.model.time.NonNegDuration
+
 import monocle.{Focus, Lens, Optional}
 import org.typelevel.cats.time.instances.duration._
-
 import monocle.macros.GenLens
 
 
@@ -467,7 +468,7 @@ object GmosModel {
   }
 
   sealed trait Dynamic[G, F, U] {
-    def exposure:      Duration
+    def exposure:      NonNegDuration
     def readout:       CcdReadout
     def dtax:          GmosDtax
     def roi:           GmosRoi
@@ -477,7 +478,7 @@ object GmosModel {
   }
 
   sealed trait DynamicOptics[D, G, F, U] {
-    def exposure:      Lens[D, Duration]
+    def exposure:      Lens[D, NonNegDuration]
     def readout:       Lens[D, CcdReadout]
 
     lazy val xBin: Lens[D, GmosXBinning] =
@@ -507,7 +508,7 @@ object GmosModel {
   }
 
   final case class NorthDynamic (
-    exposure:      Duration,
+    exposure:      NonNegDuration,
     readout:       CcdReadout,
     dtax:          GmosDtax,
     roi:           GmosRoi,
@@ -533,7 +534,7 @@ object GmosModel {
 
   sealed trait NorthDynamicOptics extends DynamicOptics[NorthDynamic, GmosNorthGrating, GmosNorthFilter, GmosNorthFpu] { self: NorthDynamic.type =>
 
-    val exposure: Lens[NorthDynamic, Duration] =
+    val exposure: Lens[NorthDynamic, NonNegDuration] =
       Focus[NorthDynamic](_.exposure)
 
     lazy val readout: Lens[NorthDynamic, CcdReadout] =
@@ -564,7 +565,7 @@ object GmosModel {
   }
 
   final case class SouthDynamic (
-    exposure:      Duration,
+    exposure:      NonNegDuration,
     readout:       CcdReadout,
     dtax:          GmosDtax,
     roi:           GmosRoi,
@@ -590,7 +591,7 @@ object GmosModel {
 
   sealed trait SouthDynamicOptics extends DynamicOptics[SouthDynamic, GmosSouthGrating, GmosSouthFilter, GmosSouthFpu]  { self: SouthDynamic.type =>
 
-    val exposure: Lens[SouthDynamic, Duration] =
+    val exposure: Lens[SouthDynamic, NonNegDuration] =
       Focus[SouthDynamic](_.exposure)
 
     lazy val readout: Lens[SouthDynamic, CcdReadout] =
@@ -622,7 +623,7 @@ object GmosModel {
 
   sealed trait CreateDynamic[D, L, U] {
 
-    def exposure:      DurationModel.Input
+    def exposure:      DurationModel.NonNegDurationInput
     def readout:       CreateCcdReadout
     def dtax:          GmosDtax
     def roi:           GmosRoi
@@ -633,7 +634,7 @@ object GmosModel {
   }
 
   final case class CreateNorthDynamic(
-    exposure:      DurationModel.Input,
+    exposure:      DurationModel.NonNegDurationInput,
     readout:       CreateCcdReadout                              = CreateCcdReadout(),
     dtax:          GmosDtax                                      = GmosDtax.Zero,
     roi:           GmosRoi                                       = GmosRoi.FullFrame,
@@ -644,7 +645,7 @@ object GmosModel {
 
     val create: ValidatedInput[NorthDynamic] =
       (
-        exposure.toDuration("exposure"),
+        exposure.toNonNegDuration("exposure"),
         readout.create,
         gratingConfig.traverse(_.create),
         fpu.traverse(_.create)
@@ -677,7 +678,7 @@ object GmosModel {
     Decoder[CreateCustomMask].either(Decoder[GmosSouthFpu])
 
   final case class CreateSouthDynamic(
-    exposure:      DurationModel.Input,
+    exposure:      DurationModel.NonNegDurationInput,
     readout:       CreateCcdReadout                              = CreateCcdReadout(),
     dtax:          GmosDtax                                      = GmosDtax.Zero,
     roi:           GmosRoi                                       = GmosRoi.FullFrame,
@@ -688,7 +689,7 @@ object GmosModel {
 
     val create: ValidatedInput[SouthDynamic] =
       (
-        exposure.toDuration("exposure"),
+        exposure.toNonNegDuration("exposure"),
         readout.create,
         gratingConfig.traverse(_.create),
         fpu.traverse(_.create)
@@ -697,7 +698,7 @@ object GmosModel {
   }
 
   object CreateSouthDynamic {
-    val exposure: Lens[CreateSouthDynamic, DurationModel.Input] =
+    val exposure: Lens[CreateSouthDynamic, DurationModel.NonNegDurationInput] =
       GenLens[CreateSouthDynamic](_.exposure)
 
     val readout: Lens[CreateSouthDynamic, CreateCcdReadout] =
@@ -746,7 +747,7 @@ object GmosModel {
       val instrumentConfig: Optional[StepConfig.CreateStepConfig[CreateSouthDynamic], CreateSouthDynamic] =
         StepConfig.CreateStepConfig.instrumentConfig[CreateSouthDynamic]
 
-      val exposure: Optional[StepConfig.CreateStepConfig[CreateSouthDynamic], DurationModel.Input] =
+      val exposure: Optional[StepConfig.CreateStepConfig[CreateSouthDynamic], DurationModel.NonNegDurationInput] =
         instrumentConfig.andThen(CreateSouthDynamic.exposure)
 
       val p: Optional[StepConfig.CreateStepConfig[CreateSouthDynamic], OffsetModel.ComponentInput] =

@@ -3,6 +3,7 @@
 
 package lucuma.odb.api.schema
 
+import cats.syntax.option._
 import lucuma.odb.api.model.PlannedTime
 import lucuma.odb.api.model.PlannedTime.{CategorizedTime, Category}
 import lucuma.odb.api.model.time._
@@ -11,7 +12,7 @@ import sangria.schema._
 
 object PlannedTimeSchema {
 
-  import TimeSchema.DurationType
+  import TimeSchema.NonNegativeDurationType
   import syntax.`enum`._
 
   implicit val EnumTypeCategory: EnumType[Category] =
@@ -25,14 +26,14 @@ object PlannedTimeSchema {
     def field(
       name: String,
       desc: String,
-      f:    CategorizedTime => NonNegativeDuration
+      f:    CategorizedTime => NonNegDuration
     ): Field[Any, CategorizedTime] =
 
       Field(
         name        = name,
-        fieldType   = DurationType,
-        description = Some(desc),
-        resolve     = c => f(c.value).value
+        fieldType   = NonNegativeDurationType,
+        description = desc.some,
+        resolve     = c => f(c.value)
       )
 
     ObjectType(
@@ -56,44 +57,44 @@ object PlannedTimeSchema {
 
         Field(
           name        = "setup",
-          fieldType   = DurationType,
-          description = Some("Estimated setup time"),
-          resolve     = _.value.setup.value
+          fieldType   = NonNegativeDurationType,
+          description = "Estimated setup time".some,
+          resolve     = _.value.setup
         ),
 
         Field(
           name        = "acquisition",
           fieldType   = ListType(CategorizedTimeType),
-          description = Some("Estimated acquisition time for each atom"),
+          description = "Estimated acquisition time for each atom".some,
           resolve     = _.value.acquisition
         ),
 
         Field(
           name        = "acquisitionTotal",
           fieldType   = CategorizedTimeType,
-          description = Some("Total estimated acquisition time"),
+          description = "Total estimated acquisition time".some,
           resolve     = _.value.acquisitionSum
         ),
 
         Field(
           name        = "science",
           fieldType   = ListType(CategorizedTimeType),
-          description = Some("Estimated science time for each atom"),
+          description = "Estimated science time for each atom".some,
           resolve     = _.value.acquisition
         ),
 
         Field(
           name        = "scienceTotal",
           fieldType   = CategorizedTimeType,
-          description = Some("Total estimated science time"),
+          description = "Total estimated science time".some,
           resolve     = _.value.scienceSum
         ),
 
         Field(
           name        = "total",
-          fieldType   = DurationType,
-          description = Some("Total planned time across acquisition and science"),
-          resolve     = _.value.total.value
+          fieldType   = NonNegativeDurationType,
+          description = "Total planned time across acquisition and science".some,
+          resolve     = _.value.total
         )
       )
     )

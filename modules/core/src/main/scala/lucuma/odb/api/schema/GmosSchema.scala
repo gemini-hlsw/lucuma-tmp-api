@@ -468,7 +468,7 @@ object GmosSchema {
 
         Field(
           name        = "exposure",
-          fieldType   = DurationType,
+          fieldType   = NonNegativeDurationType,
           description = Some("GMOS exposure time"),
           resolve     = _.value.exposure
         ),

@@ -8,13 +8,13 @@ import cats.data.Ior
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import lucuma.core.model.Observation
-import lucuma.core.syntax.time._
 import lucuma.odb.api.model.ExecutionEventModel.SequenceEvent
 import lucuma.odb.api.model.syntax.inputvalidator._
+import lucuma.odb.api.model.time.NonNegDuration
 import monocle.{Focus, Lens}
 import org.typelevel.cats.time.instances.instant._
 
-import java.time.{Duration, Instant}
+import java.time.Instant
 
 import scala.collection.immutable.ListMap
 import scala.math.Ordering.Implicits.infixOrderingOps
@@ -82,13 +82,13 @@ object VisitRecord extends VisitRecordOptics {
         .fromOptions(sequenceEvents.lastOption.map(_.received), steps.lastOption.flatMap(_.endTime))
         .map(_.fold(identity, identity, _ max _))
 
-    def duration: Duration =
+    def duration: NonNegDuration =
       (
         for {
           s <- startTime
           e <- endTime
-        } yield Duration.between(s, e)
-      ).getOrElse(0.nanoseconds)
+        } yield NonNegDuration.between(s, e)
+      ).getOrElse(NonNegDuration.zero)
 
   }
 

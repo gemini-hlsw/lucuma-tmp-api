@@ -4,8 +4,8 @@
 package lucuma.gen.gmos
 
 import lucuma.core.`enum`.{GmosAmpCount, GmosAmpGain, GmosAmpReadMode, GmosDtax, GmosRoi, GmosXBinning, GmosYBinning}
-import lucuma.core.syntax.time._
 import lucuma.odb.api.model.GmosModel.{CcdReadout, NorthDynamic}
+import lucuma.odb.api.model.time.NonNegDuration
 
 private[gmos] trait GmosNorthInitialDynamicConfig {
 
@@ -16,7 +16,7 @@ private[gmos] trait GmosNorthInitialDynamicConfig {
    */
   val initialConfig: NorthDynamic =
     NorthDynamic(
-      exposure = 0.seconds,
+      exposure = NonNegDuration.zero,
       readout  = CcdReadout(
         GmosXBinning.One,
         GmosYBinning.One,

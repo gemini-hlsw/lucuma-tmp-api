@@ -9,7 +9,7 @@ import sangria.schema.{Field, _}
 object ItcSchema {
 
   import RefinedSchema.PosBigDecimalType
-  import TimeSchema.DurationType
+  import TimeSchema.NonNegativeDurationType
 
   val ItcSuccessType: ObjectType[Any, ItcResult.Success] =
     ObjectType(
@@ -18,7 +18,7 @@ object ItcSchema {
 
         Field(
           name      = "exposureTime",
-          fieldType = DurationType,
+          fieldType = NonNegativeDurationType,
           resolve   = _.value.exposureTime
         ),
 

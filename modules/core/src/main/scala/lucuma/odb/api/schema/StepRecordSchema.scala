@@ -25,7 +25,7 @@ object StepRecordSchema {
   import DatasetSchema.{DatasetConnectionType, IndexCursor}
   import ExecutionEventSchema.{DatasetEventConnectionType, StepEventConnectionType}
   import StepSchema.{StepConfigType, StepIdType}
-  import TimeSchema.{DurationType, InstantScalar}
+  import TimeSchema.{NonNegativeDurationType, InstantScalar}
   import VisitRecordSchema.VisitIdType
 
   implicit val EnumTypeStepQaState: EnumType[StepQaState] =
@@ -80,7 +80,7 @@ object StepRecordSchema {
 
         Field(
           name        = "duration",
-          fieldType   = DurationType,
+          fieldType   = NonNegativeDurationType,
           description = "Step duration".some,
           resolve     = _.value.duration
         ),

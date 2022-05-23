@@ -12,16 +12,17 @@ import lucuma.core.util.arb.ArbEnumerated
 import clue.data.Input
 import eu.timepit.refined.types.all.NonEmptyString
 import eu.timepit.refined.scalacheck.string._
+import lucuma.odb.api.model.time.NonNegDuration
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
-import java.time.Duration
 
 trait ArbGmosModel {
 
   import ArbEnumerated._
   import ArbDurationModel._
   import ArbInput._
+  import ArbNonNegDuration._
   import ArbOffset._
   import ArbOffsetModel._
   import ArbWavelength._
@@ -360,7 +361,7 @@ trait ArbGmosModel {
   implicit val arbNorthDynamic: Arbitrary[GmosModel.NorthDynamic] =
     Arbitrary {
       for {
-        e <- arbitrary[Duration]
+        e <- arbitrary[NonNegDuration]
         c <- arbitrary[GmosModel.CcdReadout]
         x <- arbitrary[GmosDtax]
         r <- arbitrary[GmosRoi]
@@ -372,7 +373,7 @@ trait ArbGmosModel {
 
   implicit val cogNorthDynamic: Cogen[GmosModel.NorthDynamic] =
     Cogen[(
-      Duration,
+      NonNegDuration,
       GmosModel.CcdReadout,
       GmosDtax,
       GmosRoi,
@@ -394,7 +395,7 @@ trait ArbGmosModel {
   implicit val arbCreateNorthDynamic: Arbitrary[GmosModel.CreateNorthDynamic] =
     Arbitrary {
       for {
-        e <- arbitrary[DurationModel.Input]
+        e <- arbitrary[DurationModel.NonNegDurationInput]
         c <- arbitrary[GmosModel.CreateCcdReadout]
         x <- arbitrary[GmosDtax]
         r <- arbitrary[GmosRoi]
@@ -406,7 +407,7 @@ trait ArbGmosModel {
 
   implicit val cogCreateNorthDynamic: Cogen[GmosModel.CreateNorthDynamic] =
     Cogen[(
-      DurationModel.Input,
+      DurationModel.NonNegDurationInput,
       GmosModel.CreateCcdReadout,
       GmosDtax,
       GmosRoi,
@@ -428,7 +429,7 @@ trait ArbGmosModel {
   implicit val arbSouthDynamic: Arbitrary[GmosModel.SouthDynamic] =
     Arbitrary {
       for {
-        e <- arbitrary[Duration]
+        e <- arbitrary[NonNegDuration]
         c <- arbitrary[GmosModel.CcdReadout]
         x <- arbitrary[GmosDtax]
         r <- arbitrary[GmosRoi]
@@ -440,7 +441,7 @@ trait ArbGmosModel {
 
   implicit val cogSouthDynamic: Cogen[GmosModel.SouthDynamic] =
     Cogen[(
-      Duration,
+      NonNegDuration,
       GmosModel.CcdReadout,
       GmosDtax,
       GmosRoi,
@@ -462,7 +463,7 @@ trait ArbGmosModel {
   implicit val arbCreateSouthDynamic: Arbitrary[GmosModel.CreateSouthDynamic] =
     Arbitrary {
       for {
-        e <- arbitrary[DurationModel.Input]
+        e <- arbitrary[DurationModel.NonNegDurationInput]
         c <- arbitrary[GmosModel.CreateCcdReadout]
         x <- arbitrary[GmosDtax]
         r <- arbitrary[GmosRoi]
@@ -474,7 +475,7 @@ trait ArbGmosModel {
 
   implicit val cogCreateSouthDynamic: Cogen[GmosModel.CreateSouthDynamic] =
     Cogen[(
-      DurationModel.Input,
+      DurationModel.NonNegDurationInput,
       GmosModel.CreateCcdReadout,
       GmosDtax,
       GmosRoi,

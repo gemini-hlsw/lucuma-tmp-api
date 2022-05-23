@@ -16,20 +16,20 @@ package object gen {
   sealed trait ReacquirePeriodTag
 
   trait NonNegDurationCompanionOps[U, T] {
-    def from(fd: Duration): Option[NonNegativeDuration @@ T] =
-      NonNegativeDuration.from(fd).toOption.map(tag[T][NonNegativeDuration](_))
+    def from(fd: Duration): Option[NonNegDuration @@ T] =
+      NonNegDuration.from(fd).toOption.map(tag[T][NonNegDuration](_))
 
-    def unsafeFrom(fd: Duration): NonNegativeDuration @@ T =
+    def unsafeFrom(fd: Duration): NonNegDuration @@ T =
       from(fd).get
   }
 
-  type AcqExposureTime = NonNegativeDuration @@ AcqExposureTimeTag
+  type AcqExposureTime = NonNegDuration @@ AcqExposureTimeTag
   object AcqExposureTime extends NonNegDurationCompanionOps[AcqExposureTime, AcqExposureTimeTag]
 
-  type SciExposureTime = NonNegativeDuration @@ SciExposureTimeTag
+  type SciExposureTime = NonNegDuration @@ SciExposureTimeTag
   object SciExposureTime extends NonNegDurationCompanionOps[SciExposureTime, SciExposureTimeTag]
 
-  type ReacquirePeriod = NonNegativeDuration @@ ReacquirePeriodTag
+  type ReacquirePeriod = NonNegDuration @@ ReacquirePeriodTag
   object ReacquirePeriod extends NonNegDurationCompanionOps[ReacquirePeriod, ReacquirePeriodTag]
 
 }

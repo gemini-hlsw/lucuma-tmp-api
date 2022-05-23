@@ -11,10 +11,9 @@ import cats.data.NonEmptyList
 import cats.syntax.all._
 import org.typelevel.cats.time.instances.duration._
 
-import java.time.Duration
 
 final case class PlannedTime(
-  setup:       NonNegativeDuration,
+  setup:       NonNegDuration,
   acquisition: List[PlannedTime.CategorizedTime],
   science:     List[PlannedTime.CategorizedTime]
 ) {
@@ -25,7 +24,7 @@ final case class PlannedTime(
   def scienceSum: PlannedTime.CategorizedTime =
     NonEmptyList(PlannedTime.CategorizedTime.Zero, science).reduce
 
-  def total: NonNegativeDuration =
+  def total: NonNegDuration =
     setup |+| acquisition.foldMap(_.total) |+| science.foldMap(_.total)
 
 }
@@ -34,7 +33,7 @@ object PlannedTime {
 
   val Zero: PlannedTime =
     PlannedTime(
-      NonNegativeDuration.zero,
+      NonNegDuration.zero,
       Nil,
       Nil
     )
@@ -60,13 +59,13 @@ object PlannedTime {
   }
 
   final case class CategorizedTime(
-    configChange: NonNegativeDuration,
-    exposure:     NonNegativeDuration,
-    readout:      NonNegativeDuration,
-    write:        NonNegativeDuration
+    configChange: NonNegDuration,
+    exposure:     NonNegDuration,
+    readout:      NonNegDuration,
+    write:        NonNegDuration
   ) {
 
-    def total: NonNegativeDuration =
+    def total: NonNegDuration =
       configChange |+| exposure |+| readout |+| write
 
     def +(that: CategorizedTime): CategorizedTime =
@@ -77,7 +76,7 @@ object PlannedTime {
         write        |+| that.write
       )
 
-    def addTime(category: Category, time: NonNegativeDuration): CategorizedTime =
+    def addTime(category: Category, time: NonNegDuration): CategorizedTime =
       category match {
         case Category.ConfigChange => copy(configChange |+| time)
         case Category.Exposure     => copy(exposure     |+| time)
@@ -89,8 +88,8 @@ object PlannedTime {
 
   object CategorizedTime {
 
-    private val zeroDuration: NonNegativeDuration =
-      NonNegativeDuration.unsafeFrom(0L.seconds)
+    private val zeroDuration: NonNegDuration =
+      NonNegDuration.unsafeFrom(0L.seconds)
 
     // Zero but not a valid Monoid zero because of the time units
     val Zero: CategorizedTime =
@@ -112,12 +111,12 @@ object PlannedTime {
   // Placeholder estimate.  In reality you cannot estimate a step independently
   // like this because you need to account for changes from the previous step.
   def estimateStep[D](s: StepConfig[D]): CategorizedTime = {
-    def forExposure(exposure: Duration): CategorizedTime =
+    def forExposure(exposure: NonNegDuration): CategorizedTime =
       CategorizedTime(
-        configChange = NonNegativeDuration.unsafeFrom(7.seconds),
-        exposure     = NonNegativeDuration.unsafeFrom(if (exposure.toNanos >= 0) exposure else 0L.seconds),
-        readout      = NonNegativeDuration.unsafeFrom(71400.milliseconds),
-        write        = NonNegativeDuration.unsafeFrom(10.seconds)
+        configChange = NonNegDuration.unsafeFrom(7.seconds),
+        exposure     = NonNegDuration.unsafeFrom(exposure.value),
+        readout      = NonNegDuration.unsafeFrom(71400.milliseconds),
+        write        = NonNegDuration.unsafeFrom(10.seconds)
       )
 
     def forDynamicConfig(d: D): CategorizedTime =
@@ -143,7 +142,7 @@ object PlannedTime {
     NonEmptyList(CategorizedTime.Zero, s.atoms.map(estimateAtom)).reduce
 
   def estimate(config: ExecutionModel): PlannedTime = {
-    val gmosSetup = NonNegativeDuration.unsafeFrom(18.minutes)
+    val gmosSetup = NonNegDuration.unsafeFrom(18.minutes)
 
     config match {
       case gn: ExecutionModel.GmosNorth =>
