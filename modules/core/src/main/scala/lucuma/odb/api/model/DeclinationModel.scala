@@ -66,19 +66,6 @@ object DeclinationModel {
 
   }
 
-//  def readDms(s: String): ValidatedInput[Declination] =
-//    Declination
-//      .fromStringSignedDMS
-//      .getOption(s)
-//      .toValidNec(
-//        InputError.fromMessage(s"Could not parse $s as a DMS string.")
-//      )
-//
-//  def writeDms(d: Declination): String =
-//    Declination
-//      .fromStringSignedDMS
-//      .reverseGet(d)
-
   final case class Input(
     microarcseconds: Option[Long],
     degrees:         Option[BigDecimal],
