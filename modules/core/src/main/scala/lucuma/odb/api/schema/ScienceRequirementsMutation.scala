@@ -19,8 +19,8 @@ trait ScienceRequirementsMutation {
       "Edit or create spectroscopy science requirements",
       List(
         InputWavelength.nullableField("wavelength"),
-        InputObjectPosInt.nullableField("resolution"),
-        InputObjectPosBigDecimal.nullableField("signalToNoise"),
+        InputTypePosInt.nullableField("resolution"),
+        InputTypePosBigDecimal.nullableField("signalToNoise"),
         InputWavelength.nullableField("signalToNoiseAt"),
         InputWavelength.nullableField("wavelengthCoverage"),
         EnumTypeFocalPlane.nullableField("focalPlane"),

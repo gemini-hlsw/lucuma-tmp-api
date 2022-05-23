@@ -20,8 +20,9 @@ import sangria.schema.{Field, _}
 
 object TargetSchema extends TargetScalars {
 
-  import GeneralSchema.{ArgumentIncludeDeleted, NonEmptyStringType}
+  import GeneralSchema.ArgumentIncludeDeleted
   import ProgramSchema.ProgramType
+  import RefinedSchema.NonEmptyStringType
   import SourceProfileSchema._
 
   import context._

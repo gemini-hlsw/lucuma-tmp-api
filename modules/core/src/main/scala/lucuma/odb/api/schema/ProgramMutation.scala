@@ -16,9 +16,10 @@ import sangria.schema._
 
 trait ProgramMutation {
 
-  import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
+  import GeneralSchema.EnumTypeExistence
   import ProgramSchema.ProgramIdType
   import context._
+  import RefinedSchema.NonEmptyStringType
   import syntax.inputobjecttype._
 
   val InputObjectTypeProgramCreate: InputObjectType[ProgramModel.Create] =

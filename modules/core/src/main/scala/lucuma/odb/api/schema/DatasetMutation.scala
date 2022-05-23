@@ -15,7 +15,7 @@ trait DatasetMutation {
 
   import DatasetSchema.{ArgumentDatasetQaState, ArgumentOptionalDatasetIndex, DatasetType}
   import ObservationSchema.{ObservationIdArgument, ObservationIdType}
-  import RefinedSchema.InputObjectPosInt
+  import RefinedSchema.InputTypePosInt
   import StepSchema.{ArgumentOptionalStepId, StepIdType}
   import context._
 

@@ -28,7 +28,7 @@ trait ExecutionEventMutation {
   import ExecutionEventSchema.{DatasetEventType, EnumTypeDatasetStage, EnumTypeSequenceCommand, EnumTypeStepStage, SequenceEventType, StepEventType}
   import ExecutionEventModel.{DatasetEvent, SequenceEvent, StepEvent}
   import ObservationSchema.ObservationIdType
-  import RefinedSchema.InputObjectPosInt
+  import RefinedSchema.InputTypePosInt
   import SequenceSchema.EnumTypeSequenceType
   import StepMutation.InputObjectTypeCreateStepConfig
   import StepSchema.{ArgumentStepId, StepIdType}

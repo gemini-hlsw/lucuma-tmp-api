@@ -23,9 +23,10 @@ trait ObservationMutation {
   import context._
   import ScienceModeMutation.InputObjectTypeScienceMode
   import ScienceRequirementsMutation.InputObjectTypeScienceRequirements
-  import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
+  import GeneralSchema.EnumTypeExistence
   import ObservationSchema.{ObsActiveStatusType, ObservationIdType, ObservationIdArgument, ObsStatusType, ObservationType}
   import ProgramSchema.ProgramIdType
+  import RefinedSchema.NonEmptyStringType
   import TargetMutation.{InputObjectTypeEditAsterism, InputObjectTypeTargetEnvironment}
   import syntax.inputobjecttype._
 
