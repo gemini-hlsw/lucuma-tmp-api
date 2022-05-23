@@ -21,6 +21,7 @@ trait ArbScienceMode {
   import ScienceMode.{GmosNorthLongSlit, GmosSouthLongSlit}
 
   import ArbEnumerated._
+  import ArbExposureMode._
   import ArbWavelength._
 
   implicit def arbBasicConfig[G: Arbitrary, F: Arbitrary, U: Arbitrary]: Arbitrary[BasicConfig[G, F, U]] =
@@ -51,12 +52,13 @@ trait ArbScienceMode {
         g  <- arbitrary[Option[G]]
         f  <- arbitrary[Option[Option[F]]]
         u  <- arbitrary[Option[U]]
+        e  <- arbitrary[Option[ExposureMode]]
         x  <- arbitrary[Option[GmosXBinning]]
         y  <- arbitrary[Option[GmosYBinning]]
         ar <- arbitrary[Option[GmosAmpReadMode]]
         ag <- arbitrary[Option[GmosAmpGain]]
         ro <- arbitrary[Option[GmosRoi]]
-      } yield AdvancedConfig(n, w, g, f, u, x, y, ar, ag, ro)
+      } yield AdvancedConfig(n, w, g, f, u, e, x, y, ar, ag, ro)
     }
 
   implicit def cogAdvancedConfig[G: Cogen, F: Cogen, U: Cogen]: Cogen[AdvancedConfig[G, F, U]] =
@@ -66,6 +68,7 @@ trait ArbScienceMode {
       Option[G],
       Option[Option[F]],
       Option[U],
+      Option[ExposureMode],
       Option[GmosXBinning],
       Option[GmosYBinning],
       Option[GmosAmpReadMode],
@@ -77,6 +80,7 @@ trait ArbScienceMode {
       a.overrideGrating,
       a.overrideFilter,
       a.overrideFpu,
+      a.overrideExposureMode,
       a.explicitXBin,
       a.explicitYBin,
       a.explicitAmpReadMode,
