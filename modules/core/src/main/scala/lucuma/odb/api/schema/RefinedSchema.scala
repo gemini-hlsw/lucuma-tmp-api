@@ -7,7 +7,7 @@ import cats.syntax.all._
 import eu.timepit.refined.types.all.{NonEmptyString, NonNegBigDecimal, NonNegInt, NonNegLong, PosBigDecimal, PosInt, PosLong}
 import lucuma.core.syntax.string._
 import monocle.Prism
-import sangria.schema.{BigDecimalType, InputType, IntType, LongType, ScalarAlias, ScalarType}
+import sangria.schema.ScalarType
 import sangria.validation.ValueCoercionViolation
 
 trait RefinedSchema {
@@ -32,34 +32,15 @@ trait RefinedSchema {
 
   case object NonNegIntCoercionViolation extends ValueCoercionViolation("A non-negative integer is expected")
 
-  implicit val InputTypeNonNegInt: InputType[NonNegInt] =
-    ScalarAlias[NonNegInt, Int](IntType, _.value, v => NonNegInt.from(v).leftMap(_ => NonNegIntCoercionViolation))
-
   case object PosIntCoercionViolation extends ValueCoercionViolation("A positive integer is expected")
-
-  implicit val InputTypePosInt: InputType[PosInt] =
-    ScalarAlias[PosInt, Int](IntType, _.value, v => PosInt.from(v).leftMap(_ => PosIntCoercionViolation))
 
   case object NonNegLongCoercionViolation extends ValueCoercionViolation("A non-negative long is expected")
 
-  implicit val InputTypeNonNegLong: InputType[NonNegLong] =
-    ScalarAlias[NonNegLong, Long](LongType, _.value, v => NonNegLong.from(v).leftMap(_ => NonNegLongCoercionViolation))
-
   case object PosLongCoercionViolation extends ValueCoercionViolation("A positive long is expected")
-
-  implicit val InputTypePosLong: InputType[PosLong] =
-    ScalarAlias[PosLong, Long](LongType, _.value, v => PosLong.from(v).leftMap(_ => PosLongCoercionViolation))
 
   case object NonNegBigDecimalCoercionViolation extends ValueCoercionViolation("A non-negative decimal is expected")
 
-  implicit val InputTypeNonNegBigDecimal: InputType[NonNegBigDecimal] =
-    ScalarAlias[NonNegBigDecimal, BigDecimal](BigDecimalType, _.value, v => NonNegBigDecimal.from(v).leftMap(_ => NonNegBigDecimalCoercionViolation))
-
   case object PosBigDecimalCoercionViolation extends ValueCoercionViolation("A positive decimal is expected")
-
-  implicit val InputTypePosBigDecimal: InputType[PosBigDecimal] =
-    ScalarAlias[PosBigDecimal, BigDecimal](BigDecimalType, _.value, v => PosBigDecimal.from(v).leftMap(_ => PosBigDecimalCoercionViolation))
-
 
   case class UnsupportedTypeCoercionViolation[A](value: A) extends ValueCoercionViolation(s"Unexpected value $value of type ${value.getClass}")
 
