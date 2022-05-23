@@ -66,28 +66,23 @@ object DeclinationModel {
 
   }
 
-  implicit val NumericUnitsDeclination: NumericUnits[Declination, Units] =
-    NumericUnits.fromRead(_.readLong(_), _.readDecimal(_))
-
-  def readDms(s: String): ValidatedInput[Declination] =
-    Declination
-      .fromStringSignedDMS
-      .getOption(s)
-      .toValidNec(
-        InputError.fromMessage(s"Could not parse $s as a DMS string.")
-      )
-
-  def writeDms(d: Declination): String =
-    Declination
-      .fromStringSignedDMS
-      .reverseGet(d)
+//  def readDms(s: String): ValidatedInput[Declination] =
+//    Declination
+//      .fromStringSignedDMS
+//      .getOption(s)
+//      .toValidNec(
+//        InputError.fromMessage(s"Could not parse $s as a DMS string.")
+//      )
+//
+//  def writeDms(d: Declination): String =
+//    Declination
+//      .fromStringSignedDMS
+//      .reverseGet(d)
 
   final case class Input(
     microarcseconds: Option[Long],
     degrees:         Option[BigDecimal],
-    dms:             Option[Declination],
-    fromLong:        Option[NumericUnits.LongInput[Units]],
-    fromDecimal:     Option[NumericUnits.DecimalInput[Units]]
+    dms:             Option[Declination]
   ) {
 
     import Units._
@@ -96,16 +91,14 @@ object DeclinationModel {
       ValidatedInput.requireOne("declination",
         microarcseconds.map(Microarcseconds.readLong),
         degrees        .map(Degrees.readDecimal),
-        dms            .map(_.validNec),
-        fromLong       .map(_.read),
-        fromDecimal    .map(_.read)
+        dms            .map(_.validNec)
       )
   }
 
   object Input {
 
     val Empty: Input =
-      Input(None, None, None, None, None)
+      Input(None, None, None)
 
     def fromMicroarcseconds(value: Long): Input =
       Empty.copy(microarcseconds = Some(value))
@@ -116,12 +109,6 @@ object DeclinationModel {
     def fromDms(value: Declination): Input =
       Empty.copy(dms = Some(value))
 
-    def fromLong(value: NumericUnits.LongInput[Units]): Input =
-      Empty.copy(fromLong = Some(value))
-
-    def fromDecimal(value: NumericUnits.DecimalInput[Units]): Input =
-      Empty.copy(fromDecimal = Some(value))
-
     implicit val DecoderInput: Decoder[Input] =
       deriveDecoder[Input]
 
@@ -129,9 +116,7 @@ object DeclinationModel {
       Eq.by(in => (
         in.microarcseconds,
         in.degrees,
-        in.dms,
-        in.fromLong,
-        in.fromDecimal
+        in.dms
       ))
   }
 }

@@ -57,9 +57,6 @@ object RightAscensionModel {
 
   }
 
-  implicit val NumericUnitsRightAscension: NumericUnits[RightAscension, Units] =
-    NumericUnits.fromRead(_.readLong(_), _.readDecimal(_))
-
   def readHms(s: String): ValidatedInput[RightAscension] =
     RightAscension
       .fromStringHMS
@@ -77,9 +74,7 @@ object RightAscensionModel {
     microarcseconds: Option[Long],
     degrees:         Option[BigDecimal],
     hours:           Option[BigDecimal],
-    hms:             Option[RightAscension],
-    fromLong:        Option[NumericUnits.LongInput[Units]],
-    fromDecimal:     Option[NumericUnits.DecimalInput[Units]]
+    hms:             Option[RightAscension]
   ) {
 
     import Units._
@@ -89,16 +84,14 @@ object RightAscensionModel {
         microarcseconds.map(Microarcseconds.readLong),
         degrees        .map(Degrees.readDecimal),
         hours          .map(Hours.readDecimal),
-        hms            .map(_.validNec),
-        fromLong       .map(_.read),
-        fromDecimal    .map(_.read)
+        hms            .map(_.validNec)
       )
   }
 
   object Input {
 
     val Empty: Input =
-      Input(None, None, None, None, None, None)
+      Input(None, None, None, None)
 
     def fromMicroarcseconds(value: Long): Input =
       Empty.copy(microarcseconds = Some(value))
@@ -112,12 +105,6 @@ object RightAscensionModel {
     def fromHms(value: RightAscension): Input =
       Empty.copy(hms = Some(value))
 
-    def fromLong(value: NumericUnits.LongInput[Units]): Input =
-      Empty.copy(fromLong = Some(value))
-
-    def fromDecimal(value: NumericUnits.DecimalInput[Units]): Input =
-      Empty.copy(fromDecimal = Some(value))
-
     implicit val DecoderInput: Decoder[Input] =
       deriveDecoder[Input]
 
@@ -126,9 +113,7 @@ object RightAscensionModel {
         in.microarcseconds,
         in.degrees,
         in.hours,
-        in.hms,
-        in.fromLong,
-        in.fromDecimal
+        in.hms
       ))
 
   }

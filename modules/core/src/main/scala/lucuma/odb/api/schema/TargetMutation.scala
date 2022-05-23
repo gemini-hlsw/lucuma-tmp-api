@@ -22,7 +22,6 @@ trait TargetMutation extends TargetScalars {
 
   import context._
   import GeneralSchema.EnumTypeExistence
-  import NumericUnitsSchema._
   import ObservationSchema.ObservationIdType
   import ProgramSchema.ProgramIdType
   import RefinedSchema.NonEmptyStringType

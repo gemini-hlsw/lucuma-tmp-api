@@ -69,15 +69,10 @@ object RadialVelocityModel {
 
   }
 
-  implicit val NumericUnitsRadialVelocity: NumericUnits[RadialVelocity, Units] =
-    NumericUnits.fromRead(_.readLong(_), _.readDecimal(_))
-
   final case class Input(
     centimetersPerSecond: Option[Long],
     metersPerSecond:      Option[BigDecimal],
-    kilometersPerSecond:  Option[BigDecimal],
-    fromLong:             Option[NumericUnits.LongInput[Units]],
-    fromDecimal:          Option[NumericUnits.DecimalInput[Units]]
+    kilometersPerSecond:  Option[BigDecimal]
   ) {
 
     import Units._
@@ -86,16 +81,14 @@ object RadialVelocityModel {
       ValidatedInput.requireOne("radial velocity",
         centimetersPerSecond.map(CentimetersPerSecond.readLong),
         metersPerSecond     .map(MetersPerSecond.readDecimal),
-        kilometersPerSecond .map(KilometersPerSecond.readDecimal),
-        fromLong            .map(_.read),
-        fromDecimal         .map(_.read)
+        kilometersPerSecond .map(KilometersPerSecond.readDecimal)
       )
   }
 
   object Input {
 
     val Empty: Input =
-      Input(None, None, None, None, None)
+      Input(None, None, None)
 
     def fromCentimetersPerSecond(value: Long): Input =
       Empty.copy(centimetersPerSecond = Some(value))
@@ -106,12 +99,6 @@ object RadialVelocityModel {
     def fromKilometersPerSecond(value: BigDecimal): Input =
       Empty.copy(kilometersPerSecond = Some(value))
 
-    def fromLong(value: NumericUnits.LongInput[Units]): Input =
-      Empty.copy(fromLong = Some(value))
-
-    def fromDecimal(value: NumericUnits.DecimalInput[Units]): Input =
-      Empty.copy(fromDecimal = Some(value))
-
     implicit val DecoderInput: Decoder[Input] =
       deriveDecoder[Input]
 
@@ -119,9 +106,7 @@ object RadialVelocityModel {
       Eq.by(in => (
         in.centimetersPerSecond,
         in.metersPerSecond,
-        in.kilometersPerSecond,
-        in.fromLong,
-        in.fromDecimal
+        in.kilometersPerSecond
       ))
 
   }

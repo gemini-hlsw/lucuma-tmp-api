@@ -58,24 +58,17 @@ object OffsetModel {
 
   }
 
-  implicit def NumericUnitsOffsetComponent[A]: NumericUnits[Offset.Component[A], Units] =
-    NumericUnits.fromRead(_.readLong(_), _.readDecimal(_))
-
   final case class ComponentInput(
     microarcseconds: Option[Long],
     milliarcseconds: Option[BigDecimal],
-    arcseconds:      Option[BigDecimal],
-    fromLong:        Option[NumericUnits.LongInput[Units]],
-    fromDecimal:     Option[NumericUnits.DecimalInput[Units]]
+    arcseconds:      Option[BigDecimal]
   ) {
 
     def toComponent[A]: ValidatedInput[Offset.Component[A]] =
       ValidatedInput.requireOne("offset component",
         microarcseconds.map(Units.Microarcseconds.readLong[A]),
         milliarcseconds.map(Units.Milliarcseconds.readDecimal[A]),
-        arcseconds     .map(Units.Arcseconds.readDecimal[A]),
-        fromLong       .map(_.read),
-        fromDecimal    .map(_.read)
+        arcseconds     .map(Units.Arcseconds.readDecimal[A])
       )
 
   }
@@ -83,7 +76,7 @@ object OffsetModel {
   object ComponentInput {
 
     def Empty: ComponentInput =
-      ComponentInput(None, None, None, None, None)
+      ComponentInput(None, None, None)
 
     def Zero: ComponentInput =
       fromMicroarcseconds(0L)
@@ -100,12 +93,6 @@ object OffsetModel {
     def fromArcseconds[A](value: BigDecimal): ComponentInput =
       Empty.copy(arcseconds = Some(value))
 
-    def fromLong(value: NumericUnits.LongInput[Units]): ComponentInput =
-      Empty.copy(fromLong = Some(value))
-
-    def fromDecimal(value: NumericUnits.DecimalInput[Units]): ComponentInput =
-      Empty.copy(fromDecimal = Some(value))
-
     implicit def DecoderComponentInput: Decoder[ComponentInput] =
       deriveDecoder[ComponentInput]
 
@@ -113,9 +100,7 @@ object OffsetModel {
       Eq.by(in => (
         in.microarcseconds,
         in.milliarcseconds,
-        in.arcseconds,
-        in.fromLong,
-        in.fromDecimal
+        in.arcseconds
       ))
   }
 

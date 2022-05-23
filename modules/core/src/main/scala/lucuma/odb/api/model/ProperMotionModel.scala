@@ -57,22 +57,15 @@ object ProperMotionModel {
 
   }
 
-  implicit def NumericUnitsProperMotionComponent[A]: NumericUnits[AngularVelocityComponent[A], Units] =
-    NumericUnits.fromRead(_.readLong(_), _.readDecimal(_))
-
   final case class ComponentInput(
     microarcsecondsPerYear: Option[Long],
-    milliarcsecondsPerYear: Option[BigDecimal],
-    fromLong:               Option[NumericUnits.LongInput[Units]],
-    fromDecimal:            Option[NumericUnits.DecimalInput[Units]]
+    milliarcsecondsPerYear: Option[BigDecimal]
   ) {
 
     def toComponent[A]: ValidatedInput[AngularVelocityComponent[A]] =
       ValidatedInput.requireOne("proper velocity component",
         microarcsecondsPerYear.map(Units.MicroarcsecondsPerYear.readLong[A]),
-        milliarcsecondsPerYear.map(Units.MilliarcsecondsPerYear.readDecimal[A]),
-        fromLong       .map(_.read),
-        fromDecimal    .map(_.read)
+        milliarcsecondsPerYear.map(Units.MilliarcsecondsPerYear.readDecimal[A])
       )
 
   }
@@ -80,7 +73,7 @@ object ProperMotionModel {
   object ComponentInput {
 
     def Empty: ComponentInput =
-      ComponentInput(None, None, None, None)
+      ComponentInput(None, None)
 
     def fromMicroarcsecondsPerYear[A](value: Long): ComponentInput =
       Empty.copy(microarcsecondsPerYear = Some(value))
@@ -88,21 +81,13 @@ object ProperMotionModel {
     def fromMilliarcsecondsPerYear(value: BigDecimal): ComponentInput =
       Empty.copy(milliarcsecondsPerYear = Some(value))
 
-    def fromLong(value: NumericUnits.LongInput[Units]): ComponentInput =
-      Empty.copy(fromLong = Some(value))
-
-    def fromDecimal(value: NumericUnits.DecimalInput[Units]): ComponentInput =
-      Empty.copy(fromDecimal = Some(value))
-
     implicit def DecoderComponentInput: Decoder[ComponentInput] =
       deriveDecoder[ComponentInput]
 
     implicit def EqComponentInput: Eq[ComponentInput] =
       Eq.by(in => (
         in.microarcsecondsPerYear,
-        in.milliarcsecondsPerYear,
-        in.fromLong,
-        in.fromDecimal
+        in.milliarcsecondsPerYear
       ))
 
   }
