@@ -154,11 +154,11 @@ object FocalPlaneAngleInput {
 }
 
 final case class SpectroscopyScienceRequirementsInput (
-  wavelength:         Input[WavelengthModel.Input]    = Input.ignore,
+  wavelength:         Input[WavelengthModel.WavelengthInput]    = Input.ignore,
   resolution:         Input[PosInt]                   = Input.ignore,
   signalToNoise:      Input[PosBigDecimal]            = Input.ignore,
-  signalToNoiseAt:    Input[WavelengthModel.Input]    = Input.ignore,
-  wavelengthCoverage: Input[WavelengthModel.Input]    = Input.ignore,
+  signalToNoiseAt:    Input[WavelengthModel.WavelengthInput]    = Input.ignore,
+  wavelengthCoverage: Input[WavelengthModel.WavelengthInput]    = Input.ignore,
   focalPlane:         Input[FocalPlane]               = Input.ignore,
   focalPlaneAngle:    Input[FocalPlaneAngleInput]     = Input.ignore,
   capabilities:       Input[SpectroscopyCapabilities] = Input.ignore

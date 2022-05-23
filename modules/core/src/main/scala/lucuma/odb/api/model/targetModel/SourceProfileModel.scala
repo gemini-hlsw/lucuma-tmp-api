@@ -66,7 +66,7 @@ object SourceProfileModel {
   }
 
   final case class FluxDensityInput(
-    wavelength: WavelengthModel.Input,
+    wavelength: WavelengthModel.WavelengthInput,
     density:    PosBigDecimal
   ) {
 
@@ -420,7 +420,7 @@ object SourceProfileModel {
 
   // TODO: should lineWidth offer other units?  m/s etc?
   final case class EmissionLineInput[T](
-    wavelength: WavelengthModel.Input,
+    wavelength: WavelengthModel.WavelengthInput,
     lineWidth:  Input[PosBigDecimal]                                  = Input.ignore,
     lineFlux:   Input[MeasureInput[PosBigDecimal, LineFlux[T]]] = Input.ignore
   ) extends EditorInput[WavelengthEmissionLinePair[T]] {
@@ -488,7 +488,7 @@ object SourceProfileModel {
   final case class EmissionLinesInput[T](
     lines:                Input[List[EmissionLineInput[T]]]                           = Input.ignore,
     editLines:            Input[List[EmissionLineInput[T]]]                           = Input.ignore,
-    deleteLines:          Input[List[WavelengthModel.Input]]                          = Input.ignore,
+    deleteLines:          Input[List[WavelengthModel.WavelengthInput]]                          = Input.ignore,
     fluxDensityContinuum: Input[MeasureInput[PosBigDecimal, FluxDensityContinuum[T]]] = Input.ignore
   ) extends EditorInput[EmissionLines[T]] {
 

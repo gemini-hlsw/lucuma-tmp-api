@@ -6,11 +6,13 @@ package lucuma.odb.api.model
 import lucuma.core.math.Wavelength
 import lucuma.core.optics.Format
 import lucuma.core.util.{Display, Enumerated}
-
 import cats.Eq
 import cats.syntax.option._
+import eu.timepit.refined.cats._
+import eu.timepit.refined.types.all.{PosBigDecimal, PosInt}
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
+import io.circe.refined._
 
 
 object WavelengthModel {
@@ -20,15 +22,15 @@ object WavelengthModel {
     decimalFormat: Format[BigDecimal, Wavelength]
   ) extends Product with Serializable {
 
-    def readLong(l: Long): ValidatedInput[Wavelength] =
-      decimalFormat.getOption(BigDecimal(l)).toValidNec(
+    def readLong(l: PosInt): ValidatedInput[Wavelength] =
+      decimalFormat.getOption(BigDecimal(l.value)).toValidNec(
         InputError.fromMessage(
           s"Could not read $l $abbr as a wavelength"
         )
       )
 
-    def readDecimal(b: BigDecimal): ValidatedInput[Wavelength] =
-      decimalFormat.getOption(b).toValidNec(
+    def readDecimal(b: PosBigDecimal): ValidatedInput[Wavelength] =
+      decimalFormat.getOption(b.value).toValidNec(
         InputError.fromMessage(
           s"Could not read $b $abbr as a wavelength"
         )
@@ -58,16 +60,11 @@ object WavelengthModel {
       Display.byShortName(_.abbr)
   }
 
-  implicit val NumericUnitsWavelength: NumericUnits[Wavelength, Units] =
-    NumericUnits.fromRead(_.readLong(_), _.readDecimal(_))
-
-  final case class Input(
-    picometers:  Option[Long],
-    angstroms:   Option[BigDecimal],
-    nanometers:  Option[BigDecimal],
-    micrometers: Option[BigDecimal],
-    fromLong:    Option[NumericUnits.LongInput[Units]],
-    fromDecimal: Option[NumericUnits.DecimalInput[Units]]
+  final case class WavelengthInput(
+    picometers:  Option[PosInt],
+    angstroms:   Option[PosBigDecimal],
+    nanometers:  Option[PosBigDecimal],
+    micrometers: Option[PosBigDecimal]
   ) {
 
     import Units._
@@ -77,47 +74,37 @@ object WavelengthModel {
         picometers .map(Picometers.readLong),
         angstroms  .map(Angstroms.readDecimal),
         nanometers .map(Nanometers.readDecimal),
-        micrometers.map(Micrometers.readDecimal),
-        fromLong   .map(_.read),
-        fromDecimal.map(_.read)
+        micrometers.map(Micrometers.readDecimal)
       )
 
   }
 
-  object Input {
+  object WavelengthInput {
 
-    val Empty: Input =
-      Input(None, None, None, None, None, None)
+    val Empty: WavelengthInput =
+      WavelengthInput(None, None, None, None)
 
-    def fromPicometers(value: Long): Input =
+    def fromPicometers(value: PosInt): WavelengthInput =
       Empty.copy(picometers = Some(value))
 
-    def fromAngstroms(value: BigDecimal): Input =
+    def fromAngstroms(value: PosBigDecimal): WavelengthInput =
       Empty.copy(angstroms = Some(value))
 
-    def fromNanometers(value: BigDecimal): Input =
+    def fromNanometers(value: PosBigDecimal): WavelengthInput =
       Empty.copy(nanometers = Some(value))
 
-    def fromMicrometers(value: BigDecimal): Input =
+    def fromMicrometers(value: PosBigDecimal): WavelengthInput =
       Empty.copy(micrometers = Some(value))
 
-    def fromLong(value: NumericUnits.LongInput[Units]): Input =
-      Empty.copy(fromLong = Some(value))
+    implicit val DecoderInput: Decoder[WavelengthInput] =
+      deriveDecoder[WavelengthInput]
 
-    def fromDecimal(value: NumericUnits.DecimalInput[Units]): Input =
-      Empty.copy(fromDecimal = Some(value))
-
-    implicit val DecoderInput: Decoder[Input] =
-      deriveDecoder[Input]
-
-    implicit val EqInput: Eq[Input] =
+    implicit val EqInput: Eq[WavelengthInput] =
       Eq.by(in => (
         in.picometers,
         in.angstroms,
         in.nanometers,
-        in.micrometers,
-        in.fromLong,
-        in.fromDecimal
+        in.micrometers
       ))
   }
 

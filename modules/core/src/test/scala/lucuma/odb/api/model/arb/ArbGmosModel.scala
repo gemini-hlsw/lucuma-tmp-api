@@ -321,7 +321,7 @@ trait ArbGmosModel {
       for {
         d <- arbitrary[D]
         o <- arbitrary[GmosGratingOrder]
-        w <- arbitrary[WavelengthModel.Input]
+        w <- arbitrary[WavelengthModel.WavelengthInput]
       } yield GmosModel.CreateGratingConfig(d, o, w)
     }
 
@@ -329,7 +329,7 @@ trait ArbGmosModel {
     Cogen[(
       D,
       GmosGratingOrder,
-      WavelengthModel.Input
+      WavelengthModel.WavelengthInput
     )].contramap { in =>
       (
         in.grating,

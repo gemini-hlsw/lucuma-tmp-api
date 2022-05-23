@@ -304,7 +304,7 @@ object Init {
         _ <- readout.andThen(xBin)    := GmosXBinning.Two
         _ <- readout.andThen(yBin)    := GmosYBinning.Two
         _ <- roi                      := GmosRoi.CentralSpectrum
-        _ <- gratingConfig            := GmosModel.CreateGratingConfig[GmosSouthGrating](GmosSouthGrating.B600_G5323, GmosGratingOrder.One, WavelengthModel.Input.fromNanometers(520.0)).some
+        _ <- gratingConfig            := GmosModel.CreateGratingConfig[GmosSouthGrating](GmosSouthGrating.B600_G5323, GmosGratingOrder.One, WavelengthModel.WavelengthInput.fromNanometers(PosBigDecimal.unsafeFrom(520.0))).some
         _ <- filter                   := Option.empty[GmosSouthFilter]
         _ <- fpu                      := CreateFpu.builtin[GmosSouthFpu](GmosSouthFpu.LongSlit_1_00).some
       } yield ()
@@ -312,7 +312,7 @@ object Init {
 
   val gmos525: CreateSouthDynamic =
     edit(gmos520)(
-      CreateSouthDynamic.instrument.wavelength := WavelengthModel.Input.fromNanometers(525.0)
+      CreateSouthDynamic.instrument.wavelength := WavelengthModel.WavelengthInput.fromNanometers(PosBigDecimal.unsafeFrom(525.0))
     )
 
   val threeSeconds: DurationModel.NonNegDurationInput =
@@ -385,7 +385,7 @@ object Init {
           ScienceRequirementsInput(
             ScienceModeEnum.Spectroscopy.assign,
             SpectroscopyScienceRequirementsInput(
-              wavelength    = WavelengthModel.Input.fromNanometers(520).assign,
+              wavelength    = WavelengthModel.WavelengthInput.fromNanometers(PosBigDecimal.unsafeFrom(520)).assign,
               signalToNoise = PosBigDecimal.unsafeFrom(700).assign
             ).assign
           ).assign,

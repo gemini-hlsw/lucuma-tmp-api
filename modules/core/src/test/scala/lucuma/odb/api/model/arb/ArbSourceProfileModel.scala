@@ -27,14 +27,14 @@ trait ArbSourceProfileModel {
   implicit val arbFluxDensityInput: Arbitrary[FluxDensityInput] =
     Arbitrary {
       for {
-        w <- arbitrary[WavelengthModel.Input]
+        w <- arbitrary[WavelengthModel.WavelengthInput]
         d <- arbitrary[PosBigDecimal]
       } yield FluxDensityInput(w, d)
     }
 
   implicit val cogFluxDensityInput: Cogen[FluxDensityInput] =
     Cogen[(
-      WavelengthModel.Input,
+      WavelengthModel.WavelengthInput,
       PosBigDecimal
     )].contramap { in => (
       in.wavelength,
@@ -158,7 +158,7 @@ trait ArbSourceProfileModel {
   ): Arbitrary[EmissionLineInput[T]] =
     Arbitrary {
       for {
-        wl <- arbitrary[WavelengthModel.Input]
+        wl <- arbitrary[WavelengthModel.WavelengthInput]
         lw <- arbitrary[Input[PosBigDecimal]]
         lf <- arbitrary[Input[MeasureInput[PosBigDecimal, LineFlux[T]]]]
       } yield EmissionLineInput(wl, lw, lf)
@@ -168,7 +168,7 @@ trait ArbSourceProfileModel {
     implicit ev: Enumerated[Units Of LineFlux[T]]
   ): Cogen[EmissionLineInput[T]] =
     Cogen[(
-      WavelengthModel.Input,
+      WavelengthModel.WavelengthInput,
       Input[PosBigDecimal],
       Input[MeasureInput[PosBigDecimal, LineFlux[T]]]
     )].contramap { in => (
@@ -185,7 +185,7 @@ trait ArbSourceProfileModel {
       for {
         ls  <- arbitrary[Input[List[EmissionLineInput[T]]]]
         e   <- arbitrary[Input[List[EmissionLineInput[T]]]]
-        d   <- arbitrary[Input[List[WavelengthModel.Input]]]
+        d   <- arbitrary[Input[List[WavelengthModel.WavelengthInput]]]
         fdc <- arbitrary[Input[MeasureInput[PosBigDecimal, FluxDensityContinuum[T]]]]
       } yield EmissionLinesInput(ls, e, d, fdc)
     }
@@ -197,7 +197,7 @@ trait ArbSourceProfileModel {
     Cogen[(
       Input[List[EmissionLineInput[T]]],
       Input[List[EmissionLineInput[T]]],
-      Input[List[WavelengthModel.Input]],
+      Input[List[WavelengthModel.WavelengthInput]],
       Input[MeasureInput[PosBigDecimal, FluxDensityContinuum[T]]]
     )].contramap { in => (
       in.lines,

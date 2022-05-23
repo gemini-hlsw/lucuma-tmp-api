@@ -443,7 +443,7 @@ object GmosModel {
   final case class CreateGratingConfig[D](
     grating:    D,
     order:      GmosGratingOrder,
-    wavelength: WavelengthModel.Input
+    wavelength: WavelengthModel.WavelengthInput
   ) {
 
     val create: ValidatedInput[GratingConfig[D]] =
@@ -452,7 +452,7 @@ object GmosModel {
   }
 
   object CreateGratingConfig {
-    def wavelength[D]: Lens[CreateGratingConfig[D], WavelengthModel.Input] =
+    def wavelength[D]: Lens[CreateGratingConfig[D], WavelengthModel.WavelengthInput] =
       GenLens[CreateGratingConfig[D]](_.wavelength)
 
     implicit def DecoderCreateGrating[D: Decoder]: Decoder[CreateGratingConfig[D]] =
@@ -738,7 +738,7 @@ object GmosModel {
       val gratingConfig: Optional[CreateSouthDynamic, CreateGratingConfig[GmosSouthGrating]] =
         CreateSouthDynamic.gratingConfig.some
 
-      val wavelength: Optional[CreateSouthDynamic, WavelengthModel.Input] =
+      val wavelength: Optional[CreateSouthDynamic, WavelengthModel.WavelengthInput] =
         gratingConfig.andThen(CreateGratingConfig.wavelength[GmosSouthGrating])
 
     }
@@ -759,7 +759,7 @@ object GmosModel {
       val gratingConfig: Optional[StepConfig.CreateStepConfig[CreateSouthDynamic], CreateGratingConfig[GmosSouthGrating]] =
         instrumentConfig.andThen(instrument.gratingConfig)
 
-      val wavelength: Optional[StepConfig.CreateStepConfig[CreateSouthDynamic], WavelengthModel.Input] =
+      val wavelength: Optional[StepConfig.CreateStepConfig[CreateSouthDynamic], WavelengthModel.WavelengthInput] =
         gratingConfig.andThen(CreateGratingConfig.wavelength[GmosSouthGrating])
 
     }
