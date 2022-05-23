@@ -118,46 +118,6 @@ object AngleModel {
         InputError.fromMessage(s"Could not parse $s as a signed DMS string.")
       )
 
-  final case class LongAngleInput(
-    value: Long,
-    units: Units
-  ) {
-
-    def read: ValidatedInput[Angle] =
-      units.readSignedLong(value)
-
-  }
-
-  object LongAngleInput {
-
-    implicit val DecoderLongAngleInput: Decoder[LongAngleInput] =
-      deriveDecoder[LongAngleInput]
-
-    implicit val EqLongAngleInput: Eq[LongAngleInput] =
-      Eq.by { a => (a.value, a.units) }
-
-  }
-
-  final case class DecimalAngleInput(
-    value: BigDecimal,
-    units: Units
-  ) {
-
-    def read: ValidatedInput[Angle] =
-      units.readSignedDecimal(value)
-
-  }
-
-  object DecimalAngleInput {
-
-    implicit val DecoderDecimalAngleInput: Decoder[DecimalAngleInput] =
-      deriveDecoder[DecimalAngleInput]
-
-    implicit val EqDecimalAngleInput: Eq[DecimalAngleInput] =
-      Eq.by { a => (a.value, a.units) }
-
-  }
-
 
   case class AngleInput(
     microarcseconds: Option[Long],
@@ -171,9 +131,7 @@ object AngleModel {
     degrees:         Option[BigDecimal],
     hours:           Option[BigDecimal],
     dms:             Option[String],
-    hms:             Option[String],
-    fromLong:        Option[LongAngleInput],
-    fromDecimal:     Option[DecimalAngleInput]
+    hms:             Option[String]
   ) {
 
     import Units._
@@ -194,8 +152,6 @@ object AngleModel {
       ValidatedInput.requireOne("angle",
         dms            .map(readDms)                        ::
         hms            .map(s => readHms(s).map(_.toAngle)) ::
-        fromLong       .map(_.read)                         ::
-        fromDecimal    .map(_.read)                         ::
         microarcseconds.map(Microarcseconds.readSignedLong) ::
           decimalInputs.map { case (input, units) => input.map(units.readSignedDecimal)}
       )
@@ -220,13 +176,11 @@ object AngleModel {
         a.degrees,
         a.hours,
         a.dms,
-        a.hms,
-        a.fromLong,
-        a.fromDecimal
+        a.hms
       )}
 
     val Empty: AngleInput =
-      AngleInput(None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+      AngleInput(None, None, None, None, None, None, None, None, None, None, None, None)
 
     def fromMicroarcseconds(value: Long): AngleInput =
       Empty.copy(microarcseconds = value.some)
@@ -263,12 +217,6 @@ object AngleModel {
 
     def fromHms(value: String): AngleInput =
       Empty.copy(hms = value.some)
-
-    def fromLong(value: LongAngleInput): AngleInput =
-      Empty.copy(fromLong = value.some)
-
-    def fromDecimal(value: DecimalAngleInput): AngleInput =
-      Empty.copy(fromDecimal = value.some)
 
   }
 }
