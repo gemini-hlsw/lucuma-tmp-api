@@ -15,15 +15,16 @@ import eu.timepit.refined.types.numeric.PosInt
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
-import lucuma.odb.api.model.syntax.input._
-import lucuma.odb.api.model.syntax.lens._
-import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.core.enum.FocalPlane
 import lucuma.core.enum.SpectroscopyCapabilities
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
+import lucuma.odb.api.model.WavelengthModel.WavelengthInput
+import lucuma.odb.api.model.syntax.input._
+import lucuma.odb.api.model.syntax.lens._
+import lucuma.odb.api.model.syntax.validatedinput._
 import monocle.Focus
 import monocle.Lens
 
@@ -154,11 +155,11 @@ object FocalPlaneAngleInput {
 }
 
 final case class SpectroscopyScienceRequirementsInput (
-  wavelength:         Input[WavelengthModel.Input]    = Input.ignore,
+  wavelength:         Input[WavelengthInput]          = Input.ignore,
   resolution:         Input[PosInt]                   = Input.ignore,
   signalToNoise:      Input[PosBigDecimal]            = Input.ignore,
-  signalToNoiseAt:    Input[WavelengthModel.Input]    = Input.ignore,
-  wavelengthCoverage: Input[WavelengthModel.Input]    = Input.ignore,
+  signalToNoiseAt:    Input[WavelengthInput]          = Input.ignore,
+  wavelengthCoverage: Input[WavelengthInput]          = Input.ignore,
   focalPlane:         Input[FocalPlane]               = Input.ignore,
   focalPlaneAngle:    Input[FocalPlaneAngleInput]     = Input.ignore,
   capabilities:       Input[SpectroscopyCapabilities] = Input.ignore

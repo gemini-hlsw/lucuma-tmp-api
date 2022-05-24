@@ -23,8 +23,9 @@ object ObservationSchema {
   import ScienceModeSchema._
   import ExecutionSchema.ExecutionType
   import ItcSchema.ItcSuccessType
-  import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, NonEmptyStringType, PlannedTimeSummaryType}
+  import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, PlannedTimeSummaryType}
   import ProgramSchema.ProgramType
+  import RefinedSchema.NonEmptyStringType
   import ScienceRequirementsSchema.ScienceRequirementsType
 
   import context._

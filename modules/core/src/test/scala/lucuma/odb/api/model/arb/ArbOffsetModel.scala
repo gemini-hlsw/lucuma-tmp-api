@@ -4,10 +4,8 @@
 package lucuma.odb.api.model
 package arb
 
-import NumericUnits.{DecimalInput, LongInput}
-import OffsetModel.{ComponentInput, Input, Units}
+import OffsetModel.{ComponentInput, Input}
 import lucuma.core.math.{Angle, Offset}
-import lucuma.core.util.arb.ArbEnumerated
 import lucuma.core.math.arb.ArbOffset
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
@@ -15,9 +13,7 @@ import org.scalacheck.Arbitrary.arbitrary
 
 trait ArbOffsetModel {
 
-  import ArbEnumerated._
   import ArbOffset._
-  import GenNumericUnitsInput._
 
   private[this] def microarcseconds: Gen[Long] =
     arbitrary[Offset.Component[Unit]].map(c => Angle.signedMicroarcseconds.get(c.toAngle))
@@ -28,28 +24,12 @@ trait ArbOffsetModel {
   private[this] def arcseconds: Gen[BigDecimal] =
     arbitrary[Offset.Component[Unit]].map(c => Angle.signedDecimalArcseconds.get(c.toAngle))
 
-  val genOffsetComponentInputFromLong: Gen[ComponentInput] =
-    Gen.oneOf(
-      genLongInput(microarcseconds, Units.microarcseconds),
-      genLongInput(milliseconds, Units.milliarcseconds),
-      genLongInput(arcseconds, Units.arcseconds),
-    ).map(ComponentInput.fromLong)
-
-  val genOffsetComponentInputFromDecimal: Gen[ComponentInput] =
-    Gen.oneOf(
-      genLongDecimalInput(microarcseconds, Units.microarcseconds),
-      genDecimalInput(milliseconds, Units.milliarcseconds),
-      genDecimalInput(arcseconds, Units.arcseconds),
-    ).map(ComponentInput.fromDecimal)
-
   implicit val arbOffsetComponentInput: Arbitrary[ComponentInput] =
     Arbitrary {
       Gen.oneOf(
         microarcseconds.map(ComponentInput.fromMicroarcseconds),
         milliseconds.map(ComponentInput.fromMilliarcseconds),
-        arcseconds.map(ComponentInput.fromArcseconds),
-        genOffsetComponentInputFromLong,
-        genOffsetComponentInputFromDecimal
+        arcseconds.map(ComponentInput.fromArcseconds)
       )
     }
 
@@ -57,16 +37,12 @@ trait ArbOffsetModel {
     Cogen[(
       Option[Long],
       Option[BigDecimal],
-      Option[BigDecimal],
-      Option[LongInput[Units]],
-      Option[DecimalInput[Units]]
+      Option[BigDecimal]
     )].contramap { in =>
       (
         in.microarcseconds,
         in.milliarcseconds,
-        in.arcseconds,
-        in.fromLong,
-        in.fromDecimal
+        in.arcseconds
       )
     }
 

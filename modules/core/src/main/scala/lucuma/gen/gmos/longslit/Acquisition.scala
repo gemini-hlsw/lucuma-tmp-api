@@ -6,6 +6,7 @@ package lucuma.gen.gmos.longslit
 import cats.data.NonEmptyList
 import cats.syntax.either._
 import cats.syntax.option._
+import eu.timepit.refined.auto._
 import lucuma.core.`enum`.{GmosNorthFilter, GmosNorthFpu, GmosNorthGrating, GmosRoi, GmosSouthFilter, GmosSouthFpu, GmosSouthGrating, GmosXBinning, GmosYBinning}
 import lucuma.core.math.Wavelength
 import lucuma.core.math.syntax.int._
@@ -15,6 +16,8 @@ import lucuma.gen.gmos.{GmosNorthInitialDynamicConfig, GmosSouthInitialDynamicCo
 import lucuma.gen.{AcqExposureTime, SequenceState}
 import lucuma.odb.api.model.GmosModel.{CustomMask, DynamicOptics, GratingConfig, NorthDynamic, SouthDynamic}
 import lucuma.odb.api.model.StepConfig
+import lucuma.odb.api.model.syntax.nonnegduration._
+import lucuma.odb.api.model.time.NonNegDuration
 
 /**
  * GMOS long slit acquisition steps.
@@ -41,7 +44,7 @@ sealed trait Acquisition[D, G, F, U] extends SequenceState[D] {
 
     eval {
       for {
-        _  <- optics.exposure      := exposureTime.value
+        _  <- optics.exposure      := exposureTime
         _  <- optics.filter        := filter.some
         _  <- optics.fpu           := none[Either[CustomMask, U]]
         _  <- optics.gratingConfig := none[GratingConfig[G]]
@@ -50,14 +53,14 @@ sealed trait Acquisition[D, G, F, U] extends SequenceState[D] {
         _  <- optics.roi           := GmosRoi.Ccd2
         s0 <- scienceStep(0.arcsec, 0.arcsec)
 
-        _  <- optics.exposure      := 20.seconds
+        _  <- optics.exposure      := NonNegDuration.unsafeFrom(20.seconds)
         _  <- optics.fpu           := fpu.asRight.some
         _  <- optics.xBin          := GmosXBinning.One
         _  <- optics.yBin          := GmosYBinning.One
         _  <- optics.roi           := GmosRoi.CentralStamp
         s1 <- scienceStep(10.arcsec, 0.arcsec)
 
-        _  <- optics.exposure      := exposureTime.value * 4
+        _  <- optics.exposure      := exposureTime * 4
         s2 <- scienceStep(0.arcsec, 0.arcsec)
 
       } yield Acquisition.Steps(s0, s1, s2)

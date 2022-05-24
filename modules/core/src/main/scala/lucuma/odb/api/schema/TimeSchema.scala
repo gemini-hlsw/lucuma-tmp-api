@@ -3,18 +3,23 @@
 
 package lucuma.odb.api.schema
 
+import cats.syntax.option._
+import eu.timepit.refined.types.numeric.{NonNegBigDecimal, NonNegLong}
 import lucuma.core.optics.Format
 import lucuma.core.syntax.time._
 import lucuma.odb.api.model.DurationModel
 import lucuma.odb.api.model.format.ScalarFormat
+import lucuma.odb.api.model.time.NonNegDuration
 import lucuma.odb.api.schema.syntax.scalar._
 import sangria.schema._
 
-import java.time.{Duration, Instant}
+import java.time.Instant
 
 import scala.util.Try
 
 object TimeSchema {
+
+  import RefinedSchema._
 
   val InstantFormat: Format[String, Instant] =
     Format.apply[String, Instant](
@@ -29,59 +34,63 @@ object TimeSchema {
       scalarFormat =  ScalarFormat(InstantFormat, "2011-12-03T10:15:30Z")
     )
 
-  val DurationType: ObjectType[Any, Duration] =
+  val NonNegativeDurationType: ObjectType[Any, NonNegDuration] = {
+    def toNonNegBigDecimal(nnd: NonNegDuration, scale: Int, f: BigDecimal => BigDecimal = identity): NonNegBigDecimal =
+      NonNegBigDecimal.unsafeFrom(f(BigDecimal(nnd.value.toMicros, scale)))
+
     ObjectType(
-      name        = "Duration",
+      name        = "NonNegDuration",
       description = "Equivalent time amount in several unit options (e.g., 120 seconds or 2 minutes)",
       fieldsFn    = () => fields(
 
         Field(
           name        = "microseconds",
-          fieldType   = LongType,
-          description = Some("Duration in µs"),
-          resolve     = v => v.value.toMicros
+          fieldType   = NonNegLongType,
+          description = "Duration in µs".some,
+          resolve     = d => NonNegLong.unsafeFrom(d.value.value.toMicros)
         ),
 
         Field(
           name        = "milliseconds",
-          fieldType   = BigDecimalType,
-          description = Some("Duration in ms"),
-          resolve     = v => BigDecimal(v.value.toMicros, 3)
+          fieldType   = NonNegBigDecimalType,
+          description = "Duration in ms".some,
+          resolve     = v => toNonNegBigDecimal(v.value, 3)
         ),
 
         Field(
           name        = "seconds",
-          fieldType   = BigDecimalType,
-          description = Some("Duration in seconds"),
-          resolve     = v => BigDecimal(v.value.toMicros, 6)
+          fieldType   = NonNegBigDecimalType,
+          description = "Duration in seconds".some,
+          resolve     = v => toNonNegBigDecimal(v.value, 6)
         ),
 
         Field(
           name        = "minutes",
-          fieldType   = BigDecimalType,
-          description = Some("Duration in minutes"),
-          resolve     = v => BigDecimal(v.value.toMicros, 6) / 60
+          fieldType   = NonNegBigDecimalType,
+          description = "Duration in minutes".some,
+          resolve     = v => toNonNegBigDecimal(v.value, 6, _ / 60)
         ),
 
         Field(
           name        = "hours",
-          fieldType   = BigDecimalType,
-          description = Some("Duration in hours"),
-          resolve     = v => BigDecimal(v.value.toMicros, 6) / 3600
+          fieldType   = NonNegBigDecimalType,
+          description = "Duration in hours".some,
+          resolve     = v => toNonNegBigDecimal(v.value, 6, _ / 3600)
         )
       )
     )
+  }
 
-  val InputObjectTypeDuration: InputObjectType[DurationModel.Input] =
-    InputObjectType[DurationModel.Input](
-      "DurationInput",
+  val InputObjectTypeDuration: InputObjectType[DurationModel.NonNegDurationInput] =
+    InputObjectType[DurationModel.NonNegDurationInput](
+      "NonNegDurationInput",
       "Time duration input",
       List(
-        InputField("microseconds", OptionInputType(LongType),       "Time duration in µs"),
-        InputField("milliseconds", OptionInputType(BigDecimalType), "Time duration in ms"),
-        InputField("seconds",      OptionInputType(BigDecimalType), "Time duration in seconds"),
-        InputField("minutes",      OptionInputType(BigDecimalType), "Time duration in minutes"),
-        InputField("hours",        OptionInputType(BigDecimalType), "Time duration in hours")
+        InputField("microseconds", OptionInputType(PosLongType),          "Time duration in µs"),
+        InputField("milliseconds", OptionInputType(NonNegBigDecimalType), "Time duration in ms"),
+        InputField("seconds",      OptionInputType(NonNegBigDecimalType), "Time duration in seconds"),
+        InputField("minutes",      OptionInputType(NonNegBigDecimalType), "Time duration in minutes"),
+        InputField("hours",        OptionInputType(NonNegBigDecimalType), "Time duration in hours")
       )
     )
 

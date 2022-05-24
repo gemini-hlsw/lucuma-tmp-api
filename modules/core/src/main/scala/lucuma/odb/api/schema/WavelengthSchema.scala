@@ -3,6 +3,8 @@
 
 package lucuma.odb.api.schema
 
+import cats.syntax.option._
+import eu.timepit.refined.types.numeric.PosBigDecimal
 import lucuma.core.math.Wavelength
 import lucuma.odb.api.model.WavelengthModel
 import sangria.macros.derive._
@@ -11,7 +13,7 @@ import sangria.schema._
 import java.math.RoundingMode.HALF_UP
 
 object WavelengthSchema {
-  import NumericUnitsSchema._
+  import RefinedSchema._
   import syntax.enum._
 
   val WavelengthType: ObjectType[Any, Wavelength] =
@@ -21,30 +23,30 @@ object WavelengthSchema {
 
         Field(
           name        = "picometers",
-          fieldType   = IntType,
-          description = Some("Wavelength in pm"),
-          resolve     = _.value.toPicometers.value.value
+          fieldType   = PosIntType,
+          description = "Wavelength in pm".some,
+          resolve     = _.value.toPicometers.value
         ),
 
         Field(
           name        = "angstroms",
-          fieldType   = BigDecimalType,
-          description = Some("Wavelength in Å"),
-          resolve     = _.value.angstrom.value.toBigDecimal(2, HALF_UP)
+          fieldType   = PosBigDecimalType,
+          description = "Wavelength in Å".some,
+          resolve     = c => PosBigDecimal.unsafeFrom(c.value.angstrom.value.toBigDecimal(2, HALF_UP))
         ),
 
         Field(
           name        = "nanometers",
-          fieldType   = BigDecimalType,
-          description = Some("Wavelength in nm"),
-          resolve     = _.value.nanometer.value.toBigDecimal(3, HALF_UP)
+          fieldType   = PosBigDecimalType,
+          description = "Wavelength in nm".some,
+          resolve     = c => PosBigDecimal.unsafeFrom(c.value.nanometer.value.toBigDecimal(3, HALF_UP))
         ),
 
         Field(
           name        = "micrometers",
-          fieldType   = BigDecimalType,
-          description = Some("Wavelength in µm"),
-          resolve     = _.value.micrometer.value.toBigDecimal(6, HALF_UP)
+          fieldType   = PosBigDecimalType,
+          description = "Wavelength in µm".some,
+          resolve     = c => PosBigDecimal.unsafeFrom(c.value.micrometer.value.toBigDecimal(6, HALF_UP))
         )
       )
     )
@@ -55,8 +57,8 @@ object WavelengthSchema {
       "Wavelength units"
     )
 
-  implicit val InputWavelength: InputObjectType[WavelengthModel.Input] =
-    deriveInputObjectType[WavelengthModel.Input](
+  implicit val InputWavelength: InputObjectType[WavelengthModel.WavelengthInput] =
+    deriveInputObjectType[WavelengthModel.WavelengthInput](
       InputObjectTypeName("WavelengthInput"),
       InputObjectTypeDescription("Wavelength, choose one of the available units")
     )

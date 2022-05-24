@@ -250,7 +250,7 @@ class MutationSuite extends OdbSuite {
               "skyBackground": "GRAY",
               "elevationRange": {
                 "airMass": {
-                  "min": 0.0,
+                  "min": 0.1,
                   "max": 2.0
                 }
               }

@@ -62,7 +62,7 @@ sealed trait Science[D, G, F, U] extends SequenceState[D] {
 
     val init: D =
       (for {
-        _ <- optics.exposure      := exposureTime.value
+        _ <- optics.exposure      := exposureTime
         _ <- optics.gratingConfig := GratingConfig(mode.grating, GmosGratingOrder.One, λ).some
         _ <- optics.filter        := mode.filter
         _ <- optics.fpu           := mode.fpu.asRight.some

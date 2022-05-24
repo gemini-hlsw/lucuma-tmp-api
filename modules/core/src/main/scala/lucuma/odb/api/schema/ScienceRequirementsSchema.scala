@@ -39,7 +39,7 @@ object ScienceRequirementsSchema {
 
   val FocalPlaneAngleType: ObjectType[Any, Angle]=
     ObjectType(
-      name     = "focalPlaneAngle",
+      name     = "FocalPlaneAngle",
       fieldsFn = () => fields(
 
         Field(

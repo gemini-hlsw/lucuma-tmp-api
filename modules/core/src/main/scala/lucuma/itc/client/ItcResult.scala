@@ -8,9 +8,9 @@ import cats.syntax.all._
 import eu.timepit.refined.types.numeric._
 import io.circe.{Decoder, DecodingFailure, HCursor}
 import lucuma.core.syntax.time._
+import lucuma.odb.api.model.time.NonNegDuration
 
 import java.math.MathContext
-import java.time.Duration
 
 sealed trait ItcResult {
 
@@ -71,7 +71,7 @@ object ItcResult {
   }
 
   final case class Success(
-    exposureTime:  Duration,
+    exposureTime:  NonNegDuration,
     exposures:     Int,
     signalToNoise: PosBigDecimal
   ) extends ItcResult {
@@ -93,14 +93,14 @@ object ItcResult {
     implicit val DecoderSuccess: Decoder[Success] =
       (c: HCursor) =>
         for {
-          t <- c.downField("exposureTime").downField("microseconds").as[Long].map(_.microseconds)
+          t <- c.downField("exposureTime").downField("microseconds").as[Long].flatMap(l => NonNegDuration.from(l.microseconds).leftMap(m => DecodingFailure(m, c.history)))
           n <- c.downField("exposures").as[Int]
           s <- c.downField("signalToNoise").as[BigDecimal].flatMap(d => PosBigDecimal.from(d).leftMap(m => DecodingFailure(m, c.history)))
         } yield Success(t, n, s)
 
     implicit val EqSuccess: Eq[Success] =
       Eq.by { a => (
-        a.exposureTime.toNanos,
+        a.exposureTime.value.toNanos,
         a.exposures,
         a.signalToNoise.value
       )}
@@ -110,7 +110,7 @@ object ItcResult {
   def error(msg: String): ItcResult =
     Error(msg)
 
-  def success(exposureTime: Duration, exposures: Int, signalToNoise: PosBigDecimal): ItcResult =
+  def success(exposureTime: NonNegDuration, exposures: Int, signalToNoise: PosBigDecimal): ItcResult =
     Success(exposureTime, exposures, signalToNoise)
 
 }

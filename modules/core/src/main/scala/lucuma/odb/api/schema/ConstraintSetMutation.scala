@@ -12,6 +12,7 @@ import sangria.schema._
 trait ConstraintSetMutation {
 
   import ConstraintSetSchema._
+  import RefinedSchema.PosBigDecimalType
   import syntax.inputobjecttype._
 
   implicit val InputObjectTypeAirmassRange: InputObjectType[AirMassRangeInput] =

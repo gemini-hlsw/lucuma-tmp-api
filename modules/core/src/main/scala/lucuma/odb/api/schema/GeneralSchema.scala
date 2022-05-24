@@ -5,7 +5,6 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.{Existence, PlannedTimeSummaryModel}
 import cats.syntax.all._
-import eu.timepit.refined.types.all.NonEmptyString
 import sangria.schema._
 import sangria.validation.ValueCoercionViolation
 
@@ -32,23 +31,6 @@ object GeneralSchema {
       defaultValue = false
     )
 
-  final case object EmptyStringViolation extends ValueCoercionViolation("Expected a non-empty string")
-
-  implicit val NonEmptyStringType: ScalarType[NonEmptyString] =
-    ScalarType[NonEmptyString](
-      name            =  "NonEmptyString",
-      description     = Some("A String value that cannot be empty"),
-      coerceUserInput = {
-        case s: String  => NonEmptyString.from(s).leftMap(_ => EmptyStringViolation)
-        case _          => Left(EmptyStringViolation)
-      },
-      coerceOutput    = (a, _) => a.value,
-      coerceInput     = {
-        case sangria.ast.StringValue(s, _, _, _, _) => NonEmptyString.from(s).leftMap(_ => EmptyStringViolation)
-        case _                                      => Left(EmptyStringViolation)
-      }
-    )
-
   val UuidViolation: ValueCoercionViolation =
     new ValueCoercionViolation("Expected a valid UUID") {}
 
@@ -66,22 +48,22 @@ object GeneralSchema {
 
         Field(
           name        = "pi",
-          fieldType   = DurationType,
-          description = Some("The portion of planned time that will be charged"),
+          fieldType   = NonNegativeDurationType,
+          description = "The portion of planned time that will be charged".some,
           resolve     = _.value.piTime
         ),
 
         Field(
           name        = "uncharged",
-          fieldType   = DurationType,
-          description = Some("The portion of planned time that will not be charged"),
+          fieldType   = NonNegativeDurationType,
+          description = "The portion of planned time that will not be charged".some,
           resolve     = _.value.unchargedTime
         ),
 
         Field(
           name        = "execution",
-          fieldType   = DurationType,
-          description = Some("The total estimated execution time"),
+          fieldType   = NonNegativeDurationType,
+          description = "The total estimated execution time".some,
           resolve     = _.value.executionTime
         )
 

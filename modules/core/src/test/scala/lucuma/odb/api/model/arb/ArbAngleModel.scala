@@ -4,52 +4,11 @@
 package lucuma.odb.api.model
 package arb
 
-import AngleModel.{AngleInput, DecimalAngleInput, LongAngleInput}
+import AngleModel.AngleInput
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
-import lucuma.core.util.arb.ArbEnumerated
 
 trait ArbAngleModel {
-
-  import ArbEnumerated._
-
-  implicit val arbLongAngleInput: Arbitrary[LongAngleInput] =
-    Arbitrary {
-      for {
-        a <- arbitrary[Long]
-        u <- arbitrary[AngleModel.Units]
-      } yield LongAngleInput(a, u)
-    }
-
-  implicit val cogLongAngleInput: Cogen[LongAngleInput] =
-    Cogen[(
-      Long,
-      AngleModel.Units
-    )].contramap { in =>
-      (
-        in.value,
-        in.units
-      )
-    }
-
-  implicit val arbDecimalAngleInput: Arbitrary[DecimalAngleInput] =
-    Arbitrary {
-      for {
-        a <- arbitrary[BigDecimal]
-        u <- arbitrary[AngleModel.Units]
-      } yield DecimalAngleInput(a, u)
-    }
-
-  implicit val cogDecimalAngleInput: Cogen[DecimalAngleInput] =
-    Cogen[(
-      BigDecimal,
-      AngleModel.Units
-    )].contramap { in =>
-      (
-        in.value,
-        in.units
-      )
-    }
 
   implicit val arbAngleInput: Arbitrary[AngleInput] =
     Arbitrary {
@@ -63,9 +22,7 @@ trait ArbAngleModel {
         arbitrary[BigDecimal       ].map(AngleInput.fromArcminutes),
         arbitrary[BigDecimal       ].map(AngleInput.fromMinutes),
         arbitrary[BigDecimal       ].map(AngleInput.fromDegrees),
-        arbitrary[BigDecimal       ].map(AngleInput.fromHours),
-        arbitrary[LongAngleInput   ].map(AngleInput.fromLong),
-        arbitrary[DecimalAngleInput].map(AngleInput.fromDecimal)
+        arbitrary[BigDecimal       ].map(AngleInput.fromHours)
       )
     }
 
@@ -80,9 +37,7 @@ trait ArbAngleModel {
       Option[BigDecimal], // am
       Option[BigDecimal], // m
       Option[BigDecimal], // deg
-      Option[BigDecimal], // h
-      Option[LongAngleInput],
-      Option[DecimalAngleInput]
+      Option[BigDecimal]  // h
     )].contramap { in => (
       in.microarcseconds,
       in.microseconds,
@@ -93,9 +48,7 @@ trait ArbAngleModel {
       in.arcminutes,
       in.minutes,
       in.degrees,
-      in.hours,
-      in.fromLong,
-      in.fromDecimal
+      in.hours
     )}
 
 }

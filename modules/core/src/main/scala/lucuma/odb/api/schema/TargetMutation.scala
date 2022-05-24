@@ -21,10 +21,10 @@ import sangria.schema.{InputField, _}
 trait TargetMutation extends TargetScalars {
 
   import context._
-  import GeneralSchema.{EnumTypeExistence, NonEmptyStringType}
-  import NumericUnitsSchema._
+  import GeneralSchema.EnumTypeExistence
   import ObservationSchema.ObservationIdType
   import ProgramSchema.ProgramIdType
+  import RefinedSchema.NonEmptyStringType
   import SourceProfileSchema.InputObjectSourceProfile
   import TargetSchema.{EnumTypeCatalogName, EphemerisKeyTypeEnumType, ArgumentTargetId, TargetIdType, TargetType}
 

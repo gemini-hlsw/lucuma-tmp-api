@@ -88,7 +88,7 @@ class ItcClient[F[_]: Async: Logger](
       o  <- observation
       ts <- targets
       rs <- EitherT(ts.traverse(t => queryOne(o, t, useCache)).map(_.traverse(_.toEither)))
-      mx  = ts.zip(rs).maxByOption { case (_, r) => r.exposureTime }
+      mx  = ts.zip(rs).maxByOption { case (_, r) => r.exposureTime.value }
       r  <- EitherT(Async[F].pure(mx.toRight(ItcResult.Error(s"No results returned by ITC for observation $oid"))))
     } yield r).value
 

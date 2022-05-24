@@ -17,9 +17,10 @@ import scala.collection.immutable.Seq
 
 object ProgramSchema {
 
-  import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, NonEmptyStringType, PlannedTimeSummaryType}
+  import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, PlannedTimeSummaryType}
   import ObservationSchema.ObservationConnectionType
   import Paging._
+  import RefinedSchema.NonEmptyStringType
   import context._
 
   implicit val ProgramIdType: ScalarType[Program.Id] =

@@ -21,7 +21,7 @@ object VisitRecordSchema {
 
   import ExecutionEventSchema.SequenceEventConnectionType
   import StepRecordSchema.StepRecordConnectionType
-  import TimeSchema.{DurationType, InstantScalar}
+  import TimeSchema.{NonNegativeDurationType, InstantScalar}
 
   implicit val VisitIdType: ScalarType[Visit.Id] =
     ObjectIdSchema.uidType[Visit.Id]("VisitId")
@@ -76,7 +76,7 @@ object VisitRecordSchema {
 
         Field(
           name        = "duration",
-          fieldType   = DurationType,
+          fieldType   = NonNegativeDurationType,
           description = "Step duration".some,
           resolve     = _.value.duration
         ),

@@ -4,20 +4,18 @@
 package lucuma.odb.api.model
 
 import cats.{Eq, Monoid}
-import cats.effect.Async
-import cats.syntax.functor._
-import cats.syntax.flatMap._
+import eu.timepit.refined.cats._
 import lucuma.core.syntax.time._
+import lucuma.odb.api.model.time.NonNegDuration
+import lucuma.odb.api.model.syntax.nonnegduration._
 
-import java.time.Duration
-import scala.util.Random
 
 final case class PlannedTimeSummaryModel(
-  piTime:        Duration,
-  unchargedTime: Duration
+  piTime:        NonNegDuration,
+  unchargedTime: NonNegDuration
 ) {
 
-  def executionTime: Duration =
+  def executionTime: NonNegDuration =
     piTime + unchargedTime
 
 }
@@ -25,21 +23,14 @@ final case class PlannedTimeSummaryModel(
 object PlannedTimeSummaryModel {
 
   val Zero: PlannedTimeSummaryModel =
-    PlannedTimeSummaryModel(0.microseconds, 0.microseconds)
-
-  def random[F[_]: Async]: F[PlannedTimeSummaryModel] =
-    for {
-      p <- Async[F].delay(Random.between(5L, 120L))
-      u <- Async[F].delay(Random.between(1L,  15L))
-    } yield PlannedTimeSummaryModel(p.minutes, u.minutes)
-
+    PlannedTimeSummaryModel(NonNegDuration.zero, NonNegDuration.zero)
 
   implicit val MonoidPlannedTimeSummaryModel: Monoid[PlannedTimeSummaryModel] =
     Monoid.instance(
       Zero,
       (a, b) =>
         PlannedTimeSummaryModel(
-          a.piTime + b.piTime,
+          a.piTime        + b.piTime,
           a.unchargedTime + b.unchargedTime
         )
     )
@@ -52,8 +43,8 @@ object PlannedTimeSummaryModel {
   def forObservation(o: ObservationModel): PlannedTimeSummaryModel = {
     val l = o.id.hashCode()
     PlannedTimeSummaryModel(
-      (((l % 20).abs + 1) * 5).toLong.minutes,
-      (15 - (l % 15).abs).toLong.minutes
+      NonNegDuration.unsafeFrom((((l % 20).abs + 1) * 5).toLong.minutes),
+      NonNegDuration.unsafeFrom((15 - (l % 15).abs).toLong.minutes)
     )
   }
 

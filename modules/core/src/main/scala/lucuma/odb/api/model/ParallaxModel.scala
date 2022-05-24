@@ -54,14 +54,9 @@ object ParallaxModel {
 
   }
 
-  implicit val NumericUnitsParallax: NumericUnits[Parallax, Units] =
-    NumericUnits.fromRead(_.readLong(_), _.readDecimal(_))
-
   final case class Input(
     microarcseconds: Option[Long],
-    milliarcseconds: Option[BigDecimal],
-    fromLong:        Option[NumericUnits.LongInput[Units]],
-    fromDecimal:     Option[NumericUnits.DecimalInput[Units]]
+    milliarcseconds: Option[BigDecimal]
   ) {
 
     import Units._
@@ -69,9 +64,7 @@ object ParallaxModel {
     val toParallax: ValidatedInput[Parallax] =
       ValidatedInput.requireOne("parallax",
         microarcseconds.map(Microarcseconds.readLong),
-        milliarcseconds.map(Milliarcseconds.readDecimal),
-        fromLong       .map(_.read),
-        fromDecimal    .map(_.read)
+        milliarcseconds.map(Milliarcseconds.readDecimal)
       )
 
   }
@@ -79,7 +72,7 @@ object ParallaxModel {
   object Input {
 
     val Empty: Input =
-      Input(None, None, None, None)
+      Input(None, None)
 
     def fromMicroarcseconds(value: Long): Input =
       Empty.copy(microarcseconds = Some(value))
@@ -87,21 +80,13 @@ object ParallaxModel {
     def fromMilliarcseconds(value: BigDecimal): Input =
       Empty.copy(milliarcseconds = Some(value))
 
-    def fromLong(value: NumericUnits.LongInput[Units]): Input =
-      Empty.copy(fromLong = Some(value))
-
-    def fromDecimal(value: NumericUnits.DecimalInput[Units]): Input =
-      Empty.copy(fromDecimal = Some(value))
-
     implicit val DecoderInput: Decoder[Input] =
       deriveDecoder[Input]
 
     implicit val EqInput: Eq[Input] =
       Eq.by(in => (
         in.microarcseconds,
-        in.milliarcseconds,
-        in.fromLong,
-        in.fromDecimal
+        in.milliarcseconds
       ))
 
   }

@@ -13,6 +13,6 @@ final class DurationModelSuite extends DisciplineSuite {
 
   import ArbDurationModel._
 
-  checkAll("DurationModel.Input", EqTests[DurationModel.Input].eqv)
+  checkAll("DurationModel.Input", EqTests[DurationModel.NonNegDurationInput].eqv)
 
 }

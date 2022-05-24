@@ -12,6 +12,6 @@ final class WavelengthModelSuite extends DisciplineSuite {
 
   import ArbWavelengthModel._
 
-  checkAll("WavelengthModel.Input", EqTests[WavelengthModel.Input].eqv)
+  checkAll("WavelengthModel.Input", EqTests[WavelengthModel.WavelengthInput].eqv)
 
 }

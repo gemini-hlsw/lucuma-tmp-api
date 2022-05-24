@@ -4,69 +4,46 @@
 package lucuma.odb.api.model
 package arb
 
-import WavelengthModel.{Input, Units}
-import NumericUnits.{DecimalInput, LongInput}
+import WavelengthModel.WavelengthInput
+import eu.timepit.refined.types.all.{PosBigDecimal, PosInt}
 import lucuma.core.math.Wavelength
-import lucuma.core.util.arb.ArbEnumerated
+import lucuma.core.math.arb.ArbRefined
 import org.scalacheck._
 
 trait ArbWavelengthModel {
 
-  import ArbEnumerated._
-  import GenNumericUnitsInput._
+  import ArbRefined._
 
-  private def genBigDecimal(max: Int): Gen[BigDecimal] =
-    Gen.chooseNum(1,  max).map(BigDecimal(_))
+  private def genBigDecimal(max: Int): Gen[PosBigDecimal] =
+    Gen.chooseNum(1,  max).map(PosBigDecimal.unsafeFrom(_))
 
-  private[this] val picometers: Gen[Long]        = Gen.chooseNum(1, Wavelength.Max.toPicometers.value.value).map(_.toLong)
-  private[this] val angstroms: Gen[BigDecimal]   = genBigDecimal(Wavelength.MaxAngstrom)
-  private[this] val nanometers: Gen[BigDecimal]  = genBigDecimal(Wavelength.MaxNanometer)
-  private[this] val micrometers: Gen[BigDecimal] = genBigDecimal(Wavelength.MaxMicrometer)
+  private[this] val picometers: Gen[PosInt]        = Gen.chooseNum(1, Wavelength.Max.toPicometers.value.value).map(PosInt.unsafeFrom)
+  private[this] val angstroms: Gen[PosBigDecimal]   = genBigDecimal(Wavelength.MaxAngstrom)
+  private[this] val nanometers: Gen[PosBigDecimal]  = genBigDecimal(Wavelength.MaxNanometer)
+  private[this] val micrometers: Gen[PosBigDecimal] = genBigDecimal(Wavelength.MaxMicrometer)
 
-  val genWavelengthModelInputFromLong: Gen[Input] =
-    Gen.oneOf(
-      genLongInput(picometers,  Units.picometers),
-      genLongInput(angstroms,   Units.angstroms),
-      genLongInput(nanometers,  Units.nanometers),
-      genLongInput(micrometers, Units.micrometers)
-    ).map(Input.fromLong)
-
-  val genWavelengthModelInputFromDecimal: Gen[Input] =
-    Gen.oneOf(
-      genLongDecimalInput(picometers,  Units.picometers),
-      genDecimalInput(angstroms,   Units.angstroms),
-      genDecimalInput(nanometers,  Units.nanometers),
-      genDecimalInput(micrometers, Units.micrometers)
-    ).map(Input.fromDecimal)
-
-  implicit val arbWavelengthModelInput: Arbitrary[WavelengthModel.Input] =
+  implicit val arbWavelengthModelInput: Arbitrary[WavelengthModel.WavelengthInput] =
     Arbitrary {
       Gen.oneOf(
-        picometers.map(Input.fromPicometers),
-        angstroms.map(Input.fromAngstroms),
-        nanometers.map(Input.fromNanometers),
-        micrometers.map(Input.fromMicrometers),
-        genWavelengthModelInputFromLong,
-        genWavelengthModelInputFromDecimal
+        picometers.map(WavelengthInput.fromPicometers),
+        angstroms.map(WavelengthInput.fromAngstroms),
+        nanometers.map(WavelengthInput.fromNanometers),
+        micrometers.map(WavelengthInput.fromMicrometers)
       )
     }
 
-  implicit val cogWavelengthModelInput: Cogen[WavelengthModel.Input] =
+  implicit val cogWavelengthModelInput: Cogen[WavelengthModel.WavelengthInput] =
     Cogen[(
-      Option[Long],       // pm
-      Option[BigDecimal], // A
-      Option[BigDecimal], // nm
-      Option[BigDecimal], // µm
-      Option[LongInput[Units]],
-      Option[DecimalInput[Units]]
+      Option[PosInt],        // pm
+      Option[PosBigDecimal], // A
+      Option[PosBigDecimal], // nm
+      Option[PosBigDecimal]  // µm
     )].contramap { in =>
       (
         in.picometers,
         in.angstroms,
         in.nanometers,
-        in.micrometers,
-        in.fromLong,
-        in.fromDecimal
+        in.micrometers
       )
     }
 

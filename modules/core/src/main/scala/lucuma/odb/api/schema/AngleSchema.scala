@@ -42,18 +42,6 @@ object AngleSchema {
       "Angle units"
     )
 
-  implicit val InputObjectLongAngle: InputObjectType[AngleModel.LongAngleInput] =
-    deriveInputObjectType(
-      InputObjectTypeName("LongAngleInput"),
-      InputObjectTypeDescription("Create an angle from a signed integral value and its units.")
-    )
-
-  implicit val InputObjectDecimalAngle: InputObjectType[AngleModel.DecimalAngleInput] =
-    deriveInputObjectType(
-      InputObjectTypeName("DecimalAngleInput"),
-      InputObjectTypeDescription("Create an angle from a signed decimal value and its units.")
-    )
-
   implicit val InputObjectAngle: InputObjectType[AngleModel.AngleInput] =
     deriveInputObjectType(
       InputObjectTypeName("AngleInput"),
