@@ -1,11 +1,12 @@
 val attoVersion                 = "0.9.5"
-val catsEffectVersion           = "3.3.11"
+val catsEffectVersion           = "3.3.12"
 val catsTestkitScalaTestVersion = "2.1.5"
 val catsVersion                 = "2.7.0"
 val catsScalacheckVersion       = "0.3.1"
 val catsTimeVersion             = "0.5.0"
 val circeOpticsVersion          = "0.14.1"
-val circeVersion                = "0.14.1"
+val circeExtrasVersion          = "0.14.1"
+val circeVersion                = "0.14.2"
 val cirisVersion                = "2.3.2"
 val clueVersion                 = "0.22.0"
 val http4sVersion               = "0.23.11"
@@ -92,7 +93,7 @@ lazy val core = project
       "io.circe"                   %% "circe-optics"              % circeOpticsVersion,
       "io.circe"                   %% "circe-parser"              % circeVersion,
       "io.circe"                   %% "circe-generic"             % circeVersion,
-      "io.circe"                   %% "circe-generic-extras"      % circeVersion,
+      "io.circe"                   %% "circe-generic-extras"      % circeExtrasVersion,
       "io.circe"                   %% "circe-refined"             % circeVersion,
       "org.typelevel"              %% "jawn-parser"               % jawnVersion,
       "org.typelevel"              %% "log4cats-slf4j"            % log4catsVersion,
@@ -132,7 +133,7 @@ lazy val service = project
       "io.circe"                   %% "circe-optics"                  % circeOpticsVersion,
       "io.circe"                   %% "circe-parser"                  % circeVersion,
       "io.circe"                   %% "circe-generic"                 % circeVersion,
-      "io.circe"                   %% "circe-generic-extras"          % circeVersion,
+      "io.circe"                   %% "circe-generic-extras"          % circeExtrasVersion,
       "is.cir"                     %% "ciris"                         % cirisVersion,
       "org.typelevel"              %% "jawn-parser"                   % jawnVersion,
       "org.typelevel"              %% "log4cats-slf4j"                % log4catsVersion,
