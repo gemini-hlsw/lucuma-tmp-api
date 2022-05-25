@@ -46,17 +46,18 @@ final class GmosNorthLongSlitSuite extends ScalaCheckSuite {
     sp: SourceProfile,
     iq: ImageQuality
   ): GmosNorthLongSlit[IO] =
-      GmosNorthLongSlit(
-        m,
-        λ,
-        iq,
-        sampling,
-        sp,
-        acqTime,
-        sciTime,
-        exposureCount
+      GmosNorthLongSlit.fromInput[IO](
+        GmosLongSlit.Input(
+          m,
+          λ,
+          iq,
+          sampling,
+          sp,
+          acqTime,
+          sciTime,
+          exposureCount
+        )
       )
-
 
   property("all atoms and steps have unique ids") {
     forAll { (mode: ScienceMode.GmosNorthLongSlit, sp: SourceProfile, iq: ImageQuality) =>

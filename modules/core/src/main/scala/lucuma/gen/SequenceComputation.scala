@@ -3,6 +3,7 @@
 
 package lucuma.gen
 
+import cats.data.EitherT
 import cats.{Applicative, Monad}
 import cats.effect.Sync
 import cats.syntax.either._
@@ -13,8 +14,8 @@ import cats.syntax.traverse._
 import lucuma.core.model.Observation
 import lucuma.gen.gmos.longslit.{GmosNorthLongSlit, GmosSouthLongSlit}
 import lucuma.gen.gmos.{GmosNorthGenerator, GmosSouthGenerator}
-import lucuma.itc.client.{ItcClient, ItcResult}
-import lucuma.odb.api.model.{ExecutionContext, ExecutionModel, GmosModel, InputError, ObservationModel, ScienceMode, Visit, VisitRecord, VisitRecords}
+import lucuma.itc.client.ItcClient
+import lucuma.odb.api.model.{ExecutionContext, ExecutionModel, GmosModel, ObservationModel, ScienceMode, Visit, VisitRecord, VisitRecords}
 import lucuma.odb.api.repo.OdbRepo
 
 /**
@@ -45,45 +46,36 @@ object SequenceComputation {
     oid: Observation.Id,
     itc: ItcClient[F],
     odb: OdbRepo[F]
-  ): F[Option[ExecutionContext]] = {
+  ): F[Either[String, ExecutionContext]] =
+    (for {
+      o  <- EitherT.fromOptionF(odb.observation.select(oid), s"Could not find observation `${oid.toString}``")
+      m  <- EitherT.fromOption(o.scienceMode, "The science mode has not been selected")
+      ec <- EitherT(m match {
+            case _: ScienceMode.GmosNorthLongSlit =>
+              GmosNorthLongSlit.query(itc, odb, o).flatMap { g =>
+                g.traverse(Instrument.GmosNorth.run(oid, odb, _))
+              }
 
-    def toInputError(result: ItcResult.Error): InputError.Exception =
-      InputError.fromMessage(result.msg).toException
+            case _: ScienceMode.GmosSouthLongSlit =>
+              GmosSouthLongSlit.query(itc, odb, o).flatMap { g =>
+                g.traverse(Instrument.GmosSouth.run(oid, odb, _))
+              }
 
-    def run[S, D, G <: Generator[F, S, D]](
-      inst: Instrument.Config[S, D],
-      queryResult: F[Either[ItcResult.Error, Option[G]]]
-    ): F[Option[ExecutionContext]] =
-      queryResult
-        .flatMap(_.leftMap(toInputError).liftTo[F])
-        .flatMap(_.traverse(inst.run(oid, odb, _)))
+            case _                                =>
+              Applicative[F].pure(s"Cannot calculate the sequence for ${m.mode.name}".asLeft[ExecutionContext])
+           })
+    } yield ec).value
 
-    def go(o: ObservationModel): F[Option[ExecutionContext]] =
-      o.scienceMode.flatTraverse {
-        case _: ScienceMode.GmosNorthLongSlit =>
-          run(Instrument.GmosNorth, GmosNorthLongSlit.query(itc, odb, o))
-        case _: ScienceMode.GmosSouthLongSlit =>
-          run(Instrument.GmosSouth, GmosSouthLongSlit.query(itc, odb, o))
-        case _                                =>
-          Applicative[F].pure(None)
-      }
-
-    for {
-      o <- odb.observation.select(oid)
-      e <- o.flatTraverse(go)
-    } yield e
-
-  }
 
   def compute[F[_]: Sync](
     oid: Observation.Id,
     itc: ItcClient[F],
     odb: OdbRepo[F]
-  ): F[Option[ExecutionContext]] =
+  ): F[Either[String, ExecutionContext]] =
 
     for {
       m <- manual(oid, odb)
-      r <- m.fold(auto(oid, itc, odb)) { m => Applicative[F].pure(m.some) }
+      r <- m.fold(auto(oid, itc, odb)) { m => Applicative[F].pure(m.asRight[String]) }
     } yield r
 
 

@@ -14,43 +14,13 @@ import lucuma.core.math.units.{Nanometer, NanometersPerPixel, Pixels}
 import lucuma.core.model.SourceProfile
 import spire.math.Rational
 
-private[longslit] sealed trait GmosLongslitMath {
-
-  def site: Site
-
-  def pixelSize: Angle =
-    site match {
-      case Site.GN => GmosNorthDetector.Hamamatsu.pixelSize
-      case Site.GS => GmosSouthDetector.Hamamatsu.pixelSize
-    }
-
-  def gapSize: Quantity[PosInt, Pixels] =
-    site match {
-      case Site.GN => GmosNorthDetector.Hamamatsu.gapSize
-      case Site.GS => GmosSouthDetector.Hamamatsu.gapSize
-    }
+trait GmosLongslitMath {
 
   protected implicit val AngleOrder: Order[Angle] =
     Angle.AngleOrder
 
   val IfuSlitWidth: Angle =
     Angle.fromMicroarcseconds(310000L)
-
-
-  private val DescendingXBinning: List[GmosXBinning] =
-    GmosXBinning.all.sortBy(b => -b.count)
-
-  /**
-   * Calculates the best `GmosXBinning` value to use for longslit observing for
-   * the desired sampling.
-   *
-   * @param slitWidth slit size
-   * @param sampling desired sampling rate
-   */
-  protected def xbin(slitWidth: Angle, sampling: PosDouble): GmosXBinning = {
-    val npix  = slitWidth.toMicroarcseconds.toDouble / pixelSize.toMicroarcseconds.toDouble
-    DescendingXBinning.find(b => npix / b.count.toDouble >= sampling.value).getOrElse(GmosXBinning.One)
-  }
 
   /**
    * Object angular size estimate based on source profile alone.
@@ -71,6 +41,41 @@ private[longslit] sealed trait GmosLongslitMath {
   def effectiveSlitWidth(p: SourceProfile, iq: ImageQuality, slitWidth: Angle): Angle =
     slitWidth min effectiveSize(p, iq)
 
+}
+
+
+trait GmosSiteSpecificLongslitMath extends GmosLongslitMath {
+
+  def site: Site
+
+  def pixelSize: Angle =
+    site match {
+      case Site.GN => GmosNorthDetector.Hamamatsu.pixelSize
+      case Site.GS => GmosSouthDetector.Hamamatsu.pixelSize
+    }
+
+  def gapSize: Quantity[PosInt, Pixels] =
+    site match {
+      case Site.GN => GmosNorthDetector.Hamamatsu.gapSize
+      case Site.GS => GmosSouthDetector.Hamamatsu.gapSize
+    }
+
+
+  private val DescendingXBinning: List[GmosXBinning] =
+    GmosXBinning.all.sortBy(b => -b.count)
+
+  /**
+   * Calculates the best `GmosXBinning` value to use for longslit observing for
+   * the desired sampling.
+   *
+   * @param slitWidth slit size
+   * @param sampling desired sampling rate
+   */
+  protected def xbin(slitWidth: Angle, sampling: PosDouble): GmosXBinning = {
+    val npix  = slitWidth.toMicroarcseconds.toDouble / pixelSize.toMicroarcseconds.toDouble
+    DescendingXBinning.find(b => npix / b.count.toDouble >= sampling.value).getOrElse(GmosXBinning.One)
+  }
+
   /*
    * Calculates the wavelength offsets required to fill in the chip gaps,
    * rounded to the nearest 5 nm.
@@ -86,7 +91,9 @@ private[longslit] sealed trait GmosLongslitMath {
 
 }
 
-private[longslit] object GmosNorthLongslitMath extends GmosLongslitMath {
+object GmosLongslitMath extends GmosLongslitMath
+
+object GmosNorthLongslitMath extends GmosSiteSpecificLongslitMath {
 
   override def site: Site = Site.GN
 
@@ -98,7 +105,7 @@ private[longslit] object GmosNorthLongslitMath extends GmosLongslitMath {
 
 }
 
-private[longslit] object GmosSouthLongslitMath extends GmosLongslitMath {
+object GmosSouthLongslitMath extends GmosSiteSpecificLongslitMath {
 
   override def site: Site = Site.GS
 

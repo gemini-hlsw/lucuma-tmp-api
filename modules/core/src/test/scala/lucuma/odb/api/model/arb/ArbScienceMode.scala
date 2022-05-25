@@ -7,6 +7,8 @@ package arb
 import eu.timepit.refined.scalacheck.string._
 import eu.timepit.refined.types.all.NonEmptyString
 import lucuma.core.`enum`.{GmosAmpGain, GmosAmpReadMode, GmosNorthFilter, GmosNorthFpu, GmosNorthGrating, GmosRoi, GmosSouthFilter, GmosSouthFpu, GmosSouthGrating, GmosXBinning, GmosYBinning}
+import lucuma.core.math.Wavelength
+import lucuma.core.math.arb.ArbWavelength
 import lucuma.odb.api.model.gmos.longslit.{AdvancedConfig, BasicConfig}
 import lucuma.core.util.arb.ArbEnumerated
 import org.scalacheck.Arbitrary
@@ -19,6 +21,8 @@ trait ArbScienceMode {
   import ScienceMode.{GmosNorthLongSlit, GmosSouthLongSlit}
 
   import ArbEnumerated._
+  import ArbExposureMode._
+  import ArbWavelength._
 
   implicit def arbBasicConfig[G: Arbitrary, F: Arbitrary, U: Arbitrary]: Arbitrary[BasicConfig[G, F, U]] =
     Arbitrary {
@@ -44,23 +48,27 @@ trait ArbScienceMode {
     Arbitrary {
       for {
         n  <- arbitrary[Option[NonEmptyString]]
+        w  <- arbitrary[Option[Wavelength]]
         g  <- arbitrary[Option[G]]
         f  <- arbitrary[Option[Option[F]]]
         u  <- arbitrary[Option[U]]
+        e  <- arbitrary[Option[ExposureTimeMode]]
         x  <- arbitrary[Option[GmosXBinning]]
         y  <- arbitrary[Option[GmosYBinning]]
         ar <- arbitrary[Option[GmosAmpReadMode]]
         ag <- arbitrary[Option[GmosAmpGain]]
         ro <- arbitrary[Option[GmosRoi]]
-      } yield AdvancedConfig(n, g, f, u, x, y, ar, ag, ro)
+      } yield AdvancedConfig(n, w, g, f, u, e, x, y, ar, ag, ro)
     }
 
   implicit def cogAdvancedConfig[G: Cogen, F: Cogen, U: Cogen]: Cogen[AdvancedConfig[G, F, U]] =
     Cogen[(
       Option[String],
+      Option[Wavelength],
       Option[G],
       Option[Option[F]],
       Option[U],
+      Option[ExposureTimeMode],
       Option[GmosXBinning],
       Option[GmosYBinning],
       Option[GmosAmpReadMode],
@@ -68,9 +76,11 @@ trait ArbScienceMode {
       Option[GmosRoi]
     )].contramap { a => (
       a.name.map(_.value),
+      a.overrideWavelength,
       a.overrideGrating,
       a.overrideFilter,
       a.overrideFpu,
+      a.overrideExposureTimeMode,
       a.explicitXBin,
       a.explicitYBin,
       a.explicitAmpReadMode,

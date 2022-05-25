@@ -531,7 +531,7 @@ object GmosSchema {
       s"${gmos(site).tag.capitalize}DynamicInput",
       s"${gmos(site).longName} instrument configuration input",
       List(
-        InputField("exposure",      InputObjectTypeDuration,            "Exposure time"),
+        InputField("exposure",      InputObjectTypeNonNegDuration,            "Exposure time"),
         InputField("readout",       InputObjectTypeGmosCcdReadoutInput, "GMOS CCD readout"),
         InputField("dtax",          EnumTypeGmosDtax,                   "GMOS detector x offset"),
         InputField("roi",           EnumTypeGmosRoi,                    "GMOS region of interest"),

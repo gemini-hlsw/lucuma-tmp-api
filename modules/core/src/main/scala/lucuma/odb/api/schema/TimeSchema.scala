@@ -81,7 +81,7 @@ object TimeSchema {
     )
   }
 
-  val InputObjectTypeDuration: InputObjectType[DurationModel.NonNegDurationInput] =
+  val InputObjectTypeNonNegDuration: InputObjectType[DurationModel.NonNegDurationInput] =
     InputObjectType[DurationModel.NonNegDurationInput](
       "NonNegDurationInput",
       "Time duration input",

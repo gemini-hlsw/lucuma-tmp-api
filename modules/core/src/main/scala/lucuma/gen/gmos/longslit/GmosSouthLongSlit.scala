@@ -8,11 +8,9 @@ package longslit
 import cats.effect.Sync
 import cats.syntax.functor._
 import eu.timepit.refined.auto._
-import eu.timepit.refined.types.all.{PosDouble, PosInt}
+import eu.timepit.refined.types.all.PosDouble
 import lucuma.core.`enum`._
-import lucuma.core.math.Wavelength
-import lucuma.core.model.SourceProfile
-import lucuma.itc.client.{ItcClient, ItcResult}
+import lucuma.itc.client.ItcClient
 import lucuma.odb.api.model.GmosModel.{SouthDynamic, SouthStatic}
 import lucuma.odb.api.model.{ObservationModel, ScienceMode, Sequence}
 import lucuma.odb.api.model.gmos.syntax.gmosSouthFilter._
@@ -35,26 +33,14 @@ object GmosSouthLongSlit {
     odb:         OdbRepo[F],
     observation: ObservationModel,
     sampling:    PosDouble = GmosLongSlit.DefaultSampling,
-  ): F[Either[ItcResult.Error, Option[GmosSouthLongSlit[F]]]] =
+  ): F[Either[String, GmosSouthLongSlit[F]]] =
 
     GmosLongSlit.Input.query(itc, odb, observation, sampling) {
       case gnls: ScienceMode.GmosSouthLongSlit => gnls
-    }.map(_.map(_.map(fromInput[F])))
+    }.map(_.map(fromInput[F]))
 
   def fromInput[F[_]: Sync](
     in: GmosLongSlit.Input[ScienceMode.GmosSouthLongSlit]
-  ): GmosSouthLongSlit[F] =
-    apply(in.mode, in.λ, in.imageQuality, in.sampling, in.sourceProfile, in.acqTime, in.sciTime, in.exposureCount)
-
-  def apply[F[_]: Sync](
-    mode:          ScienceMode.GmosSouthLongSlit,
-    λ:             Wavelength,
-    imageQuality:  ImageQuality,
-    sampling:      PosDouble,
-    sourceProfile: SourceProfile,
-    acqTime:       AcqExposureTime,
-    sciTime:       SciExposureTime,
-    exposureCount: PosInt
   ): GmosSouthLongSlit[F] =
 
     new GmosSouthLongSlit[F] with GmosLongSlit[F, SouthStatic, SouthDynamic] {
@@ -70,11 +56,11 @@ object GmosSouthLongSlit {
       override def acquisitionSteps: Acquisition.Steps[SouthDynamic] =
         Acquisition.GmosSouth.compute(
           GmosSouthFilter.allAcquisition.fproduct(_.wavelength),
-          mode.fpu, acqTime, λ
+          in.mode.fpu, in.acqTime, in.λ
         )
 
       override def scienceAtoms: LazyList[Science.Atom[SouthDynamic]] =
-        Science.GmosSouth.compute(mode, sciTime, λ, sourceProfile, imageQuality, sampling)
+        Science.GmosSouth.compute(in.mode, in.sciTime, in.λ, in.sourceProfile, in.imageQuality, in.sampling)
 
       override def acquisition(
         recordedSteps: List[RecordedStep[SouthDynamic]]
@@ -84,7 +70,7 @@ object GmosSouthLongSlit {
       override def science(
         recordedSteps: List[RecordedStep[SouthDynamic]]
       ): F[Sequence[SouthDynamic]] =
-        longSlitScience(exposureCount, recordedSteps)
+        longSlitScience(in.exposureCount, recordedSteps)
     }
 
 }

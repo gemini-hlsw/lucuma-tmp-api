@@ -10,8 +10,9 @@ import coulomb.cats.implicits._
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.all.NonEmptyString
 import lucuma.core.`enum`.{GmosAmpGain, GmosAmpReadMode, GmosRoi, GmosXBinning, GmosYBinning}
-import lucuma.core.math.{Angle, Offset}
+import lucuma.core.math.{Angle, Offset, Wavelength}
 import lucuma.core.math.units.Nanometer
+import lucuma.odb.api.model.ExposureTimeMode
 import monocle.{Focus, Lens}
 
 /**
@@ -19,17 +20,19 @@ import monocle.{Focus, Lens}
  * generated without resorting to a manual sequence.
  */
 final case class AdvancedConfig[G, F, U](
-  name:                   Option[NonEmptyString],
-  overrideGrating:        Option[G]                                      = None,
-  overrideFilter:         Option[Option[F]]                              = None,
-  overrideFpu:            Option[U]                                      = None,
-  explicitXBin:           Option[GmosXBinning]                           = None,  // calculated from effective slit and sampling by default
-  explicitYBin:           Option[GmosYBinning]                           = None,
-  explicitAmpReadMode:    Option[GmosAmpReadMode]                        = None,
-  explicitAmpGain:        Option[GmosAmpGain]                            = None,
-  explicitRoi:            Option[GmosRoi]                                = None,
-  explicitλDithers:       Option[NonEmptyList[Quantity[Int, Nanometer]]] = None,
-  explicitSpatialOffsets: Option[NonEmptyList[Offset.Q]]                 = None
+  name:                     Option[NonEmptyString],
+  overrideWavelength:       Option[Wavelength]                             = None,
+  overrideGrating:          Option[G]                                      = None,
+  overrideFilter:           Option[Option[F]]                              = None,
+  overrideFpu:              Option[U]                                      = None,
+  overrideExposureTimeMode: Option[ExposureTimeMode]                       = None,
+  explicitXBin:             Option[GmosXBinning]                           = None,  // calculated from effective slit and sampling by default
+  explicitYBin:             Option[GmosYBinning]                           = None,
+  explicitAmpReadMode:      Option[GmosAmpReadMode]                        = None,
+  explicitAmpGain:          Option[GmosAmpGain]                            = None,
+  explicitRoi:              Option[GmosRoi]                                = None,
+  explicitλDithers:         Option[NonEmptyList[Quantity[Int, Nanometer]]] = None,
+  explicitSpatialOffsets:   Option[NonEmptyList[Offset.Q]]                 = None
 )
 
 object AdvancedConfig extends AdvancedConfigOptics {
@@ -67,9 +70,11 @@ object AdvancedConfig extends AdvancedConfigOptics {
   implicit def EqAdvancedConfig[G: Eq, F: Eq, U: Eq]: Eq[AdvancedConfig[G, F, U]] =
     Eq.by { a => (
       a.name,
+      a.overrideWavelength,
       a.overrideGrating,
       a.overrideFilter,
       a.overrideFpu,
+      a.overrideExposureTimeMode,
       a.explicitXBin,
       a.explicitYBin,
       a.explicitAmpReadMode,
@@ -86,14 +91,20 @@ sealed trait AdvancedConfigOptics { self: AdvancedConfig.type =>
   def name[G, F, U]: Lens[AdvancedConfig[G, F, U], Option[NonEmptyString]] =
     Focus[AdvancedConfig[G, F, U]](_.name)
 
+  def overrideWavelength[G, F, U]: Lens[AdvancedConfig[G, F, U], Option[Wavelength]] =
+    Focus[AdvancedConfig[G, F, U]](_.overrideWavelength)
+
   def overrideGrating[G, F, U]: Lens[AdvancedConfig[G, F, U], Option[G]] =
-      Focus[AdvancedConfig[G, F, U]](_.overrideGrating)
+    Focus[AdvancedConfig[G, F, U]](_.overrideGrating)
 
   def overrideFilter[G, F, U]: Lens[AdvancedConfig[G, F, U], Option[Option[F]]] =
-      Focus[AdvancedConfig[G, F, U]](_.overrideFilter)
+    Focus[AdvancedConfig[G, F, U]](_.overrideFilter)
 
   def overrideFpu[G, F, U]: Lens[AdvancedConfig[G, F, U], Option[U]] =
-      Focus[AdvancedConfig[G, F, U]](_.overrideFpu)
+    Focus[AdvancedConfig[G, F, U]](_.overrideFpu)
+
+  def overrideExposureMode[G, F, U]: Lens[AdvancedConfig[G, F, U], Option[ExposureTimeMode]] =
+    Focus[AdvancedConfig[G, F, U]](_.overrideExposureTimeMode)
 
   def explicitXBin[G, F, U]: Lens[AdvancedConfig[G, F, U], Option[GmosXBinning]] =
     Focus[AdvancedConfig[G, F, U]](_.explicitXBin)
