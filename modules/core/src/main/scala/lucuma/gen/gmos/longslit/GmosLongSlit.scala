@@ -22,7 +22,7 @@ import lucuma.core.math.units.Nanometer
 import lucuma.core.model.{SourceProfile, Target}
 import lucuma.core.syntax.time._
 import lucuma.itc.client.ItcClient
-import lucuma.odb.api.model.{ObservationModel, ScienceMode, Sequence}
+import lucuma.odb.api.model.{ExposureTimeMode, ObservationModel, ScienceMode, Sequence}
 import lucuma.odb.api.model.ExposureTimeMode.{FixedExposure, SignalToNoise}
 import lucuma.odb.api.model.gmos.longslit.{GmosLongslitMath, LongSlit}
 import lucuma.odb.api.model.time.NonNegDuration
@@ -116,7 +116,52 @@ object GmosLongSlit {
       useCache:       Boolean = true
     )(
       f: PartialFunction[ScienceMode, M]
-    ): F[Either[String, Input[M]]] =
+    ): F[Either[String, Input[M]]] = {
+
+      // Either the explicit override wavelength or else fall back on the
+      // science requirements wavelength
+      def requestedWavelength(mode: M): Option[Wavelength] =
+        mode.advanced
+          .flatMap(_.overrideWavelength)
+          .orElse(observation.scienceRequirements.spectroscopy.wavelength)
+
+      // Either the explicit override exposure time mode, or else fall back om
+      // the signal to noise exposure time mode in the science requirements.
+      def requestedExposureTimeMode(mode: M): Option[ExposureTimeMode] =
+          mode
+            .advanced
+            .flatMap(_.overrideExposureTimeMode)
+            .orElse(
+              observation.scienceRequirements.spectroscopy.signalToNoise.map(sn => SignalToNoise(sn))
+            )
+
+      val targets: F[List[Target]] =
+        observation
+          .targetEnvironment
+          .asterism
+          .toList
+          .flatTraverse { tid =>
+            odb.target.selectTarget(tid, includeDeleted).map(_.map(_.target).toList)
+          }
+
+      // Select the source profile that yields the largest object size
+      implicit val AngleOrder: Order[Angle] =
+        Angle.AngleOrder
+
+      val sourceProfile: F[Option[SourceProfile]] =
+        targets.map { ts =>
+          ts.maxByOption { t =>
+            GmosLongslitMath.objectSize(t.sourceProfile)
+          }.map(_.sourceProfile)
+        }
+
+      val queryItc: F[Either[String, FixedExposure]] =
+        itc
+          .query(observation.id, odb, includeDeleted, useCache)
+          .map {
+            _.leftMap(e => s"Problem querying the ITC: ${e.msg}")
+             .map { case (_, s) => FixedExposure(s.exposures, s.exposureTime) }
+          }
 
       (for {
         mode <- EitherT.fromOption[F](
@@ -125,29 +170,19 @@ object GmosLongSlit {
         )
 
         λ <- EitherT.fromOption[F](
-          mode.advanced
-            .flatMap(_.overrideWavelength)
-            .orElse(observation.scienceRequirements.spectroscopy.wavelength),
+          requestedWavelength(mode),
           "Could not determine the wavelength"
         )
 
-        sp <- EitherT(
-          selectSourceProfile(odb, observation, includeDeleted)
-            .map(_.toRight("Observation has no targets"))
-        )
+        sp <- EitherT(sourceProfile.map(_.toRight("Observation has no targets")))
 
         sci0 <- EitherT.fromOption[F](
-          mode
-            .advanced
-            .flatMap(_.overrideExposureTimeMode)
-            .orElse(
-              observation.scienceRequirements.spectroscopy.signalToNoise.map(sn => SignalToNoise(sn))
-            ),
+          requestedExposureTimeMode(mode),
           "Observation S/N requirement not specified"
         )
 
         sci <- sci0 match {
-          case SignalToNoise(_)      => EitherT(queryItc(itc, odb, observation, includeDeleted, useCache))
+          case SignalToNoise(_)      => EitherT(queryItc)
           case f@FixedExposure(_, _) => EitherT.pure[F, String](f)
         }
 
@@ -161,49 +196,7 @@ object GmosLongSlit {
         shapeless.tag[SciExposureTimeTag][NonNegDuration](sci.time),
         sci.count
       )).value
-
-    private def targets[F[_] : Sync](
-      odb:            OdbRepo[F],
-      observation:    ObservationModel,
-      includeDeleted: Boolean
-    ): F[List[Target]] =
-      observation
-        .targetEnvironment
-        .asterism
-        .toList
-        .flatTraverse { tid =>
-          odb.target.selectTarget(tid, includeDeleted).map(_.map(_.target).toList)
-        }
-
-    private def selectSourceProfile[F[_]: Sync](
-      odb:            OdbRepo[F],
-      observation:    ObservationModel,
-      includeDeleted: Boolean
-    ): F[Option[SourceProfile]] = {
-
-      implicit val AngleOrder: Order[Angle] =
-        Angle.AngleOrder
-
-      targets(odb, observation, includeDeleted).map { ts =>
-        ts.maxByOption { t =>
-          GmosLongslitMath.objectSize(t.sourceProfile)
-        }.map(_.sourceProfile)
-      }
     }
-
-    private def queryItc[F[_]: Sync](
-      itc:            ItcClient[F],
-      odb:            OdbRepo[F],
-      observation:    ObservationModel,
-      includeDeleted: Boolean,
-      useCache:       Boolean
-    ): F[Either[String, FixedExposure]] =
-      itc
-        .query(observation.id, odb, includeDeleted, useCache)
-        .map {
-          _.leftMap(e => s"Problem querying the ITC: ${e.msg}")
-           .map { case (_, s) => FixedExposure(s.exposures, s.exposureTime) }
-        }
 
   }
 }
