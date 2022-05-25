@@ -5,14 +5,46 @@ package lucuma.odb.api.schema
 
 import lucuma.core.`enum`.{GmosNorthFilter, GmosNorthFpu, GmosNorthGrating, GmosSouthFilter, GmosSouthFpu, GmosSouthGrating}
 import lucuma.odb.api.model.gmos.longslit.{AdvancedConfig, BasicConfigInput}
-import lucuma.odb.api.model.{ScienceMode, ScienceModeInput}
+import lucuma.odb.api.model.{ExposureTimeMode, ScienceMode, ScienceModeInput}
+import lucuma.odb.api.model.ExposureTimeMode.{FixedExposureInput, SignalToNoiseInput}
 import sangria.schema._
 
 trait ScienceModeMutation {
 
   import syntax.inputtype._
   import GmosSchema._
+  import RefinedSchema._
+  import TimeSchema.InputObjectTypeNonNegDuration
   import WavelengthSchema.InputWavelength
+
+  implicit val InputObjectTypeSignalToNoise: InputObjectType[SignalToNoiseInput] =
+    InputObjectType[SignalToNoiseInput](
+      "SignalToNoiseModeInput",
+      "Signal-to-noise mode parameters",
+      List(
+        InputField("value", PosBigDecimalType, "s/n value")
+      )
+    )
+
+  implicit val InputObjectTypeFixedExposureMode: InputObjectType[FixedExposureInput] =
+    InputObjectType[FixedExposureInput](
+      "FixedExposureModeInput",
+      "Fixed exposure time mode parameters",
+      List(
+        InputField("count", NonNegIntType,                 "exposure count"),
+        InputField("time",  InputObjectTypeNonNegDuration, "exposure time")
+      )
+    )
+
+  implicit val InputObjectTypeExposureTimeMode: InputObjectType[ExposureTimeMode] =
+    InputObjectType[ExposureTimeMode](
+      "ExposureTimeModeInput",
+      "Exposure time mode input.  Specify fixed or signal to noise, but not both",
+      List(
+        InputObjectTypeSignalToNoise.notNullableField("signalToNoise"),
+        InputObjectTypeFixedExposureMode.notNullableField("fixedExposure")
+      )
+    )
 
   def inputObjectTypeGmosLongSlitBasicConfig[G, F, U](
     siteName:    String,
@@ -60,6 +92,7 @@ trait ScienceModeMutation {
         gratingEnum.nullableField("overrideGrating"),
         filterEnum.nullableField("overrideFilter"),
         fpuEnum.nullableField("overrideFpu"),
+        InputObjectTypeExposureTimeMode.nullableField("overrideExposureTimeMode"),
         EnumTypeGmosXBinning.nullableField("explicitXBin"),
         EnumTypeGmosYBinning.nullableField("explicitYBin"),
         EnumTypeGmosAmpReadMode.nullableField("explicitAmpReadMode"),

@@ -5,11 +5,11 @@ package lucuma.odb.api.model
 
 import lucuma.core.util.Enumerated
 
-sealed abstract class ConfigurationMode extends Product with Serializable
+sealed abstract class ConfigurationMode(val name: String) extends Product with Serializable
 
 object ConfigurationMode {
-  case object GmosNorthLongSlit extends ConfigurationMode
-  case object GmosSouthLongSlit extends ConfigurationMode
+  case object GmosNorthLongSlit extends ConfigurationMode("GMOS North Long Slit")
+  case object GmosSouthLongSlit extends ConfigurationMode("GMOS South Long Slit")
 
   implicit val ConfigurationModeEnumerated: Enumerated[ConfigurationMode] =
     Enumerated.of(GmosNorthLongSlit, GmosSouthLongSlit)

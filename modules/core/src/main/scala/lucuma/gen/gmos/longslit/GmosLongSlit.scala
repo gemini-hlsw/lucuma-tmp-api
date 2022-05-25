@@ -5,25 +5,30 @@ package lucuma.gen
 package gmos
 package longslit
 
-import cats.Eq
+import cats.{Eq, Order}
+import cats.data.EitherT
+import cats.Order.catsKernelOrderingForOrder
 import cats.effect.Sync
+import cats.syntax.either._
 import cats.syntax.eq._
 import cats.syntax.functor._
+import cats.syntax.traverse._
 import coulomb.Quantity
 import eu.timepit.refined.auto._
-import eu.timepit.refined.types.all.{PosDouble, PosInt}
+import eu.timepit.refined.types.all.{NonNegInt, PosDouble}
 import lucuma.core.`enum`.ImageQuality
-import lucuma.core.math.Wavelength
+import lucuma.core.math.{Angle, Wavelength}
 import lucuma.core.math.units.Nanometer
-import lucuma.core.model.SourceProfile
+import lucuma.core.model.{SourceProfile, Target}
 import lucuma.core.syntax.time._
-import lucuma.itc.client.{ItcClient, ItcResult}
+import lucuma.itc.client.ItcClient
 import lucuma.odb.api.model.{ObservationModel, ScienceMode, Sequence}
+import lucuma.odb.api.model.ExposureTimeMode.{FixedExposure, SignalToNoise}
+import lucuma.odb.api.model.gmos.longslit.{GmosLongslitMath, LongSlit}
+import lucuma.odb.api.model.time.NonNegDuration
 import lucuma.odb.api.repo.OdbRepo
 
 trait GmosLongSlit[F[_], S, D] extends Generator[F, S, D] with GeneratorHelper[D] {
-
-  def λ: Wavelength
 
   def acquisitionSteps: Acquisition.Steps[D]
 
@@ -89,61 +94,116 @@ object GmosLongSlit {
       .getOption(λ.toPicometers.value + Δ.value * 1000)
       .getOrElse(Wavelength.Min)
 
-
   final case class Input[M](
     mode:          M,
-    requirementλ:  Wavelength,
+    λ:             Wavelength,
     imageQuality:  ImageQuality,
     sampling:      PosDouble,
     sourceProfile: SourceProfile,
     acqTime:       AcqExposureTime,
     sciTime:       SciExposureTime,
-    exposureCount: PosInt
+    exposureCount: NonNegInt
   )
 
   object Input {
 
-    def query[F[_]: Sync, M](
-      itc:         ItcClient[F],
-      odb:         OdbRepo[F],
-      observation: ObservationModel,
-      sampling:    PosDouble = GmosLongSlit.DefaultSampling,
+    def query[F[_] : Sync, M <: LongSlit[_, _, _]](
+      itc:            ItcClient[F],
+      odb:            OdbRepo[F],
+      observation:    ObservationModel,
+      sampling:       PosDouble = GmosLongSlit.DefaultSampling,
+      includeDeleted: Boolean = false,
+      useCache:       Boolean = true
     )(
       f: PartialFunction[ScienceMode, M]
-    ): F[Either[ItcResult.Error, Option[Input[M]]]] =
+    ): F[Either[String, Input[M]]] =
 
-      itc
-        .query(observation.id, odb)
-        .map(_.map { case (target, result) =>
-          fromObservationAndItc(observation, sampling, target.sourceProfile, result)(f)
-        })
+      (for {
+        mode <- EitherT.fromOption[F](
+          observation.scienceMode.collect(f),
+          "There is no matching GMOS Long Slit mode definition"
+        )
 
+        λ <- EitherT.fromOption[F](
+          mode.advanced
+            .flatMap(_.overrideWavelength)
+            .orElse(observation.scienceRequirements.spectroscopy.wavelength),
+          "Could not determine the wavelength"
+        )
 
-    def fromObservationAndItc[M](
-      observation:   ObservationModel,
-      sampling:      PosDouble,
-      sourceProfile: SourceProfile,
-      itc:           ItcResult.Success
-    )(
-      f: PartialFunction[ScienceMode, M]
-    ): Option[Input[M]] =
+        sp <- EitherT(
+          selectSourceProfile(odb, observation, includeDeleted)
+            .map(_.toRight("Observation has no targets"))
+        )
 
-      for {
-        mode     <- observation.scienceMode.collect(f)
-        λ        <- observation.scienceRequirements.spectroscopy.wavelength
-        sciTime  <- SciExposureTime.from(itc.exposureTime)
-        expCount <- PosInt.from(itc.exposures).toOption
+        sci0 <- EitherT.fromOption[F](
+          mode
+            .advanced
+            .flatMap(_.overrideExposureTimeMode)
+            .orElse(
+              observation.scienceRequirements.spectroscopy.signalToNoise.map(sn => SignalToNoise(sn))
+            ),
+          "Observation S/N requirement not specified"
+        )
+
+        sci <- sci0 match {
+          case SignalToNoise(_)      => EitherT(queryItc(itc, odb, observation, includeDeleted, useCache))
+          case f@FixedExposure(_, _) => EitherT.pure[F, String](f)
+        }
+
       } yield Input[M](
         mode,
         λ,
         observation.constraintSet.imageQuality,
         sampling,
-        sourceProfile,
+        sp,
         GmosLongSlit.acquisitionExposureTime,
-        sciTime,
-        expCount
-      )
+        shapeless.tag[SciExposureTimeTag][NonNegDuration](sci.time),
+        sci.count
+      )).value
+
+    private def targets[F[_] : Sync](
+      odb:            OdbRepo[F],
+      observation:    ObservationModel,
+      includeDeleted: Boolean
+    ): F[List[Target]] =
+      observation
+        .targetEnvironment
+        .asterism
+        .toList
+        .flatTraverse { tid =>
+          odb.target.selectTarget(tid, includeDeleted).map(_.map(_.target).toList)
+        }
+
+    private def selectSourceProfile[F[_]: Sync](
+      odb:            OdbRepo[F],
+      observation:    ObservationModel,
+      includeDeleted: Boolean
+    ): F[Option[SourceProfile]] = {
+
+      implicit val AngleOrder: Order[Angle] =
+        Angle.AngleOrder
+
+      targets(odb, observation, includeDeleted).map { ts =>
+        ts.maxByOption { t =>
+          GmosLongslitMath.objectSize(t.sourceProfile)
+        }.map(_.sourceProfile)
+      }
+    }
+
+    private def queryItc[F[_]: Sync](
+      itc:            ItcClient[F],
+      odb:            OdbRepo[F],
+      observation:    ObservationModel,
+      includeDeleted: Boolean,
+      useCache:       Boolean
+    ): F[Either[String, FixedExposure]] =
+      itc
+        .query(observation.id, odb, includeDeleted, useCache)
+        .map {
+          _.leftMap(e => s"Problem querying the ITC: ${e.msg}")
+           .map { case (_, s) => FixedExposure(s.exposures, s.exposureTime) }
+        }
 
   }
-
 }

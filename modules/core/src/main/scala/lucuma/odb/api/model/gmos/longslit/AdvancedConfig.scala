@@ -12,7 +12,7 @@ import eu.timepit.refined.types.all.NonEmptyString
 import lucuma.core.`enum`.{GmosAmpGain, GmosAmpReadMode, GmosRoi, GmosXBinning, GmosYBinning}
 import lucuma.core.math.{Angle, Offset, Wavelength}
 import lucuma.core.math.units.Nanometer
-import lucuma.odb.api.model.ExposureMode
+import lucuma.odb.api.model.ExposureTimeMode
 import monocle.{Focus, Lens}
 
 /**
@@ -20,19 +20,19 @@ import monocle.{Focus, Lens}
  * generated without resorting to a manual sequence.
  */
 final case class AdvancedConfig[G, F, U](
-  name:                   Option[NonEmptyString],
-  overrideWavelength:     Option[Wavelength]                             = None,
-  overrideGrating:        Option[G]                                      = None,
-  overrideFilter:         Option[Option[F]]                              = None,
-  overrideFpu:            Option[U]                                      = None,
-  overrideExposureMode:   Option[ExposureMode]                           = None,
-  explicitXBin:           Option[GmosXBinning]                           = None,  // calculated from effective slit and sampling by default
-  explicitYBin:           Option[GmosYBinning]                           = None,
-  explicitAmpReadMode:    Option[GmosAmpReadMode]                        = None,
-  explicitAmpGain:        Option[GmosAmpGain]                            = None,
-  explicitRoi:            Option[GmosRoi]                                = None,
-  explicitλDithers:       Option[NonEmptyList[Quantity[Int, Nanometer]]] = None,
-  explicitSpatialOffsets: Option[NonEmptyList[Offset.Q]]                 = None
+  name:                     Option[NonEmptyString],
+  overrideWavelength:       Option[Wavelength]                             = None,
+  overrideGrating:          Option[G]                                      = None,
+  overrideFilter:           Option[Option[F]]                              = None,
+  overrideFpu:              Option[U]                                      = None,
+  overrideExposureTimeMode: Option[ExposureTimeMode]                       = None,
+  explicitXBin:             Option[GmosXBinning]                           = None,  // calculated from effective slit and sampling by default
+  explicitYBin:             Option[GmosYBinning]                           = None,
+  explicitAmpReadMode:      Option[GmosAmpReadMode]                        = None,
+  explicitAmpGain:          Option[GmosAmpGain]                            = None,
+  explicitRoi:              Option[GmosRoi]                                = None,
+  explicitλDithers:         Option[NonEmptyList[Quantity[Int, Nanometer]]] = None,
+  explicitSpatialOffsets:   Option[NonEmptyList[Offset.Q]]                 = None
 )
 
 object AdvancedConfig extends AdvancedConfigOptics {
@@ -74,7 +74,7 @@ object AdvancedConfig extends AdvancedConfigOptics {
       a.overrideGrating,
       a.overrideFilter,
       a.overrideFpu,
-      a.overrideExposureMode,
+      a.overrideExposureTimeMode,
       a.explicitXBin,
       a.explicitYBin,
       a.explicitAmpReadMode,
@@ -103,8 +103,8 @@ sealed trait AdvancedConfigOptics { self: AdvancedConfig.type =>
   def overrideFpu[G, F, U]: Lens[AdvancedConfig[G, F, U], Option[U]] =
     Focus[AdvancedConfig[G, F, U]](_.overrideFpu)
 
-  def overrideExposureMode[G, F, U]: Lens[AdvancedConfig[G, F, U], Option[ExposureMode]] =
-    Focus[AdvancedConfig[G, F, U]](_.overrideExposureMode)
+  def overrideExposureMode[G, F, U]: Lens[AdvancedConfig[G, F, U], Option[ExposureTimeMode]] =
+    Focus[AdvancedConfig[G, F, U]](_.overrideExposureTimeMode)
 
   def explicitXBin[G, F, U]: Lens[AdvancedConfig[G, F, U], Option[GmosXBinning]] =
     Focus[AdvancedConfig[G, F, U]](_.explicitXBin)

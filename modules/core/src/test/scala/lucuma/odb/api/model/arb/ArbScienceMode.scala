@@ -52,7 +52,7 @@ trait ArbScienceMode {
         g  <- arbitrary[Option[G]]
         f  <- arbitrary[Option[Option[F]]]
         u  <- arbitrary[Option[U]]
-        e  <- arbitrary[Option[ExposureMode]]
+        e  <- arbitrary[Option[ExposureTimeMode]]
         x  <- arbitrary[Option[GmosXBinning]]
         y  <- arbitrary[Option[GmosYBinning]]
         ar <- arbitrary[Option[GmosAmpReadMode]]
@@ -68,7 +68,7 @@ trait ArbScienceMode {
       Option[G],
       Option[Option[F]],
       Option[U],
-      Option[ExposureMode],
+      Option[ExposureTimeMode],
       Option[GmosXBinning],
       Option[GmosYBinning],
       Option[GmosAmpReadMode],
@@ -80,7 +80,7 @@ trait ArbScienceMode {
       a.overrideGrating,
       a.overrideFilter,
       a.overrideFpu,
-      a.overrideExposureMode,
+      a.overrideExposureTimeMode,
       a.explicitXBin,
       a.explicitYBin,
       a.explicitAmpReadMode,

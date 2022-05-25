@@ -4,6 +4,7 @@
 package lucuma.itc.client
 
 import cats.data.EitherT
+import cats.syntax.applicativeError._
 import cats.syntax.either._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
@@ -39,8 +40,11 @@ class ItcClient[F[_]: Async: Logger](
 
     def callItc(in: ItcSpectroscopyInput): F[ItcResult] =
       for {
-        x <- resource.use(_.request(ItcQuery)(in))
-        r  = x.headOption.map(_.itc).getOrElse(ItcResult.error(s"No ITC result was returned for ${o.id}"))
+        x <- resource.use(_.request(ItcQuery)(in)).attempt
+        r  = x.fold(
+               x => ItcResult.Error(s"Could not call the ITC: ${x.getMessage}"),
+               _.headOption.map(_.itc).getOrElse(ItcResult.error(s"No ITC result was returned for ${o.id}"))
+             )
         _ <- cache.update(_ + (in -> r))
       } yield r
 

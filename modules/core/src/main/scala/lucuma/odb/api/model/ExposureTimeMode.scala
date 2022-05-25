@@ -11,7 +11,7 @@ import cats.syntax.validated._
 import clue.data.Input
 import clue.data.syntax._
 import eu.timepit.refined.cats._
-import eu.timepit.refined.types.all.{PosBigDecimal, PosInt}
+import eu.timepit.refined.types.all.{NonNegInt, PosBigDecimal}
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import io.circe.refined._
@@ -21,14 +21,14 @@ import lucuma.odb.api.model.syntax.validatedinput._
 import monocle.Prism
 import monocle.macros.GenPrism
 
-sealed trait ExposureMode extends Product with Serializable
+sealed trait ExposureTimeMode extends Product with Serializable
 
-object ExposureMode {
+object ExposureTimeMode {
 
-  final case class SignalToNoise(value: PosBigDecimal)                extends ExposureMode
-  final case class FixedExposure(count: PosInt, time: NonNegDuration) extends ExposureMode
+  final case class SignalToNoise(value: PosBigDecimal)                   extends ExposureTimeMode
+  final case class FixedExposure(count: NonNegInt, time: NonNegDuration) extends ExposureTimeMode
 
-  implicit val EqExposureMode: Eq[ExposureMode] =
+  implicit val EqExposureMode: Eq[ExposureTimeMode] =
     Eq.instance {
       case (SignalToNoise(a), SignalToNoise(b))           => a === b
       case (FixedExposure(ac, ad), FixedExposure(bc, bd)) => ac === bc && ad.equals(bd)
@@ -61,7 +61,7 @@ object ExposureMode {
   }
 
   final case class FixedExposureInput(
-    count: PosInt,
+    count: NonNegInt,
     time:  NonNegDurationInput
   ) extends EditorInput[FixedExposure] {
 
@@ -88,18 +88,18 @@ object ExposureMode {
   }
 
   final case class ExposureModeInput(
-    signalToNoise: Input[SignalToNoiseInput],
-    fixedExposure: Input[FixedExposureInput]
-  ) extends EditorInput[ExposureMode] {
+    signalToNoise: Input[SignalToNoiseInput] = Input.ignore,
+    fixedExposure: Input[FixedExposureInput] = Input.ignore
+  ) extends EditorInput[ExposureTimeMode] {
 
-    override def create: ValidatedInput[ExposureMode] =
-      ValidatedInput.requireOne("exposureMode",
+    override def create: ValidatedInput[ExposureTimeMode] =
+      ValidatedInput.requireOne("exposureTimeMode",
         signalToNoise.toOption.map(_.create),
         fixedExposure.toOption.map(_.create)
       )
 
-    override def edit: StateT[EitherInput, ExposureMode, Unit] =
-      create.liftState[ExposureMode].void
+    override def edit: StateT[EitherInput, ExposureTimeMode, Unit] =
+      StateT.setF(create.toEither)
 
   }
 
@@ -111,8 +111,12 @@ object ExposureMode {
     def fixedExposure(f: FixedExposureInput): ExposureModeInput =
       ExposureModeInput(Input.ignore, f.assign)
 
+    import io.circe.generic.extras.semiauto._
+    import io.circe.generic.extras.Configuration
+    implicit val customConfig: Configuration = Configuration.default.withDefaults
+
     implicit val DecoderExposureModeInput: Decoder[ExposureModeInput] =
-      deriveDecoder[ExposureModeInput]
+      deriveConfiguredDecoder[ExposureModeInput]
 
     implicit val EqExposureModeInput: Eq[ExposureModeInput] =
       Eq.by { a => (
@@ -122,10 +126,10 @@ object ExposureMode {
 
   }
 
-  val signalToNoise: Prism[ExposureMode, SignalToNoise] =
-    GenPrism[ExposureMode, SignalToNoise]
+  val signalToNoise: Prism[ExposureTimeMode, SignalToNoise] =
+    GenPrism[ExposureTimeMode, SignalToNoise]
 
-  val fixedExposure: Prism[ExposureMode, FixedExposure] =
-    GenPrism[ExposureMode, FixedExposure]
+  val fixedExposure: Prism[ExposureTimeMode, FixedExposure] =
+    GenPrism[ExposureTimeMode, FixedExposure]
 
 }

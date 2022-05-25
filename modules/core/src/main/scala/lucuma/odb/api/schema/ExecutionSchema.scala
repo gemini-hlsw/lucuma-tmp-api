@@ -197,11 +197,14 @@ object ExecutionSchema {
 
         Field(
           name        = "executionConfig",
-          fieldType   = OptionType(ExecutionConfigType[F]),
+          fieldType   = ExecutionConfigType[F],
           description = "Execution config".some,
           resolve     = c =>
             c.unsafeToFuture(
-              SequenceComputation.compute[F](c.value, c.ctx.itcClient, c.ctx.odbRepo)
+              for {
+                s <- SequenceComputation.compute[F](c.value, c.ctx.itcClient, c.ctx.odbRepo)
+                e <- s.leftMap(m => InputError.fromMessage(m).toException).liftTo[F]
+              } yield e
             )
         )
 

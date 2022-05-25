@@ -5,7 +5,7 @@ package lucuma.odb.api.model
 package arb
 
 import clue.data.Input
-import eu.timepit.refined.types.all.{PosBigDecimal, PosInt}
+import eu.timepit.refined.types.all.{NonNegInt, PosBigDecimal}
 import eu.timepit.refined.scalacheck.all._
 import lucuma.core.math.arb.ArbRefined
 import lucuma.odb.api.model.time.NonNegDuration
@@ -15,7 +15,7 @@ import org.scalacheck.Arbitrary.arbitrary
 
 sealed trait ArbExposureMode {
 
-  import ExposureMode._
+  import ExposureTimeMode._
 
   import ArbDurationModel._
   import ArbNonNegDuration._
@@ -41,14 +41,14 @@ sealed trait ArbExposureMode {
   implicit val arbFixedExposure: Arbitrary[FixedExposure] =
     Arbitrary {
       for {
-        c <- arbitrary[PosInt]
+        c <- arbitrary[NonNegInt]
         t <- arbitrary[NonNegDuration]
       } yield FixedExposure(c, t)
     }
 
   implicit val cogFixedExposure: Cogen[FixedExposure] =
     Cogen[(
-      PosInt,
+      NonNegInt,
       NonNegDuration
     )].contramap { in => (
       in.count,
@@ -58,29 +58,32 @@ sealed trait ArbExposureMode {
   implicit val arbFixedExposureInput: Arbitrary[FixedExposureInput] =
     Arbitrary {
       for {
-        c <- arbitrary[PosInt]
+        c <- arbitrary[NonNegInt]
         t <- arbitrary[DurationModel.NonNegDurationInput]
       } yield FixedExposureInput(c, t)
     }
 
   implicit val cogFixedExposureInput: Cogen[FixedExposureInput] =
-    Cogen[(PosInt, DurationModel.NonNegDurationInput)].contramap { a => (
+    Cogen[(
+      NonNegInt,
+      DurationModel.NonNegDurationInput
+    )].contramap { a => (
       a.count,
       a.time
     )}
 
-  implicit val arbExposureMode: Arbitrary[ExposureMode] =
+  implicit val arbExposureMode: Arbitrary[ExposureTimeMode] =
     Arbitrary {
       Gen.oneOf(arbitrary[FixedExposure], arbitrary[FixedExposure])
     }
 
-  implicit val cogExposureMode: Cogen[ExposureMode] =
+  implicit val cogExposureMode: Cogen[ExposureTimeMode] =
     Cogen[(
       Option[SignalToNoise],
       Option[FixedExposure]
     )].contramap { in => (
-      ExposureMode.signalToNoise.getOption(in),
-      ExposureMode.fixedExposure.getOption(in)
+      ExposureTimeMode.signalToNoise.getOption(in),
+      ExposureTimeMode.fixedExposure.getOption(in)
     )}
 
   implicit val arbExposureModeInput: Arbitrary[ExposureModeInput] =

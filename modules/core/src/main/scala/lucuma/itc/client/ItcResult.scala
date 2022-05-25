@@ -5,6 +5,7 @@ package lucuma.itc.client
 
 import cats.Eq
 import cats.syntax.all._
+import eu.timepit.refined.cats._
 import eu.timepit.refined.types.numeric._
 import io.circe.{Decoder, DecodingFailure, HCursor}
 import lucuma.core.syntax.time._
@@ -72,13 +73,13 @@ object ItcResult {
 
   final case class Success(
     exposureTime:  NonNegDuration,
-    exposures:     Int,
+    exposures:     NonNegInt,
     signalToNoise: PosBigDecimal
   ) extends ItcResult {
 
     def stepSignalToNoise: PosBigDecimal =
       PosBigDecimal.unsafeFrom(
-        (signalToNoise.value * signalToNoise.value / exposures)
+        (signalToNoise.value * signalToNoise.value / exposures.value)
           .underlying()
           .sqrt(MathContext.DECIMAL128)
       )
@@ -94,7 +95,7 @@ object ItcResult {
       (c: HCursor) =>
         for {
           t <- c.downField("exposureTime").downField("microseconds").as[Long].flatMap(l => NonNegDuration.from(l.microseconds).leftMap(m => DecodingFailure(m, c.history)))
-          n <- c.downField("exposures").as[Int]
+          n <- c.downField("exposures").as[Int].flatMap(n => NonNegInt.from(n).leftMap(m => DecodingFailure(m, c.history)))
           s <- c.downField("signalToNoise").as[BigDecimal].flatMap(d => PosBigDecimal.from(d).leftMap(m => DecodingFailure(m, c.history)))
         } yield Success(t, n, s)
 
@@ -110,7 +111,7 @@ object ItcResult {
   def error(msg: String): ItcResult =
     Error(msg)
 
-  def success(exposureTime: NonNegDuration, exposures: Int, signalToNoise: PosBigDecimal): ItcResult =
+  def success(exposureTime: NonNegDuration, exposures: NonNegInt, signalToNoise: PosBigDecimal): ItcResult =
     Success(exposureTime, exposures, signalToNoise)
 
 }

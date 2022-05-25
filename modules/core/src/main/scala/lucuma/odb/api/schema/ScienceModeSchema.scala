@@ -4,24 +4,80 @@
 package lucuma.odb.api.schema
 
 import cats.syntax.option._
-
 import lucuma.core.math.Axis.Q
 import lucuma.core.syntax.string._
-import lucuma.odb.api.model.ConfigurationMode
-import lucuma.odb.api.model.ScienceMode
+import lucuma.odb.api.model.{ConfigurationMode, ExposureTimeMode, ScienceMode}
 import lucuma.odb.api.model.gmos.longslit.{AdvancedConfig, BasicConfig}
 import lucuma.odb.api.schema.syntax.all._
-
 import sangria.schema._
 
 object ScienceModeSchema {
+
   import GmosSchema._
   import InstrumentSchema.EnumTypeInstrument
+  import TimeSchema.NonNegativeDurationType
+  import RefinedSchema._
 
   implicit val EnumTypeConfigurationMode: EnumType[ConfigurationMode] =
     EnumType.fromEnumerated(
       "ConfigurationModeType",
       "ConfigurationMode"
+    )
+
+  def SignalToNoiseExposureModeType: ObjectType[Any, ExposureTimeMode.SignalToNoise] =
+    ObjectType[Any, ExposureTimeMode.SignalToNoise](
+      name        = "SignalToNoiseMode",
+      description = "Signal to noise exposure time mode",
+      fields[Any, ExposureTimeMode.SignalToNoise](
+        Field(
+          name        = "value",
+          fieldType   = PosBigDecimalType,
+          description = "Signal/Noise value".some,
+          resolve     = _.value.value
+        )
+      )
+    )
+
+  def FixedExposureModeType: ObjectType[Any, ExposureTimeMode.FixedExposure] =
+    ObjectType[Any, ExposureTimeMode.FixedExposure](
+      name        = "FixedExposureMode",
+      description = "Fixed exposure time mode",
+      fields[Any, ExposureTimeMode.FixedExposure](
+        Field(
+          name        = "count",
+          fieldType   = NonNegIntType,
+          description = "Exposure count".some,
+          resolve     = _.value.count
+        ),
+
+        Field(
+          name        = "time",
+          fieldType   = NonNegativeDurationType,
+          description = "Exposure time".some,
+          resolve     = _.value.time
+        )
+      )
+    )
+
+  def ExposureTimeModeType: ObjectType[Any, ExposureTimeMode] =
+    ObjectType[Any, ExposureTimeMode](
+      name        = "ExposureTimeMode",
+      description = "Exposure time mode, either signal to noise or fixed",
+      fields[Any, ExposureTimeMode](
+        Field(
+          name        = "signalToNoise",
+          fieldType   = OptionType(SignalToNoiseExposureModeType),
+          description = "Signal to noise exposure time mode data, if applicable".some,
+          resolve     = c => ExposureTimeMode.signalToNoise.getOption(c.value)
+        ),
+
+        Field(
+          name        = "fixedExposure",
+          fieldType   = OptionType(FixedExposureModeType),
+          description = "Fixed exposure time mode data, if applicable".some,
+          resolve     = c => ExposureTimeMode.fixedExposure.getOption(c.value)
+        )
+      )
     )
 
   def ScienceModeType: ObjectType[Any, ScienceMode] =
@@ -133,6 +189,13 @@ object ScienceModeSchema {
           fieldType   = OptionType(fpuEnum),
           description = "GMOS North FPU override, taking the place of the basic configuration FPU".some,
           resolve     = _.value.overrideFpu
+        ),
+
+        Field(
+          name        = "overrideExposureTimeMode",
+          fieldType   = OptionType(ExposureTimeModeType),
+          description = "Exposure time mode, taking the place of the value from science requirements".some,
+          resolve     = _.value.overrideExposureTimeMode
         ),
 
         Field(

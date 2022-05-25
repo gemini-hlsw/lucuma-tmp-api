@@ -19,7 +19,8 @@ import lucuma.core.`enum`.{GmosAmpGain, GmosAmpReadMode, GmosRoi, GmosXBinning, 
 import lucuma.core.math.Axis.Q
 import lucuma.core.math.{Offset, Wavelength}
 import lucuma.core.math.units.Nanometer
-import lucuma.odb.api.model.{EditorInput, EitherInput, ExposureMode, InputError, OffsetModel, ValidatedInput}
+import lucuma.odb.api.model.{EditorInput, EitherInput, InputError, OffsetModel, ValidatedInput}
+import lucuma.odb.api.model.ExposureTimeMode.ExposureModeInput
 import lucuma.odb.api.model.WavelengthModel.WavelengthInput
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
@@ -31,7 +32,7 @@ final case class AdvancedConfigInput[G, F, U](
   overrideGrating:           Input[G]                                = Input.ignore,
   overrideFilter:            Input[Option[F]]                        = Input.ignore,
   overrideFpu:               Input[U]                                = Input.ignore,
-  overrideExposureMode:      Input[ExposureMode.ExposureModeInput]   = Input.ignore,
+  overrideExposureTimeMode:  Input[ExposureModeInput]                = Input.ignore,
   explicitXBin:              Input[GmosXBinning]                     = Input.ignore,
   explicitYBin:              Input[GmosYBinning]                     = Input.ignore,
   explicitAmpReadMode:       Input[GmosAmpReadMode]                  = Input.ignore,
@@ -44,22 +45,22 @@ final case class AdvancedConfigInput[G, F, U](
   override val create: ValidatedInput[AdvancedConfig[G, F, U]] =
     (explicitSpatialOffsets.toOption.toList.flatten.traverse(_.toComponent[Q]),
      overrideWavelength.toOption.traverse(_.toWavelength("overrideWavelength")),
-     overrideExposureMode.toOption.traverse(_.create)
+     overrideExposureTimeMode.toOption.traverse(_.create)
     ).mapN { (os, wavelength, exp) =>
       AdvancedConfig(
         name.toOption,
-        overrideWavelength     = wavelength,
-        overrideGrating        = overrideGrating.toOption,
-        overrideFilter         = overrideFilter.toOption,
-        overrideFpu            = overrideFpu.toOption,
-        overrideExposureMode   = exp,
-        explicitXBin           = explicitXBin.toOption,
-        explicitYBin           = explicitYBin.toOption,
-        explicitAmpReadMode    = explicitAmpReadMode.toOption,
-        explicitAmpGain        = explicitAmpGain.toOption,
-        explicitRoi            = explicitRoi.toOption,
-        explicitλDithers       = NonEmptyList.fromList(explicitWavelengthDithers.toOption.toList.flatten.map(i => Quantity[Int, Nanometer](i))),
-        explicitSpatialOffsets = NonEmptyList.fromList(os)
+        overrideWavelength       = wavelength,
+        overrideGrating          = overrideGrating.toOption,
+        overrideFilter           = overrideFilter.toOption,
+        overrideFpu              = overrideFpu.toOption,
+        overrideExposureTimeMode = exp,
+        explicitXBin             = explicitXBin.toOption,
+        explicitYBin             = explicitYBin.toOption,
+        explicitAmpReadMode      = explicitAmpReadMode.toOption,
+        explicitAmpGain          = explicitAmpGain.toOption,
+        explicitRoi              = explicitRoi.toOption,
+        explicitλDithers         = NonEmptyList.fromList(explicitWavelengthDithers.toOption.toList.flatten.map(i => Quantity[Int, Nanometer](i))),
+        explicitSpatialOffsets   = NonEmptyList.fromList(os)
       )
     }
 
@@ -75,7 +76,7 @@ final case class AdvancedConfigInput[G, F, U](
       _ <- AdvancedConfig.overrideGrating[G, F, U]      := overrideGrating.toOptionOption
       _ <- AdvancedConfig.overrideFilter[G, F, U]       := overrideFilter.toOptionOption
       _ <- AdvancedConfig.overrideFpu[G, F, U]          := overrideFpu.toOptionOption
-      _ <- AdvancedConfig.overrideExposureMode[G, F, U] :? overrideExposureMode
+      _ <- AdvancedConfig.overrideExposureMode[G, F, U] :? overrideExposureTimeMode
       _ <- AdvancedConfig.explicitXBin                  := explicitXBin.toOptionOption
       _ <- AdvancedConfig.explicitYBin                  := explicitYBin.toOptionOption
       _ <- AdvancedConfig.explicitAmpReadMode           := explicitAmpReadMode.toOptionOption
@@ -119,7 +120,7 @@ object AdvancedConfigInput {
       a.overrideGrating,
       a.overrideFilter,
       a.overrideFpu,
-      a.overrideExposureMode,
+      a.overrideExposureTimeMode,
       a.explicitXBin,
       a.explicitYBin,
       a.explicitAmpReadMode,
