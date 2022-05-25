@@ -5,6 +5,7 @@ package lucuma.odb.api.model
 
 import lucuma.core.`enum`._
 import lucuma.core.math.{Offset, Wavelength}
+import lucuma.core.model.NonNegDuration
 import lucuma.core.optics.syntax.lens._
 import lucuma.odb.api.model.syntax.input._
 import cats.Eq
@@ -17,7 +18,6 @@ import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import io.circe.generic.extras.semiauto.deriveConfiguredDecoder
 import io.circe.generic.extras.Configuration
-import lucuma.odb.api.model.time.NonNegDuration
 
 import monocle.{Focus, Lens, Optional}
 import org.typelevel.cats.time.instances.duration._

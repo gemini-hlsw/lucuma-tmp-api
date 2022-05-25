@@ -3,48 +3,17 @@
 
 package lucuma.odb.api.model
 
-import cats.Monoid
 import eu.timepit.refined.api.{Refined, RefinedTypeOps, Validate}
 import eu.timepit.refined.api.Validate.Plain
 import eu.timepit.refined.boolean.{And, Not}
-import eu.timepit.refined.numeric.{Greater, GreaterEqual, Interval, Less, NonNegative}
+import eu.timepit.refined.numeric.{Greater, Interval, Less}
 import io.circe.Decoder
-import lucuma.core.syntax.time._
-import shapeless.Nat._0
 
-import java.time.temporal.Temporal
-import java.time.{Duration, LocalDate, Month}
+import java.time.{LocalDate, Month}
 
 import scala.util.Try
 
 object time {
-
-  implicit val nonNegDurationValidate: Plain[Duration, GreaterEqual[_0]] =
-    Validate.fromPredicate(
-      (d: Duration) => d.toNanos >= 0L,
-      (d: Duration) => s"$d is not negative",
-      Not(Less(shapeless.nat._0))
-    )
-
-  type NonNegDuration = Duration Refined NonNegative
-
-  object NonNegDuration extends RefinedTypeOps[NonNegDuration, Duration] {
-
-    val zero: NonNegDuration =
-      unsafeFrom(Duration.ofNanos(0L))
-
-    def between(startInclusive: Temporal, endExclusive: Temporal): NonNegDuration =
-      NonNegDuration.unapply(Duration.between(startInclusive, endExclusive))
-        .getOrElse(zero)
-
-  }
-
-  // Has to be a def or else there are initialization issues.
-  implicit def nonNegDurationMonoid: Monoid[NonNegDuration] =
-    Monoid.instance(
-      NonNegDuration.zero,
-      (a, b) => NonNegDuration.unsafeFrom(a.value + b.value)
-    )
 
   implicit val fourDigitYearLocalDateValidate: Plain[LocalDate, Interval.Closed[0, 9999]] =
     Validate.fromPredicate(

@@ -10,9 +10,9 @@ import eu.timepit.refined.types.all.{NonNegBigDecimal, NonNegLong}
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
+import lucuma.core.model.NonNegDuration
 import lucuma.core.syntax.time._
 import lucuma.core.util.{Display, Enumerated}
-import lucuma.odb.api.model.time.NonNegDuration
 
 import java.time.Duration
 import java.time.temporal.ChronoUnit

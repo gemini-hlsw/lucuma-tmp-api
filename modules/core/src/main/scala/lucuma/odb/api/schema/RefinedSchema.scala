@@ -4,8 +4,10 @@
 package lucuma.odb.api.schema
 
 import cats.syntax.all._
+import eu.timepit.refined._
 import eu.timepit.refined.types.all.{NonEmptyString, NonNegBigDecimal, NonNegInt, NonNegLong, PosBigDecimal, PosInt, PosLong}
 import lucuma.core.syntax.string._
+import lucuma.core.model.{IntPercent, ZeroTo100}
 import monocle.Prism
 import sangria.schema.ScalarType
 import sangria.validation.ValueCoercionViolation
@@ -37,6 +39,8 @@ trait RefinedSchema {
   case object NonNegLongCoercionViolation extends ValueCoercionViolation("A non-negative long is expected")
 
   case object PosLongCoercionViolation extends ValueCoercionViolation("A positive long is expected")
+
+  case object IntPercentViolation extends ValueCoercionViolation("Expected an integer in the interval [0, 100]")
 
   case object NonNegBigDecimalCoercionViolation extends ValueCoercionViolation("A non-negative decimal is expected")
 
@@ -138,6 +142,13 @@ trait RefinedSchema {
       PosLongCoercionViolation
     )
 
+  implicit val IntPercentType: ScalarType[IntPercent] = 
+    longType(
+      "IntPercent",
+      "An 'Int` in the range 0 to 100",
+      Prism[Long, IntPercent](longToInt(_).flatMap(refineV[ZeroTo100](_).toOption))(_.value.toLong),
+      IntPercentViolation
+    )
 
   private def bigDecimalType[T](
     name:         String,
@@ -186,6 +197,9 @@ trait RefinedSchema {
       Prism(PosBigDecimal.unapply)(_.value),
       PosBigDecimalCoercionViolation
     )
+
+  private def longToInt(l: Long): Option[Int] = 
+    if (l.isValidInt) l.toInt.some else none
 
 }
 

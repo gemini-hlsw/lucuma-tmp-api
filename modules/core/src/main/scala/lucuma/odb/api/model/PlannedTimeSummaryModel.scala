@@ -5,9 +5,9 @@ package lucuma.odb.api.model
 
 import cats.{Eq, Monoid}
 import eu.timepit.refined.cats._
+import lucuma.core.model.NonNegDuration
+import lucuma.core.model.syntax.nonnegduration._
 import lucuma.core.syntax.time._
-import lucuma.odb.api.model.time.NonNegDuration
-import lucuma.odb.api.model.syntax.nonnegduration._
 
 
 final case class PlannedTimeSummaryModel(

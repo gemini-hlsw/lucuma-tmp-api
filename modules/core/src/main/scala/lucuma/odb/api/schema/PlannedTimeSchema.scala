@@ -4,9 +4,9 @@
 package lucuma.odb.api.schema
 
 import cats.syntax.option._
+import lucuma.core.model.NonNegDuration
 import lucuma.odb.api.model.PlannedTime
 import lucuma.odb.api.model.PlannedTime.{CategorizedTime, Category}
-import lucuma.odb.api.model.time._
 import sangria.schema._
 
 

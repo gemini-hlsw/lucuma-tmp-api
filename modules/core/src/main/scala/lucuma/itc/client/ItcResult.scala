@@ -8,8 +8,8 @@ import cats.syntax.all._
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.numeric._
 import io.circe.{Decoder, DecodingFailure, HCursor}
+import lucuma.core.model.NonNegDuration
 import lucuma.core.syntax.time._
-import lucuma.odb.api.model.time.NonNegDuration
 
 import java.math.MathContext
 

@@ -15,8 +15,8 @@ import eu.timepit.refined.types.all.{NonNegInt, PosBigDecimal}
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import io.circe.refined._
+import lucuma.core.model.NonNegDuration
 import lucuma.odb.api.model.DurationModel.NonNegDurationInput
-import lucuma.odb.api.model.time.NonNegDuration
 import lucuma.odb.api.model.syntax.validatedinput._
 import monocle.Prism
 import monocle.macros.GenPrism
