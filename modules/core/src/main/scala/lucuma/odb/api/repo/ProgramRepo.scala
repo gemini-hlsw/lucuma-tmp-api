@@ -5,10 +5,10 @@ package lucuma.odb.api.repo
 
 import cats.implicits._
 import cats.MonadError
-import cats.data.{EitherT, StateT}
+import cats.data.EitherT
 import cats.effect.Ref
 import lucuma.core.model.Program
-import lucuma.odb.api.model.{Database, EitherInput, Event, InputError, ProgramModel, Table}
+import lucuma.odb.api.model.{Database, Event, InputError, ProgramModel, Table}
 import lucuma.odb.api.model.ProgramModel.ProgramEvent
 import lucuma.odb.api.model.syntax.databasestate._
 import lucuma.odb.api.model.syntax.eitherinput._
@@ -22,9 +22,9 @@ trait ProgramRepo[F[_]] extends TopLevelRepo[F, Program.Id, ProgramModel] {
     includeDeleted: Boolean            = false
   ): F[ResultPage[ProgramModel]]
 
-  def insert(input: ProgramModel.Create): F[ProgramModel]
+  def insert(input: ProgramModel.CreateInput): F[ProgramModel]
 
-  def edit(input: ProgramModel.Edit): F[ProgramModel]
+  def edit(input: ProgramModel.EditInput): F[Option[ProgramModel]]
 }
 
 object ProgramRepo {
@@ -52,7 +52,7 @@ object ProgramRepo {
         selectPageFiltered(count, afterGid, includeDeleted) { p => pids(p.id) }
 
       override def insert(
-        input: ProgramModel.Create
+        input: ProgramModel.CreateInput
       ): F[ProgramModel] = {
 
         val create = EitherT(
@@ -74,21 +74,13 @@ object ProgramRepo {
       }
 
       override def edit(
-        input: ProgramModel.Edit
-      ): F[ProgramModel] = {
-
-        val update: StateT[EitherInput, Database, ProgramModel] =
-          for {
-            initial <- Database.program.lookup(input.programId)
-            edited  <- StateT.liftF(input.edit.runS(initial))
-            _       <- Database.program.update(input.programId, edited)
-          } yield edited
+        input: ProgramModel.EditInput
+      ): F[Option[ProgramModel]] =
 
         for {
-          p <- databaseRef.modifyState(update.flipF).flatMap(_.liftTo[F])
-          _ <- eventService.publish(ProgramModel.ProgramEvent.updated(p))
+          p <- databaseRef.modifyState(input.editor.flipF).flatMap(_.liftTo[F])
+          _ <- p.traverse(p => eventService.publish(ProgramModel.ProgramEvent.updated(p)))
         } yield p
-      }
 
     }
 

@@ -36,64 +36,130 @@ object ProgramModel extends ProgramOptics {
   implicit val EqProgram: Eq[ProgramModel] =
     Eq.by(p => (p.id, p.existence, p.name, p.proposal))
 
-  /**
-   * Program creation input class.
-   */
-  final case class Create(
-    programId: Option[Program.Id],
-    name:      Option[NonEmptyString],
-    proposal:  Option[ProposalInput]
+  final case class PropertiesInput(
+    name:      Input[NonEmptyString] = Input.ignore,
+    proposal:  Input[ProposalInput]  = Input.ignore,
+    existence: Input[Existence]      = Input.ignore
   ) {
 
-    val create: StateT[EitherInput, Database, ProgramModel] =
+    def create(
+      programId: Program.Id
+    ): ValidatedInput[ProgramModel] =
+      proposal.toOption.traverse(_.create).map { p =>
+        ProgramModel(
+          programId,
+          existence.toOption.getOrElse(Existence.Present),
+          name.toOption,
+          p
+        )
+      }
+
+    def edit: StateT[EitherInput, ProgramModel, Unit] =
       for {
-        x <- proposal.map(_.create).sequence.liftState
-        i <- Database.program.getUnusedKey(programId)
-        _ <- Database.program.saveNew(i, ProgramModel(i, Existence.Present, name, x))
-        p <- Database.program.lookup(i)
-      } yield p
-
-  }
-
-  object Create {
-
-    implicit val DecoderCreate: Decoder[Create] =
-      deriveDecoder[Create]
-
-  }
-
-  final case class Edit(
-    programId: Program.Id,
-    existence: Input[Existence]       = Input.ignore,
-    name:      Input[NonEmptyString]  = Input.ignore,
-    proposal:  Input[ProposalInput]   = Input.ignore
-  ) {
-
-    val edit: StateT[EitherInput, ProgramModel, Unit] = {
-      for {
-        ex <- existence.validateIsNotNull("existence").liftState
-        _ <- ProgramModel.existence := ex
+        e <- existence.validateIsNotNull("existence").liftState
+        _ <- ProgramModel.existence := e
         _ <- ProgramModel.name      := name.toOptionOption
         _ <- ProgramModel.proposal  :? proposal
       } yield ()
-    }
+
   }
 
-  object Edit {
+  object PropertiesInput {
+
+    val Empty: PropertiesInput =
+      PropertiesInput()
 
     import io.circe.generic.extras.semiauto._
     import io.circe.generic.extras.Configuration
     implicit val customConfig: Configuration = Configuration.default.withDefaults
 
-    implicit val DecoderEdit: Decoder[Edit] =
-      deriveConfiguredDecoder[Edit]
+    implicit val DecoderPropertiesInput: Decoder[PropertiesInput] =
+      deriveConfiguredDecoder[PropertiesInput]
 
-    implicit val EqEdit: Eq[Edit] =
+    implicit val EqPropertiesInput: Eq[PropertiesInput] =
       Eq.by { a => (
-        a.programId,
-        a.existence,
         a.name,
-        a.proposal
+        a.proposal,
+        a.existence
+      )}
+
+  }
+
+  /**
+   * Program creation input class.
+   */
+  final case class CreateInput(
+    properties: Option[PropertiesInput]
+  ) {
+
+    val create: StateT[EitherInput, Database, ProgramModel] =
+      for {
+        i <- Database.program.cycleNextUnused
+        r <- properties.getOrElse(PropertiesInput.Empty).create(i).liftState
+        _ <- Database.program.saveNew(i, ProgramModel(i, r.existence, r.name, r.proposal))
+        p <- Database.program.lookup(i)
+      } yield p
+
+  }
+
+  object CreateInput {
+
+    implicit val DecoderCreateInput: Decoder[CreateInput] =
+      deriveDecoder[CreateInput]
+
+    implicit val EqCreateInput: Eq[CreateInput] =
+      Eq.by(_.properties)
+
+  }
+
+  final case class SelectInput(
+    programId: Option[Program.Id]
+  ) {
+
+    val go: StateT[EitherInput, Database, Option[ProgramModel]] =
+      programId.traverse(Database.program.lookup)
+
+  }
+
+  object SelectInput {
+
+    val Empty: SelectInput =
+      SelectInput(None)
+
+    def programId(pid: Program.Id): SelectInput =
+      Empty.copy(programId = pid.some)
+
+    implicit val DecoderSelectInput: Decoder[SelectInput] =
+      deriveDecoder[SelectInput]
+
+    implicit val EqSelectInput: Eq[SelectInput] =
+      Eq.by(_.programId)
+
+  }
+
+  final case class EditInput(
+    select: SelectInput,
+    patch:  PropertiesInput
+  ) {
+
+    val editor: StateT[EitherInput, Database, Option[ProgramModel]] =
+      for {
+        p  <- select.go
+        pʹ <- StateT.liftF[EitherInput, Database, Option[ProgramModel]](p.traverse(patch.edit.runS))
+        _  <- pʹ.traverse(p => Database.program.update(p.id, p))
+      } yield pʹ
+
+  }
+
+  object EditInput {
+
+    implicit val DecoderEditInput: Decoder[EditInput] =
+      deriveDecoder[EditInput]
+
+    implicit val EqEdit: Eq[EditInput] =
+      Eq.by { a => (
+        a.select,
+        a.patch
       )}
 
   }

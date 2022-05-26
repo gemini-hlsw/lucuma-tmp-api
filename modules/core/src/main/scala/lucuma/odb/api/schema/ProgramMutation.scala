@@ -5,6 +5,7 @@ package lucuma.odb.api.schema
 
 import cats.effect.Async
 import cats.effect.std.Dispatcher
+import cats.syntax.option._
 import lucuma.core.enum.{TacCategory, ToOActivation}
 import lucuma.core.model.Partner
 import lucuma.odb.api.model.{ProgramModel, ProposalInput, ProposalClassInput}
@@ -147,7 +148,7 @@ trait ProgramMutation {
       ReplaceInputField("percent", IntPercentType.notNullableField("percent"))
     )
 
-  implicit val InputObjectProposalInput: InputObjectType[ProposalInput] = 
+  implicit val InputObjectProposalInput: InputObjectType[ProposalInput] =
     deriveInputObjectType[ProposalInput](
       InputObjectTypeName("ProposalInput"),
       InputObjectTypeDescription("Program proposal"),
@@ -159,46 +160,67 @@ trait ProgramMutation {
       ReplaceInputField("partnerSplits", ListInputType(InputObjectTypePartnerSplitInput).createRequiredEditOptional("partnerSplits", "proposal"))
     )
 
-  val InputObjectTypeProgramCreate: InputObjectType[ProgramModel.Create] =
-    deriveInputObjectType[ProgramModel.Create](
-      InputObjectTypeName("CreateProgramInput"),
-      InputObjectTypeDescription("Program creation parameters"),
-      ReplaceInputField("proposal", InputObjectProposalInput.nullableField("proposal"))
+  implicit val InputObjectTypeProgramProperties: InputObjectType[ProgramModel.PropertiesInput] =
+    InputObjectType[ProgramModel.PropertiesInput](
+      "ProgramPropertiesInput",
+      "Program properties",
+      List(
+        NonEmptyStringType.optionField("name", "The program name, which is both optional and nullable"),
+        InputObjectProposalInput.optionField("proposal", "The program proposal is both optional and nullable"),
+        EnumTypeExistence.optionField("existence", "Whether the program is considered deleted (defaults to PRESENT) but may be edited")
+      )
     )
 
-  val ArgumentProgramCreate: Argument[ProgramModel.Create] =
+  val InputObjectTypeProgramCreate: InputObjectType[ProgramModel.CreateInput] =
+    deriveInputObjectType[ProgramModel.CreateInput](
+      InputObjectTypeName("CreateProgramInput"),
+      InputObjectTypeDescription("Program creation parameters")
+    )
+
+  val ArgumentProgramCreate: Argument[ProgramModel.CreateInput] =
     InputObjectTypeProgramCreate.argument(
       "input",
       "Program description"
     )
 
-  val InputObjectTypeProgramEdit: InputObjectType[ProgramModel.Edit] =
-    deriveInputObjectType[ProgramModel.Edit](
-      InputObjectTypeName("EditProgramInput"),
-      InputObjectTypeDescription("Edit program"),
-      ReplaceInputField("existence",     EnumTypeExistence.notNullableField("existence")),
-      ReplaceInputField("name",          NonEmptyStringType.nullableField("name")),
-      ReplaceInputField("proposal",      InputObjectProposalInput.nullableField("proposal"))
+  implicit val InputObjectTypeProgramSelect: InputObjectType[ProgramModel.SelectInput] =
+    InputObjectType[ProgramModel.SelectInput](
+      "ProgramSelectInput",
+      "Choose programId to select the program for editing",
+      List(
+        ProgramIdType.optionField("programId")
+      )
     )
 
-  val ArgumentProgramEdit: Argument[ProgramModel.Edit] =
+  val InputObjectTypeProgramEdit: InputObjectType[ProgramModel.EditInput] =
+    InputObjectType[ProgramModel.EditInput](
+      "EditProgramInput",
+      "Program selection and update description",
+      List(
+        InputField("select", InputObjectTypeProgramSelect),
+        InputField("patch",  InputObjectTypeProgramProperties)
+      )
+    )
+
+  val ArgumentProgramEdit: Argument[ProgramModel.EditInput] =
     InputObjectTypeProgramEdit.argument(
       "input",
-      "Edit program"
+      "Parameters for editing an existing program"
     )
 
   def create[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name      = "createProgram",
-      fieldType = OptionType(ProgramType[F]),
-      arguments = List(ArgumentProgramCreate),
-      resolve   = c => c.program(_.insert(c.arg(ArgumentProgramCreate)))
+      name        = "createProgram",
+      fieldType   = OptionType(ProgramType[F]),
+      description = "Creates a new program according to provided properties".some,
+      arguments   = List(ArgumentProgramCreate),
+      resolve     = c => c.program(_.insert(c.arg(ArgumentProgramCreate)))
     )
 
-  def update[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def edit[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name      = "updateProgram",
-      fieldType = ProgramType[F],
+      name      = "editProgram",
+      fieldType = OptionType(ProgramType[F]),
       arguments = List(ArgumentProgramEdit),
       resolve   = c => c.program(_.edit(c.arg(ArgumentProgramEdit)))
     )
@@ -206,7 +228,7 @@ trait ProgramMutation {
   def allFields[F[_]: Dispatcher: Async: Logger]: List[Field[OdbCtx[F], Unit]] =
     List(
       create,
-      update
+      edit
     )
 
 }

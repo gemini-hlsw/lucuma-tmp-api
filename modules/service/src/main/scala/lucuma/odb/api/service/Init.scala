@@ -441,14 +441,14 @@ object Init {
   val proposal: ProposalInput =
     ProposalInput(
       title         = NonEmptyString.unsafeFrom("Proposal title").assign,
-      proposalClass = 
+      proposalClass =
         ProposalClassInput(
           classical = ProposalClassInput.ClassicalInput(refineMV[ZeroTo100](80).assign).assign
         ).assign,
       category      = TacCategory.SmallBodies.assign,
       toOActivation = ToOActivation.None.assign,
       abstrakt      = NonEmptyString.unsafeFrom("Totally abstract").assign,
-      partnerSplits = 
+      partnerSplits =
         List(
           ProposalInput.PartnerSplitInput(Partner.Cl.assign, refineMV[ZeroTo100](60).assign),
           ProposalInput.PartnerSplitInput(Partner.Uh.assign, refineMV[ZeroTo100](40).assign)
@@ -461,17 +461,18 @@ object Init {
   def initialize[F[_]: Sync](repo: OdbRepo[F]): F[Unit] =
     for {
       p  <- repo.program.insert(
-              ProgramModel.Create(
-                None,
-                NonEmptyString.from("The real dark matter was the friends we made along the way").toOption,
-                proposal.some
+              ProgramModel.CreateInput(
+                ProgramModel.PropertiesInput(
+                  NonEmptyString.unsafeFrom("The real dark matter was the friends we made along the way").assign,
+                  proposal.assign
+                ).some
               )
             )
       _  <- repo.program.insert(
-              ProgramModel.Create(
-                None,
-                NonEmptyString.from("An Empty Placeholder Program").toOption,
-                None
+              ProgramModel.CreateInput(
+                ProgramModel.PropertiesInput(
+                  NonEmptyString.unsafeFrom("An Empty Placeholder Program").assign
+                ).some
               )
             )
       cs <- targets(p.id).liftTo[F]
