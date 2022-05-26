@@ -8,7 +8,9 @@ import cats.effect.std.Dispatcher
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
-import lucuma.odb.api.model.{CoordinatesModel, DeclinationModel, ObservationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
+import clue.data.syntax._
+import io.circe.{Decoder, HCursor}
+import lucuma.odb.api.model.{CoordinatesModel, DeclinationModel, Existence, ObservationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
 import lucuma.odb.api.model.targetModel.{CatalogInfoInput, EditAsterismPatchInput, NonsiderealInput, SiderealInput, TargetEnvironmentInput, TargetModel}
 import lucuma.odb.api.schema.syntax.`enum`._
 import lucuma.odb.api.repo.OdbCtx
@@ -26,7 +28,7 @@ trait TargetMutation extends TargetScalars {
   import ProgramSchema.ProgramIdType
   import RefinedSchema.NonEmptyStringType
   import SourceProfileSchema.InputObjectSourceProfile
-  import TargetSchema.{EnumTypeCatalogName, EphemerisKeyTypeEnumType, ArgumentTargetId, TargetIdType, TargetType}
+  import TargetSchema.{EnumTypeCatalogName, EphemerisKeyTypeEnumType, TargetIdType, TargetType}
 
   import syntax.inputtype._
   import syntax.inputobjecttype._
@@ -190,6 +192,23 @@ trait TargetMutation extends TargetScalars {
       "Parameters for editing existing targets. "
     )
 
+  def existenceEditInput(name: String): InputObjectType[TargetModel.EditInput] =
+    InputObjectType[TargetModel.EditInput](
+      s"${name.capitalize}TargetInput",
+      s"Selects the targets for $name",
+      List(
+        InputField("select", InputObjectTypeTargetSelect)
+        // leave out the "patch" since that is implied
+      )
+    )
+
+  val InputObjectTypeTargetDelete: InputObjectType[TargetModel.EditInput] =
+    existenceEditInput("delete")
+
+  val InputObjectTypeTargetUndelete: InputObjectType[TargetModel.EditInput] =
+    existenceEditInput("undelete")
+
+
   implicit val InputObjectTypeTargetEnvironment: InputObjectType[TargetEnvironmentInput] =
     InputObjectType[TargetEnvironmentInput](
       "TargetEnvironmentInput",
@@ -263,32 +282,41 @@ trait TargetMutation extends TargetScalars {
       resolve     = c => c.target(_.edit(c.arg(ArgumentEditTargetInput)))
     )
 
-    def delete[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
-    Field(
-      name        = "deleteTarget",
-      fieldType   = TargetType[F],
-      description = "Marks the target as DELETED.  Use undeleteTarget to retrieve it.".some,
-      arguments   = List(ArgumentTargetId),
-      resolve     = c => c.target(_.delete(c.targetId))
-    )
+  private def existenceEditField[F[_]: Dispatcher: Async: Logger](
+    to: Existence
+  ): Field[OdbCtx[F], Unit] = {
+    val name  = to.fold("delete", "undelete")
+    val patch = TargetModel.PropertiesInput.Empty.copy(existence = to.assign)
 
-  def undelete[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
-    Field(
-      name        = "undeleteTarget",
-      fieldType   = TargetType[F],
-      description = "Marks the target as PRESENT.".some,
-      arguments   = List(ArgumentTargetId),
-      resolve     = c => c.target(_.undelete(c.targetId))
-    )
+    // Need a custom decoder because we don't want to look for a "patch" field.
+    implicit val decoder: Decoder[TargetModel.EditInput] =
+      (c: HCursor) => for {
+        sel <- c.downField("select").as[TargetModel.SelectInput]
+      } yield TargetModel.EditInput(sel, patch)
 
+    val arg   =
+      to.fold(InputObjectTypeTargetDelete, InputObjectTypeTargetUndelete)
+         .argument(
+           "input",
+           s"Parameters used to select observations for $name"
+         )
+
+    Field(
+      name        = s"${name}Target",
+      description = s"${name.capitalize}s all the targets identified by the `select` field".some,
+      fieldType   = ListType(TargetType[F]),
+      arguments   = List(arg),
+      resolve     = c => c.target(_.edit(c.arg(arg)))
+    )
+  }
 
   def allFields[F[_]: Dispatcher: Async: Logger]: List[Field[OdbCtx[F], Unit]] =
     List(
       createTarget,
       cloneTarget,
       editTarget,
-      delete,
-      undelete
+      existenceEditField(Existence.Deleted),
+      existenceEditField(Existence.Present)
     )
 
 }

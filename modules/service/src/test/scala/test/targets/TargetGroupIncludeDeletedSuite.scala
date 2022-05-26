@@ -4,6 +4,7 @@
 package test
 package targets
 
+import cats.syntax.option._
 import io.circe.literal._
 
 class TargetGroupIncludeDeletedSuite extends OdbSuite {
@@ -22,19 +23,30 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
   // Delete NGC 3269 (t-3)
   queryTest(
     query ="""
-      mutation DeleteTarget {
-        deleteTarget(targetId: "t-3") {
+      mutation DeleteTarget($deleteTargetInput: DeleteTargetInput!) {
+        deleteTarget(input: $deleteTargetInput) {
           id
         }
       }
     """,
     expected = json"""
       {
-        "deleteTarget": {
-          "id": "t-3"
-        }
+        "deleteTarget": [
+          {
+            "id": "t-3"
+          }
+        ]
       }
     """,
+    variables = json"""
+      {
+        "deleteTargetInput": {
+          "select": {
+            "targetIds": [ "t-3" ]
+          }
+        }
+      }
+    """.some,
     clients = List(ClientOption.Http)
   )
 

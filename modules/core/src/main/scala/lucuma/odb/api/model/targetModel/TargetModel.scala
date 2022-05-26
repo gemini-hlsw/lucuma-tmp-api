@@ -124,6 +124,9 @@ object TargetModel extends TargetModelOptics {
 
   object PropertiesInput {
 
+    val Empty: PropertiesInput =
+      PropertiesInput()
+
     import io.circe.generic.extras.semiauto._
     import io.circe.generic.extras.Configuration
     implicit val customConfig: Configuration = Configuration.default.withDefaults
