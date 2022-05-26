@@ -32,63 +32,63 @@ trait ProgramMutation {
   implicit val InputObjectTypeClassicalInput: InputObjectType[ClassicalInput] =
     deriveInputObjectType[ClassicalInput](
       InputObjectTypeName("ClassicalInput"),
-      InputObjectTypeDescription("Classical proposal"),
+      InputObjectTypeDescription("Classical observing at Gemini"),
       ReplaceInputField("minPercentTime", IntPercentType.createRequiredEditOptional("minPercentTime", "classical"))
     )
 
   implicit val InputObjectTypeDemoScienceInput: InputObjectType[DemoScienceInput] =
     deriveInputObjectType[DemoScienceInput](
       InputObjectTypeName("DemoScienceInput"),
-      InputObjectTypeDescription("Demo science proposal"),
+      InputObjectTypeDescription("Demo science"),
       ReplaceInputField("minPercentTime", IntPercentType.createRequiredEditOptional("minPercentTime", "demoScience"))
     )
 
   implicit val InputObjectTypeDirectorsTimeInput: InputObjectType[DirectorsTimeInput] =
     deriveInputObjectType[DirectorsTimeInput](
       InputObjectTypeName("DirectorsTimeInput"),
-      InputObjectTypeDescription("Directors time proposal"),
+      InputObjectTypeDescription("Director's time"),
       ReplaceInputField("minPercentTime", IntPercentType.createRequiredEditOptional("minPercentTime", "directorsTime"))
     )
 
   implicit val InputObjectTypeExchangeInput: InputObjectType[ExchangeInput] =
     deriveInputObjectType[ExchangeInput](
       InputObjectTypeName("ExchangeInput"),
-      InputObjectTypeDescription("Exchange proposal"),
+      InputObjectTypeDescription("Exchange observing at Keck/Subaru"),
       ReplaceInputField("minPercentTime", IntPercentType.createRequiredEditOptional("minPercentTime", "exchange"))
     )
 
   implicit val InputObjectTypeFastTurnaroundInput: InputObjectType[FastTurnaroundInput] =
     deriveInputObjectType[FastTurnaroundInput](
       InputObjectTypeName("FastTurnaroundInput"),
-      InputObjectTypeDescription("Fast turnaround proposal"),
+      InputObjectTypeDescription("Fast turnaround observing at Gemini"),
       ReplaceInputField("minPercentTime", IntPercentType.createRequiredEditOptional("minPercentTime", "fastTurnaround"))
     )
 
   implicit val InputObjectTypePoorWeatherInput: InputObjectType[PoorWeatherInput] =
     deriveInputObjectType[PoorWeatherInput](
       InputObjectTypeName("PoorWeatherInput"),
-      InputObjectTypeDescription("Poor weather proposal"),
+      InputObjectTypeDescription("Poor weather"),
       ReplaceInputField("minPercentTime", IntPercentType.createRequiredEditOptional("minPercentTime", "poorWeather"))
     )
 
   implicit val InputObjectTypeQueueInput: InputObjectType[QueueInput] =
     deriveInputObjectType[QueueInput](
       InputObjectTypeName("QueueInput"),
-      InputObjectTypeDescription("Queue proposal"),
+      InputObjectTypeDescription("Queue observing at Gemini"),
       ReplaceInputField("minPercentTime", IntPercentType.createRequiredEditOptional("minPercentTime", "queue"))
     )
 
   implicit val InputObjectTypeSystemVerificationInput: InputObjectType[SystemVerificationInput] =
     deriveInputObjectType[SystemVerificationInput](
       InputObjectTypeName("SystemVerificationInput"),
-      InputObjectTypeDescription("System verification proposal"),
+      InputObjectTypeDescription("System verification"),
       ReplaceInputField("minPercentTime", IntPercentType.createRequiredEditOptional("minPercentTime", "systemVerification"))
     )
 
   implicit val InputObjectTypeLargeProgramInput: InputObjectType[LargeProgramInput] =
     deriveInputObjectType[LargeProgramInput](
       InputObjectTypeName("LargeProgramInput"),
-      InputObjectTypeDescription("Large program proposal"),
+      InputObjectTypeDescription("Large program observing at Gemini"),
       ReplaceInputField("minPercentTime",      IntPercentType.createRequiredEditOptional("minPercentTime", "largeProgram")),
       ReplaceInputField("minPercentTotalTime", IntPercentType.createRequiredEditOptional("minPercentTotalTime", "largeProgram")),
       ReplaceInputField("totalTime",           InputObjectTypeNonNegDuration.createRequiredEditOptional("totalTime", "largeProgram"))
@@ -97,7 +97,7 @@ trait ProgramMutation {
   implicit val InputObjectTypeIntensiveInput: InputObjectType[IntensiveInput] =
     deriveInputObjectType[IntensiveInput](
       InputObjectTypeName("IntensiveInput"),
-      InputObjectTypeDescription("Intensive proposal"),
+      InputObjectTypeDescription("Intensive program observing at Subaru"),
       ReplaceInputField("minPercentTime",      IntPercentType.createRequiredEditOptional("minPercentTime", "intensive")),
       ReplaceInputField("minPercentTotalTime", IntPercentType.createRequiredEditOptional("minPercentTotalTime", "intensive")),
       ReplaceInputField("totalTime",           InputObjectTypeNonNegDuration.createRequiredEditOptional("totalTime", "intensive"))
@@ -108,16 +108,16 @@ trait ProgramMutation {
       "ProposalClassInput",
       "Proposal class. Choose exactly one class type",
       List(
-        InputField("classical",          OptionInputType(InputObjectTypeClassicalInput),          "classical"),
-        InputField("demoScience",        OptionInputType(InputObjectTypeDemoScienceInput),        "demoScience"),
-        InputField("directorsTime",      OptionInputType(InputObjectTypeDirectorsTimeInput),      "directorsTime"),
-        InputField("exchange",           OptionInputType(InputObjectTypeExchangeInput),           "exchange"),
-        InputField("fastTurnaround",     OptionInputType(InputObjectTypeFastTurnaroundInput),     "fastTurnaround"),
-        InputField("poorWeather",        OptionInputType(InputObjectTypePoorWeatherInput),        "poorWeather"),
-        InputField("queue",              OptionInputType(InputObjectTypeQueueInput),              "queue"),
-        InputField("systemVerification", OptionInputType(InputObjectTypeSystemVerificationInput), "systemVerification"),
-        InputField("largeProgram",       OptionInputType(InputObjectTypeLargeProgramInput),       "largeProgram"),
-        InputField("intensive",          OptionInputType(InputObjectTypeIntensiveInput),          "intensive")
+        InputObjectTypeClassicalInput.optionField("classical", "Classical observing at Gemini"),
+        InputObjectTypeDemoScienceInput.optionField("demoScience", "Demo science"),
+        InputObjectTypeDirectorsTimeInput.optionField("directorsTime", "Director's time"),
+        InputObjectTypeExchangeInput.optionField("exchange", "Exchange observing at Keck/Subaru"),
+        InputObjectTypeFastTurnaroundInput.optionField("fastTurnaround", "Fast turnaround observing at Gemini"),
+        InputObjectTypePoorWeatherInput.optionField("poorWeather", "Poor weather"),
+        InputObjectTypeQueueInput.optionField("queue", "Queue observing at Gemini"),
+        InputObjectTypeSystemVerificationInput.optionField("systemVerification", "System verification"),
+        InputObjectTypeLargeProgramInput.optionField("largeProgram", "Large program observing at Gemini"),
+        InputObjectTypeIntensiveInput.optionField("intensive", "Intensive program observing at Subaru")
       )
     )
 
