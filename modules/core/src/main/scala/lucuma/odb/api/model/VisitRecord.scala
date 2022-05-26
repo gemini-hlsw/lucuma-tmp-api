@@ -7,10 +7,9 @@ import cats.Eq
 import cats.data.Ior
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
-import lucuma.core.model.Observation
+import lucuma.core.model.{NonNegDuration, Observation}
 import lucuma.odb.api.model.ExecutionEventModel.SequenceEvent
 import lucuma.odb.api.model.syntax.inputvalidator._
-import lucuma.odb.api.model.time.NonNegDuration
 import monocle.{Focus, Lens}
 import org.typelevel.cats.time.instances.instant._
 

@@ -5,11 +5,11 @@ package lucuma.odb.api.schema
 
 import cats.syntax.option._
 import eu.timepit.refined.types.numeric.{NonNegBigDecimal, NonNegLong}
+import lucuma.core.model.NonNegDuration
 import lucuma.core.optics.Format
 import lucuma.core.syntax.time._
 import lucuma.odb.api.model.DurationModel
 import lucuma.odb.api.model.format.ScalarFormat
-import lucuma.odb.api.model.time.NonNegDuration
 import lucuma.odb.api.schema.syntax.scalar._
 import sangria.schema._
 

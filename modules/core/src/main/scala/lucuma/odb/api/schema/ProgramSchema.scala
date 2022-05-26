@@ -19,6 +19,7 @@ object ProgramSchema {
 
   import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, PlannedTimeSummaryType}
   import ObservationSchema.ObservationConnectionType
+  import ProposalSchema.ProposalType
   import Paging._
   import RefinedSchema.NonEmptyStringType
   import context._
@@ -71,6 +72,13 @@ object ProgramSchema {
           fieldType   = OptionType(NonEmptyStringType),
           description = Some("Program name"),
           resolve     = _.value.name
+        ),
+
+        Field(
+          name        = "proposal",
+          fieldType   = OptionType(ProposalType),
+          description = Some("Program proposal"),
+          resolve     = _.value.proposal
         ),
 
         Field(

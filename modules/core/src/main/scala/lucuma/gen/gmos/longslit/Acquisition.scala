@@ -10,14 +10,14 @@ import eu.timepit.refined.auto._
 import lucuma.core.`enum`.{GmosNorthFilter, GmosNorthFpu, GmosNorthGrating, GmosRoi, GmosSouthFilter, GmosSouthFpu, GmosSouthGrating, GmosXBinning, GmosYBinning}
 import lucuma.core.math.Wavelength
 import lucuma.core.math.syntax.int._
+import lucuma.core.model.NonNegDuration
 import lucuma.core.optics.syntax.lens._
 import lucuma.core.syntax.time._
 import lucuma.gen.gmos.{GmosNorthInitialDynamicConfig, GmosSouthInitialDynamicConfig}
 import lucuma.gen.{AcqExposureTime, SequenceState}
 import lucuma.odb.api.model.GmosModel.{CustomMask, DynamicOptics, GratingConfig, NorthDynamic, SouthDynamic}
 import lucuma.odb.api.model.StepConfig
-import lucuma.odb.api.model.syntax.nonnegduration._
-import lucuma.odb.api.model.time.NonNegDuration
+import lucuma.core.model.syntax.nonnegduration._
 
 /**
  * GMOS long slit acquisition steps.

@@ -14,6 +14,32 @@ class QuerySuite extends OdbSuite {
           nodes {
             id
             name
+            proposal {
+              title
+              proposalClass {
+                __typename
+                minPercentTime
+                ... on LargeProgram {
+                  minPercentTotalTime
+                  totalTime {
+                    seconds
+                  }
+                } 
+                ... on Intensive {
+                  minPercentTotalTime
+                  totalTime {
+                    seconds
+                  }
+                }
+              }
+              category
+              toOActivation
+              abstract
+              partnerSplits {
+                partner
+                percent
+              }
+            }
           }
         }
       }
@@ -24,11 +50,32 @@ class QuerySuite extends OdbSuite {
           "nodes" : [
             {
               "id" : "p-2",
-              "name" : "The real dark matter was the friends we made along the way"
+              "name" : "The real dark matter was the friends we made along the way",
+              "proposal": {
+                "title": "Proposal title",
+                "proposalClass": {
+                  "__typename": "Classical",
+                  "minPercentTime": 80
+                },
+                "category": "SMALL_BODIES",
+                "toOActivation": "NONE",
+                "abstract": "Totally abstract",
+                "partnerSplits": [
+                  {
+                    "partner": "CL",
+                    "percent": 60
+                  },
+                  {
+                    "partner": "UH",
+                    "percent": 40
+                  }
+                ]
+              }
             },
             {
               "id" : "p-3",
-              "name" : "An Empty Placeholder Program"
+              "name" : "An Empty Placeholder Program",
+              "proposal": null
             }
           ]
         }

@@ -3,7 +3,7 @@
 
 package lucuma
 
-import lucuma.odb.api.model.time._
+import lucuma.core.model.NonNegDuration
 import shapeless.tag
 import shapeless.tag.@@
 

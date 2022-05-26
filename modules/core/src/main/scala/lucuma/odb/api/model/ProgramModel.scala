@@ -4,6 +4,7 @@
 package lucuma.odb.api.model
 
 import cats.data.StateT
+import cats.syntax.all._
 import cats.Eq
 import clue.data.Input
 import eu.timepit.refined.cats._
@@ -14,9 +15,8 @@ import io.circe.refined._
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.validatedinput._
-import lucuma.core.model.Program
-import monocle.Lens
-
+import lucuma.core.model.{Program, Proposal}
+import monocle.{Focus, Lens}
 
 /**
  * A placeholder Program for now.
@@ -24,7 +24,8 @@ import monocle.Lens
 final case class ProgramModel(
   id:        Program.Id,
   existence: Existence,
-  name:      Option[NonEmptyString]
+  name:      Option[NonEmptyString],
+  proposal:  Option[Proposal]
 )
 
 object ProgramModel extends ProgramOptics {
@@ -33,20 +34,22 @@ object ProgramModel extends ProgramOptics {
     TopLevelModel.instance(_.id, ProgramModel.existence)
 
   implicit val EqProgram: Eq[ProgramModel] =
-    Eq.by(p => (p.id, p.existence, p.name))
+    Eq.by(p => (p.id, p.existence, p.name, p.proposal))
 
   /**
    * Program creation input class.
    */
   final case class Create(
     programId: Option[Program.Id],
-    name:      Option[NonEmptyString]
+    name:      Option[NonEmptyString],
+    proposal:  Option[ProposalInput]
   ) {
 
     val create: StateT[EitherInput, Database, ProgramModel] =
       for {
+        x <- proposal.map(_.create).sequence.liftState
         i <- Database.program.getUnusedKey(programId)
-        _ <- Database.program.saveNew(i, ProgramModel(i, Existence.Present, name))
+        _ <- Database.program.saveNew(i, ProgramModel(i, Existence.Present, name, x))
         p <- Database.program.lookup(i)
       } yield p
 
@@ -62,15 +65,18 @@ object ProgramModel extends ProgramOptics {
   final case class Edit(
     programId: Program.Id,
     existence: Input[Existence]       = Input.ignore,
-    name:      Input[NonEmptyString]  = Input.ignore
+    name:      Input[NonEmptyString]  = Input.ignore,
+    proposal:  Input[ProposalInput]   = Input.ignore
   ) {
 
-    val edit: StateT[EitherInput, ProgramModel, Unit] =
+    val edit: StateT[EitherInput, ProgramModel, Unit] = {
       for {
         ex <- existence.validateIsNotNull("existence").liftState
         _ <- ProgramModel.existence := ex
-        _ <- ProgramModel.name := name.toOptionOption
+        _ <- ProgramModel.name      := name.toOptionOption
+        _ <- ProgramModel.proposal  :? proposal
       } yield ()
+    }
   }
 
   object Edit {
@@ -86,7 +92,8 @@ object ProgramModel extends ProgramOptics {
       Eq.by { a => (
         a.programId,
         a.existence,
-        a.name
+        a.name,
+        a.proposal
       )}
 
   }
@@ -110,13 +117,12 @@ object ProgramModel extends ProgramOptics {
 
 trait ProgramOptics { self: ProgramModel.type =>
 
-  val id: Lens[ProgramModel, Program.Id] =
-    Lens[ProgramModel, Program.Id](_.id)(a => _.copy(id = a))
+  val id: Lens[ProgramModel, Program.Id] = Focus[ProgramModel](_.id)
 
-  val existence: Lens[ProgramModel, Existence] =
-    Lens[ProgramModel, Existence](_.existence)(a => _.copy(existence = a))
+  val existence: Lens[ProgramModel, Existence] = Focus[ProgramModel](_.existence)
 
-  val name: Lens[ProgramModel, Option[NonEmptyString]] =
-    Lens[ProgramModel, Option[NonEmptyString]](_.name)(a => _.copy(name = a))
+  val name: Lens[ProgramModel, Option[NonEmptyString]] = Focus[ProgramModel](_.name)
+
+  val proposal: Lens[ProgramModel, Option[Proposal]] = Focus[ProgramModel](_.proposal)
 
 }

@@ -8,7 +8,8 @@ import clue.data.Input
 import eu.timepit.refined.types.all.{NonNegInt, PosBigDecimal}
 import eu.timepit.refined.scalacheck.all._
 import lucuma.core.math.arb.ArbRefined
-import lucuma.odb.api.model.time.NonNegDuration
+import lucuma.core.model.NonNegDuration
+import lucuma.core.model.arb.ArbNonNegDuration
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 

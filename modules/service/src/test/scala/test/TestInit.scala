@@ -8,12 +8,14 @@ import cats.effect.Sync
 import cats.syntax.all._
 import clue.data.Input
 import clue.data.syntax._
+import eu.timepit.refined._
 import eu.timepit.refined.types.numeric.{NonNegBigDecimal, PosBigDecimal}
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.parser.decode
 import lucuma.core.`enum`.{ScienceMode => _, _}
 import lucuma.core.math.syntax.int._
-import lucuma.core.model.Program
+import lucuma.core.model.ZeroTo100
+import lucuma.core.model.{Partner, Program}
 import lucuma.core.optics.syntax.all._
 import lucuma.core.syntax.time._
 import lucuma.odb.api.model.OffsetModel.ComponentInput
@@ -431,6 +433,23 @@ object TestInit {
       ).some
     )
 
+  val proposal: ProposalInput =
+    ProposalInput(
+      title         = NonEmptyString.unsafeFrom("Proposal title").assign,
+      proposalClass = 
+        ProposalClassInput(
+          classical = ProposalClassInput.ClassicalInput(refineMV[ZeroTo100](80).assign).assign
+        ).assign,
+      category      = TacCategory.SmallBodies.assign,
+      toOActivation = ToOActivation.None.assign,
+      abstrakt      = NonEmptyString.unsafeFrom("Totally abstract").assign,
+      partnerSplits = 
+        List(
+          ProposalInput.PartnerSplitInput(Partner.Cl.assign, refineMV[ZeroTo100](60).assign),
+          ProposalInput.PartnerSplitInput(Partner.Uh.assign, refineMV[ZeroTo100](40).assign)
+        ).assign
+    )
+
   /**
    * Initializes a (presumably) empty ODB with some demo values.
    */
@@ -439,14 +458,16 @@ object TestInit {
       p  <- repo.program.insert(
               ProgramModel.Create(
                 None,
-                NonEmptyString.from("The real dark matter was the friends we made along the way").toOption
+                NonEmptyString.from("The real dark matter was the friends we made along the way").toOption, 
+                proposal.some
               )
             )
 
       p3 <- repo.program.insert(
               ProgramModel.Create(
                 None,
-                NonEmptyString.from("An Empty Placeholder Program").toOption
+                NonEmptyString.from("An Empty Placeholder Program").toOption,
+                None
               )
             )
       cs <- targets(p.id).liftTo[F]

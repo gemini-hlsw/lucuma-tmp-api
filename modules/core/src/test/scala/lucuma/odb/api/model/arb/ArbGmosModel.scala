@@ -6,13 +6,13 @@ package arb
 
 import lucuma.core.`enum`._
 import lucuma.core.math.{Offset, Wavelength}
-import lucuma.core.math.arb.ArbOffset
-import lucuma.core.math.arb.ArbWavelength
+import lucuma.core.math.arb.{ArbOffset, ArbWavelength}
+import lucuma.core.model.NonNegDuration
+import lucuma.core.model.arb.ArbNonNegDuration
 import lucuma.core.util.arb.ArbEnumerated
 import clue.data.Input
 import eu.timepit.refined.types.all.NonEmptyString
 import eu.timepit.refined.scalacheck.string._
-import lucuma.odb.api.model.time.NonNegDuration
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 

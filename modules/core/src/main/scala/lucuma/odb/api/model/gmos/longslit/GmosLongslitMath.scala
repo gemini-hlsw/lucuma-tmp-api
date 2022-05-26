@@ -98,7 +98,7 @@ object GmosNorthLongslitMath extends GmosSiteSpecificLongslitMath {
   override def site: Site = Site.GN
 
   def effectiveSlitWidth(fpu: GmosNorthFpu, p: SourceProfile, iq: ImageQuality): Angle =
-    fpu.slitWidth.getOrElse(IfuSlitWidth) min effectiveSize(p, iq)
+    fpu.effectiveSlitWidth min effectiveSize(p, iq)
 
   def xbin(fpu: GmosNorthFpu, p: SourceProfile, iq: ImageQuality, sampling: PosDouble): GmosXBinning =
     super.xbin(effectiveSlitWidth(fpu, p, iq), sampling)
@@ -110,7 +110,7 @@ object GmosSouthLongslitMath extends GmosSiteSpecificLongslitMath {
   override def site: Site = Site.GS
 
   def effectiveSlitWidth(fpu: GmosSouthFpu, p: SourceProfile, iq: ImageQuality): Angle =
-    fpu.slitWidth.getOrElse(IfuSlitWidth) min effectiveSize(p, iq)
+    fpu.effectiveSlitWidth min effectiveSize(p, iq)
 
   def xbin(fpu: GmosSouthFpu, p: SourceProfile, iq: ImageQuality, sampling: PosDouble): GmosXBinning =
     super.xbin(effectiveSlitWidth(fpu, p, iq), sampling)
