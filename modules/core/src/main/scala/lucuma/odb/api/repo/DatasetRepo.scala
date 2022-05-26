@@ -3,14 +3,14 @@
 
 package lucuma.odb.api.repo
 
-import cats.Functor
+import cats.MonadError
 import cats.effect.Ref
+import cats.syntax.flatMap._
 import cats.syntax.functor._
-import cats.syntax.option._
-import eu.timepit.refined.types.all.PosInt
-import lucuma.core.`enum`.DatasetQaState
 import lucuma.core.model.Observation
 import lucuma.odb.api.model.{Database, DatasetModel, Step}
+import lucuma.odb.api.model.syntax.databasestate._
+import lucuma.odb.api.model.syntax.eitherinput._
 
 sealed trait DatasetRepo[F[_]] {
 
@@ -30,20 +30,17 @@ sealed trait DatasetRepo[F[_]] {
     after: Option[DatasetModel.Id]
   ): F[ResultPage[DatasetModel]]
 
-  def markQaState(
-    oid:   Observation.Id,
-    sid:   Option[Step.Id],
-    index: Option[PosInt],
-    qa:    DatasetQaState
+  def edit(
+    editInput: DatasetModel.EditInput
   ): F[List[DatasetModel]]
 
 }
 
 object DatasetRepo {
 
-  def create[F[_]: Functor](
+  def create[F[_]](
     databaseRef: Ref[F, Database]
-  ): DatasetRepo[F] =
+  )(implicit ev: MonadError[F, Throwable]): DatasetRepo[F] =
 
     new DatasetRepo[F] {
 
@@ -73,23 +70,28 @@ object DatasetRepo {
           )
         }
 
-      override def markQaState(
-        oid:   Observation.Id,
-        sid:   Option[Step.Id],
-        index: Option[PosInt],
-        qa:    DatasetQaState
+      override def edit(
+        editInput: DatasetModel.EditInput
       ): F[List[DatasetModel]] =
+        databaseRef.modifyState(editInput.editor.flipF).flatMap(_.liftTo[F])
 
-        databaseRef.modify { db =>
-          val dbʹ =
-            Database.datasets.modify { t =>
-              t.selectAll(oid, sid, index).foldLeft(t) { (tʹ, d) =>
-                tʹ.updatedWith(d.id)(_.map(DatasetModel.Dataset.qaState.replace(qa.some)))
-              }
-            }(db)
-
-          (dbʹ, dbʹ.datasets.selectAll(oid, sid, index))
-        }
+      //      override def markQaState(
+//        oid:   Observation.Id,
+//        sid:   Option[Step.Id],
+//        index: Option[PosInt],
+//        qa:    DatasetQaState
+//      ): F[List[DatasetModel]] =
+//
+//        databaseRef.modify { db =>
+//          val dbʹ =
+//            Database.datasets.modify { t =>
+//              t.selectAll(oid, sid, index).foldLeft(t) { (tʹ, d) =>
+//                tʹ.updatedWith(d.id)(_.map(DatasetModel.Dataset.qaState.replace(qa.some)))
+//              }
+//            }(db)
+//
+//          (dbʹ, dbʹ.datasets.selectAll(oid, sid, index))
+//        }
 
     }
 
