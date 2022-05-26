@@ -19,7 +19,7 @@ class VisitSuite extends OdbSuite {
   // Record a visit.
   queryTest(
     query = s"""
-      mutation RecordGmosSouthVisit($$recordInput: GmosSouthVisitRecordInput!) {
+      mutation RecordGmosSouthVisit($$recordInput: RecordGmosSouthVisitInput!) {
         recordGmosSouthVisit(input: $$recordInput, visitId: "$vid") {
           id
         }
@@ -86,7 +86,7 @@ class VisitSuite extends OdbSuite {
   // Record a step.
   queryTest(
     query = s"""
-      mutation RecordGmosSouthStep($$recordInput: GmosSouthStepRecordInput!) {
+      mutation RecordGmosSouthStep($$recordInput: RecordGmosSouthStepInput!) {
         recordGmosSouthStep(input: $$recordInput, stepId: "$sid") {
           id
         }
