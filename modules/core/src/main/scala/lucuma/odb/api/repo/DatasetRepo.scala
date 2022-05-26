@@ -75,24 +75,6 @@ object DatasetRepo {
       ): F[List[DatasetModel]] =
         databaseRef.modifyState(editInput.editor.flipF).flatMap(_.liftTo[F])
 
-      //      override def markQaState(
-//        oid:   Observation.Id,
-//        sid:   Option[Step.Id],
-//        index: Option[PosInt],
-//        qa:    DatasetQaState
-//      ): F[List[DatasetModel]] =
-//
-//        databaseRef.modify { db =>
-//          val dbʹ =
-//            Database.datasets.modify { t =>
-//              t.selectAll(oid, sid, index).foldLeft(t) { (tʹ, d) =>
-//                tʹ.updatedWith(d.id)(_.map(DatasetModel.Dataset.qaState.replace(qa.some)))
-//              }
-//            }(db)
-//
-//          (dbʹ, dbʹ.datasets.selectAll(oid, sid, index))
-//        }
-
     }
 
 }
