@@ -4,6 +4,7 @@
 package lucuma.odb.api.model
 package arb
 
+import clue.data.Input
 import eu.timepit.refined.scalacheck.string._
 import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.model.{Program, Proposal}
@@ -17,6 +18,7 @@ trait ArbProgramModel {
 
   import ArbEnumerated._
   import ArbGid._
+  import ArbInput._
   import ArbProposal._
   import ArbProposalInput._
 
@@ -43,25 +45,37 @@ trait ArbProgramModel {
       in.proposal
     )}
 
-  implicit val arbProgramModelCreate: Arbitrary[ProgramModel.Create] =
+  implicit val arbProgramModelPropertiesInput: Arbitrary[ProgramModel.PropertiesInput] =
     Arbitrary {
       for {
-        id <- arbitrary[Option[Program.Id]]
-        nm <- arbitrary[Option[NonEmptyString]]
-        p  <- arbitrary[Option[ProposalInput]]
-      } yield ProgramModel.Create(id, nm, p)
+        nm <- arbitrary[Input[NonEmptyString]]
+        p  <- arbitrary[Input[ProposalInput]]
+        e  <- arbitrary[Input[Existence]]
+      } yield ProgramModel.PropertiesInput(nm, p, e)
     }
 
-  implicit val cogProgramModelCreate: Cogen[ProgramModel.Create] =
+  implicit val cogProgramModelPropertiesInput: Cogen[ProgramModel.PropertiesInput] =
     Cogen[(
-      Option[Program.Id],
-      Option[String],
-      Option[ProposalInput]
+      Input[String],
+      Input[ProposalInput],
+      Input[Existence]
     )].contramap { in => (
-      in.programId,
       in.name.map(_.value),
-      in.proposal
+      in.proposal,
+      in.existence
     )}
+
+  implicit val arbProgramModelCreate: Arbitrary[ProgramModel.CreateInput] =
+    Arbitrary {
+      for {
+        p  <- arbitrary[Option[ProgramModel.PropertiesInput]]
+      } yield ProgramModel.CreateInput(p)
+    }
+
+  implicit val cogProgramModelCreate: Cogen[ProgramModel.CreateInput] =
+    Cogen[(
+      Option[ProgramModel.PropertiesInput]
+    )].contramap(_.properties)
 }
 
 object ArbProgramModel extends ArbProgramModel
