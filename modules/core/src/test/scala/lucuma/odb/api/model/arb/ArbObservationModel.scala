@@ -15,6 +15,8 @@ import lucuma.odb.api.model.targetModel.{TargetEnvironmentInput, TargetEnvironme
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 
+import java.time.Instant
+
 trait ArbObservationModel {
 
   import ArbInput._
@@ -33,10 +35,11 @@ trait ArbObservationModel {
         nm <- arbitrary[Option[NonEmptyString]]
         os <- arbitrary[ObsStatus]
         as <- arbitrary[ObsActiveStatus]
+        vt <- arbitrary[Option[Instant]]
         ts <- arbitrary[TargetEnvironmentModel]
         cs <- arbitrary[ConstraintSet]
         sr <- arbitrary[ScienceRequirements]
-      } yield ObservationModel(id, pid, ex, nm, os, as, ts, cs, sr, None, None)
+      } yield ObservationModel(id, pid, ex, nm, os, as, vt, ts, cs, sr, None, None)
     }
 
   implicit val arbObservationModel: Arbitrary[ObservationModel] =
@@ -55,6 +58,8 @@ trait ArbObservationModel {
       Option[String],
       ObsStatus,
       ObsActiveStatus,
+      Option[Instant],
+      TargetEnvironmentModel,
       ConstraintSet,
       ScienceRequirements
     )].contramap { in => (
@@ -64,6 +69,8 @@ trait ArbObservationModel {
       in.subtitle.map(_.value),
       in.status,
       in.activeStatus,
+      in.visualizationTime,
+      in.targetEnvironment,
       in.constraintSet,
       in.scienceRequirements
     )}
@@ -74,12 +81,14 @@ trait ArbObservationModel {
         nm <- arbitrary[Input[NonEmptyString]]
         st <- arbitrary[Input[ObsStatus]]
         as <- arbitrary[Input[ObsActiveStatus]]
+        vt <- arbitrary[Input[Instant]]
         ts <- arbitrary[Input[TargetEnvironmentInput]]
         cs <- arbitrary[Input[ConstraintSetInput]]
       } yield ObservationModel.PropertiesInput(
         nm,
         st,
         as,
+        vt,
         ts,
         cs,
         Input.ignore,
@@ -93,12 +102,14 @@ trait ArbObservationModel {
       Input[String],
       Input[ObsStatus],
       Input[ObsActiveStatus],
+      Input[Instant],
       Input[TargetEnvironmentInput],
       Input[ConstraintSetInput]
     )].contramap { in => (
       in.subtitle.map(_.value),
       in.status,
       in.activeStatus,
+      in.visualizationTime,
       in.targetEnvironment,
       in.constraintSet
     )}

@@ -3,13 +3,6 @@
 
 package lucuma.odb.api.model
 
-import lucuma.odb.api.model.Existence._
-import lucuma.odb.api.model.syntax.input._
-import lucuma.odb.api.model.syntax.lens._
-import lucuma.odb.api.model.syntax.validatedinput._
-import lucuma.odb.api.model.targetModel.{TargetEnvironmentInput, TargetEnvironmentModel}
-import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
-import lucuma.core.model.{ConstraintSet, Observation, Program}
 import cats.{Eq, Functor}
 import cats.data.StateT
 import cats.effect.Sync
@@ -25,7 +18,17 @@ import eu.timepit.refined.types.string._
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
+import org.typelevel.cats.time._
+import lucuma.odb.api.model.Existence._
+import lucuma.odb.api.model.syntax.input._
+import lucuma.odb.api.model.syntax.lens._
+import lucuma.odb.api.model.syntax.validatedinput._
+import lucuma.odb.api.model.targetModel.{TargetEnvironmentInput, TargetEnvironmentModel}
+import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
+import lucuma.core.model.{ConstraintSet, Observation, Program}
 import monocle.{Focus, Lens, Optional}
+
+import java.time.Instant
 
 import scala.collection.immutable.SortedSet
 
@@ -37,11 +40,12 @@ final case class ObservationModel(
   subtitle:            Option[NonEmptyString],
   status:              ObsStatus,
   activeStatus:        ObsActiveStatus,
+  visualizationTime:   Option[Instant],
   targetEnvironment:   TargetEnvironmentModel,
   constraintSet:       ConstraintSet,
   scienceRequirements: ScienceRequirements,
   scienceMode:         Option[ScienceMode],
-  manualConfig:      Option[ExecutionModel]
+  manualConfig:        Option[ExecutionModel]
 ) {
 
   val validate: StateT[EitherInput, Database, ObservationModel] =
@@ -69,6 +73,7 @@ object ObservationModel extends ObservationOptics {
       o.subtitle,
       o.status,
       o.activeStatus,
+      o.visualizationTime,
       o.targetEnvironment,
       o.constraintSet,
       o.scienceRequirements,
@@ -80,11 +85,12 @@ object ObservationModel extends ObservationOptics {
     subtitle:            Input[NonEmptyString]            = Input.ignore,
     status:              Input[ObsStatus]                 = Input.ignore,
     activeStatus:        Input[ObsActiveStatus]           = Input.ignore,
+    visualizationTime:   Input[Instant]                   = Input.ignore,
     targetEnvironment:   Input[TargetEnvironmentInput]    = Input.ignore,
     constraintSet:       Input[ConstraintSetInput]        = Input.ignore,
     scienceRequirements: Input[ScienceRequirementsInput]  = Input.ignore,
     scienceMode:         Input[ScienceModeInput]          = Input.ignore,
-    manualConfig:      Input[ExecutionModel.Create]     = Input.ignore,
+    manualConfig:        Input[ExecutionModel.Create]     = Input.ignore,
     existence:           Input[Existence]                 = Input.ignore
   ) {
 
@@ -105,11 +111,12 @@ object ObservationModel extends ObservationOptics {
           subtitle            = subtitle.toOption,
           status              = status.toOption.getOrElse(ObsStatus.New),
           activeStatus        = activeStatus.toOption.getOrElse(ObsActiveStatus.Active),
+          visualizationTime   = visualizationTime.toOption,
           targetEnvironment   = tʹ,
           constraintSet       = cʹ.getOrElse(ConstraintSetModel.Default),
           scienceRequirements = qʹ.getOrElse(ScienceRequirements.Default),
           scienceMode         = uʹ,
-          manualConfig      = gʹ
+          manualConfig        = gʹ
         )
       }
     }
@@ -128,6 +135,7 @@ object ObservationModel extends ObservationOptics {
         _ <- ObservationModel.subtitle            := subtitle.toOptionOption
         _ <- ObservationModel.status              := s
         _ <- ObservationModel.activeStatus        := a
+        _ <- ObservationModel.visualizationTime   := visualizationTime.toOptionOption
         _ <- ObservationModel.targetEnvironment   :! targetEnvironment
         _ <- ObservationModel.constraintSet       :! constraintSet
         _ <- ObservationModel.scienceRequirements :! scienceRequirements
@@ -154,6 +162,7 @@ object ObservationModel extends ObservationOptics {
         a.subtitle,
         a.status,
         a.activeStatus,
+        a.visualizationTime,
         a.targetEnvironment,
         a.constraintSet,
         a.scienceRequirements,
@@ -413,6 +422,9 @@ trait ObservationOptics { self: ObservationModel.type =>
 
   val activeStatus: Lens[ObservationModel, ObsActiveStatus] =
     Focus[ObservationModel](_.activeStatus)
+
+  val visualizationTime: Lens[ObservationModel, Option[Instant]] =
+    Focus[ObservationModel](_.visualizationTime)
 
   val targetEnvironment: Lens[ObservationModel, TargetEnvironmentModel] =
     Focus[ObservationModel](_.targetEnvironment)

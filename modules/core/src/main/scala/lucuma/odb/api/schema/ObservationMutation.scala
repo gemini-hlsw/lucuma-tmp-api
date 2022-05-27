@@ -29,6 +29,7 @@ trait ObservationMutation {
   import ProgramSchema.ProgramIdType
   import RefinedSchema.NonEmptyStringType
   import TargetMutation.{InputObjectTypeEditAsterism, InputObjectTypeTargetEnvironment}
+  import TimeSchema.InstantScalar
   import syntax.inputobjecttype._
 
   implicit val InputObjectTypeObservationProperties: InputObjectType[ObservationModel.PropertiesInput] =
@@ -39,6 +40,7 @@ trait ObservationMutation {
         NonEmptyStringType.optionField("subtitle", "Subtitle adds additional detail to the target-based observation title, and is both optional and nullable"),
         ObsStatusType.optionField("status", "The observation status will default to New if not specified when an observation is created and may be edited but not deleted"),
         ObsActiveStatusType.optionField("activeStatus", "The observation active status will default to Active if not specified when an observation is created and may be edited but not deleted"),
+        InstantScalar.optionField("visualizationTime", "Reference time used for time-dependent calculations such as average parallactic angle"),
         InputObjectTypeTargetEnvironment.optionField("targetEnvironment", "The targetEnvironment defaults to empty if not specified on creation, and may be edited but not deleted"),
         InputObjectTypeConstraintSet.optionField("constraintSet", "The constraintSet defaults to standard values if not specified on creation, and may be edited but not deleted"),
         InputObjectTypeScienceRequirements.optionField("scienceRequirements", "The scienceRequirements defaults to spectroscopy if not specified on creation, and may be edited but not deleted"),

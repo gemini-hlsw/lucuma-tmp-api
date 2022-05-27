@@ -27,6 +27,7 @@ object ObservationSchema {
   import ProgramSchema.ProgramType
   import RefinedSchema.NonEmptyStringType
   import ScienceRequirementsSchema.ScienceRequirementsType
+  import TimeSchema.InstantScalar
 
   import context._
   import syntax.`enum`._
@@ -125,6 +126,13 @@ object ObservationSchema {
           fieldType   = ObsActiveStatusType,
           description = "Observation operational status".some,
           resolve     = _.value.activeStatus
+        ),
+
+        Field(
+          name        = "visualizationTime",
+          fieldType   = OptionType(InstantScalar),
+          description = "Reference time used by default for visualization and time-dependent calculations (e.g., average parallactic angle)".some,
+          resolve     = _.value.visualizationTime
         ),
 
         Field(

@@ -392,7 +392,7 @@ object Init {
             ).assign
           ).assign,
         scienceMode         = Input.ignore,
-        manualConfig      = Input.ignore
+        manualConfig        = Input.ignore
       ).some
     )
 

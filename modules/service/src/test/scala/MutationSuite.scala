@@ -261,5 +261,36 @@ class MutationSuite extends OdbSuite {
       """)
   )
 
-
+  queryTest(
+    query = """
+      mutation EditMiscProperties($editObservationInput: EditObservationInput!) {
+        editObservation(input: $editObservationInput) {
+          id
+          visualizationTime
+        }
+      }
+    """,
+    expected = json"""
+      {
+        "editObservation" : [
+          {
+            "id": "o-3",
+            "visualizationTime": "2017-02-16T20:30:00Z"
+          }
+        ]
+      }
+    """,
+    variables = Some(json"""
+      {
+        "editObservationInput": {
+          "select": {
+            "observationIds": [ "o-3" ]
+          },
+          "patch": {
+            "visualizationTime": "2017-02-16T20:30:00Z"
+          }
+        }
+      }
+    """)
+  )
 }
