@@ -43,7 +43,7 @@ trait ExecutionEventMutation {
     staticInput: InputObjectType[SI]
   ): InputObjectType[VisitRecord.Input[SI]] =
     InputObjectType[VisitRecord.Input[SI]](
-      s"${typePrefix.capitalize}VisitRecordInput",
+      s"Record${typePrefix.capitalize}VisitInput",
       s"Input parameters for creating a new ${typePrefix.capitalize} VisitRecord",
       List(
         InputField("observationId", ObservationIdType),
@@ -115,7 +115,7 @@ trait ExecutionEventMutation {
     stepType:   InputType[DI]
   ): InputObjectType[StepRecord.Input[DI]] =
     InputObjectType[StepRecord.Input[DI]](
-      s"${typePrefix.capitalize}StepRecordInput",
+      s"Record${typePrefix.capitalize}StepInput",
       s"Input parameters for creating a new ${typePrefix.capitalize} StepRecord",
       List(
         InputField("observationId", ObservationIdType),
