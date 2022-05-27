@@ -3,25 +3,37 @@
 
 package test
 
+import cats.syntax.option._
 import io.circe.literal._
 
 class GroupIncludeDeletedSuite extends OdbSuite {
 
   queryTest(
     query ="""
-      mutation DeleteObservation {
-        deleteObservation(observationId: "o-5") {
+      mutation DeleteObservation($deleteObservationInput: DeleteObservationInput!) {
+        deleteObservation(input: $deleteObservationInput) {
           id
         }
       }
     """,
     expected = json"""
       {
-        "deleteObservation": {
-          "id": "o-5"
+        "deleteObservation": [
+          {
+            "id": "o-5"
+          }
+        ]
+      }
+    """,
+    variables =json"""
+      {
+        "deleteObservationInput": {
+          "select": {
+            "observationIds": [ "o-5" ]
+          }
         }
       }
-    """
+    """.some
   )
 
   // After deletion of "o-5", the grouping will not contain it

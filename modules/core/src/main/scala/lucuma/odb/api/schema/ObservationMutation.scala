@@ -3,13 +3,14 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.ObservationModel
+import lucuma.odb.api.model.{Existence, ObservationModel}
 import lucuma.odb.api.model.ObservationModel.BulkEdit
 import lucuma.odb.api.schema.syntax.inputtype._
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.option._
-import io.circe.Decoder
+import clue.data.syntax._
+import io.circe.{Decoder, HCursor}
 import lucuma.odb.api.model.targetModel.EditAsterismPatchInput
 import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
@@ -24,7 +25,7 @@ trait ObservationMutation {
   import ScienceModeMutation.InputObjectTypeScienceMode
   import ScienceRequirementsMutation.InputObjectTypeScienceRequirements
   import GeneralSchema.EnumTypeExistence
-  import ObservationSchema.{ObsActiveStatusType, ObservationIdType, ObservationIdArgument, ObsStatusType, ObservationType}
+  import ObservationSchema.{ObsActiveStatusType, ObservationIdType, ObsStatusType, ObservationType}
   import ProgramSchema.ProgramIdType
   import RefinedSchema.NonEmptyStringType
   import TargetMutation.{InputObjectTypeEditAsterism, InputObjectTypeTargetEnvironment}
@@ -84,6 +85,22 @@ trait ObservationMutation {
       "input",
       "Parameters for editing existing observations"
     )
+
+  def existenceEditInput(name: String): InputObjectType[ObservationModel.EditInput] =
+    InputObjectType[ObservationModel.EditInput](
+      s"${name.capitalize}ObservationInput",
+      s"Selects the observations for $name",
+      List(
+        InputField("select", InputObjectTypeObservationSelect)
+        // leave out the "patch" since that is implied
+      )
+    )
+
+  val InputObjectTypeObservationDelete: InputObjectType[ObservationModel.EditInput] =
+    existenceEditInput("delete")
+
+  val InputObjectTypeObservationUndelete: InputObjectType[ObservationModel.EditInput] =
+    existenceEditInput("undelete")
 
   val InputObjectTypeObservationCloneInput: InputObjectType[ObservationModel.CloneInput] =
     deriveInputObjectType[ObservationModel.CloneInput](
@@ -163,21 +180,33 @@ trait ObservationMutation {
       resolve     = c => c.observation(_.editAsterism(c.arg(ArgumentEditAsterism)))
     )
 
-  def delete[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
-    Field(
-      name      = "deleteObservation",
-      fieldType = ObservationType[F],
-      arguments = List(ObservationIdArgument),
-      resolve   = c => c.observation(_.delete(c.observationId))
-    )
+  private def existenceEditField[F[_]: Dispatcher: Async: Logger](
+    to: Existence
+  ): Field[OdbCtx[F], Unit] = {
+    val name  = to.fold("delete", "undelete")
+    val patch = ObservationModel.PropertiesInput.Empty.copy(existence = to.assign)
 
-  def undelete[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+    // Need a custom decoder because we don't want to look for a "patch" field.
+    implicit val decoder: Decoder[ObservationModel.EditInput] =
+      (c: HCursor) => for {
+        sel <- c.downField("select").as[ObservationModel.SelectInput]
+      } yield ObservationModel.EditInput(sel, patch)
+
+    val arg   =
+      to.fold(InputObjectTypeObservationDelete, InputObjectTypeObservationUndelete)
+         .argument(
+           "input",
+           s"Parameters used to select observations for $name"
+         )
+
     Field(
-      name      = "undeleteObservation",
-      fieldType = ObservationType[F],
-      arguments = List(ObservationIdArgument),
-      resolve   = c => c.observation(_.undelete(c.observationId))
+      name        = s"${name}Observation",
+      description = s"${name.capitalize}s all the observations identified by the `select` field".some,
+      fieldType   = ListType(ObservationType[F]),
+      arguments   = List(arg),
+      resolve     = c => c.observation(_.edit(c.arg(arg)))
     )
+  }
 
   def allFields[F[_]: Dispatcher: Async: Logger]: List[Field[OdbCtx[F], Unit]] =
     List(
@@ -185,8 +214,8 @@ trait ObservationMutation {
       editObservation,
       clone,
       editAsterism,
-      delete,
-      undelete,
+      existenceEditField(Existence.Deleted),
+      existenceEditField(Existence.Present),
     )
 
 }

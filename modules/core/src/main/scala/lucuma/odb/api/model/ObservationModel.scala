@@ -140,17 +140,7 @@ object ObservationModel extends ObservationOptics {
   object PropertiesInput {
 
     val Empty: PropertiesInput =
-      PropertiesInput(
-        subtitle            = Input.ignore,
-        status              = Input.ignore,
-        activeStatus        = Input.ignore,
-        targetEnvironment   = Input.ignore,
-        constraintSet       = Input.ignore,
-        scienceRequirements = Input.ignore,
-        scienceMode         = Input.ignore,
-        config              = Input.ignore,
-        existence           = Input.ignore
-      )
+      PropertiesInput()
 
     import io.circe.generic.extras.semiauto._
     import io.circe.generic.extras.Configuration

@@ -54,8 +54,8 @@ class TargetMutationSuite extends OdbSuite {
   // Delete a target by id.  No need to specify a target environment.
   queryTest(
     query = """
-      mutation DeleteTarget {
-        deleteTarget(targetId: "t-4") {
+      mutation DeleteTarget($deleteTargetInput: DeleteTargetInput!) {
+        deleteTarget(input: $deleteTargetInput) {
           id
           name
           existence
@@ -64,14 +64,24 @@ class TargetMutationSuite extends OdbSuite {
     """,
     expected = json"""
       {
-        "deleteTarget": {
-          "id": "t-4",
-          "name": "NGC 3312",
-          "existence": "DELETED"
-        }
+        "deleteTarget": [
+          {
+            "id": "t-4",
+            "name": "NGC 3312",
+            "existence": "DELETED"
+          }
+        ]
       }
     """,
-    None,
+    variables = json"""
+      {
+        "deleteTargetInput": {
+          "select": {
+            "targetIds": [ "t-4" ]
+          }
+        }
+      }
+    """.some,
     clients = List(ClientOption.Http)  // cannot run this test twice since it changes required state
   )
 

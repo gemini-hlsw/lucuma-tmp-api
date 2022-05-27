@@ -68,9 +68,9 @@ trait TopLevelRepo[F[_], I, T] {
     editor: ValidatedInput[State[T, Unit]]
   ): F[T]
 
-  def delete(id: I): F[T]
+  def deleteOne(id: I): F[T]
 
-  def undelete(id: I): F[T]
+  def undeleteOne(id: I): F[T]
 
 }
 
@@ -201,10 +201,10 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, *]: Eq](
   private def setExistence(id: I, newState: Existence): F[T] =
     edit(id, TopLevelModel[I, T].existenceEditor(newState).validNec)
 
-  def delete(id: I): F[T] =
+  def deleteOne(id: I): F[T] =
     setExistence(id, Existence.Deleted)
 
-  def undelete(id: I): F[T] =
+  def undeleteOne(id: I): F[T] =
     setExistence(id, Existence.Present)
 
 }
