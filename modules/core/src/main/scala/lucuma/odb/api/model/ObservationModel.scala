@@ -41,7 +41,7 @@ final case class ObservationModel(
   constraintSet:       ConstraintSet,
   scienceRequirements: ScienceRequirements,
   scienceMode:         Option[ScienceMode],
-  config:              Option[ExecutionModel]
+  manualConfig:      Option[ExecutionModel]
 ) {
 
   val validate: StateT[EitherInput, Database, ObservationModel] =
@@ -73,19 +73,19 @@ object ObservationModel extends ObservationOptics {
       o.constraintSet,
       o.scienceRequirements,
       o.scienceMode,
-      o.config
+      o.manualConfig
     )}
 
   final case class PropertiesInput(
-    subtitle:             Input[NonEmptyString]            = Input.ignore,
-    status:               Input[ObsStatus]                 = Input.ignore,
-    activeStatus:         Input[ObsActiveStatus]           = Input.ignore,
-    targetEnvironment:    Input[TargetEnvironmentInput]    = Input.ignore,
-    constraintSet:        Input[ConstraintSetInput]        = Input.ignore,
-    scienceRequirements:  Input[ScienceRequirementsInput]  = Input.ignore,
-    scienceMode:          Input[ScienceModeInput]          = Input.ignore,
-    config:               Input[ExecutionModel.Create]     = Input.ignore,
-    existence:            Input[Existence]                 = Input.ignore
+    subtitle:            Input[NonEmptyString]            = Input.ignore,
+    status:              Input[ObsStatus]                 = Input.ignore,
+    activeStatus:        Input[ObsActiveStatus]           = Input.ignore,
+    targetEnvironment:   Input[TargetEnvironmentInput]    = Input.ignore,
+    constraintSet:       Input[ConstraintSetInput]        = Input.ignore,
+    scienceRequirements: Input[ScienceRequirementsInput]  = Input.ignore,
+    scienceMode:         Input[ScienceModeInput]          = Input.ignore,
+    manualConfig:      Input[ExecutionModel.Create]     = Input.ignore,
+    existence:           Input[Existence]                 = Input.ignore
   ) {
 
     def create(
@@ -99,17 +99,17 @@ object ObservationModel extends ObservationOptics {
       val u = scienceMode.toOption.traverse(_.create)
       (t, c, q, u, config).mapN { (tʹ, cʹ, qʹ, uʹ, gʹ) =>
         ObservationModel(
-          id = observationId,
-          existence = existence.toOption.getOrElse(Existence.Present),
-          programId = programId,
-          subtitle = subtitle.toOption,
-          status = status.toOption.getOrElse(ObsStatus.New),
-          activeStatus = activeStatus.toOption.getOrElse(ObsActiveStatus.Active),
-          targetEnvironment = tʹ,
-          constraintSet = cʹ.getOrElse(ConstraintSetModel.Default),
+          id                  = observationId,
+          existence           = existence.toOption.getOrElse(Existence.Present),
+          programId           = programId,
+          subtitle            = subtitle.toOption,
+          status              = status.toOption.getOrElse(ObsStatus.New),
+          activeStatus        = activeStatus.toOption.getOrElse(ObsActiveStatus.Active),
+          targetEnvironment   = tʹ,
+          constraintSet       = cʹ.getOrElse(ConstraintSetModel.Default),
           scienceRequirements = qʹ.getOrElse(ScienceRequirements.Default),
-          scienceMode = uʹ,
-          config = gʹ
+          scienceMode         = uʹ,
+          manualConfig      = gʹ
         )
       }
     }
@@ -158,14 +158,15 @@ object ObservationModel extends ObservationOptics {
         a.constraintSet,
         a.scienceRequirements,
         a.scienceMode,
+        a.manualConfig,
         a.existence
       )}
 
     val scienceMode: Lens[PropertiesInput, Input[ScienceModeInput]] =
       Focus[PropertiesInput](_.scienceMode)
 
-    val config: Lens[PropertiesInput, Input[ExecutionModel.Create]] =
-      Focus[PropertiesInput](_.config)
+    val manualConfig: Lens[PropertiesInput, Input[ExecutionModel.Create]] =
+      Focus[PropertiesInput](_.manualConfig)
 
   }
 
@@ -175,7 +176,7 @@ object ObservationModel extends ObservationOptics {
   ) {
 
     def create[F[_]: Sync]: F[StateT[EitherInput, Database, ObservationModel]] =
-      properties.flatMap(_.config.toOption).traverse(_.create[F]).map { c =>
+      properties.flatMap(_.manualConfig.toOption).traverse(_.create[F]).map { c =>
         for {
           i <- Database.observation.cycleNextUnused
           _ <- Database.program.lookup(programId)
@@ -216,8 +217,8 @@ object ObservationModel extends ObservationOptics {
     val scienceMode: Optional[CreateInput, Input[ScienceModeInput]] =
       properties.some.andThen(PropertiesInput.scienceMode)
 
-    val config: Optional[CreateInput, Input[ExecutionModel.Create]] =
-      properties.some.andThen(PropertiesInput.config)
+    val manualConfig: Optional[CreateInput, Input[ExecutionModel.Create]] =
+      properties.some.andThen(PropertiesInput.manualConfig)
   }
 
   final case class SelectInput(
@@ -425,7 +426,7 @@ trait ObservationOptics { self: ObservationModel.type =>
   val scienceMode: Lens[ObservationModel, Option[ScienceMode]] =
     Focus[ObservationModel](_.scienceMode)
 
-  val config: Lens[ObservationModel, Option[ExecutionModel]] =
-    Focus[ObservationModel](_.config)
+  val manualConfig: Lens[ObservationModel, Option[ExecutionModel]] =
+    Focus[ObservationModel](_.manualConfig)
 
 }

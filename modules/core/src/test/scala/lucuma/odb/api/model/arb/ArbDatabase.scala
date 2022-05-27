@@ -139,7 +139,7 @@ trait ArbDatabase extends SplitSetHelper {
         for {
           icms <- StateT.liftF(Nested(c).traverse(_.create[IO]).unsafeRunSync().sequence.map(_.value).toEither)
           _    <- db.observations.rows.toList.zip(icms).traverse { case ((oid, o), icm) =>
-            Database.observation.update(oid, ObservationModel.config.replace(icm)(o))
+            Database.observation.update(oid, ObservationModel.manualConfig.replace(icm)(o))
           }
       } yield ()
 
