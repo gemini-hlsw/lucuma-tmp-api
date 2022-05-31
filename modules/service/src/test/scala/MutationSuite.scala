@@ -268,18 +268,8 @@ class MutationSuite extends OdbSuite {
           id
           visualizationTime
           posAngleConstraint {
-            constraintType
-            fixed {
-              angle {
-                degrees
-              }
-              allowFlip
-            }
-            averageParallactic {
-              overrideAngle {
-                degrees
-              }
-            }
+            constraint
+            angle { degrees }
           }
         }
       }
@@ -291,14 +281,10 @@ class MutationSuite extends OdbSuite {
             "id": "o-3",
             "visualizationTime": "2017-02-16T20:30:00Z",
             "posAngleConstraint": {
-              "constraintType": "ALLOW_FLIP",
-              "fixed": {
-                "angle": {
-                  "degrees": 123.45
-                },
-                "allowFlip": true
-              },
-              "averageParallactic": null
+              "constraint": "ALLOW_FLIP",
+              "angle": {
+                "degrees": 123.45
+              }
             }
           }
         ]
@@ -313,11 +299,9 @@ class MutationSuite extends OdbSuite {
           "patch": {
             "visualizationTime": "2017-02-16T20:30:00Z",
             "posAngleConstraint": {
-              "fixed": {
-                "angle": {
-                  "degrees": 123.45
-                },
-                "allowFlip": true
+              "constraint": "ALLOW_FLIP",
+              "angle": {
+                "degrees": 123.45
               }
             }
           }
@@ -332,7 +316,7 @@ class MutationSuite extends OdbSuite {
         editObservation(input: $editObservationInput) {
           id
           posAngleConstraint {
-            constraintType
+            constraint
           }
         }
       }
@@ -367,11 +351,9 @@ class MutationSuite extends OdbSuite {
         editObservation(input: $editObservationInput) {
           id
           posAngleConstraint {
-            constraintType
-            averageParallactic {
-              overrideAngle {
-                degrees
-              }
+            constraint
+            angle {
+              degrees
             }
           }
         }
@@ -383,10 +365,8 @@ class MutationSuite extends OdbSuite {
           {
             "id": "o-3",
             "posAngleConstraint": {
-              "constraintType": "AVERAGE_PARALLACTIC",
-              "averageParallactic": {
-                "overrideAngle": null
-              }
+              "constraint": "AVERAGE_PARALLACTIC",
+              "angle": null
             }
           }
         ]
@@ -400,12 +380,51 @@ class MutationSuite extends OdbSuite {
           },
           "patch": {
             "posAngleConstraint": {
-              "averageParallactic": {}
+              "constraint": "AVERAGE_PARALLACTIC",
+              "angle": null
             }
           }
         }
       }
     """)
   )
+
+  // Attempts to edit the pos angle constraint  but it fails because we switch
+  // to fixed w/o setting an angle
+  queryTestFailure(
+    query =
+      """
+        mutation InvalidPosAngleConstraint($editObservationInput: EditObservationInput!) {
+          editObservation(input: $editObservationInput) {
+            id
+          posAngleConstraint {
+            constraint
+            angle {
+              degrees
+            }
+          }
+          }
+        }
+      """,
+    errors = List(
+      "FIXED constraints require an associated `angle` value"
+    ),
+    variables = Some(json"""
+      {
+        "editObservationInput": {
+          "select": {
+            "observationIds": [ "o-3" ]
+          },
+          "patch": {
+            "posAngleConstraint": {
+              "constraint": "FIXED",
+              "angle": null
+            }
+          }
+        }
+     }
+      """)
+  )
+
 
 }

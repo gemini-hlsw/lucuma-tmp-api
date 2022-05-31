@@ -5,105 +5,67 @@ package lucuma.odb.api.model
 
 import cats.Eq
 import cats.data.StateT
+import cats.syntax.apply._
+import cats.syntax.either._
 import cats.syntax.functor._
+import cats.syntax.option._
+import lucuma.core.syntax.string._
 import lucuma.odb.api.model.AngleModel.AngleInput
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.validatedinput._
 import io.circe.Decoder
-
 import cats.syntax.traverse._
 import clue.data.Input
-
-import PosAngleConstraintInput.{FixedInput, AverageParallacticInput}
+import lucuma.odb.api.model.PosAngleConstraint.Type
 
 final case class PosAngleConstraintInput(
-  fixed:              Input[FixedInput]              = Input.ignore,
-  averageParallactic: Input[AverageParallacticInput] = Input.ignore
+  constraint: Input[PosAngleConstraint.Type] = Input.ignore,
+  angle:      Input[AngleInput]              = Input.ignore,
 ) extends EditorInput[PosAngleConstraint] {
 
   override val create: ValidatedInput[PosAngleConstraint] =
-    ValidatedInput.requireOne("posAngleConstraint",
-      fixed.map(_.create.widen[PosAngleConstraint]).toOption,
-      averageParallactic.map(_.create.widen[PosAngleConstraint]).toOption
-   )
+    constraint.notMissing("constraint").andThen {
+      case t@(Type.Fixed | Type.AllowFlip) =>
+        angle.notMissingAndThen("angle")(_.toAngle).map { a =>
+          PosAngleConstraint(t, a.some)
+        }
+      case t@Type.AverageParallactic       =>
+        angle.toOption.traverse(_.toAngle).map { o =>
+          PosAngleConstraint(t, o)
+        }
+    }
 
-  override val edit: StateT[EitherInput, PosAngleConstraint, Unit] =
-    EditorInput.editOneOf[PosAngleConstraint, PosAngleConstraint.Fixed, PosAngleConstraint.AverageParallactic](
-      ("fixed",              fixed,              PosAngleConstraint.fixed             ),
-      ("averageParallactic", averageParallactic, PosAngleConstraint.averageParallactic)
-    )
+  private val validate: StateT[EitherInput, PosAngleConstraint, Unit] =
+    StateT.inspectF { pac =>
+      pac.constraint match {
+        case t@(Type.Fixed | Type.AllowFlip) =>
+          pac.angle.toRightNec(
+            InputError.fromMessage(s"${t.tag.value.toScreamingSnakeCase} constraints require an associated `angle` value")
+          ).void
+        case Type.AverageParallactic     =>
+          ().rightNec[InputError]
+      }
+    }
+
+  override val edit: StateT[EitherInput, PosAngleConstraint, Unit] = {
+    val validArgs = (
+      constraint.validateIsNotNull("constraint"),
+      angle.validateNullable(_.toAngle)
+    ).tupled
+
+    for {
+      args  <- validArgs.liftState
+      (c, a) = args
+      _     <- PosAngleConstraint.constraint := c
+      _     <- PosAngleConstraint.angle      := a
+      _     <- validate
+    } yield ()
+  }
 
 }
 
 object PosAngleConstraintInput {
-
-  import PosAngleConstraint.{Fixed, AverageParallactic}
-
-  final case class FixedInput(
-    angle:     Input[AngleInput] = Input.ignore,
-    allowFlip: Input[Boolean]    = Input.ignore
-  ) extends EditorInput[Fixed] {
-
-    override val create: ValidatedInput[Fixed] =
-      angle.notMissing("angle").andThen { a =>
-        a.toAngle.map(Fixed(_, allowFlip.toOption.getOrElse(false)))
-      }
-
-    override val edit: StateT[EitherInput, Fixed, Unit] =
-      for {
-        a <- angle.validateNotNullable("angle")(_.toAngle).liftState[Fixed]
-        _ <- Fixed.angle     := a
-        _ <- Fixed.allowFlip := allowFlip.toOption
-      } yield ()
-
-  }
-
-  object FixedInput {
-
-    import io.circe.generic.extras.semiauto._
-    import io.circe.generic.extras.Configuration
-    implicit val customConfig: Configuration = Configuration.default.withDefaults
-
-    implicit val DecoderFixedInput: Decoder[FixedInput] =
-      deriveConfiguredDecoder[FixedInput]
-
-    implicit val EqFixedInput: Eq[FixedInput] =
-      Eq.by { a => (
-        a.angle,
-        a.allowFlip
-      )}
-
-  }
-
-  final case class AverageParallacticInput(
-    overrideAngle: Input[AngleInput] = Input.ignore
-  ) extends EditorInput[AverageParallactic] {
-
-    override val create: ValidatedInput[AverageParallactic] =
-      overrideAngle.toOption.traverse(_.toAngle).map(AverageParallactic(_))
-
-    override val edit: StateT[EitherInput, AverageParallactic, Unit] =
-      for {
-        a <- overrideAngle.validateNullable(_.toAngle).liftState[AverageParallactic]
-        _ <- AverageParallactic.overrideAngle := a
-      } yield ()
-
-  }
-
-  object AverageParallacticInput {
-
-    import io.circe.generic.extras.semiauto._
-    import io.circe.generic.extras.Configuration
-    implicit val customConfig: Configuration = Configuration.default.withDefaults
-
-    implicit val DecoderAverageParallacticInput: Decoder[AverageParallacticInput] =
-      deriveConfiguredDecoder[AverageParallacticInput]
-
-    implicit val EqAverageParallacticInput: Eq[AverageParallacticInput] =
-      Eq.by(_.overrideAngle)
-
-  }
 
   import io.circe.generic.extras.semiauto._
   import io.circe.generic.extras.Configuration
@@ -114,8 +76,8 @@ object PosAngleConstraintInput {
 
   implicit val EqPosAngleConstraintInput: Eq[PosAngleConstraintInput] =
     Eq.by { a => (
-      a.fixed,
-      a.averageParallactic
+      a.constraint,
+      a.angle
     )}
 
 }
