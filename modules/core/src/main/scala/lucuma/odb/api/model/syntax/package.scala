@@ -11,6 +11,7 @@ package object syntax {
                 with ToInputValidatorOps
                 with ToLensOps
                 with ToOptionalOps
+                with ToPosAngleConstraintCompanionOps
                 with ToPrismOps
                 with ToTopLevelOps
                 with ToValidatedInputOps

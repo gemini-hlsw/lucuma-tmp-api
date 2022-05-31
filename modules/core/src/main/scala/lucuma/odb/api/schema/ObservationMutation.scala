@@ -26,6 +26,7 @@ trait ObservationMutation {
   import ScienceRequirementsMutation.InputObjectTypeScienceRequirements
   import GeneralSchema.EnumTypeExistence
   import ObservationSchema.{ObsActiveStatusType, ObservationIdType, ObsStatusType, ObservationType}
+  import PosAngleConstraintSchema._
   import ProgramSchema.ProgramIdType
   import RefinedSchema.NonEmptyStringType
   import TargetMutation.{InputObjectTypeEditAsterism, InputObjectTypeTargetEnvironment}
@@ -41,6 +42,7 @@ trait ObservationMutation {
         ObsStatusType.optionField("status", "The observation status will default to New if not specified when an observation is created and may be edited but not deleted"),
         ObsActiveStatusType.optionField("activeStatus", "The observation active status will default to Active if not specified when an observation is created and may be edited but not deleted"),
         InstantScalar.optionField("visualizationTime", "Reference time used for time-dependent calculations such as average parallactic angle"),
+        InputObjectPosAngleConstraint.optionField("posAngleConstraint", "Position angle constraint, if any. Set to null to remove all position angle constraints"),
         InputObjectTypeTargetEnvironment.optionField("targetEnvironment", "The targetEnvironment defaults to empty if not specified on creation, and may be edited but not deleted"),
         InputObjectTypeConstraintSet.optionField("constraintSet", "The constraintSet defaults to standard values if not specified on creation, and may be edited but not deleted"),
         InputObjectTypeScienceRequirements.optionField("scienceRequirements", "The scienceRequirements defaults to spectroscopy if not specified on creation, and may be edited but not deleted"),

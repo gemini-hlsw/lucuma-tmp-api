@@ -24,6 +24,7 @@ object ObservationSchema {
   import ExecutionSchema.ExecutionType
   import ItcSchema.ItcSuccessType
   import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, PlannedTimeSummaryType}
+  import PosAngleConstraintSchema._
   import ProgramSchema.ProgramType
   import RefinedSchema.NonEmptyStringType
   import ScienceRequirementsSchema.ScienceRequirementsType
@@ -133,6 +134,13 @@ object ObservationSchema {
           fieldType   = OptionType(InstantScalar),
           description = "Reference time used by default for visualization and time-dependent calculations (e.g., average parallactic angle)".some,
           resolve     = _.value.visualizationTime
+        ),
+
+        Field(
+          name        = "posAngleConstraint",
+          fieldType   = OptionType(PosAngleConstraintType),
+          description = "Position angle constraint, if any.".some,
+          resolve     = _.value.posAngleConstraint
         ),
 
         Field(

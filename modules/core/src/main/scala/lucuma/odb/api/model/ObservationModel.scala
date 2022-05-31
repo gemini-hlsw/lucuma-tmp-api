@@ -41,6 +41,7 @@ final case class ObservationModel(
   status:              ObsStatus,
   activeStatus:        ObsActiveStatus,
   visualizationTime:   Option[Instant],
+  posAngleConstraint:  Option[PosAngleConstraint],
   targetEnvironment:   TargetEnvironmentModel,
   constraintSet:       ConstraintSet,
   scienceRequirements: ScienceRequirements,
@@ -74,6 +75,7 @@ object ObservationModel extends ObservationOptics {
       o.status,
       o.activeStatus,
       o.visualizationTime,
+      o.posAngleConstraint,
       o.targetEnvironment,
       o.constraintSet,
       o.scienceRequirements,
@@ -86,6 +88,7 @@ object ObservationModel extends ObservationOptics {
     status:              Input[ObsStatus]                 = Input.ignore,
     activeStatus:        Input[ObsActiveStatus]           = Input.ignore,
     visualizationTime:   Input[Instant]                   = Input.ignore,
+    posAngleConstraint:  Input[PosAngleConstraintInput]   = Input.ignore,
     targetEnvironment:   Input[TargetEnvironmentInput]    = Input.ignore,
     constraintSet:       Input[ConstraintSetInput]        = Input.ignore,
     scienceRequirements: Input[ScienceRequirementsInput]  = Input.ignore,
@@ -99,11 +102,12 @@ object ObservationModel extends ObservationOptics {
       programId:     Program.Id,
       config:        ValidatedInput[Option[ExecutionModel]]
     ): ValidatedInput[ObservationModel] = {
+      val p = posAngleConstraint.toOption.traverse(_.create)
       val t = targetEnvironment.toOption.getOrElse(TargetEnvironmentInput.Empty).create
       val c = constraintSet.toOption.traverse(_.create)
       val q = scienceRequirements.toOption.traverse(_.create)
       val u = scienceMode.toOption.traverse(_.create)
-      (t, c, q, u, config).mapN { (tʹ, cʹ, qʹ, uʹ, gʹ) =>
+      (p, t, c, q, u, config).mapN { (pʹ, tʹ, cʹ, qʹ, uʹ, gʹ) =>
         ObservationModel(
           id                  = observationId,
           existence           = existence.toOption.getOrElse(Existence.Present),
@@ -112,6 +116,7 @@ object ObservationModel extends ObservationOptics {
           status              = status.toOption.getOrElse(ObsStatus.New),
           activeStatus        = activeStatus.toOption.getOrElse(ObsActiveStatus.Active),
           visualizationTime   = visualizationTime.toOption,
+          posAngleConstraint  = pʹ,
           targetEnvironment   = tʹ,
           constraintSet       = cʹ.getOrElse(ConstraintSetModel.Default),
           scienceRequirements = qʹ.getOrElse(ScienceRequirements.Default),
@@ -136,6 +141,7 @@ object ObservationModel extends ObservationOptics {
         _ <- ObservationModel.status              := s
         _ <- ObservationModel.activeStatus        := a
         _ <- ObservationModel.visualizationTime   := visualizationTime.toOptionOption
+        _ <- ObservationModel.posAngleConstraint  :? posAngleConstraint
         _ <- ObservationModel.targetEnvironment   :! targetEnvironment
         _ <- ObservationModel.constraintSet       :! constraintSet
         _ <- ObservationModel.scienceRequirements :! scienceRequirements
@@ -163,6 +169,7 @@ object ObservationModel extends ObservationOptics {
         a.status,
         a.activeStatus,
         a.visualizationTime,
+        a.posAngleConstraint,
         a.targetEnvironment,
         a.constraintSet,
         a.scienceRequirements,
@@ -425,6 +432,9 @@ trait ObservationOptics { self: ObservationModel.type =>
 
   val visualizationTime: Lens[ObservationModel, Option[Instant]] =
     Focus[ObservationModel](_.visualizationTime)
+
+  val posAngleConstraint: Lens[ObservationModel, Option[PosAngleConstraint]] =
+    Focus[ObservationModel](_.posAngleConstraint)
 
   val targetEnvironment: Lens[ObservationModel, TargetEnvironmentModel] =
     Focus[ObservationModel](_.targetEnvironment)

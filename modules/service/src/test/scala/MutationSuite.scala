@@ -267,6 +267,20 @@ class MutationSuite extends OdbSuite {
         editObservation(input: $editObservationInput) {
           id
           visualizationTime
+          posAngleConstraint {
+            constraintType
+            fixed {
+              angle {
+                degrees
+              }
+              allowFlip
+            }
+            averageParallactic {
+              overrideAngle {
+                degrees
+              }
+            }
+          }
         }
       }
     """,
@@ -275,7 +289,17 @@ class MutationSuite extends OdbSuite {
         "editObservation" : [
           {
             "id": "o-3",
-            "visualizationTime": "2017-02-16T20:30:00Z"
+            "visualizationTime": "2017-02-16T20:30:00Z",
+            "posAngleConstraint": {
+              "constraintType": "ALLOW_FLIP",
+              "fixed": {
+                "angle": {
+                  "degrees": 123.45
+                },
+                "allowFlip": true
+              },
+              "averageParallactic": null
+            }
           }
         ]
       }
@@ -287,10 +311,101 @@ class MutationSuite extends OdbSuite {
             "observationIds": [ "o-3" ]
           },
           "patch": {
-            "visualizationTime": "2017-02-16T20:30:00Z"
+            "visualizationTime": "2017-02-16T20:30:00Z",
+            "posAngleConstraint": {
+              "fixed": {
+                "angle": {
+                  "degrees": 123.45
+                },
+                "allowFlip": true
+              }
+            }
           }
         }
       }
     """)
   )
+
+  queryTest(
+    query = """
+      mutation RemovePosAngleConstraint($editObservationInput: EditObservationInput!) {
+        editObservation(input: $editObservationInput) {
+          id
+          posAngleConstraint {
+            constraintType
+          }
+        }
+      }
+    """,
+    expected = json"""
+      {
+        "editObservation" : [
+          {
+            "id": "o-3",
+            "posAngleConstraint": null
+          }
+        ]
+      }
+    """,
+    variables = Some(json"""
+      {
+        "editObservationInput": {
+          "select": {
+            "observationIds": [ "o-3" ]
+          },
+          "patch": {
+            "posAngleConstraint": null
+          }
+        }
+      }
+    """)
+  )
+
+  queryTest(
+    query = """
+      mutation ToAverageParallactic($editObservationInput: EditObservationInput!) {
+        editObservation(input: $editObservationInput) {
+          id
+          posAngleConstraint {
+            constraintType
+            averageParallactic {
+              overrideAngle {
+                degrees
+              }
+            }
+          }
+        }
+      }
+    """,
+    expected = json"""
+      {
+        "editObservation" : [
+          {
+            "id": "o-3",
+            "posAngleConstraint": {
+              "constraintType": "AVERAGE_PARALLACTIC",
+              "averageParallactic": {
+                "overrideAngle": null
+              }
+            }
+          }
+        ]
+      }
+    """,
+    variables = Some(json"""
+      {
+        "editObservationInput": {
+          "select": {
+            "observationIds": [ "o-3" ]
+          },
+          "patch": {
+            "posAngleConstraint": {
+              "averageParallactic": {}
+            }
+          }
+        }
+      }
+    """)
+  )
+
 }

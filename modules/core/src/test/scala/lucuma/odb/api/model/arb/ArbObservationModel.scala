@@ -22,6 +22,7 @@ trait ArbObservationModel {
   import ArbInput._
   import ArbConstraintSet._
   import ArbConstraintSetInput._
+  import ArbPosAngleConstraint._
   import ArbScienceRequirements._
   import ArbEnumerated._
   import ArbGid._
@@ -36,10 +37,11 @@ trait ArbObservationModel {
         os <- arbitrary[ObsStatus]
         as <- arbitrary[ObsActiveStatus]
         vt <- arbitrary[Option[Instant]]
+        pc <- arbitrary[Option[PosAngleConstraint]]
         ts <- arbitrary[TargetEnvironmentModel]
         cs <- arbitrary[ConstraintSet]
         sr <- arbitrary[ScienceRequirements]
-      } yield ObservationModel(id, pid, ex, nm, os, as, vt, ts, cs, sr, None, None)
+      } yield ObservationModel(id, pid, ex, nm, os, as, vt, pc, ts, cs, sr, None, None)
     }
 
   implicit val arbObservationModel: Arbitrary[ObservationModel] =
@@ -59,6 +61,7 @@ trait ArbObservationModel {
       ObsStatus,
       ObsActiveStatus,
       Option[Instant],
+      Option[PosAngleConstraint],
       TargetEnvironmentModel,
       ConstraintSet,
       ScienceRequirements
@@ -70,6 +73,7 @@ trait ArbObservationModel {
       in.status,
       in.activeStatus,
       in.visualizationTime,
+      in.posAngleConstraint,
       in.targetEnvironment,
       in.constraintSet,
       in.scienceRequirements
@@ -82,6 +86,7 @@ trait ArbObservationModel {
         st <- arbitrary[Input[ObsStatus]]
         as <- arbitrary[Input[ObsActiveStatus]]
         vt <- arbitrary[Input[Instant]]
+        pc <- arbitrary[Input[PosAngleConstraintInput]]
         ts <- arbitrary[Input[TargetEnvironmentInput]]
         cs <- arbitrary[Input[ConstraintSetInput]]
       } yield ObservationModel.PropertiesInput(
@@ -89,6 +94,7 @@ trait ArbObservationModel {
         st,
         as,
         vt,
+        pc,
         ts,
         cs,
         Input.ignore,
@@ -103,6 +109,7 @@ trait ArbObservationModel {
       Input[ObsStatus],
       Input[ObsActiveStatus],
       Input[Instant],
+      Input[PosAngleConstraintInput],
       Input[TargetEnvironmentInput],
       Input[ConstraintSetInput]
     )].contramap { in => (
@@ -110,6 +117,7 @@ trait ArbObservationModel {
       in.status,
       in.activeStatus,
       in.visualizationTime,
+      in.posAngleConstraint,
       in.targetEnvironment,
       in.constraintSet
     )}
