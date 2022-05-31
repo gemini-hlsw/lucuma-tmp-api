@@ -7,7 +7,7 @@ import cats.syntax.validated._
 
 // This is probably sketchy.  It's basically a function from input type to
 // a ValidatedNec of the the corresponding model type. I needed a way to
-// do this generically in ManualSequence.  Perhaps there are better ideas?
+// do this generically in manualConfig.  Perhaps there are better ideas?
 
 /**
  * Validates an input type and creates the corresponding model type.

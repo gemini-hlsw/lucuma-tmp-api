@@ -261,5 +261,170 @@ class MutationSuite extends OdbSuite {
       """)
   )
 
+  queryTest(
+    query = """
+      mutation EditMiscProperties($editObservationInput: EditObservationInput!) {
+        editObservation(input: $editObservationInput) {
+          id
+          visualizationTime
+          posAngleConstraint {
+            constraint
+            angle { degrees }
+          }
+        }
+      }
+    """,
+    expected = json"""
+      {
+        "editObservation" : [
+          {
+            "id": "o-3",
+            "visualizationTime": "2017-02-16T20:30:00Z",
+            "posAngleConstraint": {
+              "constraint": "ALLOW_FLIP",
+              "angle": {
+                "degrees": 123.45
+              }
+            }
+          }
+        ]
+      }
+    """,
+    variables = Some(json"""
+      {
+        "editObservationInput": {
+          "select": {
+            "observationIds": [ "o-3" ]
+          },
+          "patch": {
+            "visualizationTime": "2017-02-16T20:30:00Z",
+            "posAngleConstraint": {
+              "constraint": "ALLOW_FLIP",
+              "angle": {
+                "degrees": 123.45
+              }
+            }
+          }
+        }
+      }
+    """)
+  )
+
+  queryTest(
+    query = """
+      mutation RemovePosAngleConstraint($editObservationInput: EditObservationInput!) {
+        editObservation(input: $editObservationInput) {
+          id
+          posAngleConstraint {
+            constraint
+          }
+        }
+      }
+    """,
+    expected = json"""
+      {
+        "editObservation" : [
+          {
+            "id": "o-3",
+            "posAngleConstraint": null
+          }
+        ]
+      }
+    """,
+    variables = Some(json"""
+      {
+        "editObservationInput": {
+          "select": {
+            "observationIds": [ "o-3" ]
+          },
+          "patch": {
+            "posAngleConstraint": null
+          }
+        }
+      }
+    """)
+  )
+
+  queryTest(
+    query = """
+      mutation ToAverageParallactic($editObservationInput: EditObservationInput!) {
+        editObservation(input: $editObservationInput) {
+          id
+          posAngleConstraint {
+            constraint
+            angle {
+              degrees
+            }
+          }
+        }
+      }
+    """,
+    expected = json"""
+      {
+        "editObservation" : [
+          {
+            "id": "o-3",
+            "posAngleConstraint": {
+              "constraint": "AVERAGE_PARALLACTIC",
+              "angle": null
+            }
+          }
+        ]
+      }
+    """,
+    variables = Some(json"""
+      {
+        "editObservationInput": {
+          "select": {
+            "observationIds": [ "o-3" ]
+          },
+          "patch": {
+            "posAngleConstraint": {
+              "constraint": "AVERAGE_PARALLACTIC",
+              "angle": null
+            }
+          }
+        }
+      }
+    """)
+  )
+
+  // Attempts to edit the pos angle constraint  but it fails because we switch
+  // to fixed w/o setting an angle
+  queryTestFailure(
+    query =
+      """
+        mutation InvalidPosAngleConstraint($editObservationInput: EditObservationInput!) {
+          editObservation(input: $editObservationInput) {
+            id
+          posAngleConstraint {
+            constraint
+            angle {
+              degrees
+            }
+          }
+          }
+        }
+      """,
+    errors = List(
+      "FIXED constraints require an associated `angle` value"
+    ),
+    variables = Some(json"""
+      {
+        "editObservationInput": {
+          "select": {
+            "observationIds": [ "o-3" ]
+          },
+          "patch": {
+            "posAngleConstraint": {
+              "constraint": "FIXED",
+              "angle": null
+            }
+          }
+        }
+     }
+      """)
+  )
+
 
 }

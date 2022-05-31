@@ -424,7 +424,7 @@ object TestInit {
               ).assign
             ).assign
           ).assign,
-        config               =
+        manualConfig               =
           ExecutionModel.Create.gmosSouth(
             GmosModel.CreateSouthStatic.Default,
             acquisitionSequence,

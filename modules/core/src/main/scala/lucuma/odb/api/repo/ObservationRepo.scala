@@ -126,7 +126,7 @@ object ObservationRepo {
         oid:            Observation.Id,
         includeDeleted: Boolean
       ): F[Option[ExecutionModel]] =
-        select(oid, includeDeleted).map(_.flatMap(_.config))
+        select(oid, includeDeleted).map(_.flatMap(_.manualConfig))
 
       override def insert(newObs: CreateInput): F[ObservationModel] = {
 

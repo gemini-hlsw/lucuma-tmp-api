@@ -30,7 +30,7 @@ object SequenceComputation {
   ): F[Option[ExecutionContext]] = {
 
     def run(o: ObservationModel): F[Option[ExecutionContext]] =
-      o.config.flatMap {
+      o.manualConfig.flatMap {
         case gn: ExecutionModel.GmosNorth => Instrument.GmosNorth.run(oid, odb, GmosNorthGenerator.manual(gn)).some
         case gs: ExecutionModel.GmosSouth => Instrument.GmosSouth.run(oid, odb, GmosSouthGenerator.manual(gs)).some
         case _                            => None

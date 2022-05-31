@@ -372,11 +372,11 @@ object Init {
           TargetEnvironmentInput.asterism(sidereal.id).assign
         },
         constraintSet        = ConstraintSetInput(
-          imageQuality    = ImageQuality.PointOne.assign,
-          cloudExtinction = CloudExtinction.PointOne.assign,
-          skyBackground   = SkyBackground.Dark.assign,
-          waterVapor      = WaterVapor.Wet.assign,
-          elevationRange  = ElevationRangeInput(
+          imageQuality         = ImageQuality.PointOne.assign,
+          cloudExtinction      = CloudExtinction.PointOne.assign,
+          skyBackground        = SkyBackground.Dark.assign,
+          waterVapor           = WaterVapor.Wet.assign,
+          elevationRange       = ElevationRangeInput(
             airMass = AirMassRangeInput(
               min = PosBigDecimal.unsafeFrom(1.0).some,
               max = PosBigDecimal.unsafeFrom(1.75).some
@@ -391,8 +391,8 @@ object Init {
               signalToNoise = PosBigDecimal.unsafeFrom(700).assign
             ).assign
           ).assign,
-        scienceMode = Input.ignore,
-        config      = Input.ignore
+        scienceMode         = Input.ignore,
+        manualConfig        = Input.ignore
       ).some
     )
 
@@ -415,7 +415,7 @@ object Init {
     pid:   Program.Id,
     target: Option[TargetModel]
   ): ObservationModel.CreateInput =
-    ObservationModel.CreateInput.config.replace(
+    ObservationModel.CreateInput.manualConfig.replace(
       ExecutionModel.Create.gmosSouth(
         GmosModel.CreateSouthStatic.Default,
         acquisitionSequence,

@@ -24,9 +24,11 @@ object ObservationSchema {
   import ExecutionSchema.ExecutionType
   import ItcSchema.ItcSuccessType
   import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, PlannedTimeSummaryType}
+  import PosAngleConstraintSchema._
   import ProgramSchema.ProgramType
   import RefinedSchema.NonEmptyStringType
   import ScienceRequirementsSchema.ScienceRequirementsType
+  import TimeSchema.InstantScalar
 
   import context._
   import syntax.`enum`._
@@ -128,6 +130,20 @@ object ObservationSchema {
         ),
 
         Field(
+          name        = "visualizationTime",
+          fieldType   = OptionType(InstantScalar),
+          description = "Reference time used by default for visualization and time-dependent calculations (e.g., average parallactic angle)".some,
+          resolve     = _.value.visualizationTime
+        ),
+
+        Field(
+          name        = "posAngleConstraint",
+          fieldType   = OptionType(PosAngleConstraintType),
+          description = "Position angle constraint, if any.".some,
+          resolve     = _.value.posAngleConstraint
+        ),
+
+        Field(
           name        = "plannedTime",
           fieldType   = PlannedTimeSummaryType,
           description = Some("Observation planned time calculation."),
@@ -189,7 +205,7 @@ object ObservationSchema {
           name        = "manualConfig",
           fieldType   = OptionType(ManualConfigSchema.ManualConfigType[F]),
           description = Some("Manual instrument configuration"),
-          resolve     = _.value.config
+          resolve     = _.value.manualConfig
         ),
 
         Field(
