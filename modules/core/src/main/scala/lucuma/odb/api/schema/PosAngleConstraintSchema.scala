@@ -39,7 +39,7 @@ object PosAngleConstraintSchema {
           description = "Describes the fixed position angle constraint, if set".some,
           fieldType   = OptionType(AngleType),
           resolve     = _.value.angle
-        ),
+        )
 
       )
     )
