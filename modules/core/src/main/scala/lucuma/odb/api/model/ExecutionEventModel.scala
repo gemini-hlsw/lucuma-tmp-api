@@ -171,6 +171,17 @@ object ExecutionEventModel {
 
     }
 
+    final case class Result(
+      newEvent: SequenceEvent
+    )
+
+    object Result {
+
+      implicit val OrderResult: Order[Result] =
+        Order.by(_.newEvent)
+
+    }
+
   }
 
 
@@ -311,6 +322,18 @@ object ExecutionEventModel {
         )}
 
     }
+
+    final case class Result(
+      newEvent: StepEvent
+    )
+
+    object Result {
+
+      implicit val OrderResult: Order[Result] =
+        Order.by(_.newEvent)
+
+    }
+
 
   }
 
@@ -486,6 +509,17 @@ object ExecutionEventModel {
           a.location,
           a.payload
         )}
+    }
+
+    final case class Result(
+      newEvent: DatasetEvent
+    )
+
+    object Result {
+
+      implicit val OrderResult: Order[Result] =
+        Order.by(_.newEvent)
+
     }
 
   }
