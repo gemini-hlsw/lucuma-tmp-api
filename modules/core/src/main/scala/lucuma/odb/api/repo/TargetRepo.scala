@@ -122,7 +122,7 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
    */
   def clone(
     cloneInput: TargetModel.CloneInput
-  ): F[TargetModel]
+  ): F[TargetModel.CloneResult]
 
 }
 
@@ -291,10 +291,10 @@ object TargetRepo {
 
       override def clone(
         cloneInput: TargetModel.CloneInput
-      ): F[TargetModel] =
+      ): F[TargetModel.CloneResult] =
         for {
           t <- databaseRef.modifyState(cloneInput.go.flipF).flatMap(_.liftTo[F])
-          _ <- eventService.publish(TargetEvent.created(t))
+          _ <- eventService.publish(TargetEvent.created(t.newTarget))
         } yield t
 
 

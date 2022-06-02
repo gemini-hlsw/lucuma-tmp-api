@@ -246,17 +246,40 @@ trait TargetMutation extends TargetScalars {
       resolve     = c => c.target(_.insert(c.arg(ArgumentTargetCreate)))
     )
 
+  def CloneTargetResultType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], TargetModel.CloneResult] =
+    ObjectType(
+      name        = "CloneTargetResult",
+      description = "The result of cloning a target, containing the original and new targets.",
+      fieldsFn    = () => fields(
+
+        Field(
+          name        = "originalTarget",
+          description = "The original unmodified target which was cloned".some,
+          fieldType   = TargetType[F],
+          resolve     = _.value.originalTarget
+        ),
+
+        Field(
+          name        = "newTarget",
+          description = "The new cloned (but possibly modified) target".some,
+          fieldType   = TargetType[F],
+          resolve     = _.value.newTarget
+        )
+
+      )
+    )
+
   def cloneTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "cloneTarget",
-      fieldType   = TargetType[F],
+      fieldType   = CloneTargetResultType[F],
       description = "Makes a copy of an existing target, setting it to unobserved and to PRESENT.  If observationIds is specified, the clone will replace the existing target in those observations".some,
       arguments   = List(ArgumentCloneTarget),
       resolve     = c => {
         val cloneInput = c.arg(ArgumentCloneTarget)
         c.unsafeToFuture(
           for {
-            t <- c.ctx.odbRepo.target.clone(cloneInput)
+            r <- c.ctx.odbRepo.target.clone(cloneInput)
             _ <- c.ctx.odbRepo.observation.editAsterism(
               ObservationModel.BulkEdit(
                 ObservationModel.SelectInput.observationIds(
@@ -264,11 +287,11 @@ trait TargetMutation extends TargetScalars {
                 ),
                 List(
                   EditAsterismPatchInput.delete(cloneInput.targetId),
-                  EditAsterismPatchInput.add(t.id)
+                  EditAsterismPatchInput.add(r.newTarget.id)
                 )
               )
             )
-          } yield t
+          } yield r
         )
       }
     )

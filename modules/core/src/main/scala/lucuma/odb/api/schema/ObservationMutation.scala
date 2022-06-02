@@ -167,12 +167,12 @@ trait ObservationMutation {
   def CloneObservationResultType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], ObservationModel.CloneResult] =
     ObjectType(
       name        = "CloneObservationResult",
-      description = "The result of cloning an observation, containing the original and new observations",
+      description = "The result of cloning an observation, containing the original and new observations.",
       fieldsFn    = () => fields(
 
         Field(
           name        = "originalObservation",
-          description = "The original, unmodified observation which was cloned.".some,
+          description = "The original unmodified observation which was cloned.".some,
           fieldType   = ObservationType[F],
           resolve     = _.value.originalObservation
         ),

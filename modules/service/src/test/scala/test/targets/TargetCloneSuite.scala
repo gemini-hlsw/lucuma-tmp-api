@@ -14,16 +14,20 @@ class TargetCloneSuite extends OdbSuite {
     query ="""
       mutation CloneTarget($cloneInput: CloneTargetInput!) {
         cloneTarget(input: $cloneInput) {
-          name
-          existence
+          newTarget {
+            name
+            existence
+          }
         }
       }
     """,
     expected =json"""
       {
         "cloneTarget": {
-          "name": "Biff",
-          "existence": "PRESENT"
+          "newTarget": {
+            "name": "Biff",
+            "existence": "PRESENT"
+          }
         }
       }
     """,
@@ -45,14 +49,18 @@ class TargetCloneSuite extends OdbSuite {
     query ="""
       mutation CloneAndReplaceTarget($cloneInput: CloneTargetInput!) {
         cloneTarget(input: $cloneInput) {
-          name
+          newTarget {
+            name
+          }
         }
       }
     """,
     expected =json"""
       {
         "cloneTarget": {
-          "name": "NGC 3312 (2)"
+          "newTarget": {
+            "name": "NGC 3312 (2)"
+          }
         }
       }
     """,
