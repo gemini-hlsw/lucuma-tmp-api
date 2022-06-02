@@ -164,10 +164,34 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.edit(c.arg(ArgumentObservationEdit)))
     )
 
+  def CloneObservationResultType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], ObservationModel.CloneResult] =
+    ObjectType(
+      name        = "CloneObservationResult",
+      description = "The result of cloning an observation, containing the original and new observations",
+      fieldsFn    = () => fields(
+
+        Field(
+          name        = "originalObservation",
+          description = "The original, unmodified observation which was cloned.".some,
+          fieldType   = ObservationType[F],
+          resolve     = _.value.originalObservation
+        ),
+
+        Field(
+          name        = "newObservation",
+          description = "The new cloned (but possibly modified) observation.".some,
+          fieldType   = ObservationType[F],
+          resolve     = _.value.newObservation
+        )
+
+      )
+    )
+
+
   def clone[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name      = "cloneObservation",
-      fieldType = ObservationType[F],
+      fieldType = CloneObservationResultType[F],
       arguments = List(ArgumentObservationCloneInput),
       resolve   = c => c.observation(_.clone(c.arg(ArgumentObservationCloneInput)))
     )

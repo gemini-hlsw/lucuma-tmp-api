@@ -426,5 +426,64 @@ class MutationSuite extends OdbSuite {
       """)
   )
 
+  queryTest(
+    query = """
+      mutation CloneObservation($cloneObservationInput: CloneObservationInput!) {
+        cloneObservation(input: $cloneObservationInput) {
+          originalObservation {
+            posAngleConstraint {
+              constraint
+              angle {
+                degrees
+              }
+            }
+          }
+          newObservation {
+            posAngleConstraint {
+              constraint
+              angle {
+                degrees
+              }
+            }
+          }
+        }
+      }
+    """,
+    expected = json"""
+      {
+        "cloneObservation" : {
+          "originalObservation": {
+            "posAngleConstraint": {
+              "constraint": "AVERAGE_PARALLACTIC",
+              "angle": null
+            }
+          },
+          "newObservation": {
+            "posAngleConstraint": {
+              "constraint": "FIXED",
+              "angle": {
+                "degrees": 45
+              }
+            }
+          }
+        }
+      }
+    """,
+    variables = Some(json"""
+      {
+        "cloneObservationInput": {
+          "observationId": "o-3",
+          "patch": {
+            "posAngleConstraint": {
+              "constraint": "FIXED",
+              "angle": {
+                "degrees": 45
+              }
+            }
+          }
+        }
+      }
+    """)
+  )
 
 }

@@ -41,7 +41,7 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
 
   def edit(edit: EditInput): F[List[ObservationModel]]
 
-  def clone(input: CloneInput): F[ObservationModel]
+  def clone(input: CloneInput): F[ObservationModel.CloneResult]
 
   def groupByTarget(
     pid:            Program.Id,
@@ -167,11 +167,11 @@ object ObservationRepo {
 
       override def clone(
         cloneInput: CloneInput
-      ): F[ObservationModel] =
+      ): F[ObservationModel.CloneResult] =
         for {
-          o <- databaseRef.modifyState(cloneInput.go.flipF).flatMap(_.liftTo[F])
-          _ <- eventService.publish(ObservationEvent(_, Event.EditType.Created, o))
-        } yield o
+          r <- databaseRef.modifyState(cloneInput.go.flipF).flatMap(_.liftTo[F])
+          _ <- eventService.publish(ObservationEvent(_, Event.EditType.Created, r.newObservation))
+        } yield r
 
       // Targets are different because they exist apart from observations.
       // In other words, there are targets which no observations reference.
