@@ -238,13 +238,13 @@ object ObservationModel extends ObservationOptics {
   }
 
   final case class CreateResult(
-    newObservation: ObservationModel
+    observation: ObservationModel
   )
 
   object CreateResult {
 
     implicit val EqCreateResult: Eq[CreateResult] =
-      Eq.by(_.newObservation)
+      Eq.by(_.observation)
   }
 
   final case class SelectInput(

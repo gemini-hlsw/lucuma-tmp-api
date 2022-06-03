@@ -155,10 +155,10 @@ trait ObservationMutation {
       fieldsFn    = () => fields(
 
         Field(
-          name        = "newObservation",
+          name        = "observation",
           description = "The newly created observation.".some,
           fieldType   = ObservationType[F],
-          resolve     = _.value.newObservation
+          resolve     = _.value.observation
         )
 
       )

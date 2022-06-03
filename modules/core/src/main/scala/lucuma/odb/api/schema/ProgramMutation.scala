@@ -215,10 +215,10 @@ trait ProgramMutation {
       fieldsFn    = () => fields(
 
         Field(
-          name        = "newProgram",
+          name        = "program",
           description = "The newly created program.".some,
           fieldType   = ProgramType[F],
-          resolve     = _.value.newProgram
+          resolve     = _.value.program
         )
 
       )

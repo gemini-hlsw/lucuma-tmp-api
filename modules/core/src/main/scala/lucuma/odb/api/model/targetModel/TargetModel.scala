@@ -191,13 +191,13 @@ object TargetModel extends TargetModelOptics {
   }
 
   final case class CreateResult(
-    newTarget: TargetModel
+    target: TargetModel
   )
 
   object CreateResult {
 
     implicit val EqCreateResult: Eq[CreateResult] =
-      Eq.by(_.newTarget)
+      Eq.by(_.target)
 
   }
 

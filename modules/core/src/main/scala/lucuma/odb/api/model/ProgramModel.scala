@@ -113,13 +113,13 @@ object ProgramModel extends ProgramOptics {
   }
 
   final case class CreateResult(
-    newProgram: ProgramModel
+    program: ProgramModel
   )
 
   object CreateResult {
 
     implicit val EqCreateResult: Eq[CreateResult] =
-      Eq.by(_.newProgram)
+      Eq.by(_.program)
 
   }
 

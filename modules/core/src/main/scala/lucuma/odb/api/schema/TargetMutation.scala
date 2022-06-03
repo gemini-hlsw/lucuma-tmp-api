@@ -244,10 +244,10 @@ trait TargetMutation extends TargetScalars {
       fieldsFn    = () => fields(
 
         Field(
-          name        = "newTarget",
+          name        = "target",
           description = "The newly created target.".some,
           fieldType   = TargetType[F],
-          resolve     = _.value.newTarget
+          resolve     = _.value.target
         )
 
       )
