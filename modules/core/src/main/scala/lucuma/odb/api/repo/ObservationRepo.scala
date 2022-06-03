@@ -39,7 +39,7 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
 
   def insert(input: CreateInput): F[ObservationModel.CreateResult]
 
-  def edit(edit: EditInput): F[List[ObservationModel]]
+  def edit(edit: EditInput): F[ObservationModel.EditResult]
 
   def clone(input: CloneInput): F[ObservationModel.CloneResult]
 
@@ -152,7 +152,7 @@ object ObservationRepo {
 
       }
 
-      override def edit(editInput: ObservationModel.EditInput): F[List[ObservationModel]] = {
+      override def edit(editInput: ObservationModel.EditInput): F[ObservationModel.EditResult] = {
         val editAndValidate =
           for {
             os  <- editInput.editor
@@ -162,7 +162,7 @@ object ObservationRepo {
         for {
           os <- databaseRef.modifyState(editAndValidate.flipF).flatMap(_.liftTo[F])
           _  <- os.traverse(o => eventService.publish(ObservationEvent.updated(o)))
-        } yield os
+        } yield ObservationModel.EditResult(os)
       }
 
       override def clone(

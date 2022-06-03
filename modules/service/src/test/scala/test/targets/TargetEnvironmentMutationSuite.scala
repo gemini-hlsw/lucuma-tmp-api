@@ -25,10 +25,12 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
     query ="""
       mutation UpdateTargetEnvironment($envEdit: EditObservationInput!) {
         editObservation(input: $envEdit) {
-          id
-          targetEnvironment {
-            asterism {
-              name
+          observations {
+            id
+            targetEnvironment {
+              asterism {
+                name
+              }
             }
           }
         }
@@ -36,18 +38,20 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
     """,
     expected =json"""
       {
-        "editObservation": [
-          {
-            "id": "o-3",
-            "targetEnvironment": {
-              "asterism": [
-                {
-                  "name": "NGC 5949"
-                }
-              ]
+        "editObservation": {
+          "observations": [
+            {
+              "id": "o-3",
+              "targetEnvironment": {
+                "asterism": [
+                  {
+                    "name": "NGC 5949"
+                  }
+                ]
+              }
             }
-          }
-        ]
+          ]
+        }
       }
     """,
     variables =json"""
@@ -71,10 +75,12 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
     query ="""
       mutation UpdateTargetEnvironment($envEdit: EditObservationInput!) {
         editObservation(input: $envEdit) {
-          id
-          targetEnvironment {
-            asterism {
-              name
+          observations {
+            id
+            targetEnvironment {
+              asterism {
+                name
+              }
             }
           }
         }
@@ -103,11 +109,13 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
     query ="""
       mutation UpdateTargetEnvironment($envEdit: EditObservationInput!) {
         editObservation(input: $envEdit) {
-          id
-          targetEnvironment {
-            explicitBase {
-              ra { hms }
-              dec { dms }
+          observations {
+            id
+            targetEnvironment {
+              explicitBase {
+                ra { hms }
+                dec { dms }
+              }
             }
           }
         }
@@ -115,21 +123,23 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
     """,
     expected =json"""
       {
-        "editObservation": [
-          {
-            "id": "o-3",
-            "targetEnvironment": {
-              "explicitBase": {
-                "ra": {
-                  "hms": "01:00:00.000000"
-                },
-                "dec": {
-                  "dms": "+02:00:00.000000"
+        "editObservation": {
+          "observations": [
+            {
+              "id": "o-3",
+              "targetEnvironment": {
+                "explicitBase": {
+                  "ra": {
+                    "hms": "01:00:00.000000"
+                  },
+                  "dec": {
+                    "dms": "+02:00:00.000000"
+                  }
                 }
               }
             }
-          }
-        ]
+          ]
+        }
       }
     """,
     variables =json"""

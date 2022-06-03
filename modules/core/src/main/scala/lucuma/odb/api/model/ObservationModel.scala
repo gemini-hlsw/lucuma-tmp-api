@@ -316,6 +316,18 @@ object ObservationModel extends ObservationOptics {
 
   }
 
+  final case class EditResult(
+    observations: List[ObservationModel]
+  )
+
+  object EditResult {
+
+    implicit val EqEditResult: Eq[EditResult] =
+      Eq.by(_.observations)
+
+  }
+
+
   final case class CloneResult(
     originalObservation: ObservationModel,
     newObservation:      ObservationModel

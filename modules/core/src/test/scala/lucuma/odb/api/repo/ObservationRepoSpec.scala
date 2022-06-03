@@ -81,7 +81,7 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
         before = tʹ.observations.rows.values.head
 
         // Do the prescribed edit.
-        after <- odb.observation.edit(f(before)).map(_.head)
+        after <- odb.observation.edit(f(before)).map(_.observations.head)
       } yield (before, after)
     }
 

@@ -11,29 +11,33 @@ class MutationSuite extends OdbSuite {
     query = """
       mutation BulkEditConstraints($bulkEditConstraints: EditObservationInput!) {
         editObservation(input: $bulkEditConstraints) {
-          id
-          constraintSet {
-            skyBackground
+          observations {
+            id
+            constraintSet {
+              skyBackground
+            }
           }
         }
       }
     """,
     expected = json"""
       {
-        "editObservation" : [
-          {
-            "id" : "o-3",
-            "constraintSet" : {
-              "skyBackground" : "GRAY"
+        "editObservation" : {
+          "observations": [
+            {
+              "id" : "o-3",
+              "constraintSet" : {
+                "skyBackground" : "GRAY"
+              }
+            },
+            {
+              "id" : "o-4",
+              "constraintSet" : {
+                "skyBackground" : "GRAY"
+              }
             }
-          },
-          {
-            "id" : "o-4",
-            "constraintSet" : {
-              "skyBackground" : "GRAY"
-            }
-          }
-        ]
+          ]
+        }
       }
     """,
     variables = Some(json"""
@@ -56,14 +60,16 @@ class MutationSuite extends OdbSuite {
     query = """
       mutation BulkEditScienceMode($bulkEditScienceMode: EditObservationInput!) {
         editObservation(input: $bulkEditScienceMode) {
-          id
-          scienceMode {
-            gmosSouthLongSlit {
-              basic {
-                grating
-              }
-              advanced {
-                overrideGrating
+          observations {
+            id
+            scienceMode {
+              gmosSouthLongSlit {
+                basic {
+                  grating
+                }
+                advanced {
+                  overrideGrating
+                }
               }
             }
           }
@@ -72,34 +78,36 @@ class MutationSuite extends OdbSuite {
     """,
     expected = json"""
       {
-        "editObservation" : [
-          {
-            "id" : "o-3",
-            "scienceMode": {
-              "gmosSouthLongSlit": {
-                "basic": {
-                  "grating": "B600_G5323"
-                },
-                "advanced": {
-                  "overrideGrating": "R600_G5324"
+        "editObservation" : {
+          "observations": [
+            {
+              "id" : "o-3",
+              "scienceMode": {
+                "gmosSouthLongSlit": {
+                  "basic": {
+                    "grating": "B600_G5323"
+                  },
+                  "advanced": {
+                    "overrideGrating": "R600_G5324"
+                  }
+                }
+              }
+            },
+            {
+              "id" : "o-4",
+              "scienceMode": {
+                "gmosSouthLongSlit": {
+                  "basic": {
+                    "grating": "B600_G5323"
+                  },
+                  "advanced": {
+                    "overrideGrating": "R600_G5324"
+                  }
                 }
               }
             }
-          },
-          {
-            "id" : "o-4",
-            "scienceMode": {
-              "gmosSouthLongSlit": {
-                "basic": {
-                  "grating": "B600_G5323"
-                },
-                "advanced": {
-                  "overrideGrating": "R600_G5324"
-                }
-              }
-            }
-          }
-        ]
+          ]
+        }
       }
     """,
     variables = Some(json"""
@@ -223,13 +231,15 @@ class MutationSuite extends OdbSuite {
       """
         mutation BulkEditConstraints($bulkEditConstraints: EditObservationInput!) {
           editObservation(input: $bulkEditConstraints) {
-            id
-            constraintSet {
-              skyBackground
-              elevationRange {
-                airMass {
-                  min
-                  max
+            observations {
+              id
+              constraintSet {
+                skyBackground
+                elevationRange {
+                  airMass {
+                    min
+                    max
+                  }
                 }
               }
             }
@@ -265,29 +275,33 @@ class MutationSuite extends OdbSuite {
     query = """
       mutation EditMiscProperties($editObservationInput: EditObservationInput!) {
         editObservation(input: $editObservationInput) {
-          id
-          visualizationTime
-          posAngleConstraint {
-            constraint
-            angle { degrees }
+          observations {
+            id
+            visualizationTime
+            posAngleConstraint {
+              constraint
+              angle { degrees }
+            }
           }
         }
       }
     """,
     expected = json"""
       {
-        "editObservation" : [
-          {
-            "id": "o-3",
-            "visualizationTime": "2017-02-16T20:30:00Z",
-            "posAngleConstraint": {
-              "constraint": "ALLOW_FLIP",
-              "angle": {
-                "degrees": 123.45
+        "editObservation" : {
+          "observations": [
+            {
+              "id": "o-3",
+              "visualizationTime": "2017-02-16T20:30:00Z",
+              "posAngleConstraint": {
+                "constraint": "ALLOW_FLIP",
+                "angle": {
+                  "degrees": 123.45
+                }
               }
             }
-          }
-        ]
+          ]
+        }
       }
     """,
     variables = Some(json"""
@@ -314,21 +328,25 @@ class MutationSuite extends OdbSuite {
     query = """
       mutation RemovePosAngleConstraint($editObservationInput: EditObservationInput!) {
         editObservation(input: $editObservationInput) {
-          id
-          posAngleConstraint {
-            constraint
+          observations {
+            id
+            posAngleConstraint {
+              constraint
+            }
           }
         }
       }
     """,
     expected = json"""
       {
-        "editObservation" : [
-          {
-            "id": "o-3",
-            "posAngleConstraint": null
-          }
-        ]
+        "editObservation" : {
+          "observations": [
+            {
+              "id": "o-3",
+              "posAngleConstraint": null
+            }
+          ]
+        }
       }
     """,
     variables = Some(json"""
@@ -349,11 +367,13 @@ class MutationSuite extends OdbSuite {
     query = """
       mutation ToAverageParallactic($editObservationInput: EditObservationInput!) {
         editObservation(input: $editObservationInput) {
-          id
-          posAngleConstraint {
-            constraint
-            angle {
-              degrees
+          observations {
+            id
+            posAngleConstraint {
+              constraint
+              angle {
+                degrees
+              }
             }
           }
         }
@@ -361,15 +381,17 @@ class MutationSuite extends OdbSuite {
     """,
     expected = json"""
       {
-        "editObservation" : [
-          {
-            "id": "o-3",
-            "posAngleConstraint": {
-              "constraint": "AVERAGE_PARALLACTIC",
-              "angle": null
+        "editObservation" : {
+          "observations": [
+            {
+              "id": "o-3",
+              "posAngleConstraint": {
+                "constraint": "AVERAGE_PARALLACTIC",
+                "angle": null
+              }
             }
-          }
-        ]
+          ]
+        }
       }
     """,
     variables = Some(json"""
@@ -396,13 +418,15 @@ class MutationSuite extends OdbSuite {
       """
         mutation InvalidPosAngleConstraint($editObservationInput: EditObservationInput!) {
           editObservation(input: $editObservationInput) {
-            id
-          posAngleConstraint {
-            constraint
-            angle {
-              degrees
+            observations {
+              id
+              posAngleConstraint {
+                constraint
+                angle {
+                  degrees
+                }
+              }
             }
-          }
           }
         }
       """,
