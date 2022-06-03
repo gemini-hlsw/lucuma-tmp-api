@@ -190,6 +190,17 @@ object TargetModel extends TargetModelOptics {
       )}
   }
 
+  final case class CreateResult(
+    newTarget: TargetModel
+  )
+
+  object CreateResult {
+
+    implicit val EqCreateResult: Eq[CreateResult] =
+      Eq.by(_.newTarget)
+
+  }
+
   final case class SelectInput(
     programId:      Option[Program.Id],
     observationIds: Option[List[Observation.Id]],

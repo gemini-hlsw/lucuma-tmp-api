@@ -237,10 +237,26 @@ trait TargetMutation extends TargetScalars {
       "Parameters for cloning an existing target"
     )
 
+   def CreateTargetResultType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], TargetModel.CreateResult] =
+    ObjectType(
+      name        = "CreateTargetResult",
+      description = "The result of creating a new target.",
+      fieldsFn    = () => fields(
+
+        Field(
+          name        = "newTarget",
+          description = "The newly created target.".some,
+          fieldType   = TargetType[F],
+          resolve     = _.value.newTarget
+        )
+
+      )
+    )
+
   def createTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "createTarget",
-      fieldType   = TargetType[F],
+      fieldType   = CreateTargetResultType[F],
       description = "Creates a new target according to the provided parameters.  Only one of sidereal or nonsidereal may be specified.".some,
       arguments   = List(ArgumentTargetCreate),
       resolve     = c => c.target(_.insert(c.arg(ArgumentTargetCreate)))

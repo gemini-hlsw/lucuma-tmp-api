@@ -112,7 +112,7 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
     oid: Observation.Id
   ): F[TargetEnvironmentModel]
 
-  def insert(newTarget: TargetModel.CreateInput): F[TargetModel]
+  def insert(newTarget: TargetModel.CreateInput): F[TargetModel.CreateResult]
 
   def edit(edit: TargetModel.EditInput): F[List[TargetModel]]
 
@@ -262,7 +262,7 @@ object TargetRepo {
 
       override def insert(
         newTarget: TargetModel.CreateInput
-      ): F[TargetModel] = {
+      ): F[TargetModel.CreateResult] = {
 
         val create: F[TargetModel] =
           EitherT(
@@ -280,7 +280,7 @@ object TargetRepo {
         for {
           t <- create
           _ <- eventService.publish(TargetEvent(_, Event.EditType.Created, t))
-        } yield t
+        } yield TargetModel.CreateResult(t)
       }
 
       override def edit(editInput: TargetModel.EditInput): F[List[TargetModel]] =

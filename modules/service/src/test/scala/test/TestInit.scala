@@ -472,7 +472,7 @@ object TestInit {
               )
             ).map(_.newProgram)
       cs <- targets(p.id).liftTo[F]
-      ts <- cs.init.traverse(repo.target.insert(_))
+      ts <- cs.init.traverse(repo.target.insert(_).map(_.newTarget))
       _  <- repo.observation.insert(obs(p.id, ts.headOption.toList)) // 2
       _  <- repo.observation.insert(obs(p.id, ts.lastOption.toList)) // 3
       _  <- repo.observation.insert(obs(p.id, ts.lastOption.toList)) // 4
