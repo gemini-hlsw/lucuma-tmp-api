@@ -147,10 +147,26 @@ trait ObservationMutation {
       ListInputType(InputObjectTypeEditAsterism)
     )
 
+  def CreateObservationResultType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], ObservationModel.CreateResult] =
+    ObjectType(
+      name        = "CreateObservationResult",
+      description = "The result of creating a new observation.",
+      fieldsFn    = () => fields(
+
+        Field(
+          name        = "newObservation",
+          description = "The newly created observation.".some,
+          fieldType   = ObservationType[F],
+          resolve     = _.value.newObservation
+        )
+
+      )
+    )
+
   def create[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "createObservation",
-      fieldType   = ObservationType[F],
+      fieldType   = CreateObservationResultType[F],
       description = "Creates a new observation according to provided parameters".some,
       arguments   = List(ArgumentObservationCreate),
       resolve     = c => c.observation(_.insert(c.arg(ArgumentObservationCreate)))

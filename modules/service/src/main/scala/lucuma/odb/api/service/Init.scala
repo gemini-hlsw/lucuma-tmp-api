@@ -467,7 +467,7 @@ object Init {
                   proposal.assign
                 ).some
               )
-            )
+            ).map(_.newProgram)
       _  <- repo.program.insert(
               ProgramModel.CreateInput(
                 ProgramModel.PropertiesInput(

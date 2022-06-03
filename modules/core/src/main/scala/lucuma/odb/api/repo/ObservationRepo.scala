@@ -37,7 +37,7 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
     includeDeleted: Boolean                = false
   ): F[Option[ExecutionModel]]
 
-  def insert(input: CreateInput): F[ObservationModel]
+  def insert(input: CreateInput): F[ObservationModel.CreateResult]
 
   def edit(edit: EditInput): F[List[ObservationModel]]
 
@@ -128,7 +128,7 @@ object ObservationRepo {
       ): F[Option[ExecutionModel]] =
         select(oid, includeDeleted).map(_.flatMap(_.manualConfig))
 
-      override def insert(newObs: CreateInput): F[ObservationModel] = {
+      override def insert(newObs: CreateInput): F[ObservationModel.CreateResult] = {
 
         // Create the observation
         val create: F[ObservationModel] =
@@ -148,7 +148,7 @@ object ObservationRepo {
         for {
           o <- create
           _ <- eventService.publish(ObservationEvent(_, Event.EditType.Created, o))
-        } yield o
+        } yield ObservationModel.CreateResult(o)
 
       }
 

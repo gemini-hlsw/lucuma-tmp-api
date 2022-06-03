@@ -462,7 +462,7 @@ object TestInit {
                   proposal.assign
                 ).some
               )
-            )
+            ).map(_.newProgram)
 
       p3 <- repo.program.insert(
               ProgramModel.CreateInput(
@@ -470,13 +470,13 @@ object TestInit {
                   NonEmptyString.unsafeFrom("An Empty Placeholder Program").assign
                 ).some
               )
-            )
+            ).map(_.newProgram)
       cs <- targets(p.id).liftTo[F]
       ts <- cs.init.traverse(repo.target.insert(_))
       _  <- repo.observation.insert(obs(p.id, ts.headOption.toList)) // 2
       _  <- repo.observation.insert(obs(p.id, ts.lastOption.toList)) // 3
       _  <- repo.observation.insert(obs(p.id, ts.lastOption.toList)) // 4
-      o  <- repo.observation.insert(obs(p.id, ts.lastOption.toList)) // 5
+      o  <- repo.observation.insert(obs(p.id, ts.lastOption.toList)).map(_.newObservation) // 5
 
       // Add an explicit base to the last observation's target environment
       _  <- repo.observation.edit(

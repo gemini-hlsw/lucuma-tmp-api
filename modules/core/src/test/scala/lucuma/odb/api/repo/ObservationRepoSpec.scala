@@ -74,7 +74,7 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
       for {
         // Insert a program and observation to insure that at least one exists
         p  <- odb.program.insert(ProgramModel.CreateInput(ProgramModel.PropertiesInput.Empty.some))
-        _  <- odb.observation.insert(ObservationModel.CreateInput.empty(p.id))
+        _  <- odb.observation.insert(ObservationModel.CreateInput.empty(p.newProgram.id))
 
         // Pick whatever the first observation may be
         tʹ    <- odb.database.get

@@ -208,10 +208,26 @@ trait ProgramMutation {
       "Parameters for editing an existing program"
     )
 
+   def CreateProgramResultType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], ProgramModel.CreateResult] =
+    ObjectType(
+      name        = "CreateProgramResult",
+      description = "The result of creating a new program.",
+      fieldsFn    = () => fields(
+
+        Field(
+          name        = "newProgram",
+          description = "The newly created program.".some,
+          fieldType   = ProgramType[F],
+          resolve     = _.value.newProgram
+        )
+
+      )
+    )
+
   def create[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "createProgram",
-      fieldType   = OptionType(ProgramType[F]),
+      fieldType   = CreateProgramResultType[F],
       description = "Creates a new program according to provided properties".some,
       arguments   = List(ArgumentProgramCreate),
       resolve     = c => c.program(_.insert(c.arg(ArgumentProgramCreate)))

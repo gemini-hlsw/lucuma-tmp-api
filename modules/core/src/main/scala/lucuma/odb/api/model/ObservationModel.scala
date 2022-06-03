@@ -237,6 +237,16 @@ object ObservationModel extends ObservationOptics {
       properties.some.andThen(PropertiesInput.manualConfig)
   }
 
+  final case class CreateResult(
+    newObservation: ObservationModel
+  )
+
+  object CreateResult {
+
+    implicit val EqCreateResult: Eq[CreateResult] =
+      Eq.by(_.newObservation)
+  }
+
   final case class SelectInput(
     programId:      Option[Program.Id],
     observationIds: Option[List[Observation.Id]]

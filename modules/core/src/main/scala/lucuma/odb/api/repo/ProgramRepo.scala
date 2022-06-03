@@ -22,7 +22,7 @@ trait ProgramRepo[F[_]] extends TopLevelRepo[F, Program.Id, ProgramModel] {
     includeDeleted: Boolean            = false
   ): F[ResultPage[ProgramModel]]
 
-  def insert(input: ProgramModel.CreateInput): F[ProgramModel]
+  def insert(input: ProgramModel.CreateInput): F[ProgramModel.CreateResult]
 
   def edit(input: ProgramModel.EditInput): F[Option[ProgramModel]]
 }
@@ -53,7 +53,7 @@ object ProgramRepo {
 
       override def insert(
         input: ProgramModel.CreateInput
-      ): F[ProgramModel] = {
+      ): F[ProgramModel.CreateResult] = {
 
         val create = EitherT(
           databaseRef.modify { db =>
@@ -70,7 +70,7 @@ object ProgramRepo {
         for {
           p <- create
           _ <- eventService.publish(ProgramEvent(_, Event.EditType.Created, p))
-        } yield p
+        } yield ProgramModel.CreateResult(p)
       }
 
       override def edit(
