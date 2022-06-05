@@ -24,7 +24,7 @@ trait ProgramRepo[F[_]] extends TopLevelRepo[F, Program.Id, ProgramModel] {
 
   def insert(input: ProgramModel.CreateInput): F[ProgramModel.CreateResult]
 
-  def edit(input: ProgramModel.EditInput): F[Option[ProgramModel]]
+  def edit(input: ProgramModel.EditInput): F[ProgramModel.EditResult]
 }
 
 object ProgramRepo {
@@ -75,12 +75,12 @@ object ProgramRepo {
 
       override def edit(
         input: ProgramModel.EditInput
-      ): F[Option[ProgramModel]] =
+      ): F[ProgramModel.EditResult] =
 
         for {
           p <- databaseRef.modifyState(input.editor.flipF).flatMap(_.liftTo[F])
           _ <- p.traverse(p => eventService.publish(ProgramModel.ProgramEvent.updated(p)))
-        } yield p
+        } yield ProgramModel.EditResult(p)
 
     }
 

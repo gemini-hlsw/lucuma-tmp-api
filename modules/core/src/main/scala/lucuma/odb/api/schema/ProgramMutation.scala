@@ -233,10 +233,25 @@ trait ProgramMutation {
       resolve     = c => c.program(_.insert(c.arg(ArgumentProgramCreate)))
     )
 
+  def EditProgramResultType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], ProgramModel.EditResult] =
+    ObjectType(
+      name        = "EditProgramResult",
+      description = "The result of editing the selected program.",
+      fieldsFn    = () => fields(
+
+        Field(
+          name        = "program",
+          description = "The edited program.".some,
+          fieldType   = OptionType(ProgramType[F]),
+          resolve     = _.value.program
+        )
+      )
+    )
+
   def edit[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name      = "editProgram",
-      fieldType = OptionType(ProgramType[F]),
+      fieldType = EditProgramResultType[F],
       arguments = List(ArgumentProgramEdit),
       resolve   = c => c.program(_.edit(c.arg(ArgumentProgramEdit)))
     )

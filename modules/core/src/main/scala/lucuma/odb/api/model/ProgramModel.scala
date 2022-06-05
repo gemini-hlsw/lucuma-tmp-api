@@ -175,6 +175,17 @@ object ProgramModel extends ProgramOptics {
 
   }
 
+  final case class EditResult(
+    program: Option[ProgramModel]
+  )
+
+  object EditResult {
+
+    implicit val EqEditResult: Eq[EditResult] =
+      Eq.by(_.program)
+
+  }
+
   final case class ProgramEvent (
     id:       Long,
     editType: Event.EditType,
