@@ -16,16 +16,18 @@ class SourceProfileSuite extends OdbSuite {
     query     = """
       mutation EditMagnitude($targetEdit: EditTargetInput!) {
         editTarget(input: $targetEdit) {
-          id
-          name
-          sourceProfile {
-            point {
-              bandNormalized {
-                brightnesses {
-                  band
-                  value
-                  units
-                  error
+          targets {
+            id
+            name
+            sourceProfile {
+              point {
+                bandNormalized {
+                  brightnesses {
+                    band
+                    value
+                    units
+                    error
+                  }
                 }
               }
             }
@@ -35,62 +37,64 @@ class SourceProfileSuite extends OdbSuite {
     """,
     expected  = json"""
       {
-        "editTarget": [
-          {
-            "id": "t-3",
-            "name": "NGC 3269",
-            "sourceProfile": {
-              "point": {
-                "bandNormalized": {
-                  "brightnesses": [
-                    {
-                      "band": "U",
-                      "value": 10,
-                      "units": "VEGA_MAGNITUDE",
-                      "error": null
-                    },
-                    {
-                      "band": "B",
-                      "value": 13.240,
-                      "units": "VEGA_MAGNITUDE",
-                      "error": null
-                    },
-                    {
-                      "band": "V",
-                      "value": 13.510,
-                      "units": "VEGA_MAGNITUDE",
-                      "error": null
-                    },
-                    {
-                      "band": "R",
-                      "value": 11.730,
-                      "units": "VEGA_MAGNITUDE",
-                      "error": null
-                    },
-                    {
-                      "band": "J",
-                      "value": 42,
-                      "units": "VEGA_MAGNITUDE",
-                      "error": 0.018
-                    },
-                    {
-                      "band": "H",
-                      "value": 9.387,
-                      "units": "VEGA_MAGNITUDE",
-                      "error": null
-                    },
-                    {
-                      "band": "K",
-                      "value": 9.055,
-                      "units": "VEGA_MAGNITUDE",
-                      "error": 0.031
-                    }
-                  ]
+        "editTarget": {
+          "targets": [
+            {
+              "id": "t-3",
+              "name": "NGC 3269",
+              "sourceProfile": {
+                "point": {
+                  "bandNormalized": {
+                    "brightnesses": [
+                      {
+                        "band": "U",
+                        "value": 10,
+                        "units": "VEGA_MAGNITUDE",
+                        "error": null
+                      },
+                      {
+                        "band": "B",
+                        "value": 13.240,
+                        "units": "VEGA_MAGNITUDE",
+                        "error": null
+                      },
+                      {
+                        "band": "V",
+                        "value": 13.510,
+                        "units": "VEGA_MAGNITUDE",
+                        "error": null
+                      },
+                      {
+                        "band": "R",
+                        "value": 11.730,
+                        "units": "VEGA_MAGNITUDE",
+                        "error": null
+                      },
+                      {
+                        "band": "J",
+                        "value": 42,
+                        "units": "VEGA_MAGNITUDE",
+                        "error": 0.018
+                      },
+                      {
+                        "band": "H",
+                        "value": 9.387,
+                        "units": "VEGA_MAGNITUDE",
+                        "error": null
+                      },
+                      {
+                        "band": "K",
+                        "value": 9.055,
+                        "units": "VEGA_MAGNITUDE",
+                        "error": 0.031
+                      }
+                    ]
+                  }
                 }
               }
             }
-          }
-        ]
+          ]
+        }
       }
     """,
     variables = json"""
@@ -133,16 +137,18 @@ class SourceProfileSuite extends OdbSuite {
     query     = """
       mutation EditMagnitude($targetEdit: EditTargetInput!) {
         editTarget(input: $targetEdit) {
-          id
-          name
-          sourceProfile {
-            point {
-              bandNormalized {
-                brightnesses {
-                  band
-                  value
-                  units
-                  error
+          targets {
+            id
+            name
+            sourceProfile {
+              point {
+                bandNormalized {
+                  brightnesses {
+                    band
+                    value
+                    units
+                    error
+                  }
                 }
               }
             }
@@ -152,26 +158,28 @@ class SourceProfileSuite extends OdbSuite {
     """,
     expected  = json"""
       {
-        "editTarget": [
-          {
-            "id": "t-2",
-            "name": "NGC 5949",
-            "sourceProfile": {
-              "point": {
-                "bandNormalized": {
-                  "brightnesses": [
-                    {
-                      "band": "U",
-                      "value": 10,
-                      "units": "VEGA_MAGNITUDE",
-                      "error": null
-                    }
-                  ]
+        "editTarget": {
+          "targets": [
+            {
+              "id": "t-2",
+              "name": "NGC 5949",
+              "sourceProfile": {
+                "point": {
+                  "bandNormalized": {
+                    "brightnesses": [
+                      {
+                        "band": "U",
+                        "value": 10,
+                        "units": "VEGA_MAGNITUDE",
+                        "error": null
+                      }
+                    ]
+                  }
                 }
               }
             }
-          }
-        ]
+          ]
+        }
       }
     """,
     variables = json"""
@@ -206,16 +214,18 @@ class SourceProfileSuite extends OdbSuite {
     query     = """
       mutation EditMagnitude($targetEdit: EditTargetInput!) {
         editTarget(input: $targetEdit) {
-          id
-          name
-          sourceProfile {
-            point {
-              bandNormalized {
-                brightnesses {
-                  band
-                  value
-                  units
-                  error
+          targets {
+            id
+            name
+            sourceProfile {
+              point {
+                bandNormalized {
+                  brightnesses {
+                    band
+                    value
+                    units
+                    error
+                  }
                 }
               }
             }
@@ -225,26 +235,28 @@ class SourceProfileSuite extends OdbSuite {
     """,
     expected  = json"""
       {
-        "editTarget": [
-          {
-            "id": "t-4",
-            "name": "NGC 3312",
-            "sourceProfile": {
-              "point": {
-                "bandNormalized": {
-                  "brightnesses": [
-                    {
-                      "band": "V",
-                      "value": 13.960,
-                      "units": "VEGA_MAGNITUDE",
-                      "error": 10
-                    }
-                  ]
+        "editTarget": {
+          "targets": [
+            {
+              "id": "t-4",
+              "name": "NGC 3312",
+              "sourceProfile": {
+                "point": {
+                  "bandNormalized": {
+                    "brightnesses": [
+                      {
+                        "band": "V",
+                        "value": 13.960,
+                        "units": "VEGA_MAGNITUDE",
+                        "error": 10
+                      }
+                    ]
+                  }
                 }
               }
             }
-          }
-        ]
+          ]
+        }
       }
     """,
     variables = json"""

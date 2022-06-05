@@ -14,25 +14,29 @@ class TargetMutationSuite extends OdbSuite {
     query = """
       mutation UpdateScienceTarget($targetEdit: EditTargetInput!) {
         editTarget(input: $targetEdit) {
-          id
-          name
-          sidereal {
-            parallax { microarcseconds }
+          targets {
+            id
+            name
+            sidereal {
+              parallax { microarcseconds }
+            }
           }
         }
       }
     """,
     expected = json"""
       {
-        "editTarget": [
-          {
-            "id": "t-4",
-            "name": "NGC 3312",
-            "sidereal": {
-              "parallax": null
+        "editTarget": {
+          "targets": [
+            {
+              "id": "t-4",
+              "name": "NGC 3312",
+              "sidereal": {
+                "parallax": null
+              }
             }
-          }
-        ]
+          ]
+        }
       }
     """,
     variables = json"""

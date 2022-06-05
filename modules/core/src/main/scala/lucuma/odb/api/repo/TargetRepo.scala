@@ -114,7 +114,7 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
 
   def insert(newTarget: TargetModel.CreateInput): F[TargetModel.CreateResult]
 
-  def edit(edit: TargetModel.EditInput): F[List[TargetModel]]
+  def edit(edit: TargetModel.EditInput): F[TargetModel.EditResult]
 
   /**
    * Clones the target referenced by `existingTid`.  Uses the `suggestedTid` for
@@ -283,11 +283,11 @@ object TargetRepo {
         } yield TargetModel.CreateResult(t)
       }
 
-      override def edit(editInput: TargetModel.EditInput): F[List[TargetModel]] =
+      override def edit(editInput: TargetModel.EditInput): F[TargetModel.EditResult] =
         for {
           ts <- databaseRef.modifyState(editInput.editor.flipF).flatMap(_.liftTo[F])
           _  <- ts.traverse(t => eventService.publish(TargetEvent.updated(t)))
-        } yield ts
+        } yield TargetModel.EditResult(ts)
 
       override def clone(
         cloneInput: TargetModel.CloneInput

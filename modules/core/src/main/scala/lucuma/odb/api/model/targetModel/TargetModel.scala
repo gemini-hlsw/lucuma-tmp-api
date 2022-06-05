@@ -269,6 +269,17 @@ object TargetModel extends TargetModelOptics {
 
   }
 
+  final case class EditResult(
+    targets: List[TargetModel]
+  )
+
+  object EditResult {
+
+    implicit val EqEditResult: Eq[EditResult] =
+      Eq.by(_.targets)
+
+  }
+
   final case class CloneResult(
     originalTarget: TargetModel,
     newTarget:      TargetModel

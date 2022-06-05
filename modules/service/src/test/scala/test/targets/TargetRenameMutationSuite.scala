@@ -14,19 +14,23 @@ class TargetRenameMutationSuite extends OdbSuite {
     query ="""
       mutation UpdateTarget($renameEdit: EditTargetInput!) {
         editTarget(input: $renameEdit) {
-          id
-          name
+          targets {
+            id
+            name
+          }
         }
       }
     """,
     expected = json"""
       {
-        "editTarget": [
-          {
-            "id": "t-4",
-            "name": "NGC 3312*"
-          }
-        ]
+        "editTarget": {
+          "targets": [
+            {
+              "id": "t-4",
+              "name": "NGC 3312*"
+            }
+          ]
+        }
       }
     """,
     variables = json"""

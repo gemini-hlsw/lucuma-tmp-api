@@ -312,10 +312,26 @@ trait TargetMutation extends TargetScalars {
       }
     )
 
+  def EditTargetResultType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], TargetModel.EditResult] =
+    ObjectType(
+      name        = "EditTargetResult",
+      description = "The result of editing select targets.",
+      fieldsFn    = () => fields(
+
+        Field(
+          name        = "targets",
+          description = "The edited targets.".some,
+          fieldType   = ListType(TargetType[F]),
+          resolve     = _.value.targets
+        )
+
+      )
+    )
+
   def editTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "editTarget",
-      fieldType   = ListType(TargetType[F]),
+      fieldType   = EditTargetResultType[F],
       description = "Edits existing targets".some,
       arguments   = List(ArgumentEditTargetInput),
       resolve     = c => c.target(_.edit(c.arg(ArgumentEditTargetInput)))
@@ -345,7 +361,7 @@ trait TargetMutation extends TargetScalars {
       description = s"${name.capitalize}s all the targets identified by the `select` field".some,
       fieldType   = ListType(TargetType[F]),
       arguments   = List(arg),
-      resolve     = c => c.target(_.edit(c.arg(arg)))
+      resolve     = c => c.target(_.edit(c.arg(arg)).map(_.targets))
     )
   }
 
