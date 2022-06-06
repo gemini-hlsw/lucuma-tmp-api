@@ -85,7 +85,7 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
 
   def editAsterism(
     be: BulkEdit[Seq[EditAsterismPatchInput]]
-  ): F[List[ObservationModel]]
+  ): F[ObservationModel.EditResult]
 
 }
 
@@ -298,7 +298,7 @@ object ObservationRepo {
       private def doBulkEditTargets(
         be: BulkEdit[_],
         ed: StateT[EitherInput, TargetEnvironmentModel, Unit]
-      ): F[List[ObservationModel]] = {
+      ): F[ObservationModel.EditResult] = {
 
         val update =
           for {
@@ -311,13 +311,13 @@ object ObservationRepo {
         for {
           os <- databaseRef.modifyState(update.flipF).flatMap(_.liftTo[F])
           _  <- os.traverse_(o => eventService.publish(ObservationModel.ObservationEvent.updated(o)))
-        } yield os
+        } yield ObservationModel.EditResult(os)
 
       }
 
       override def editAsterism(
         be: BulkEdit[Seq[EditAsterismPatchInput]]
-      ): F[List[ObservationModel]] =
+      ): F[ObservationModel.EditResult] =
         doBulkEditTargets(be, EditAsterismPatchInput.multiEditor(be.patch.toList))
 
     }

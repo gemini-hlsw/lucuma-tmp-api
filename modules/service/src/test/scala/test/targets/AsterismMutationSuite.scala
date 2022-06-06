@@ -26,10 +26,12 @@ class AsterismMutationSuite extends OdbSuite {
     query ="""
       mutation ReplaceTargets($listEdit: EditAsterismInput!) {
         editAsterism(input: $listEdit) {
-          id
-          targetEnvironment {
-            asterism {
-              name
+          observations {
+            id
+            targetEnvironment {
+              asterism {
+                name
+              }
             }
           }
         }
@@ -37,28 +39,30 @@ class AsterismMutationSuite extends OdbSuite {
     """,
     expected =json"""
       {
-        "editAsterism": [
-          {
-            "id": "o-3",
-            "targetEnvironment": {
-              "asterism": [
-                {
-                  "name": "NGC 5949"
-                }
-              ]
+        "editAsterism": {
+          "observations": [
+            {
+              "id": "o-3",
+              "targetEnvironment": {
+                "asterism": [
+                  {
+                    "name": "NGC 5949"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "o-4",
+              "targetEnvironment": {
+                "asterism": [
+                  {
+                    "name": "NGC 5949"
+                  }
+                ]
+              }
             }
-          },
-          {
-            "id": "o-4",
-            "targetEnvironment": {
-              "asterism": [
-                {
-                  "name": "NGC 5949"
-                }
-              ]
-            }
-          }
-        ]
+          ]
+        }
       }
     """,
     variables =json"""

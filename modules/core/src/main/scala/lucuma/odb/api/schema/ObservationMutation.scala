@@ -173,12 +173,12 @@ trait ObservationMutation {
     )
 
   def EditObservationResultType[F[_]: Dispatcher: Async: Logger](
-    operation:      String,
+    name:           String,
     description:    String,
     obsDescription: String
   ): ObjectType[OdbCtx[F], ObservationModel.EditResult] =
     ObjectType(
-      name        = s"${operation.capitalize}ObservationResult",
+      name        = name,
       description = description,
       fieldsFn    = () => fields(
 
@@ -196,7 +196,7 @@ trait ObservationMutation {
     Field(
       name      = "editObservation",
       fieldType = EditObservationResultType[F](
-        "edit",
+        "EditObservationResult",
         "The result of editing select observations.",
         "The edited observations."
       ),
@@ -243,7 +243,11 @@ trait ObservationMutation {
         """Edit asterisms, adding or deleting targets, in (potentially) multiple
           |observations at once.
         """.stripMargin.some,
-      fieldType   = ListType(ObservationType[F]),
+      fieldType   = EditObservationResultType(
+        "EditAsterismResult",
+        "The result of editing the asterism of the selected observations.",
+        "The edited observations."
+      ),
       arguments   = List(ArgumentEditAsterism),
       resolve     = c => c.observation(_.editAsterism(c.arg(ArgumentEditAsterism)))
     )
@@ -271,7 +275,7 @@ trait ObservationMutation {
       name        = s"${name}Observation",
       description = s"${name.capitalize}s all the observations identified by the `select` field".some,
       fieldType   = EditObservationResultType(
-        name,
+        s"${name.capitalize}ObservationResult",
         s"The result of performing an observation $name mutation.",
         s"The ${name}d observations."
       ),
