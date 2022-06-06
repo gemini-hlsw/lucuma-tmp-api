@@ -56,7 +56,7 @@ class VisitSuite extends OdbSuite {
     query = s"""
       mutation AddSequenceEvent($$eventInput: AddSequenceEventInput!) {
         addSequenceEvent(input: $$eventInput) {
-          newEvent {
+          event {
             payload {
               command
             }
@@ -67,7 +67,7 @@ class VisitSuite extends OdbSuite {
     expected =json"""
       {
         "addSequenceEvent": {
-          "newEvent": {
+          "event": {
             "payload": {
               "command": "START"
             }
@@ -152,7 +152,7 @@ class VisitSuite extends OdbSuite {
     query = s"""
       mutation AddStepEvent($$eventInput: AddStepEventInput!) {
         addStepEvent(input: $$eventInput) {
-          newEvent {
+          event {
             payload {
               stage
             }
@@ -163,7 +163,7 @@ class VisitSuite extends OdbSuite {
     expected =json"""
       {
         "addStepEvent": {
-          "newEvent": {
+          "event": {
             "payload": {
               "stage": "START_STEP"
             }
@@ -194,7 +194,7 @@ class VisitSuite extends OdbSuite {
     query = s"""
       mutation AddDatasetEvent($$eventInput: AddDatasetEventInput!) {
         addDatasetEvent(input: $$eventInput) {
-          newEvent {
+          event {
             payload {
               stage
             }
@@ -205,7 +205,7 @@ class VisitSuite extends OdbSuite {
     expected =json"""
       {
         "addDatasetEvent": {
-          "newEvent": {
+          "event": {
             "payload": {
                "stage": "START_OBSERVE"
              }

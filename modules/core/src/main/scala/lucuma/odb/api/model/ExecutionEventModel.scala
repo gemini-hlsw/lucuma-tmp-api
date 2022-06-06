@@ -172,13 +172,13 @@ object ExecutionEventModel {
     }
 
     final case class Result(
-      newEvent: SequenceEvent
+      event: SequenceEvent
     )
 
     object Result {
 
       implicit val OrderResult: Order[Result] =
-        Order.by(_.newEvent)
+        Order.by(_.event)
 
     }
 
@@ -324,13 +324,13 @@ object ExecutionEventModel {
     }
 
     final case class Result(
-      newEvent: StepEvent
+      event: StepEvent
     )
 
     object Result {
 
       implicit val OrderResult: Order[Result] =
-        Order.by(_.newEvent)
+        Order.by(_.event)
 
     }
 
@@ -512,13 +512,13 @@ object ExecutionEventModel {
     }
 
     final case class Result(
-      newEvent: DatasetEvent
+      event: DatasetEvent
     )
 
     object Result {
 
       implicit val OrderResult: Order[Result] =
-        Order.by(_.newEvent)
+        Order.by(_.event)
 
     }
 

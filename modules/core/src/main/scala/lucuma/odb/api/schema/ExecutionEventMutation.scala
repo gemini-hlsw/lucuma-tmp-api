@@ -245,10 +245,10 @@ trait ExecutionEventMutation {
       fields      = List[Field[OdbCtx[F], SequenceEvent.Result]](
 
         Field(
-          name        = "newEvent",
+          name        = "event",
           description = "The new sequence event that was added.".some,
           fieldType   = SequenceEventType[F],
-          resolve     = _.value.newEvent
+          resolve     = _.value.event
         )
 
       )
@@ -320,10 +320,10 @@ trait ExecutionEventMutation {
       fields      = List[Field[OdbCtx[F], StepEvent.Result]](
 
         Field(
-          name        = "newEvent",
+          name        = "event",
           description = "The new step event that was added.".some,
           fieldType   = StepEventType[F],
-          resolve     = _.value.newEvent
+          resolve     = _.value.event
         )
 
       )
@@ -384,10 +384,10 @@ trait ExecutionEventMutation {
       fields      = List[Field[OdbCtx[F], DatasetEvent.Result]](
 
         Field(
-          name        = "newEvent",
+          name        = "event",
           description = "The new dataset event that was added.".some,
           fieldType   = DatasetEventType[F],
-          resolve     = _.value.newEvent
+          resolve     = _.value.event
         )
 
       )
