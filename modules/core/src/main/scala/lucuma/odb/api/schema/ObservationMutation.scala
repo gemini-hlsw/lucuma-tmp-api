@@ -8,7 +8,6 @@ import lucuma.odb.api.model.ObservationModel.BulkEdit
 import lucuma.odb.api.schema.syntax.inputtype._
 import cats.effect.Async
 import cats.effect.std.Dispatcher
-import cats.syntax.functor._
 import cats.syntax.option._
 import clue.data.syntax._
 import io.circe.{Decoder, HCursor}
@@ -173,15 +172,19 @@ trait ObservationMutation {
       resolve     = c => c.observation(_.insert(c.arg(ArgumentObservationCreate)))
     )
 
-  def EditObservationResultType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], ObservationModel.EditResult] =
+  def EditObservationResultType[F[_]: Dispatcher: Async: Logger](
+    operation:      String,
+    description:    String,
+    obsDescription: String
+  ): ObjectType[OdbCtx[F], ObservationModel.EditResult] =
     ObjectType(
-      name        = "EditObservationResult",
-      description = "The result of editing select observations.",
+      name        = s"${operation.capitalize}ObservationResult",
+      description = description,
       fieldsFn    = () => fields(
 
         Field(
           name        = "observations",
-          description = "The edited observations.".some,
+          description = obsDescription.some,
           fieldType   = ListType(ObservationType[F]),
           resolve     = _.value.observations
         )
@@ -192,7 +195,11 @@ trait ObservationMutation {
   def editObservation[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name      = "editObservation",
-      fieldType = EditObservationResultType[F],
+      fieldType = EditObservationResultType[F](
+        "edit",
+        "The result of editing select observations.",
+        "The edited observations."
+      ),
       arguments = List(ArgumentObservationEdit),
       resolve   = c => c.observation(_.edit(c.arg(ArgumentObservationEdit)))
     )
@@ -263,9 +270,13 @@ trait ObservationMutation {
     Field(
       name        = s"${name}Observation",
       description = s"${name.capitalize}s all the observations identified by the `select` field".some,
-      fieldType   = ListType(ObservationType[F]),
+      fieldType   = EditObservationResultType(
+        name,
+        s"The result of performing an observation $name mutation.",
+        s"The ${name}d observations."
+      ),
       arguments   = List(arg),
-      resolve     = c => c.observation(_.edit(c.arg(arg)).map(_.observations))
+      resolve     = c => c.observation(_.edit(c.arg(arg)))
     )
   }
 
