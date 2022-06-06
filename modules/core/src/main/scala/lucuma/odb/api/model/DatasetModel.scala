@@ -176,6 +176,17 @@ object DatasetModel extends DatasetModelOptics {
 
   }
 
+  final case class EditResult(
+    datasets: List[DatasetModel]
+  )
+
+  object EditResult {
+
+    implicit val EqEditResult: Eq[EditResult] =
+      Eq.by(_.datasets)
+
+  }
+
 }
 
 sealed trait DatasetModelOptics { self: DatasetModel.type =>

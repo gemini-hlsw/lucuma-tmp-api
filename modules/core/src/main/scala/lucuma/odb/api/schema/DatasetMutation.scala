@@ -5,6 +5,7 @@ package lucuma.odb.api.schema
 
 import cats.effect.Async
 import cats.effect.std.Dispatcher
+import cats.syntax.option._
 import lucuma.odb.api.model.DatasetModel
 import lucuma.odb.api.repo.OdbCtx
 import lucuma.odb.api.schema.syntax.inputobjecttype._
@@ -67,10 +68,25 @@ trait DatasetMutation {
       "Parameters for editing existing datasets"
     )
 
+  def EditDatasetResultType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], DatasetModel.EditResult] =
+    ObjectType(
+      name        = "EditDatasetResult",
+      description = "The result of editing the selected datasets.",
+      fieldsFn    = () => fields(
+
+        Field(
+          name        = "datasets",
+          description = "The edited datasets.".some,
+          fieldType   = ListType(DatasetType[F]),
+          resolve     = _.value.datasets
+        )
+      )
+    )
+
   def editDataset[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name      = "editDataset",
-      fieldType = ListType(DatasetType[F]),
+      fieldType = EditDatasetResultType[F],
       arguments = List(
         ArgumentDatasetEdit
       ),

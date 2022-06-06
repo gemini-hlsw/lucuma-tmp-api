@@ -267,29 +267,33 @@ class VisitSuite extends OdbSuite {
     query = """
       mutation EditDataset($editDatasetInput: EditDatasetInput!) {
         editDataset(input: $editDatasetInput) {
-          id {
-            observationId
-            stepId
-            index
+          datasets {
+            id {
+              observationId
+              stepId
+              index
+            }
+            filename
+            qaState
           }
-          filename
-          qaState
         }
       }
     """,
     expected =json"""
       {
-        "editDataset": [
-          {
-            "id": {
-              "observationId": "o-2",
-              "stepId": ${sid.toString},
-              "index": 1
-            },
-            "filename": "S20220504S0001.fits",
-            "qaState": "PASS"
-          }
-        ]
+        "editDataset": {
+          "datasets": [
+            {
+              "id": {
+                "observationId": "o-2",
+                "stepId": ${sid.toString},
+                "index": 1
+              },
+              "filename": "S20220504S0001.fits",
+              "qaState": "PASS"
+            }
+          ]
+        }
       }
     """,
     variables =json"""

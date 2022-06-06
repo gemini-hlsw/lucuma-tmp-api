@@ -32,7 +32,7 @@ sealed trait DatasetRepo[F[_]] {
 
   def edit(
     editInput: DatasetModel.EditInput
-  ): F[List[DatasetModel]]
+  ): F[DatasetModel.EditResult]
 
 }
 
@@ -72,8 +72,11 @@ object DatasetRepo {
 
       override def edit(
         editInput: DatasetModel.EditInput
-      ): F[List[DatasetModel]] =
-        databaseRef.modifyState(editInput.editor.flipF).flatMap(_.liftTo[F])
+      ): F[DatasetModel.EditResult] =
+        databaseRef
+          .modifyState(editInput.editor.flipF)
+          .flatMap(_.liftTo[F])
+          .map(ds => DatasetModel.EditResult(ds))
 
     }
 
