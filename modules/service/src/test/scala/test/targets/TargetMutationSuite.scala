@@ -13,7 +13,7 @@ class TargetMutationSuite extends OdbSuite {
   queryTest(
     query = """
       mutation UpdateScienceTarget($targetEdit: EditTargetInput!) {
-        editTarget(input: $targetEdit) {
+        editTargets(input: $targetEdit) {
           targets {
             id
             name
@@ -26,7 +26,7 @@ class TargetMutationSuite extends OdbSuite {
     """,
     expected = json"""
       {
-        "editTarget": {
+        "editTargets": {
           "targets": [
             {
               "id": "t-4",
@@ -59,7 +59,7 @@ class TargetMutationSuite extends OdbSuite {
   queryTest(
     query = """
       mutation DeleteTarget($deleteTargetInput: DeleteTargetInput!) {
-        deleteTarget(input: $deleteTargetInput) {
+        deleteTargets(input: $deleteTargetInput) {
           targets {
             id
             name
@@ -70,7 +70,7 @@ class TargetMutationSuite extends OdbSuite {
     """,
     expected = json"""
       {
-        "deleteTarget": {
+        "deleteTargets": {
           "targets": [
             {
               "id": "t-4",

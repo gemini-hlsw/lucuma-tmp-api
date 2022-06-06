@@ -274,7 +274,7 @@ class VisitSuite extends OdbSuite {
   queryTest(
     query = """
       mutation EditDataset($editDatasetInput: EditDatasetInput!) {
-        editDataset(input: $editDatasetInput) {
+        editDatasets(input: $editDatasetInput) {
           datasets {
             id {
               observationId
@@ -289,7 +289,7 @@ class VisitSuite extends OdbSuite {
     """,
     expected =json"""
       {
-        "editDataset": {
+        "editDatasets": {
           "datasets": [
             {
               "id": {

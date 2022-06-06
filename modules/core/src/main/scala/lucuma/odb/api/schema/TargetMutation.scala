@@ -312,13 +312,13 @@ trait TargetMutation extends TargetScalars {
       }
     )
 
-  def EditTargetResultType[F[_]: Dispatcher: Async: Logger](
+  def EditTargetsResultType[F[_]: Dispatcher: Async: Logger](
     operation:      String,
     description:    String,
     obsDescription: String
   ): ObjectType[OdbCtx[F], TargetModel.EditResult] =
     ObjectType(
-      name        = s"${operation.capitalize}TargetResult",
+      name        = s"${operation.capitalize}TargetsResult",
       description = description,
       fieldsFn    = () => fields(
 
@@ -332,10 +332,10 @@ trait TargetMutation extends TargetScalars {
       )
     )
 
-  def editTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def editTargets[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name        = "editTarget",
-      fieldType   = EditTargetResultType[F](
+      name        = "editTargets",
+      fieldType   = EditTargetsResultType[F](
         "edit",
         "The result of editing select targets.",
         "The edited targets."
@@ -365,9 +365,9 @@ trait TargetMutation extends TargetScalars {
          )
 
     Field(
-      name        = s"${name}Target",
+      name        = s"${name}Targets",
       description = s"${name.capitalize}s all the targets identified by the `select` field".some,
-      fieldType   = EditTargetResultType(
+      fieldType   = EditTargetsResultType(
         name,
         s"The result of performing a target $name mutation.",
         s"The ${name}d targets."
@@ -381,7 +381,7 @@ trait TargetMutation extends TargetScalars {
     List(
       createTarget,
       cloneTarget,
-      editTarget,
+      editTargets,
       existenceEditField(Existence.Deleted),
       existenceEditField(Existence.Present)
     )

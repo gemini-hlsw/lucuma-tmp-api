@@ -11,7 +11,7 @@ class GroupIncludeDeletedSuite extends OdbSuite {
   queryTest(
     query ="""
       mutation DeleteObservation($deleteObservationInput: DeleteObservationInput!) {
-        deleteObservation(input: $deleteObservationInput) {
+        deleteObservations(input: $deleteObservationInput) {
           observations {
             id
           }
@@ -20,7 +20,7 @@ class GroupIncludeDeletedSuite extends OdbSuite {
     """,
     expected = json"""
       {
-        "deleteObservation": {
+        "deleteObservations": {
           "observations": [
             {
               "id": "o-5"

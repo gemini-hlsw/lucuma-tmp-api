@@ -15,7 +15,7 @@ class SourceProfileSuite extends OdbSuite {
   queryTest(
     query     = """
       mutation EditMagnitude($targetEdit: EditTargetInput!) {
-        editTarget(input: $targetEdit) {
+        editTargets(input: $targetEdit) {
           targets {
             id
             name
@@ -37,7 +37,7 @@ class SourceProfileSuite extends OdbSuite {
     """,
     expected  = json"""
       {
-        "editTarget": {
+        "editTargets": {
           "targets": [
             {
               "id": "t-3",
@@ -136,7 +136,7 @@ class SourceProfileSuite extends OdbSuite {
   queryTest(
     query     = """
       mutation EditMagnitude($targetEdit: EditTargetInput!) {
-        editTarget(input: $targetEdit) {
+        editTargets(input: $targetEdit) {
           targets {
             id
             name
@@ -158,7 +158,7 @@ class SourceProfileSuite extends OdbSuite {
     """,
     expected  = json"""
       {
-        "editTarget": {
+        "editTargets": {
           "targets": [
             {
               "id": "t-2",
@@ -213,7 +213,7 @@ class SourceProfileSuite extends OdbSuite {
   queryTest(
     query     = """
       mutation EditMagnitude($targetEdit: EditTargetInput!) {
-        editTarget(input: $targetEdit) {
+        editTargets(input: $targetEdit) {
           targets {
             id
             name
@@ -235,7 +235,7 @@ class SourceProfileSuite extends OdbSuite {
     """,
     expected  = json"""
       {
-        "editTarget": {
+        "editTargets": {
           "targets": [
             {
               "id": "t-4",

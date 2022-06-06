@@ -24,7 +24,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
   queryTest(
     query ="""
       mutation UpdateTargetEnvironment($envEdit: EditObservationInput!) {
-        editObservation(input: $envEdit) {
+        editObservations(input: $envEdit) {
           observations {
             id
             targetEnvironment {
@@ -38,7 +38,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
     """,
     expected =json"""
       {
-        "editObservation": {
+        "editObservations": {
           "observations": [
             {
               "id": "o-3",
@@ -74,7 +74,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
   queryTestFailure(
     query ="""
       mutation UpdateTargetEnvironment($envEdit: EditObservationInput!) {
-        editObservation(input: $envEdit) {
+        editObservations(input: $envEdit) {
           observations {
             id
             targetEnvironment {
@@ -108,7 +108,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
   queryTest(
     query ="""
       mutation UpdateTargetEnvironment($envEdit: EditObservationInput!) {
-        editObservation(input: $envEdit) {
+        editObservations(input: $envEdit) {
           observations {
             id
             targetEnvironment {
@@ -123,7 +123,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
     """,
     expected =json"""
       {
-        "editObservation": {
+        "editObservations": {
           "observations": [
             {
               "id": "o-3",

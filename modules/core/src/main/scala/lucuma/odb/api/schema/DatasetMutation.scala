@@ -68,9 +68,9 @@ trait DatasetMutation {
       "Parameters for editing existing datasets"
     )
 
-  def EditDatasetResultType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], DatasetModel.EditResult] =
+  def EditDatasetsResultType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], DatasetModel.EditResult] =
     ObjectType(
-      name        = "EditDatasetResult",
+      name        = "EditDatasetsResult",
       description = "The result of editing the selected datasets.",
       fieldsFn    = () => fields(
 
@@ -83,10 +83,10 @@ trait DatasetMutation {
       )
     )
 
-  def editDataset[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def editDatasets[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name      = "editDataset",
-      fieldType = EditDatasetResultType[F],
+      name      = "editDatasets",
+      fieldType = EditDatasetsResultType[F],
       arguments = List(
         ArgumentDatasetEdit
       ),
@@ -95,7 +95,7 @@ trait DatasetMutation {
 
   def allFields[F[_]: Dispatcher: Async: Logger]: List[Field[OdbCtx[F], Unit]] =
     List(
-      editDataset
+      editDatasets
     )
 
 }
