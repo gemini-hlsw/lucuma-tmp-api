@@ -23,7 +23,7 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
   // Delete NGC 3269 (t-3)
   queryTest(
     query ="""
-      mutation DeleteTarget($deleteTargetInput: DeleteTargetInput!) {
+      mutation DeleteTarget($deleteTargetInput: DeleteTargetsInput!) {
         deleteTargets(input: $deleteTargetInput) {
           targets {
             id

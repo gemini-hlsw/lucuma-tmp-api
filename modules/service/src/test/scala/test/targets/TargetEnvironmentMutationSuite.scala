@@ -23,7 +23,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
   // In o-3, replace NGC 3312 with NGC 5949
   queryTest(
     query ="""
-      mutation UpdateTargetEnvironment($envEdit: EditObservationInput!) {
+      mutation UpdateTargetEnvironment($envEdit: EditObservationsInput!) {
         editObservations(input: $envEdit) {
           observations {
             id
@@ -73,7 +73,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
   //
   queryTestFailure(
     query ="""
-      mutation UpdateTargetEnvironment($envEdit: EditObservationInput!) {
+      mutation UpdateTargetEnvironment($envEdit: EditObservationsInput!) {
         editObservations(input: $envEdit) {
           observations {
             id
@@ -107,7 +107,7 @@ class TargetEnvironmentMutationSuite extends OdbSuite {
   // Add an explicit base to o-3
   queryTest(
     query ="""
-      mutation UpdateTargetEnvironment($envEdit: EditObservationInput!) {
+      mutation UpdateTargetEnvironment($envEdit: EditObservationsInput!) {
         editObservations(input: $envEdit) {
           observations {
             id

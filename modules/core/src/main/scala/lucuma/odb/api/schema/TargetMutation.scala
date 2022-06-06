@@ -176,9 +176,9 @@ trait TargetMutation extends TargetScalars {
       )
     )
 
-  implicit val InputObjectTypeEditTarget: InputObjectType[TargetModel.EditInput] =
+  implicit val InputObjectTypeEditTargets: InputObjectType[TargetModel.EditInput] =
     InputObjectType[TargetModel.EditInput](
-      "EditTargetInput",
+      "EditTargetsInput",
       "Target selection and update description.",
       List(
         InputField("select", InputObjectTypeTargetSelect),
@@ -186,15 +186,15 @@ trait TargetMutation extends TargetScalars {
       )
     )
 
-  val ArgumentEditTargetInput: Argument[TargetModel.EditInput] =
-    InputObjectTypeEditTarget.argument(
+  val ArgumentEditTargetsInput: Argument[TargetModel.EditInput] =
+    InputObjectTypeEditTargets.argument(
       "input",
       "Parameters for editing existing targets. "
     )
 
   def existenceEditInput(name: String): InputObjectType[TargetModel.EditInput] =
     InputObjectType[TargetModel.EditInput](
-      s"${name.capitalize}TargetInput",
+      s"${name.capitalize}TargetsInput",
       s"Selects the targets for $name",
       List(
         InputField("select", InputObjectTypeTargetSelect)
@@ -219,9 +219,9 @@ trait TargetMutation extends TargetScalars {
       )
     )
 
-  implicit val InputObjectTypeEditAsterism: InputObjectType[EditAsterismPatchInput] =
+  implicit val InputObjectTypeEditAsterisms: InputObjectType[EditAsterismPatchInput] =
     deriveInputObjectType[EditAsterismPatchInput](
-      InputObjectTypeName("EditAsterismPatchInput"),
+      InputObjectTypeName("EditAsterismsPatchInput"),
       InputObjectTypeDescription("Add or delete targets in an asterism")
     )
 
@@ -341,8 +341,8 @@ trait TargetMutation extends TargetScalars {
         "The edited targets."
       ),
       description = "Edits existing targets".some,
-      arguments   = List(ArgumentEditTargetInput),
-      resolve     = c => c.target(_.edit(c.arg(ArgumentEditTargetInput)))
+      arguments   = List(ArgumentEditTargetsInput),
+      resolve     = c => c.target(_.edit(c.arg(ArgumentEditTargetsInput)))
     )
 
   private def existenceEditField[F[_]: Dispatcher: Async: Logger](

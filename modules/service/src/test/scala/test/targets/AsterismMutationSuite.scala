@@ -24,7 +24,7 @@ class AsterismMutationSuite extends OdbSuite {
   // Replace NGC 3312 (t-4) in o-3 and o-4 with NGC 5949 (t-2)
   queryTest(
     query ="""
-      mutation ReplaceTargets($listEdit: EditAsterismInput!) {
+      mutation ReplaceTargets($listEdit: EditAsterismsInput!) {
         editAsterisms(input: $listEdit) {
           observations {
             id

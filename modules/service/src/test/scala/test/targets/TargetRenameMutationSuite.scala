@@ -12,7 +12,7 @@ class TargetRenameMutationSuite extends OdbSuite {
   // Rename target "NGC 3312" to "NGC 3312*".
   queryTest(
     query ="""
-      mutation UpdateTarget($renameEdit: EditTargetInput!) {
+      mutation UpdateTarget($renameEdit: EditTargetsInput!) {
         editTargets(input: $renameEdit) {
           targets {
             id

@@ -14,7 +14,7 @@ class SourceProfileSuite extends OdbSuite {
   // Add new U entry
   queryTest(
     query     = """
-      mutation EditMagnitude($targetEdit: EditTargetInput!) {
+      mutation EditMagnitude($targetEdit: EditTargetsInput!) {
         editTargets(input: $targetEdit) {
           targets {
             id
@@ -135,7 +135,7 @@ class SourceProfileSuite extends OdbSuite {
   // Replace all magnitudes with one U entry
   queryTest(
     query     = """
-      mutation EditMagnitude($targetEdit: EditTargetInput!) {
+      mutation EditMagnitude($targetEdit: EditTargetsInput!) {
         editTargets(input: $targetEdit) {
           targets {
             id
@@ -212,7 +212,7 @@ class SourceProfileSuite extends OdbSuite {
   // Delete all but V, set its error to 10
   queryTest(
     query     = """
-      mutation EditMagnitude($targetEdit: EditTargetInput!) {
+      mutation EditMagnitude($targetEdit: EditTargetsInput!) {
         editTargets(input: $targetEdit) {
           targets {
             id

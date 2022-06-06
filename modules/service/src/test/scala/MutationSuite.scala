@@ -9,7 +9,7 @@ class MutationSuite extends OdbSuite {
 
   queryTest(
     query = """
-      mutation BulkEditConstraints($bulkEditConstraints: EditObservationInput!) {
+      mutation BulkEditConstraints($bulkEditConstraints: EditObservationsInput!) {
         editObservations(input: $bulkEditConstraints) {
           observations {
             id
@@ -58,7 +58,7 @@ class MutationSuite extends OdbSuite {
 
   queryTest(
     query = """
-      mutation BulkEditScienceMode($bulkEditScienceMode: EditObservationInput!) {
+      mutation BulkEditScienceMode($bulkEditScienceMode: EditObservationsInput!) {
         editObservations(input: $bulkEditScienceMode) {
           observations {
             id
@@ -229,7 +229,7 @@ class MutationSuite extends OdbSuite {
   queryTestFailure(
     query =
       """
-        mutation BulkEditConstraints($bulkEditConstraints: EditObservationInput!) {
+        mutation BulkEditConstraints($bulkEditConstraints: EditObservationsInput!) {
           editObservations(input: $bulkEditConstraints) {
             observations {
               id
@@ -273,7 +273,7 @@ class MutationSuite extends OdbSuite {
 
   queryTest(
     query = """
-      mutation EditMiscProperties($editObservationInput: EditObservationInput!) {
+      mutation EditMiscProperties($editObservationInput: EditObservationsInput!) {
         editObservations(input: $editObservationInput) {
           observations {
             id
@@ -326,7 +326,7 @@ class MutationSuite extends OdbSuite {
 
   queryTest(
     query = """
-      mutation RemovePosAngleConstraint($editObservationInput: EditObservationInput!) {
+      mutation RemovePosAngleConstraint($editObservationInput: EditObservationsInput!) {
         editObservations(input: $editObservationInput) {
           observations {
             id
@@ -365,7 +365,7 @@ class MutationSuite extends OdbSuite {
 
   queryTest(
     query = """
-      mutation ToAverageParallactic($editObservationInput: EditObservationInput!) {
+      mutation ToAverageParallactic($editObservationInput: EditObservationsInput!) {
         editObservations(input: $editObservationInput) {
           observations {
             id
@@ -416,7 +416,7 @@ class MutationSuite extends OdbSuite {
   queryTestFailure(
     query =
       """
-        mutation InvalidPosAngleConstraint($editObservationInput: EditObservationInput!) {
+        mutation InvalidPosAngleConstraint($editObservationInput: EditObservationsInput!) {
           editObservations(input: $editObservationInput) {
             observations {
               id

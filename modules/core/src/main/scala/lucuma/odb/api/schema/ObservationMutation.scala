@@ -29,7 +29,7 @@ trait ObservationMutation {
   import PosAngleConstraintSchema._
   import ProgramSchema.ProgramIdType
   import RefinedSchema.NonEmptyStringType
-  import TargetMutation.{InputObjectTypeEditAsterism, InputObjectTypeTargetEnvironment}
+  import TargetMutation.{InputObjectTypeEditAsterisms, InputObjectTypeTargetEnvironment}
   import TimeSchema.InstantScalar
   import syntax.inputobjecttype._
 
@@ -74,9 +74,9 @@ trait ObservationMutation {
       )
     )
 
-  val InputObjectTypeObservationEdit: InputObjectType[ObservationModel.EditInput] =
+  val InputObjectTypeObservationsEdit: InputObjectType[ObservationModel.EditInput] =
     InputObjectType[ObservationModel.EditInput](
-      "EditObservationInput",
+      "EditObservationsInput",
       "Observation selection and update description",
       List(
         InputField("select", InputObjectTypeObservationSelect),
@@ -84,15 +84,15 @@ trait ObservationMutation {
       )
     )
 
-  val ArgumentObservationEdit: Argument[ObservationModel.EditInput] =
-    InputObjectTypeObservationEdit.argument(
+  val ArgumentObservationsEdit: Argument[ObservationModel.EditInput] =
+    InputObjectTypeObservationsEdit.argument(
       "input",
       "Parameters for editing existing observations"
     )
 
   def existenceEditInput(name: String): InputObjectType[ObservationModel.EditInput] =
     InputObjectType[ObservationModel.EditInput](
-      s"${name.capitalize}ObservationInput",
+      s"${name.capitalize}ObservationsInput",
       s"Selects the observations for $name",
       List(
         InputField("select", InputObjectTypeObservationSelect)
@@ -126,7 +126,7 @@ trait ObservationMutation {
 
     val io: InputObjectType[BulkEdit[A]] =
       InputObjectType[BulkEdit[A]](
-        name        = s"Edit${name.capitalize}Input",
+        name        = s"Edit${name.capitalize}sInput",
         description =
           """Input for bulk editing multiple observations.  Select observations
             |with the 'select' input and specify the changes in 'edit'.
@@ -141,10 +141,10 @@ trait ObservationMutation {
 
   }
 
-  val ArgumentEditAsterism: Argument[BulkEdit[Seq[EditAsterismPatchInput]]] =
+  val ArgumentEditAsterisms: Argument[BulkEdit[Seq[EditAsterismPatchInput]]] =
     bulkEditArgument[Seq[EditAsterismPatchInput]](
       "asterism",
-      ListInputType(InputObjectTypeEditAsterism)
+      ListInputType(InputObjectTypeEditAsterisms)
     )
 
   def CreateObservationResultType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], ObservationModel.CreateResult] =
@@ -200,8 +200,8 @@ trait ObservationMutation {
         "The result of editing select observations.",
         "The edited observations."
       ),
-      arguments = List(ArgumentObservationEdit),
-      resolve   = c => c.observation(_.edit(c.arg(ArgumentObservationEdit)))
+      arguments = List(ArgumentObservationsEdit),
+      resolve   = c => c.observation(_.edit(c.arg(ArgumentObservationsEdit)))
     )
 
   def CloneObservationResultType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], ObservationModel.CloneResult] =
@@ -248,8 +248,8 @@ trait ObservationMutation {
         "The result of editing the asterism of the selected observations.",
         "The edited observations."
       ),
-      arguments   = List(ArgumentEditAsterism),
-      resolve     = c => c.observation(_.editAsterism(c.arg(ArgumentEditAsterism)))
+      arguments   = List(ArgumentEditAsterisms),
+      resolve     = c => c.observation(_.editAsterism(c.arg(ArgumentEditAsterisms)))
     )
 
   private def existenceEditField[F[_]: Dispatcher: Async: Logger](

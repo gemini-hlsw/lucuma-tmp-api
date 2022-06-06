@@ -12,7 +12,7 @@ class TargetMutationSuite extends OdbSuite {
   // Edit NGC 3312 to remove parallax altogether.
   queryTest(
     query = """
-      mutation UpdateScienceTarget($targetEdit: EditTargetInput!) {
+      mutation UpdateScienceTarget($targetEdit: EditTargetsInput!) {
         editTargets(input: $targetEdit) {
           targets {
             id
@@ -58,7 +58,7 @@ class TargetMutationSuite extends OdbSuite {
   // Delete a target by id.  No need to specify a target environment.
   queryTest(
     query = """
-      mutation DeleteTarget($deleteTargetInput: DeleteTargetInput!) {
+      mutation DeleteTarget($deleteTargetInput: DeleteTargetsInput!) {
         deleteTargets(input: $deleteTargetInput) {
           targets {
             id
