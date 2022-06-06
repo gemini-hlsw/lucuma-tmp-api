@@ -60,21 +60,25 @@ class TargetMutationSuite extends OdbSuite {
     query = """
       mutation DeleteTarget($deleteTargetInput: DeleteTargetInput!) {
         deleteTarget(input: $deleteTargetInput) {
-          id
-          name
-          existence
+          targets {
+            id
+            name
+            existence
+          }
         }
       }
     """,
     expected = json"""
       {
-        "deleteTarget": [
-          {
-            "id": "t-4",
-            "name": "NGC 3312",
-            "existence": "DELETED"
-          }
-        ]
+        "deleteTarget": {
+          "targets": [
+            {
+              "id": "t-4",
+              "name": "NGC 3312",
+              "existence": "DELETED"
+            }
+          ]
+        }
       }
     """,
     variables = json"""

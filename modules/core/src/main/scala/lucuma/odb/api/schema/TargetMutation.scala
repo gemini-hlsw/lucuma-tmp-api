@@ -312,15 +312,19 @@ trait TargetMutation extends TargetScalars {
       }
     )
 
-  def EditTargetResultType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], TargetModel.EditResult] =
+  def EditTargetResultType[F[_]: Dispatcher: Async: Logger](
+    operation:      String,
+    description:    String,
+    obsDescription: String
+  ): ObjectType[OdbCtx[F], TargetModel.EditResult] =
     ObjectType(
-      name        = "EditTargetResult",
-      description = "The result of editing select targets.",
+      name        = s"${operation.capitalize}TargetResult",
+      description = description,
       fieldsFn    = () => fields(
 
         Field(
           name        = "targets",
-          description = "The edited targets.".some,
+          description = obsDescription.some,
           fieldType   = ListType(TargetType[F]),
           resolve     = _.value.targets
         )
@@ -331,7 +335,11 @@ trait TargetMutation extends TargetScalars {
   def editTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "editTarget",
-      fieldType   = EditTargetResultType[F],
+      fieldType   = EditTargetResultType[F](
+        "edit",
+        "The result of editing select targets.",
+        "The edited targets."
+      ),
       description = "Edits existing targets".some,
       arguments   = List(ArgumentEditTargetInput),
       resolve     = c => c.target(_.edit(c.arg(ArgumentEditTargetInput)))
@@ -359,9 +367,13 @@ trait TargetMutation extends TargetScalars {
     Field(
       name        = s"${name}Target",
       description = s"${name.capitalize}s all the targets identified by the `select` field".some,
-      fieldType   = ListType(TargetType[F]),
+      fieldType   = EditTargetResultType(
+        name,
+        s"The result of performing a target $name mutation.",
+        s"The ${name}d targets."
+      ),
       arguments   = List(arg),
-      resolve     = c => c.target(_.edit(c.arg(arg)).map(_.targets))
+      resolve     = c => c.target(_.edit(c.arg(arg)))
     )
   }
 

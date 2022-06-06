@@ -25,17 +25,21 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
     query ="""
       mutation DeleteTarget($deleteTargetInput: DeleteTargetInput!) {
         deleteTarget(input: $deleteTargetInput) {
-          id
+          targets {
+            id
+          }
         }
       }
     """,
     expected = json"""
       {
-        "deleteTarget": [
-          {
-            "id": "t-3"
-          }
-        ]
+        "deleteTarget": {
+          "targets": [
+            {
+              "id": "t-3"
+            }
+          ]
+        }
       }
     """,
     variables = json"""
