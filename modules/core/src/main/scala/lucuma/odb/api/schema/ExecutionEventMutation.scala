@@ -51,6 +51,26 @@ trait ExecutionEventMutation {
       )
     )
 
+  def RecordVisitResult[F[_]: Dispatcher: Async: Logger, S, D](
+    typePrefix:  String,
+    staticType:  OutputType[S],
+    dynamicType: OutputType[D]
+  ): ObjectType[OdbCtx[F], VisitRecord.RecordResult[S, D]] =
+    ObjectType(
+      name        = s"Record${typePrefix.capitalize}VisitResult",
+      description = s"The result of recording a ${typePrefix.capitalize} visit.",
+      fieldsFn    = () => fields(
+
+        Field(
+          name        = "visitRecord",
+          description = "The newly added visit record itself.".some,
+          fieldType   = VisitRecordType[F, S, D](typePrefix, staticType, dynamicType),
+          resolve     = _.value.visitRecord
+        )
+
+      )
+    )
+
   def recordVisit[F[_]: Dispatcher: Async: Logger, SI: Decoder, S, D](
     typePrefix:  String,
     staticInput: InputObjectType[SI],
@@ -70,7 +90,7 @@ trait ExecutionEventMutation {
 
     Field(
       name        = s"record${typePrefix.capitalize}Visit",
-      fieldType   = VisitRecordType[F, S, D](typePrefix, staticType, dynamicType),
+      fieldType   = RecordVisitResult[F, S, D](typePrefix, staticType, dynamicType),
       description = "Record a new visit".some,
       arguments   = args,
       resolve     = c => {
@@ -79,7 +99,7 @@ trait ExecutionEventMutation {
           for {
             vid  <- if (testing) Applicative[F].pure(c.arg(ArgumentVisitId)) else Visit.Id.random[F]
             rec  <- c.ctx.odbRepo.executionEvent.insertVisit[SI, S, D](vid, params, prism)
-          } yield rec
+          } yield VisitRecord.RecordResult(rec)
 
         c.unsafeToFuture(insertVisit)
       }

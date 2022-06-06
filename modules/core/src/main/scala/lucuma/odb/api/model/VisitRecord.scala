@@ -122,6 +122,17 @@ object VisitRecord extends VisitRecordOptics {
 
   }
 
+  final case class RecordResult[S, D](
+    visitRecord: Output[S, D]
+  )
+
+  object RecordResult {
+
+    implicit def EqRecordResult[S: Eq, D: Eq]: Eq[RecordResult[S, D]] =
+      Eq.by(_.visitRecord)
+
+  }
+
 }
 
 trait VisitRecordOptics { self: VisitRecord.type =>
