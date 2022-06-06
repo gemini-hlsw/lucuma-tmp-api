@@ -137,6 +137,17 @@ object StepRecord {
 
   }
 
+  final case class RecordResult[D](
+    stepRecord: Output[D]
+  )
+
+  object RecordResult {
+
+    implicit def EqRecordResult[D: Eq]: Eq[RecordResult[D]] =
+      Eq.by(_.stepRecord)
+
+  }
+
 }
 
 trait StepRecordOptics { self: StepRecord.type =>

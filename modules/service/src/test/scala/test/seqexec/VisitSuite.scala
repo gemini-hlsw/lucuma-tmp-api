@@ -96,14 +96,18 @@ class VisitSuite extends OdbSuite {
     query = s"""
       mutation RecordGmosSouthStep($$recordInput: RecordGmosSouthStepInput!) {
         recordGmosSouthStep(input: $$recordInput, stepId: "$sid") {
-          id
+          stepRecord {
+            id
+          }
         }
       }
     """,
     expected =json"""
       {
         "recordGmosSouthStep": {
-          "id": ${sid.toString}
+          "stepRecord": {
+            "id": ${sid.toString}
+          }
         }
       }
     """,

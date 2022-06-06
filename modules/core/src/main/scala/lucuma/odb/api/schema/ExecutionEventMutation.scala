@@ -144,6 +144,25 @@ trait ExecutionEventMutation {
       )
     )
 
+  def RecordStepResult[F[_]: Dispatcher: Async: Logger, D](
+    typePrefix:  String,
+    dynamicType: OutputType[D]
+  ): ObjectType[OdbCtx[F], StepRecord.RecordResult[D]] =
+    ObjectType(
+      name        = s"Record${typePrefix.capitalize}StepResult",
+      description = s"The result of recording a ${typePrefix.capitalize} step.",
+      fieldsFn    = () => fields(
+
+        Field(
+          name        = "stepRecord",
+          description = "The newly added step record itself.".some,
+          fieldType   = StepRecordType[F, D](typePrefix, dynamicType),
+          resolve     = _.value.stepRecord
+        )
+
+      )
+    )
+
   def recordStep[F[_]: Dispatcher: Async: Logger, DI: Decoder, S, D](
     typePrefix:   String,
     dynamicInput: InputObjectType[DI],
@@ -161,7 +180,7 @@ trait ExecutionEventMutation {
 
     Field(
       name        = s"record${typePrefix.capitalize}Step",
-      fieldType   = StepRecordType[F, D](typePrefix, dynamicType),
+      fieldType   = RecordStepResult[F, D](typePrefix, dynamicType),
       description = "Record a new step".some,
       arguments   = args,
       resolve     = c => {
@@ -170,7 +189,7 @@ trait ExecutionEventMutation {
           for {
             sid <- if (testing) Applicative[F].pure(c.arg(ArgumentStepId)) else Step.Id.random[F]
             rec <- c.ctx.odbRepo.executionEvent.insertStep[DI, S, D](sid, params, prism)
-          } yield rec
+          } yield StepRecord.RecordResult(rec)
 
         c.unsafeToFuture(insertStep)
       }
