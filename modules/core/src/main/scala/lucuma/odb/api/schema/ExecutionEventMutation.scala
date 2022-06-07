@@ -51,6 +51,26 @@ trait ExecutionEventMutation {
       )
     )
 
+  def RecordVisitResult[F[_]: Dispatcher: Async: Logger, S, D](
+    typePrefix:  String,
+    staticType:  OutputType[S],
+    dynamicType: OutputType[D]
+  ): ObjectType[OdbCtx[F], VisitRecord.RecordResult[S, D]] =
+    ObjectType(
+      name        = s"Record${typePrefix.capitalize}VisitResult",
+      description = s"The result of recording a ${typePrefix.capitalize} visit.",
+      fieldsFn    = () => fields(
+
+        Field(
+          name        = "visitRecord",
+          description = "The newly added visit record itself.".some,
+          fieldType   = VisitRecordType[F, S, D](typePrefix, staticType, dynamicType),
+          resolve     = _.value.visitRecord
+        )
+
+      )
+    )
+
   def recordVisit[F[_]: Dispatcher: Async: Logger, SI: Decoder, S, D](
     typePrefix:  String,
     staticInput: InputObjectType[SI],
@@ -70,7 +90,7 @@ trait ExecutionEventMutation {
 
     Field(
       name        = s"record${typePrefix.capitalize}Visit",
-      fieldType   = VisitRecordType[F, S, D](typePrefix, staticType, dynamicType),
+      fieldType   = RecordVisitResult[F, S, D](typePrefix, staticType, dynamicType),
       description = "Record a new visit".some,
       arguments   = args,
       resolve     = c => {
@@ -79,7 +99,7 @@ trait ExecutionEventMutation {
           for {
             vid  <- if (testing) Applicative[F].pure(c.arg(ArgumentVisitId)) else Visit.Id.random[F]
             rec  <- c.ctx.odbRepo.executionEvent.insertVisit[SI, S, D](vid, params, prism)
-          } yield rec
+          } yield VisitRecord.RecordResult(rec)
 
         c.unsafeToFuture(insertVisit)
       }
@@ -124,6 +144,25 @@ trait ExecutionEventMutation {
       )
     )
 
+  def RecordStepResult[F[_]: Dispatcher: Async: Logger, D](
+    typePrefix:  String,
+    dynamicType: OutputType[D]
+  ): ObjectType[OdbCtx[F], StepRecord.RecordResult[D]] =
+    ObjectType(
+      name        = s"Record${typePrefix.capitalize}StepResult",
+      description = s"The result of recording a ${typePrefix.capitalize} step.",
+      fieldsFn    = () => fields(
+
+        Field(
+          name        = "stepRecord",
+          description = "The newly added step record itself.".some,
+          fieldType   = StepRecordType[F, D](typePrefix, dynamicType),
+          resolve     = _.value.stepRecord
+        )
+
+      )
+    )
+
   def recordStep[F[_]: Dispatcher: Async: Logger, DI: Decoder, S, D](
     typePrefix:   String,
     dynamicInput: InputObjectType[DI],
@@ -141,7 +180,7 @@ trait ExecutionEventMutation {
 
     Field(
       name        = s"record${typePrefix.capitalize}Step",
-      fieldType   = StepRecordType[F, D](typePrefix, dynamicType),
+      fieldType   = RecordStepResult[F, D](typePrefix, dynamicType),
       description = "Record a new step".some,
       arguments   = args,
       resolve     = c => {
@@ -150,7 +189,7 @@ trait ExecutionEventMutation {
           for {
             sid <- if (testing) Applicative[F].pure(c.arg(ArgumentStepId)) else Step.Id.random[F]
             rec <- c.ctx.odbRepo.executionEvent.insertStep[DI, S, D](sid, params, prism)
-          } yield rec
+          } yield StepRecord.RecordResult(rec)
 
         c.unsafeToFuture(insertStep)
       }
@@ -199,6 +238,22 @@ trait ExecutionEventMutation {
       InputObjectTypeDescription("SequenceEvent creation parameters")
     )
 
+  def AddSequenceEventResultType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], SequenceEvent.Result] =
+    ObjectType[OdbCtx[F], SequenceEvent.Result](
+      name        = "AddSequenceEventResult",
+      description = "The result of adding a sequence event.",
+      fields      = List[Field[OdbCtx[F], SequenceEvent.Result]](
+
+        Field(
+          name        = "event",
+          description = "The new sequence event that was added.".some,
+          fieldType   = SequenceEventType[F],
+          resolve     = _.value.event
+        )
+
+      )
+    )
+
   val ArgumentSequenceEventAdd: Argument[SequenceEvent.Add] =
     InputObjectTypeSequenceEventAdd.argument(
       name        = "input",
@@ -219,7 +274,7 @@ trait ExecutionEventMutation {
         |will be produced during the execution of a sequence as it is started,
         |paused, continued, etc.
       """.stripMargin.some,
-      fieldType   = SequenceEventType[F],
+      fieldType   = AddSequenceEventResultType[F],
       arguments   = List(ArgumentSequenceEventAdd),
       resolve     = c => c.executionEvent(_.insertSequenceEvent(c.arg(ArgumentSequenceEventAdd)))
     )
@@ -258,6 +313,22 @@ trait ExecutionEventMutation {
       """.stripMargin
     )
 
+  def AddStepEventResultType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], StepEvent.Result] =
+    ObjectType[OdbCtx[F], StepEvent.Result](
+      name        = "AddStepEventResult",
+      description = "The result of adding a step event.",
+      fields      = List[Field[OdbCtx[F], StepEvent.Result]](
+
+        Field(
+          name        = "event",
+          description = "The new step event that was added.".some,
+          fieldType   = StepEventType[F],
+          resolve     = _.value.event
+        )
+
+      )
+    )
+
   def addStepEvent[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "addStepEvent",
@@ -266,7 +337,7 @@ trait ExecutionEventMutation {
         |will be produced during the execution of a single step as it
         |transitions through configure and observe stages.
       """.stripMargin.some,
-      fieldType   = StepEventType[F],
+      fieldType   = AddStepEventResultType[F],
       arguments   = List(ArgumentStepEventAdd),
       resolve     = c => c.executionEvent(_.insertStepEvent(c.arg(ArgumentStepEventAdd)))
     )
@@ -306,6 +377,23 @@ trait ExecutionEventMutation {
       """.stripMargin
     )
 
+  def AddDatasetEventResultType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], DatasetEvent.Result] =
+    ObjectType[OdbCtx[F], DatasetEvent.Result](
+      name        = "AddDatasetEventResult",
+      description = "The result of adding a dataset event.",
+      fields      = List[Field[OdbCtx[F], DatasetEvent.Result]](
+
+        Field(
+          name        = "event",
+          description = "The new dataset event that was added.".some,
+          fieldType   = DatasetEventType[F],
+          resolve     = _.value.event
+        )
+
+      )
+    )
+
+
   def addDatasetEvent[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "addDatasetEvent",
@@ -314,7 +402,7 @@ trait ExecutionEventMutation {
         |generation of a single dataset will produce multiple events as it
         |transitions through the observe, readout and write stages.
       """.stripMargin.some,
-      fieldType   = DatasetEventType[F],
+      fieldType   = AddDatasetEventResultType[F],
       arguments   = List(ArgumentDatasetEventAdd),
       resolve     = c => c.executionEvent(_.insertDatasetEvent(c.arg(ArgumentDatasetEventAdd)))
     )

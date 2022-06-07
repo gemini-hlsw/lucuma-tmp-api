@@ -21,14 +21,18 @@ class VisitSuite extends OdbSuite {
     query = s"""
       mutation RecordGmosSouthVisit($$recordInput: RecordGmosSouthVisitInput!) {
         recordGmosSouthVisit(input: $$recordInput, visitId: "$vid") {
-          id
+          visitRecord {
+            id
+          }
         }
       }
     """,
     expected =json"""
       {
         "recordGmosSouthVisit": {
-          "id": ${vid.toString}
+          "visitRecord": {
+            "id": ${vid.toString}
+          }
         }
       }
     """,
@@ -52,8 +56,10 @@ class VisitSuite extends OdbSuite {
     query = s"""
       mutation AddSequenceEvent($$eventInput: AddSequenceEventInput!) {
         addSequenceEvent(input: $$eventInput) {
-          payload {
-            command
+          event {
+            payload {
+              command
+            }
           }
         }
       }
@@ -61,8 +67,10 @@ class VisitSuite extends OdbSuite {
     expected =json"""
       {
         "addSequenceEvent": {
-          "payload": {
-            "command": "START"
+          "event": {
+            "payload": {
+              "command": "START"
+            }
           }
         }
       }
@@ -88,14 +96,18 @@ class VisitSuite extends OdbSuite {
     query = s"""
       mutation RecordGmosSouthStep($$recordInput: RecordGmosSouthStepInput!) {
         recordGmosSouthStep(input: $$recordInput, stepId: "$sid") {
-          id
+          stepRecord {
+            id
+          }
         }
       }
     """,
     expected =json"""
       {
         "recordGmosSouthStep": {
-          "id": ${sid.toString}
+          "stepRecord": {
+            "id": ${sid.toString}
+          }
         }
       }
     """,
@@ -140,8 +152,10 @@ class VisitSuite extends OdbSuite {
     query = s"""
       mutation AddStepEvent($$eventInput: AddStepEventInput!) {
         addStepEvent(input: $$eventInput) {
-          payload {
-            stage
+          event {
+            payload {
+              stage
+            }
           }
         }
       }
@@ -149,8 +163,10 @@ class VisitSuite extends OdbSuite {
     expected =json"""
       {
         "addStepEvent": {
-          "payload": {
-            "stage": "START_STEP"
+          "event": {
+            "payload": {
+              "stage": "START_STEP"
+            }
           }
         }
       }
@@ -178,8 +194,10 @@ class VisitSuite extends OdbSuite {
     query = s"""
       mutation AddDatasetEvent($$eventInput: AddDatasetEventInput!) {
         addDatasetEvent(input: $$eventInput) {
-          payload {
-            stage
+          event {
+            payload {
+              stage
+            }
           }
         }
       }
@@ -187,8 +205,10 @@ class VisitSuite extends OdbSuite {
     expected =json"""
       {
         "addDatasetEvent": {
-          "payload": {
-             "stage": "START_OBSERVE"
+          "event": {
+            "payload": {
+               "stage": "START_OBSERVE"
+             }
            }
         }
       }
@@ -254,30 +274,34 @@ class VisitSuite extends OdbSuite {
   queryTest(
     query = """
       mutation EditDataset($editDatasetInput: EditDatasetInput!) {
-        editDataset(input: $editDatasetInput) {
-          id {
-            observationId
-            stepId
-            index
+        editDatasets(input: $editDatasetInput) {
+          datasets {
+            id {
+              observationId
+              stepId
+              index
+            }
+            filename
+            qaState
           }
-          filename
-          qaState
         }
       }
     """,
     expected =json"""
       {
-        "editDataset": [
-          {
-            "id": {
-              "observationId": "o-2",
-              "stepId": ${sid.toString},
-              "index": 1
-            },
-            "filename": "S20220504S0001.fits",
-            "qaState": "PASS"
-          }
-        ]
+        "editDatasets": {
+          "datasets": [
+            {
+              "id": {
+                "observationId": "o-2",
+                "stepId": ${sid.toString},
+                "index": 1
+              },
+              "filename": "S20220504S0001.fits",
+              "qaState": "PASS"
+            }
+          ]
+        }
       }
     """,
     variables =json"""

@@ -37,11 +37,11 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
     includeDeleted: Boolean                = false
   ): F[Option[ExecutionModel]]
 
-  def insert(input: CreateInput): F[ObservationModel]
+  def insert(input: CreateInput): F[ObservationModel.CreateResult]
 
-  def edit(edit: EditInput): F[List[ObservationModel]]
+  def edit(edit: EditInput): F[ObservationModel.EditResult]
 
-  def clone(input: CloneInput): F[ObservationModel]
+  def clone(input: CloneInput): F[ObservationModel.CloneResult]
 
   def groupByTarget(
     pid:            Program.Id,
@@ -85,7 +85,7 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
 
   def editAsterism(
     be: BulkEdit[Seq[EditAsterismPatchInput]]
-  ): F[List[ObservationModel]]
+  ): F[ObservationModel.EditResult]
 
 }
 
@@ -128,7 +128,7 @@ object ObservationRepo {
       ): F[Option[ExecutionModel]] =
         select(oid, includeDeleted).map(_.flatMap(_.manualConfig))
 
-      override def insert(newObs: CreateInput): F[ObservationModel] = {
+      override def insert(newObs: CreateInput): F[ObservationModel.CreateResult] = {
 
         // Create the observation
         val create: F[ObservationModel] =
@@ -148,11 +148,11 @@ object ObservationRepo {
         for {
           o <- create
           _ <- eventService.publish(ObservationEvent(_, Event.EditType.Created, o))
-        } yield o
+        } yield ObservationModel.CreateResult(o)
 
       }
 
-      override def edit(editInput: ObservationModel.EditInput): F[List[ObservationModel]] = {
+      override def edit(editInput: ObservationModel.EditInput): F[ObservationModel.EditResult] = {
         val editAndValidate =
           for {
             os  <- editInput.editor
@@ -162,16 +162,16 @@ object ObservationRepo {
         for {
           os <- databaseRef.modifyState(editAndValidate.flipF).flatMap(_.liftTo[F])
           _  <- os.traverse(o => eventService.publish(ObservationEvent.updated(o)))
-        } yield os
+        } yield ObservationModel.EditResult(os)
       }
 
       override def clone(
         cloneInput: CloneInput
-      ): F[ObservationModel] =
+      ): F[ObservationModel.CloneResult] =
         for {
-          o <- databaseRef.modifyState(cloneInput.go.flipF).flatMap(_.liftTo[F])
-          _ <- eventService.publish(ObservationEvent(_, Event.EditType.Created, o))
-        } yield o
+          r <- databaseRef.modifyState(cloneInput.go.flipF).flatMap(_.liftTo[F])
+          _ <- eventService.publish(ObservationEvent(_, Event.EditType.Created, r.newObservation))
+        } yield r
 
       // Targets are different because they exist apart from observations.
       // In other words, there are targets which no observations reference.
@@ -298,7 +298,7 @@ object ObservationRepo {
       private def doBulkEditTargets(
         be: BulkEdit[_],
         ed: StateT[EitherInput, TargetEnvironmentModel, Unit]
-      ): F[List[ObservationModel]] = {
+      ): F[ObservationModel.EditResult] = {
 
         val update =
           for {
@@ -311,13 +311,13 @@ object ObservationRepo {
         for {
           os <- databaseRef.modifyState(update.flipF).flatMap(_.liftTo[F])
           _  <- os.traverse_(o => eventService.publish(ObservationModel.ObservationEvent.updated(o)))
-        } yield os
+        } yield ObservationModel.EditResult(os)
 
       }
 
       override def editAsterism(
         be: BulkEdit[Seq[EditAsterismPatchInput]]
-      ): F[List[ObservationModel]] =
+      ): F[ObservationModel.EditResult] =
         doBulkEditTargets(be, EditAsterismPatchInput.multiEditor(be.patch.toList))
 
     }

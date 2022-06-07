@@ -237,6 +237,16 @@ object ObservationModel extends ObservationOptics {
       properties.some.andThen(PropertiesInput.manualConfig)
   }
 
+  final case class CreateResult(
+    observation: ObservationModel
+  )
+
+  object CreateResult {
+
+    implicit val EqCreateResult: Eq[CreateResult] =
+      Eq.by(_.observation)
+  }
+
   final case class SelectInput(
     programId:      Option[Program.Id],
     observationIds: Option[List[Observation.Id]]
@@ -306,13 +316,40 @@ object ObservationModel extends ObservationOptics {
 
   }
 
+  final case class EditResult(
+    observations: List[ObservationModel]
+  )
+
+  object EditResult {
+
+    implicit val EqEditResult: Eq[EditResult] =
+      Eq.by(_.observations)
+
+  }
+
+
+  final case class CloneResult(
+    originalObservation: ObservationModel,
+    newObservation:      ObservationModel
+  )
+
+  object CloneResult {
+
+    implicit val EqCloneResult: Eq[CloneResult] =
+      Eq.by { a => (
+        a.originalObservation,
+        a.newObservation
+      )}
+
+  }
+
   final case class CloneInput(
     observationId: Observation.Id,
     patch:         Option[PropertiesInput]
   ) {
 
     // At the moment, manual config (if present in patch) is ignored
-    val go: StateT[EitherInput, Database, ObservationModel] =
+    val go: StateT[EitherInput, Database, CloneResult] =
       for {
         o  <- Database.observation.lookup(observationId)
         i  <- Database.observation.cycleNextUnused
@@ -324,7 +361,7 @@ object ObservationModel extends ObservationOptics {
             p
           ).editor.map(_.head)
         }
-      } yield cʹ
+      } yield CloneResult(originalObservation = o, newObservation = cʹ)
 
   }
 

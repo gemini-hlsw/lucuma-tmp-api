@@ -462,7 +462,7 @@ object TestInit {
                   proposal.assign
                 ).some
               )
-            )
+            ).map(_.program)
 
       p3 <- repo.program.insert(
               ProgramModel.CreateInput(
@@ -470,13 +470,13 @@ object TestInit {
                   NonEmptyString.unsafeFrom("An Empty Placeholder Program").assign
                 ).some
               )
-            )
+            ).map(_.program)
       cs <- targets(p.id).liftTo[F]
-      ts <- cs.init.traverse(repo.target.insert(_))
+      ts <- cs.init.traverse(repo.target.insert(_).map(_.target))
       _  <- repo.observation.insert(obs(p.id, ts.headOption.toList)) // 2
       _  <- repo.observation.insert(obs(p.id, ts.lastOption.toList)) // 3
       _  <- repo.observation.insert(obs(p.id, ts.lastOption.toList)) // 4
-      o  <- repo.observation.insert(obs(p.id, ts.lastOption.toList)) // 5
+      o  <- repo.observation.insert(obs(p.id, ts.lastOption.toList)).map(_.observation) // 5
 
       // Add an explicit base to the last observation's target environment
       _  <- repo.observation.edit(
@@ -496,8 +496,8 @@ object TestInit {
       // Add an unused target (t-5 NGC 4749)
       _  <- repo.target.insert(cs.last)
 
-      _  <- repo.observation.insert(obs(p.id, ts))                   // 6
-      _  <- repo.observation.insert(obs(p.id, Nil))                  // 7
+      _  <- repo.observation.insert(obs(p.id, ts)) // 6
+      _  <- repo.observation.insert(obs(p.id, Nil)) // 7
 
       // Add an unused target for the otherwise empty program. (t-6)
       _  <- repo.target.insert(cs.last.copy(programId = p3.id))

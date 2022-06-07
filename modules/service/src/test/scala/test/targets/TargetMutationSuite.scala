@@ -12,27 +12,31 @@ class TargetMutationSuite extends OdbSuite {
   // Edit NGC 3312 to remove parallax altogether.
   queryTest(
     query = """
-      mutation UpdateScienceTarget($targetEdit: EditTargetInput!) {
-        editTarget(input: $targetEdit) {
-          id
-          name
-          sidereal {
-            parallax { microarcseconds }
+      mutation UpdateScienceTarget($targetEdit: EditTargetsInput!) {
+        editTargets(input: $targetEdit) {
+          targets {
+            id
+            name
+            sidereal {
+              parallax { microarcseconds }
+            }
           }
         }
       }
     """,
     expected = json"""
       {
-        "editTarget": [
-          {
-            "id": "t-4",
-            "name": "NGC 3312",
-            "sidereal": {
-              "parallax": null
+        "editTargets": {
+          "targets": [
+            {
+              "id": "t-4",
+              "name": "NGC 3312",
+              "sidereal": {
+                "parallax": null
+              }
             }
-          }
-        ]
+          ]
+        }
       }
     """,
     variables = json"""
@@ -54,23 +58,27 @@ class TargetMutationSuite extends OdbSuite {
   // Delete a target by id.  No need to specify a target environment.
   queryTest(
     query = """
-      mutation DeleteTarget($deleteTargetInput: DeleteTargetInput!) {
-        deleteTarget(input: $deleteTargetInput) {
-          id
-          name
-          existence
+      mutation DeleteTarget($deleteTargetInput: DeleteTargetsInput!) {
+        deleteTargets(input: $deleteTargetInput) {
+          targets {
+            id
+            name
+            existence
+          }
         }
       }
     """,
     expected = json"""
       {
-        "deleteTarget": [
-          {
-            "id": "t-4",
-            "name": "NGC 3312",
-            "existence": "DELETED"
-          }
-        ]
+        "deleteTargets": {
+          "targets": [
+            {
+              "id": "t-4",
+              "name": "NGC 3312",
+              "existence": "DELETED"
+            }
+          ]
+        }
       }
     """,
     variables = json"""
@@ -90,16 +98,20 @@ class TargetMutationSuite extends OdbSuite {
     query ="""
       mutation CloneTarget($cloneInput: CloneTargetInput!) {
         cloneTarget(input: $cloneInput) {
-          name
-          existence
+          newTarget {
+            name
+            existence
+          }
         }
       }
     """,
     expected =json"""
       {
         "cloneTarget": {
-          "name": "NGC 3312",
-          "existence": "PRESENT"
+          "newTarget": {
+            "name": "NGC 3312",
+            "existence": "PRESENT"
+          }
         }
       }
     """,

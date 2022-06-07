@@ -92,15 +92,15 @@ sealed trait ExecutionEventRepo[F[_]] {
 
   def insertSequenceEvent(
     event: SequenceEvent.Add
-  ): F[SequenceEvent]
+  ): F[SequenceEvent.Result]
 
   def insertStepEvent(
     event: StepEvent.Add
-  ): F[StepEvent]
+  ): F[StepEvent.Result]
 
   def insertDatasetEvent(
     event: DatasetEvent.Add
-  ): F[DatasetEvent]
+  ): F[DatasetEvent.Result]
 
 }
 
@@ -363,28 +363,29 @@ object ExecutionEventRepo {
 
       }
 
-      private def insertEvent[A](
-        f: Instant => StateT[EitherInput, Database, A]
-      ): F[A] =
+      private def insertEvent[A, B](
+        f: Instant => StateT[EitherInput, Database, A],
+        r: A => B
+      ): F[B] =
         for {
           w <- received
           e <- databaseRef.modifyState(f(w).flipF).flatMap(_.liftTo[F])
-        } yield e
+        } yield r(e)
 
       override def insertSequenceEvent(
         event: SequenceEvent.Add
-      ): F[SequenceEvent] =
-        insertEvent(event.add)
+      ): F[SequenceEvent.Result] =
+        insertEvent(event.add, SequenceEvent.Result.apply)
 
       override def insertStepEvent(
         event: StepEvent.Add
-      ): F[StepEvent] =
-        insertEvent(event.add)
+      ): F[StepEvent.Result] =
+        insertEvent(event.add, StepEvent.Result.apply)
 
       override def insertDatasetEvent(
         event: DatasetEvent.Add
-      ): F[DatasetEvent] =
-        insertEvent(event.add)
+      ): F[DatasetEvent.Result] =
+        insertEvent(event.add, DatasetEvent.Result.apply)
 
     }
 

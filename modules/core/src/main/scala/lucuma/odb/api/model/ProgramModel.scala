@@ -112,6 +112,17 @@ object ProgramModel extends ProgramOptics {
 
   }
 
+  final case class CreateResult(
+    program: ProgramModel
+  )
+
+  object CreateResult {
+
+    implicit val EqCreateResult: Eq[CreateResult] =
+      Eq.by(_.program)
+
+  }
+
   final case class SelectInput(
     programId: Option[Program.Id]
   ) {
@@ -161,6 +172,17 @@ object ProgramModel extends ProgramOptics {
         a.select,
         a.patch
       )}
+
+  }
+
+  final case class EditResult(
+    program: Option[ProgramModel]
+  )
+
+  object EditResult {
+
+    implicit val EqEditResult: Eq[EditResult] =
+      Eq.by(_.program)
 
   }
 

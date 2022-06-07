@@ -467,7 +467,7 @@ object Init {
                   proposal.assign
                 ).some
               )
-            )
+            ).map(_.program)
       _  <- repo.program.insert(
               ProgramModel.CreateInput(
                 ProgramModel.PropertiesInput(
@@ -476,7 +476,7 @@ object Init {
               )
             )
       cs <- targets(p.id).liftTo[F]
-      ts <- cs.traverse(repo.target.insert(_))
+      ts <- cs.traverse(repo.target.insert(_).map(_.target))
       _  <- repo.observation.insert(gmosSouthAutoObs(p.id, ts.headOption))
       _  <- repo.observation.insert(gmosSouthAutoObs(p.id, ts.lastOption))
       _  <- repo.observation.insert(gmosSouthManualObs(p.id, None))

@@ -24,12 +24,14 @@ class AsterismMutationSuite extends OdbSuite {
   // Replace NGC 3312 (t-4) in o-3 and o-4 with NGC 5949 (t-2)
   queryTest(
     query ="""
-      mutation ReplaceTargets($listEdit: EditAsterismInput!) {
-        editAsterism(input: $listEdit) {
-          id
-          targetEnvironment {
-            asterism {
-              name
+      mutation ReplaceTargets($listEdit: EditAsterismsInput!) {
+        editAsterisms(input: $listEdit) {
+          observations {
+            id
+            targetEnvironment {
+              asterism {
+                name
+              }
             }
           }
         }
@@ -37,28 +39,30 @@ class AsterismMutationSuite extends OdbSuite {
     """,
     expected =json"""
       {
-        "editAsterism": [
-          {
-            "id": "o-3",
-            "targetEnvironment": {
-              "asterism": [
-                {
-                  "name": "NGC 5949"
-                }
-              ]
+        "editAsterisms": {
+          "observations": [
+            {
+              "id": "o-3",
+              "targetEnvironment": {
+                "asterism": [
+                  {
+                    "name": "NGC 5949"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "o-4",
+              "targetEnvironment": {
+                "asterism": [
+                  {
+                    "name": "NGC 5949"
+                  }
+                ]
+              }
             }
-          },
-          {
-            "id": "o-4",
-            "targetEnvironment": {
-              "asterism": [
-                {
-                  "name": "NGC 5949"
-                }
-              ]
-            }
-          }
-        ]
+          ]
+        }
       }
     """,
     variables =json"""

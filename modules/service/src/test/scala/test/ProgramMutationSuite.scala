@@ -15,10 +15,12 @@ class ProgramMutationSuite extends OdbSuite {
     expected = json"""
       {
         "createProgram": {
-          "id": "p-4",
-          "name": null,
-          "existence": "PRESENT",
-          "proposal": null
+          "program": {
+            "id": "p-4",
+            "name": null,
+            "existence": "PRESENT",
+            "proposal": null
+          }
         }
       }
     """,
@@ -34,7 +36,7 @@ class ProgramMutationSuite extends OdbSuite {
   queryTestFailure(
     query = """
       mutation EditProgramNewProposalError($programEdit: EditProgramInput!) {
-        editProgram(input: $programEdit) 
+        editProgram(input: $programEdit)
     """ + programQuery + "}",
     errors = List(
       "No minPercentTime definition provided",
@@ -65,28 +67,30 @@ class ProgramMutationSuite extends OdbSuite {
   queryTest(
     query = """
       mutation EditProgramNewProposal($programEdit: EditProgramInput!) {
-        editProgram(input: $programEdit) 
+        editProgram(input: $programEdit)
     """ + programQuery + "}",
     expected = json"""
       {
         "editProgram": {
-          "id": "p-3",
-          "name": "Jack",
-          "existence": "PRESENT",
-          "proposal": {
-            "title": "Classy Proposal",
-            "proposalClass": {
-              "__typename": "LargeProgram",
-              "minPercentTime": 77,
-              "minPercentTotalTime": 88,
-              "totalTime": {
-                "seconds": 660.000000
-              }
-            },
-            "category": null,
-            "toOActivation": "STANDARD",
-            "abstract": null,
-            "partnerSplits": []
+          "program": {
+            "id": "p-3",
+            "name": "Jack",
+            "existence": "PRESENT",
+            "proposal": {
+              "title": "Classy Proposal",
+              "proposalClass": {
+                "__typename": "LargeProgram",
+                "minPercentTime": 77,
+                "minPercentTotalTime": 88,
+                "totalTime": {
+                  "seconds": 660.000000
+                }
+              },
+              "category": null,
+              "toOActivation": "STANDARD",
+              "abstract": null,
+              "partnerSplits": []
+            }
           }
         }
       }
@@ -118,37 +122,39 @@ class ProgramMutationSuite extends OdbSuite {
   queryTest(
     query = """
       mutation EditProgramExisting($programEdit: EditProgramInput!) {
-        editProgram(input: $programEdit) 
+        editProgram(input: $programEdit)
     """ + programQuery + "}",
     expected = json"""
       {
         "editProgram": {
-          "id": "p-3",
-          "name": "Jack",
-          "existence": "PRESENT",
-          "proposal": {
-            "title": "Classy Proposal",
-            "proposalClass": {
-              "__typename": "LargeProgram",
-              "minPercentTime": 77,
-              "minPercentTotalTime": 96,
-              "totalTime": {
-                "seconds": 660.000000
-              }
-            },
-            "category": null,
-            "toOActivation": "STANDARD",
-            "abstract": null,
-            "partnerSplits": [
-              {
-                "partner": "CL",
-                "percent": 60
+          "program": {
+            "id": "p-3",
+            "name": "Jack",
+            "existence": "PRESENT",
+            "proposal": {
+              "title": "Classy Proposal",
+              "proposalClass": {
+                "__typename": "LargeProgram",
+                "minPercentTime": 77,
+                "minPercentTotalTime": 96,
+                "totalTime": {
+                  "seconds": 660.000000
+                }
               },
-              {
-                "partner": "UH",
-                "percent": 40
-              }
-            ]
+              "category": null,
+              "toOActivation": "STANDARD",
+              "abstract": null,
+              "partnerSplits": [
+                {
+                  "partner": "CL",
+                  "percent": 60
+                },
+                {
+                  "partner": "UH",
+                  "percent": 40
+                }
+              ]
+            }
           }
         }
       }
@@ -183,33 +189,35 @@ class ProgramMutationSuite extends OdbSuite {
 
   private lazy val programQuery = """
   {
-    id
-    name
-    existence
-    proposal {
-      title
-      proposalClass {
-        __typename
-        minPercentTime
-        ... on LargeProgram {
-          minPercentTotalTime
-          totalTime {
-            seconds
+    program {
+      id
+      name
+      existence
+      proposal {
+        title
+        proposalClass {
+          __typename
+          minPercentTime
+          ... on LargeProgram {
+            minPercentTotalTime
+            totalTime {
+              seconds
+            }
+          }
+          ... on Intensive {
+            minPercentTotalTime
+            totalTime {
+              seconds
+            }
           }
         }
-        ... on Intensive {
-          minPercentTotalTime
-          totalTime {
-            seconds
-          }
+        category
+        toOActivation
+        abstract
+        partnerSplits {
+          partner
+          percent
         }
-      }
-      category
-      toOActivation
-      abstract
-      partnerSplits {
-        partner
-        percent
       }
     }
   }

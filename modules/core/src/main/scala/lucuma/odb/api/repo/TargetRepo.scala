@@ -112,9 +112,9 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
     oid: Observation.Id
   ): F[TargetEnvironmentModel]
 
-  def insert(newTarget: TargetModel.CreateInput): F[TargetModel]
+  def insert(newTarget: TargetModel.CreateInput): F[TargetModel.CreateResult]
 
-  def edit(edit: TargetModel.EditInput): F[List[TargetModel]]
+  def edit(edit: TargetModel.EditInput): F[TargetModel.EditResult]
 
   /**
    * Clones the target referenced by `existingTid`.  Uses the `suggestedTid` for
@@ -122,7 +122,7 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
    */
   def clone(
     cloneInput: TargetModel.CloneInput
-  ): F[TargetModel]
+  ): F[TargetModel.CloneResult]
 
 }
 
@@ -262,7 +262,7 @@ object TargetRepo {
 
       override def insert(
         newTarget: TargetModel.CreateInput
-      ): F[TargetModel] = {
+      ): F[TargetModel.CreateResult] = {
 
         val create: F[TargetModel] =
           EitherT(
@@ -280,21 +280,21 @@ object TargetRepo {
         for {
           t <- create
           _ <- eventService.publish(TargetEvent(_, Event.EditType.Created, t))
-        } yield t
+        } yield TargetModel.CreateResult(t)
       }
 
-      override def edit(editInput: TargetModel.EditInput): F[List[TargetModel]] =
+      override def edit(editInput: TargetModel.EditInput): F[TargetModel.EditResult] =
         for {
           ts <- databaseRef.modifyState(editInput.editor.flipF).flatMap(_.liftTo[F])
           _  <- ts.traverse(t => eventService.publish(TargetEvent.updated(t)))
-        } yield ts
+        } yield TargetModel.EditResult(ts)
 
       override def clone(
         cloneInput: TargetModel.CloneInput
-      ): F[TargetModel] =
+      ): F[TargetModel.CloneResult] =
         for {
           t <- databaseRef.modifyState(cloneInput.go.flipF).flatMap(_.liftTo[F])
-          _ <- eventService.publish(TargetEvent.created(t))
+          _ <- eventService.publish(TargetEvent.created(t.newTarget))
         } yield t
 
 

@@ -23,19 +23,23 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
   // Delete NGC 3269 (t-3)
   queryTest(
     query ="""
-      mutation DeleteTarget($deleteTargetInput: DeleteTargetInput!) {
-        deleteTarget(input: $deleteTargetInput) {
-          id
+      mutation DeleteTarget($deleteTargetInput: DeleteTargetsInput!) {
+        deleteTargets(input: $deleteTargetInput) {
+          targets {
+            id
+          }
         }
       }
     """,
     expected = json"""
       {
-        "deleteTarget": [
-          {
-            "id": "t-3"
-          }
-        ]
+        "deleteTargets": {
+          "targets": [
+            {
+              "id": "t-3"
+            }
+          ]
+        }
       }
     """,
     variables = json"""

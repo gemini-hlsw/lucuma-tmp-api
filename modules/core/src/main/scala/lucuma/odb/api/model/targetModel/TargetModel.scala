@@ -190,6 +190,17 @@ object TargetModel extends TargetModelOptics {
       )}
   }
 
+  final case class CreateResult(
+    target: TargetModel
+  )
+
+  object CreateResult {
+
+    implicit val EqCreateResult: Eq[CreateResult] =
+      Eq.by(_.target)
+
+  }
+
   final case class SelectInput(
     programId:      Option[Program.Id],
     observationIds: Option[List[Observation.Id]],
@@ -258,13 +269,39 @@ object TargetModel extends TargetModelOptics {
 
   }
 
+  final case class EditResult(
+    targets: List[TargetModel]
+  )
+
+  object EditResult {
+
+    implicit val EqEditResult: Eq[EditResult] =
+      Eq.by(_.targets)
+
+  }
+
+  final case class CloneResult(
+    originalTarget: TargetModel,
+    newTarget:      TargetModel
+  )
+
+  object CloneResult {
+
+    implicit val EqCloneResult: Eq[CloneResult] =
+      Eq.by { a => (
+        a.originalTarget,
+        a.newTarget
+      )}
+
+  }
+
   final case class CloneInput(
     targetId:  Target.Id,
     patch:     Option[PropertiesInput],
     replaceIn: Option[List[Observation.Id]]
   ) {
 
-    val go: StateT[EitherInput, Database, TargetModel] =
+    val go: StateT[EitherInput, Database, CloneResult] =
       for {
         t  <- Database.target.lookup(targetId)
         i  <- Database.target.cycleNextUnused
@@ -276,7 +313,7 @@ object TargetModel extends TargetModelOptics {
             p
           ).editor.map(_.head)
         }
-      } yield cʹ
+      } yield CloneResult(originalTarget = t, newTarget = cʹ)
 
   }
 

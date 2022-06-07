@@ -176,9 +176,9 @@ trait TargetMutation extends TargetScalars {
       )
     )
 
-  implicit val InputObjectTypeEditTarget: InputObjectType[TargetModel.EditInput] =
+  implicit val InputObjectTypeEditTargets: InputObjectType[TargetModel.EditInput] =
     InputObjectType[TargetModel.EditInput](
-      "EditTargetInput",
+      "EditTargetsInput",
       "Target selection and update description.",
       List(
         InputField("select", InputObjectTypeTargetSelect),
@@ -186,15 +186,15 @@ trait TargetMutation extends TargetScalars {
       )
     )
 
-  val ArgumentEditTargetInput: Argument[TargetModel.EditInput] =
-    InputObjectTypeEditTarget.argument(
+  val ArgumentEditTargetsInput: Argument[TargetModel.EditInput] =
+    InputObjectTypeEditTargets.argument(
       "input",
       "Parameters for editing existing targets. "
     )
 
   def existenceEditInput(name: String): InputObjectType[TargetModel.EditInput] =
     InputObjectType[TargetModel.EditInput](
-      s"${name.capitalize}TargetInput",
+      s"${name.capitalize}TargetsInput",
       s"Selects the targets for $name",
       List(
         InputField("select", InputObjectTypeTargetSelect)
@@ -219,9 +219,9 @@ trait TargetMutation extends TargetScalars {
       )
     )
 
-  implicit val InputObjectTypeEditAsterism: InputObjectType[EditAsterismPatchInput] =
+  implicit val InputObjectTypeEditAsterisms: InputObjectType[EditAsterismPatchInput] =
     deriveInputObjectType[EditAsterismPatchInput](
-      InputObjectTypeName("EditAsterismPatchInput"),
+      InputObjectTypeName("EditAsterismsPatchInput"),
       InputObjectTypeDescription("Add or delete targets in an asterism")
     )
 
@@ -237,26 +237,65 @@ trait TargetMutation extends TargetScalars {
       "Parameters for cloning an existing target"
     )
 
+   def CreateTargetResultType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], TargetModel.CreateResult] =
+    ObjectType(
+      name        = "CreateTargetResult",
+      description = "The result of creating a new target.",
+      fieldsFn    = () => fields(
+
+        Field(
+          name        = "target",
+          description = "The newly created target.".some,
+          fieldType   = TargetType[F],
+          resolve     = _.value.target
+        )
+
+      )
+    )
+
   def createTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "createTarget",
-      fieldType   = TargetType[F],
+      fieldType   = CreateTargetResultType[F],
       description = "Creates a new target according to the provided parameters.  Only one of sidereal or nonsidereal may be specified.".some,
       arguments   = List(ArgumentTargetCreate),
       resolve     = c => c.target(_.insert(c.arg(ArgumentTargetCreate)))
     )
 
+  def CloneTargetResultType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], TargetModel.CloneResult] =
+    ObjectType(
+      name        = "CloneTargetResult",
+      description = "The result of cloning a target, containing the original and new targets.",
+      fieldsFn    = () => fields(
+
+        Field(
+          name        = "originalTarget",
+          description = "The original unmodified target which was cloned".some,
+          fieldType   = TargetType[F],
+          resolve     = _.value.originalTarget
+        ),
+
+        Field(
+          name        = "newTarget",
+          description = "The new cloned (but possibly modified) target".some,
+          fieldType   = TargetType[F],
+          resolve     = _.value.newTarget
+        )
+
+      )
+    )
+
   def cloneTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "cloneTarget",
-      fieldType   = TargetType[F],
+      fieldType   = CloneTargetResultType[F],
       description = "Makes a copy of an existing target, setting it to unobserved and to PRESENT.  If observationIds is specified, the clone will replace the existing target in those observations".some,
       arguments   = List(ArgumentCloneTarget),
       resolve     = c => {
         val cloneInput = c.arg(ArgumentCloneTarget)
         c.unsafeToFuture(
           for {
-            t <- c.ctx.odbRepo.target.clone(cloneInput)
+            r <- c.ctx.odbRepo.target.clone(cloneInput)
             _ <- c.ctx.odbRepo.observation.editAsterism(
               ObservationModel.BulkEdit(
                 ObservationModel.SelectInput.observationIds(
@@ -264,22 +303,46 @@ trait TargetMutation extends TargetScalars {
                 ),
                 List(
                   EditAsterismPatchInput.delete(cloneInput.targetId),
-                  EditAsterismPatchInput.add(t.id)
+                  EditAsterismPatchInput.add(r.newTarget.id)
                 )
               )
             )
-          } yield t
+          } yield r
         )
       }
     )
 
-  def editTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def EditTargetsResultType[F[_]: Dispatcher: Async: Logger](
+    operation:      String,
+    description:    String,
+    obsDescription: String
+  ): ObjectType[OdbCtx[F], TargetModel.EditResult] =
+    ObjectType(
+      name        = s"${operation.capitalize}TargetsResult",
+      description = description,
+      fieldsFn    = () => fields(
+
+        Field(
+          name        = "targets",
+          description = obsDescription.some,
+          fieldType   = ListType(TargetType[F]),
+          resolve     = _.value.targets
+        )
+
+      )
+    )
+
+  def editTargets[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name        = "editTarget",
-      fieldType   = ListType(TargetType[F]),
+      name        = "editTargets",
+      fieldType   = EditTargetsResultType[F](
+        "edit",
+        "The result of editing select targets.",
+        "The edited targets."
+      ),
       description = "Edits existing targets".some,
-      arguments   = List(ArgumentEditTargetInput),
-      resolve     = c => c.target(_.edit(c.arg(ArgumentEditTargetInput)))
+      arguments   = List(ArgumentEditTargetsInput),
+      resolve     = c => c.target(_.edit(c.arg(ArgumentEditTargetsInput)))
     )
 
   private def existenceEditField[F[_]: Dispatcher: Async: Logger](
@@ -302,9 +365,13 @@ trait TargetMutation extends TargetScalars {
          )
 
     Field(
-      name        = s"${name}Target",
+      name        = s"${name}Targets",
       description = s"${name.capitalize}s all the targets identified by the `select` field".some,
-      fieldType   = ListType(TargetType[F]),
+      fieldType   = EditTargetsResultType(
+        name,
+        s"The result of performing a target $name mutation.",
+        s"The ${name}d targets."
+      ),
       arguments   = List(arg),
       resolve     = c => c.target(_.edit(c.arg(arg)))
     )
@@ -314,7 +381,7 @@ trait TargetMutation extends TargetScalars {
     List(
       createTarget,
       cloneTarget,
-      editTarget,
+      editTargets,
       existenceEditField(Existence.Deleted),
       existenceEditField(Existence.Present)
     )
