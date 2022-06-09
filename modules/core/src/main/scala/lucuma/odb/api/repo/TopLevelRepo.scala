@@ -12,9 +12,11 @@ import cats.data._
 import cats.effect.Ref
 import cats.kernel.BoundedEnumerable
 import cats.syntax.all._
+import eu.timepit.refined.types.all.NonNegInt
 import monocle.Lens
 import monocle.function.At
 import lucuma.core.optics.state.all._
+import lucuma.odb.api.model.query.{SelectResult, WherePredicate}
 
 import scala.collection.immutable.SortedMap
 
@@ -30,6 +32,11 @@ trait TopLevelRepo[F[_], I, T] {
   def selectAll(
     includeDeleted: Boolean = false
   ): F[List[T]]
+
+  def selectWhere(
+    where: Option[WherePredicate[T]],
+    limit: NonNegInt
+  ): F[SelectResult[T]]
 
   def selectPage(
     count:          Option[Int] = None,
@@ -111,6 +118,20 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, *]: Eq](
       afterGid       = None,
       includeDeleted = includeDeleted
     ).map(_.nodes)
+
+  override def selectWhere(
+    where: Option[WherePredicate[T]],
+    limit: NonNegInt
+  ): F[SelectResult[T]] =
+    databaseRef.get.map { tables =>
+      val all     = mapLens.get(tables)
+      val matches = where.fold(all.values) { w => all.values.filter(w.matches) }
+
+      SelectResult.Standard(
+        matches.take(limit.value).toList,
+        NonNegInt.unsafeFrom(matches.size)
+      )
+    }
 
   def selectPageFiltered(
     count:          Option[Int],

@@ -5,40 +5,42 @@ package lucuma.odb.api.schema
 
 import cats.effect.Async
 import cats.effect.std.Dispatcher
-import cats.syntax.all._
+import lucuma.odb.api.model.{ProgramModel, WhereProgram}
+import lucuma.odb.api.model.query.SelectResult
 import lucuma.odb.api.repo.OdbCtx
+import lucuma.odb.api.schema.ProgramSchema.InputObjectWhereProgram
+import lucuma.odb.api.schema.QuerySchema.{DefaultLimit, SelectResultType}
 import org.typelevel.log4cats.Logger
+import sangria.marshalling.circe._
 import sangria.schema._
 
 trait ProgramQuery {
 
   import GeneralSchema.ArgumentIncludeDeleted
-  import Paging._
-  import ProgramSchema.{OptionalListProgramIdArgument, ProgramIdArgument, ProgramType, ProgramConnectionType}
+  import ProgramSchema.{ProgramIdArgument, ProgramType}
+  import QuerySchema.ArgumentLimit
   import context._
+
+  implicit val ArgumentOptionWhereProgram: Argument[Option[WhereProgram]] =
+    Argument(
+      name         = "where",
+      argumentType = OptionInputType(InputObjectWhereProgram),
+      description  = "Filter the selection of programs using the where argument."
+    )
+
+  implicit def ProgramSelectResult[F[_]: Dispatcher: Async: Logger]: ObjectType[Any, SelectResult[ProgramModel]] =
+    SelectResultType[ProgramModel]("ProgramSelectResult", ProgramType[F])
 
   def programs[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "programs",
-      fieldType   = ProgramConnectionType[F],
+      fieldType   = ProgramSelectResult[F],
       description = Some("Pages through all requested programs (or all programs if no ids are given)."),
-      arguments   = List(
-        OptionalListProgramIdArgument.copy(description = "(Optional) listing of programs to retrieve (all programs if empty)".some),
-        ArgumentPagingFirst,
-        ArgumentPagingCursor,
-        ArgumentIncludeDeleted
-      ),
-      resolve = c =>
-        unsafeSelectTopLevelPageFuture(c.pagingProgramId) { gid =>
-          c.arg(OptionalListProgramIdArgument).fold(
-            c.ctx.odbRepo.program.selectPage(c.pagingFirst, gid, c.includeDeleted)
-          ) { pids =>
-            c.ctx.odbRepo.program.selectPageForPrograms(pids.toSet, c.pagingFirst, gid, c.includeDeleted)
-          }
-        }
+      arguments   = List(ArgumentOptionWhereProgram, ArgumentLimit),
+      resolve = c => c.program(_.selectWhere(c.arg(ArgumentOptionWhereProgram), c.arg(ArgumentLimit).getOrElse(DefaultLimit)))
     )
 
-  def forId[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def program[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "program",
       fieldType   = OptionType(ProgramType[F]),
@@ -50,7 +52,7 @@ trait ProgramQuery {
   def allFields[F[_]: Dispatcher: Async: Logger]: List[Field[OdbCtx[F], Unit]] =
     List(
       programs,
-      forId
+      program
     )
 
 }
