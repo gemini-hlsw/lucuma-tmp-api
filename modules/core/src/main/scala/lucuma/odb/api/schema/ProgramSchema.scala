@@ -3,25 +3,28 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{PlannedTimeSummaryModel, ProgramModel}
+import lucuma.odb.api.model.{PlannedTimeSummaryModel, ProgramModel, WhereProgram}
 import lucuma.core.model.Program
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.foldable._
 import cats.syntax.functor._
+import lucuma.odb.api.model.query.WhereOrder
 import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
+import sangria.macros.derive.{InputObjectTypeName, deriveInputObjectType}
 import sangria.schema._
 
 import scala.collection.immutable.Seq
 
 object ProgramSchema {
 
-  import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, PlannedTimeSummaryType}
+  import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, InputObjectTypeWhereEqExistence, PlannedTimeSummaryType}
   import ObservationSchema.ObservationConnectionType
-  import ProposalSchema.ProposalType
+  import ProposalSchema.{ProposalType, InputObjectWhereProposal}
   import Paging._
   import RefinedSchema.NonEmptyStringType
+  import QuerySchema._
   import context._
 
   implicit val ProgramIdType: ScalarType[Program.Id] =
@@ -41,11 +44,21 @@ object ProgramSchema {
       description  = "Program ID"
     )
 
+  implicit val InputObjectWhereOrderProgramId: InputObjectType[WhereOrder[Program.Id]] =
+    deriveInputObjectType[WhereOrder[Program.Id]](
+      InputObjectTypeName("WhereProgramId")
+    )
+
   val OptionalListProgramIdArgument: Argument[Option[Seq[Program.Id]]] =
     Argument(
       name         = "programIds",
       argumentType = OptionInputType(ListInputType(ProgramIdType)),
       description  = "Program Ids"
+    )
+
+  implicit val InputObjectWhereProgram: InputObjectType[WhereProgram] =
+    deriveInputObjectType[WhereProgram](
+      InputObjectTypeName("WhereProgram")
     )
 
   def ProgramType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], ProgramModel] =

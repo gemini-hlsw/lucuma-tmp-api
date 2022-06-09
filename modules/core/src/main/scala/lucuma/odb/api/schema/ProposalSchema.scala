@@ -5,29 +5,47 @@ package lucuma.odb.api.schema
 
 import lucuma.core.enum.{TacCategory, ToOActivation}
 import lucuma.core.model.{Partner, Proposal}
-import lucuma.odb.api.model.PartnerSplit
-
+import lucuma.odb.api.model.{PartnerSplit, WhereProposal}
+import lucuma.odb.api.model.query.{WhereEq, WhereOptionEq}
+import sangria.macros.derive.{InputObjectTypeName, ReplaceInputField, deriveInputObjectType}
 import sangria.schema._
 
 object ProposalSchema {
 
   import ProposalClassSchema.ProposalClassType
   import RefinedSchema.{IntPercentType, NonEmptyStringType}
+  import QuerySchema._
   import syntax.all._
 
   implicit val EnumTypePartner: EnumType[Partner] =
     EnumType.fromEnumerated("Partner", "Partner")
 
-  implicit val EnumTypeTacCategory: EnumType[TacCategory] = 
+  implicit val EnumTypeTacCategory: EnumType[TacCategory] =
     EnumType.fromEnumerated("TacCategory", "TAC Category")
 
   implicit val EnumTypeToOActivation: EnumType[ToOActivation] =
     EnumType.fromEnumerated("ToOActivation", "ToO Activation")
 
+  implicit val InputObjectWhereEqTacCategory: InputObjectType[WhereOptionEq[TacCategory]] =
+    deriveInputObjectType(
+      InputObjectTypeName("WhereTacCategory")
+    )
+
+  implicit val InputObjectWhereEqToOActivation: InputObjectType[WhereEq[ToOActivation]] =
+    deriveInputObjectType(
+      InputObjectTypeName("WhereToOActivation")
+    )
+
+  implicit val InputObjectWhereProposal: InputObjectType[WhereProposal] =
+    deriveInputObjectType[WhereProposal](
+      InputObjectTypeName("WhereProposal"),
+      ReplaceInputField("abstrakt", InputObjectWhereOptionString.optionField("abstract"))
+    )
+
   implicit val PartnerSplitType: ObjectType[Any, PartnerSplit] =
     ObjectType(
       name   = "PartnerSplit",
-      fieldsFn = () => 
+      fieldsFn = () =>
         fields(
           Field(
             name        = "partner",

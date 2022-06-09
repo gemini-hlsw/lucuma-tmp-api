@@ -10,8 +10,8 @@ class QuerySuite extends OdbSuite {
   queryTest(
     query = """
       query Programs {
-        programs(programIds: ["p-2", "p-3", "p-4"]) {
-          nodes {
+        programs(where: { id: { in: ["p-2", "p-3", "p-4"] } } ) {
+          matches {
             id
             name
             proposal {
@@ -24,7 +24,7 @@ class QuerySuite extends OdbSuite {
                   totalTime {
                     seconds
                   }
-                } 
+                }
                 ... on Intensive {
                   minPercentTotalTime
                   totalTime {
@@ -43,11 +43,12 @@ class QuerySuite extends OdbSuite {
           }
         }
       }
+
     """,
     expected = json"""
       {
         "programs" : {
-          "nodes" : [
+          "matches": [
             {
               "id" : "p-2",
               "name" : "The real dark matter was the friends we made along the way",

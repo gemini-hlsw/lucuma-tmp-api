@@ -20,23 +20,27 @@ import lucuma.odb.api.model.EitherInput
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.validatedinput._
-import monocle.Focus
+import monocle.{Focus, Lens}
 
 import scala.collection.immutable.SortedMap
-
 import ProposalInput._
 
 final case class PartnerSplit(partner: Partner, percent: IntPercent)
 
 object PartnerSplit {
-  val partner = Focus[PartnerSplit](_.partner)
-  val percent = Focus[PartnerSplit](_.percent)
+
+  val partner: Lens[PartnerSplit, Partner] =
+    Focus[PartnerSplit](_.partner)
+
+  val percent: Lens[PartnerSplit, IntPercent] =
+    Focus[PartnerSplit](_.percent)
 
   implicit val decoderPartnerSplit: Decoder[PartnerSplit] = deriveDecoder[PartnerSplit]
 
   implicit val eqPartnerSplit: Eq[PartnerSplit] = Eq.instance {
     case (PartnerSplit(a1, b1), PartnerSplit(a2, b2)) => a1 === a2 && b1 === b2
   }
+
 }
 
 final case class ProposalInput(
@@ -48,7 +52,7 @@ final case class ProposalInput(
   partnerSplits: Input[List[PartnerSplitInput]] = Input.ignore
 ) extends EditorInput[Proposal] {
 
-  private def validatePartnerSplits(splits: List[PartnerSplitInput]): ValidatedInput[SortedMap[Partner, IntPercent]] = 
+  private def validatePartnerSplits(splits: List[PartnerSplitInput]): ValidatedInput[SortedMap[Partner, IntPercent]] =
     splits.traverse(_.create).andThen { l =>
       val total = l.map(_.percent.value).sum
       // We need to accept empty list for initial creation - will need to validate before proposal submission.
@@ -67,7 +71,7 @@ final case class ProposalInput(
      partnerSplits.notMissingAndThen("partnerSplits")(validatePartnerSplits)
     ).mapN { case (pc, too, ps) => Proposal(title.toOption, pc, category.toOption, too, abstrakt.toOption, ps) }
   }
-    
+
   override def edit: StateT[EitherInput,Proposal,Unit] = {
     def validateOptionalPartnerSplits(optSplits: Option[List[PartnerSplitInput]]): ValidatedInput[Option[SortedMap[Partner, IntPercent]]] =
       optSplits match {
@@ -96,7 +100,7 @@ final case class ProposalInput(
 object ProposalInput {
   import io.circe.generic.extras.semiauto._
   import io.circe.generic.extras.Configuration
-  implicit val customConfig: Configuration = 
+  implicit val customConfig: Configuration =
     Configuration.default.withDefaults
       .copy(transformMemberNames = {
          case "abstrakt" => "abstract"
@@ -107,13 +111,13 @@ object ProposalInput {
     partner: Input[Partner] =    Input.ignore,
     percent: Input[IntPercent] = Input.ignore
   ) extends EditorInput[PartnerSplit] {
-    override def create: lucuma.odb.api.model.ValidatedInput[PartnerSplit] = 
-      (partner.notMissing("partner"), 
+    override def create: lucuma.odb.api.model.ValidatedInput[PartnerSplit] =
+      (partner.notMissing("partner"),
        percent.notMissing("percent")
       ).mapN{ case (par, pct) => PartnerSplit(par, pct) }
 
     override def edit: StateT[EitherInput, PartnerSplit, Unit] = {
-      val validArgs = 
+      val validArgs =
         (partner.validateIsNotNull("partner"),
          percent.validateIsNotNull("percent")
         ).tupled
