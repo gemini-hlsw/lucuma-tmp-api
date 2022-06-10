@@ -9,7 +9,7 @@ import lucuma.core.math.units.Nanometer
 
 trait DeltaWavelengthCalculator[G] {
 
-  def Δλ(g: G): Quantity[Int, Nanometer]
+  def Δλ(g: G): Quantity[BigDecimal, Nanometer]
 
 }
 

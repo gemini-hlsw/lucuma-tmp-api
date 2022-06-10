@@ -87,10 +87,10 @@ object GmosLongSlit {
   val DefaultSampling: PosDouble =
     2.5
 
-  def wavelengthDither(λ: Wavelength, Δ: Quantity[Int, Nanometer]): Wavelength =
+  def wavelengthDither(λ: Wavelength, Δ: Quantity[BigDecimal, Nanometer]): Wavelength =
     Wavelength
       .fromPicometers
-      .getOption(λ.toPicometers.value + Δ.value * 1000)
+      .getOption(λ.toPicometers.value + Δ.value.underlying.movePointRight(3).intValue)
       .getOrElse(Wavelength.Min)
 
   final case class Input[M](

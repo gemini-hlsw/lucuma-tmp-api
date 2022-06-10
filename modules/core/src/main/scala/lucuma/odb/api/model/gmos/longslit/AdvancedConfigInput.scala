@@ -27,19 +27,19 @@ import lucuma.odb.api.model.syntax.lens._
 
 
 final case class AdvancedConfigInput[G, F, U](
-  name:                      Input[NonEmptyString]                   = Input.ignore,
-  overrideWavelength:        Input[WavelengthInput]                  = Input.ignore,
-  overrideGrating:           Input[G]                                = Input.ignore,
-  overrideFilter:            Input[Option[F]]                        = Input.ignore,
-  overrideFpu:               Input[U]                                = Input.ignore,
-  overrideExposureTimeMode:  Input[ExposureModeInput]                = Input.ignore,
-  explicitXBin:              Input[GmosXBinning]                     = Input.ignore,
-  explicitYBin:              Input[GmosYBinning]                     = Input.ignore,
-  explicitAmpReadMode:       Input[GmosAmpReadMode]                  = Input.ignore,
-  explicitAmpGain:           Input[GmosAmpGain]                      = Input.ignore,
-  explicitRoi:               Input[GmosRoi]                          = Input.ignore,
-  explicitWavelengthDithers: Input[List[Int]]                        = Input.ignore,
-  explicitSpatialOffsets:    Input[List[OffsetModel.ComponentInput]] = Input.ignore
+  name:                        Input[NonEmptyString]                   = Input.ignore,
+  overrideWavelength:          Input[WavelengthInput]                  = Input.ignore,
+  overrideGrating:             Input[G]                                = Input.ignore,
+  overrideFilter:              Input[Option[F]]                        = Input.ignore,
+  overrideFpu:                 Input[U]                                = Input.ignore,
+  overrideExposureTimeMode:    Input[ExposureModeInput]                = Input.ignore,
+  explicitXBin:                Input[GmosXBinning]                     = Input.ignore,
+  explicitYBin:                Input[GmosYBinning]                     = Input.ignore,
+  explicitAmpReadMode:         Input[GmosAmpReadMode]                  = Input.ignore,
+  explicitAmpGain:             Input[GmosAmpGain]                      = Input.ignore,
+  explicitRoi:                 Input[GmosRoi]                          = Input.ignore,
+  explicitWavelengthDithersNm: Input[List[BigDecimal]]                 = Input.ignore,
+  explicitSpatialOffsets:      Input[List[OffsetModel.ComponentInput]] = Input.ignore
 ) extends EditorInput[AdvancedConfig[G, F, U]] {
 
   override val create: ValidatedInput[AdvancedConfig[G, F, U]] =
@@ -59,7 +59,7 @@ final case class AdvancedConfigInput[G, F, U](
         explicitAmpReadMode      = explicitAmpReadMode.toOption,
         explicitAmpGain          = explicitAmpGain.toOption,
         explicitRoi              = explicitRoi.toOption,
-        explicitλDithers         = NonEmptyList.fromList(explicitWavelengthDithers.toOption.toList.flatten.map(i => Quantity[Int, Nanometer](i))),
+        explicitλDithers         = NonEmptyList.fromList(explicitWavelengthDithersNm.toOption.toList.flatten.map(d => Quantity[BigDecimal, Nanometer](d))),
         explicitSpatialOffsets   = NonEmptyList.fromList(os)
       )
     }
@@ -83,11 +83,11 @@ final case class AdvancedConfigInput[G, F, U](
       _ <- AdvancedConfig.explicitAmpGain               := explicitAmpGain.toOptionOption
       _ <- AdvancedConfig.explicitRoi                   := explicitRoi.toOptionOption
       _ <- AdvancedConfig.explicitλDithers              :<
-        explicitWavelengthDithers.fold(
-          StateT.empty[EitherInput, Option[NonEmptyList[Quantity[Int, Nanometer]]], Unit],
-          StateT.setF(Option.empty[NonEmptyList[Quantity[Int, Nanometer]]].rightNec[InputError]),
+        explicitWavelengthDithersNm.fold(
+          StateT.empty[EitherInput, Option[NonEmptyList[Quantity[BigDecimal, Nanometer]]], Unit],
+          StateT.setF(Option.empty[NonEmptyList[Quantity[BigDecimal, Nanometer]]].rightNec[InputError]),
           deltas => StateT.setF(
-            NonEmptyList.fromList(deltas.map(i => Quantity[Int, Nanometer](i))).rightNec[InputError]
+            NonEmptyList.fromList(deltas.map(d => Quantity[BigDecimal, Nanometer](d))).rightNec[InputError]
           )
         ).some
       _ <- AdvancedConfig.explicitSpatialOffsets       :<
@@ -126,7 +126,7 @@ object AdvancedConfigInput {
       a.explicitAmpReadMode,
       a.explicitAmpGain,
       a.explicitRoi,
-      a.explicitWavelengthDithers,
+      a.explicitWavelengthDithersNm,
       a.explicitSpatialOffsets
     )}
 

@@ -234,8 +234,8 @@ object ScienceModeSchema {
         ),
 
         Field(
-          name        = "explicitWavelengthDithers",
-          fieldType   = OptionType(ListType(IntType)),
+          name        = "explicitWavelengthDithersNm",
+          fieldType   = OptionType(ListType(BigDecimalType)),
           description = s"Explicitly specified wavelength dithers required to fill in the chip gaps (in nm), taking the place of the calculated value based on the grating dispersion".some,
           resolve     = _.value.explicitλDithers.map(_.toList.map(_.value))
         ),
