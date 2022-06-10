@@ -3,11 +3,10 @@
 
 package lucuma.odb.api.model
 
-import cats.syntax.eq._
 import io.circe.Decoder
 import lucuma.core.`enum`.{TacCategory, ToOActivation}
 import lucuma.core.model.Proposal
-import lucuma.odb.api.model.query.{WhereCombinator, WhereEq, WhereOptionEq, WhereOptionString}
+import lucuma.odb.api.model.query.{WhereCombinator, WhereEq, WhereOption, WhereOptionEq, WhereOptionString, WherePredicate}
 
 
 final case class WhereProposal(
@@ -20,20 +19,18 @@ final case class WhereProposal(
   category:      Option[WhereOptionEq[TacCategory]],
   toOActivation: Option[WhereEq[ToOActivation]],
   abstrakt:      Option[WhereOptionString]
-) extends WhereCombinator[Option[Proposal]] {
+) extends WhereOption[Proposal] with WhereCombinator[Option[Proposal]] {
 
-    override def matches(a: Option[Proposal]): Boolean = {
+  override def whenEmpty: Boolean =
+    title.isEmpty && category.isEmpty && toOActivation.isEmpty && abstrakt.isEmpty
 
-      def whenEmpty: Boolean =
-        title.isEmpty && category.isEmpty && toOActivation.isEmpty && abstrakt.isEmpty
-
-      IS_NULL.forall(_ === a.isEmpty) &&
-        a.fold(whenEmpty) { aʹ =>
-          title.forall(_.matchesNonEmpty(aʹ.title))           &&
-            category.forall(_.matches(aʹ.category))           &&
-            toOActivation.forall(_.matches(aʹ.toOActivation)) &&
-            abstrakt.forall(_.matchesNonEmpty(aʹ.abstrakt))
-        } && combinatorMatch(a)
+  override def whenNonEmpty: WherePredicate[Proposal] =
+    new WherePredicate[Proposal] {
+      override def matches(a: Proposal): Boolean =
+        title.forall(_.matchesNonEmptyString(a.title))     &&
+          category.forall(_.matches(a.category))           &&
+          toOActivation.forall(_.matches(a.toOActivation)) &&
+          abstrakt.forall(_.matchesNonEmptyString(a.abstrakt))
     }
 
 }

@@ -14,9 +14,10 @@ trait WhereCombinator[A] extends WherePredicate[A] {
 
   def NOT: Option[WhereCombinator[A]]
 
-  protected def combinatorMatch(a: A): Boolean =
-    AND.forall(_.forall(_.matches(a)))  &&
-      OR.forall(_.exists(_.matches(a))) &&
+  override def matches(a: A): Boolean =
+    super.matches(a)                      &&
+      AND.forall(_.forall(_.matches(a)))  &&
+      OR.forall(_.exists(_.matches(a)))   &&
       NOT.forall(!_.matches(a))
 
 }

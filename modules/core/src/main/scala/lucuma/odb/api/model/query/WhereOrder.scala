@@ -19,8 +19,9 @@ final case class WhereOrder[A: Order](
   NIN: Option[List[A]]
 ) extends WherePredicate[A] {
 
-  def matches(a: A): Boolean =
-    EQ.forall(a === _)         &&
+  override def matches(a: A): Boolean =
+    super.matches(a)           &&
+      EQ.forall(a === _)       &&
       NEQ.forall(a =!= _)      &&
       GT.forall(a > _)         &&
       LT.forall(a < _)         &&
