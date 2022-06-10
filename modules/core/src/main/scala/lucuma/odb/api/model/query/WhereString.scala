@@ -9,29 +9,29 @@ import eu.timepit.refined.types.string.NonEmptyString
 import scala.util.matching.Regex
 
 final case class WhereString(
-  eq:        Option[NonEmptyString],
-  neq:       Option[NonEmptyString],
-  in:        Option[List[NonEmptyString]],
-  nin:       Option[List[NonEmptyString]],
-  like:      Option[NonEmptyString],
-  nlike:     Option[NonEmptyString],
-  matchCase: Boolean = true
+  EQ:         Option[NonEmptyString],
+  NEQ:        Option[NonEmptyString],
+  IN:         Option[List[NonEmptyString]],
+  NIN:        Option[List[NonEmptyString]],
+  LIKE:       Option[NonEmptyString],
+  NLIKE:      Option[NonEmptyString],
+  MATCH_CASE: Boolean = true
 ) extends WherePredicate[String] {
 
   private def forMatching(s: NonEmptyString): String =
-    if (matchCase) s.value else s.value.toLowerCase
+    if (MATCH_CASE) s.value else s.value.toLowerCase
 
   private val eqʹ: Option[String] =
-    eq.map(forMatching)
+    EQ.map(forMatching)
 
   private val neqʹ: Option[String] =
-    neq.map(forMatching)
+    NEQ.map(forMatching)
 
   private val inʹ: Option[List[String]] =
-    in.map(_.map(forMatching))
+    IN.map(_.map(forMatching))
 
   private val ninʹ: Option[List[String]] =
-    nin.map(_.map(forMatching))
+    NIN.map(_.map(forMatching))
 
   // Want to ignore Regex symbols in the input stream and only work on those
   // that we'll be adding.
@@ -67,14 +67,14 @@ final case class WhereString(
   }
 
   private val likeʹ: Option[Regex] =
-    like.map(wildcardToRegex)
+    LIKE.map(wildcardToRegex)
 
   private val nlikeʹ: Option[Regex] =
-    nlike.map(wildcardToRegex)
+    NLIKE.map(wildcardToRegex)
 
   def matches(s: String): Boolean = {
 
-    val sʹ = if (matchCase) s else s.toLowerCase
+    val sʹ = if (MATCH_CASE) s else s.toLowerCase
 
     eqʹ.forall(_ === sʹ)           &&
       neqʹ.forall(_ =!= sʹ)        &&

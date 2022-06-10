@@ -11,15 +11,15 @@ import lucuma.odb.api.model.query.{WhereCombinator, WhereEq, WhereOptionEq, Wher
 
 
 final case class WhereProposal(
+  AND:           Option[List[WhereProposal]],
+  OR:            Option[List[WhereProposal]],
+  NOT:           Option[WhereProposal],
+  IS_NULL:       Option[Boolean],
+
   title:         Option[WhereOptionString],
   category:      Option[WhereOptionEq[TacCategory]],
   toOActivation: Option[WhereEq[ToOActivation]],
-  abstrakt:      Option[WhereOptionString],
-  isNull:        Option[Boolean],
-
-  and:           Option[List[WhereProposal]],
-  or:            Option[List[WhereProposal]],
-  not:           Option[WhereProposal]
+  abstrakt:      Option[WhereOptionString]
 ) extends WhereCombinator[Option[Proposal]] {
 
     override def matches(a: Option[Proposal]): Boolean = {
@@ -27,7 +27,7 @@ final case class WhereProposal(
       def whenEmpty: Boolean =
         title.isEmpty && category.isEmpty && toOActivation.isEmpty && abstrakt.isEmpty
 
-      isNull.forall(_ === a.isEmpty) &&
+      IS_NULL.forall(_ === a.isEmpty) &&
         a.fold(whenEmpty) { aʹ =>
           title.forall(_.matchesNonEmpty(aʹ.title))           &&
             category.forall(_.matches(aʹ.category))           &&

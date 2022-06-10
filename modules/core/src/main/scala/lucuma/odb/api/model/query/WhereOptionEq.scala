@@ -10,20 +10,20 @@ import io.circe.generic.semiauto.deriveDecoder
 
 
 final case class WhereOptionEq[A: Eq](
-  eq:     Option[A],
-  neq:    Option[A],
-  in:     Option[List[A]],
-  nin:    Option[List[A]],
-  isNull: Option[Boolean]
+  EQ:      Option[A],
+  NEQ:     Option[A],
+  IN:      Option[List[A]],
+  NIN:     Option[List[A]],
+  IS_NULL: Option[Boolean]
 ) extends WherePredicate[Option[A]] {
 
   def matches(a: Option[A]): Boolean = {
 
     def whenEmpty: Boolean =
-      eq.isEmpty && in.forall(_.isEmpty) && nin.forall(_.nonEmpty)
+      EQ.isEmpty && IN.forall(_.isEmpty) && NIN.forall(_.nonEmpty)
 
-    isNull.forall(_ === a.isEmpty)                 &&
-      a.fold(whenEmpty)(WhereEq(eq, neq, in, nin).matches)
+    IS_NULL.forall(_ === a.isEmpty)                 &&
+      a.fold(whenEmpty)(WhereEq(EQ, NEQ, IN, NIN).matches)
   }
 
 }

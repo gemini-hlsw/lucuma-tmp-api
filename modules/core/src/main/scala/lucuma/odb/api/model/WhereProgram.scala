@@ -9,14 +9,14 @@ import lucuma.core.model.Program
 import lucuma.odb.api.model.query.{WhereCombinator, WhereEq, WhereOptionString, WhereOrder}
 
 final case class WhereProgram(
+  AND:       Option[List[WhereProgram]],
+  OR:        Option[List[WhereProgram]],
+  NOT:       Option[WhereProgram],
+
   id:        Option[WhereOrder[Program.Id]],
   name:      Option[WhereOptionString],
   existence: Option[WhereEq[Existence]],
-  proposal:  Option[WhereProposal],
-
-  and:       Option[List[WhereProgram]],
-  or:        Option[List[WhereProgram]],
-  not:       Option[WhereProgram]
+  proposal:  Option[WhereProposal]
 ) extends WhereCombinator[ProgramModel] {
 
   override def matches(a: ProgramModel): Boolean =
