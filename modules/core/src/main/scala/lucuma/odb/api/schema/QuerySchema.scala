@@ -88,8 +88,8 @@ object QuerySchema {
         Field(
           name        = "totalCount",
           description = "Total match count, including any those that are past the return size cutoff limit.".some,
-          fieldType   = ListType(aType),
-          resolve     = _.value.matches
+          fieldType   = NonNegIntType,
+          resolve     = _.value.totalCount
         ),
 
         Field(
