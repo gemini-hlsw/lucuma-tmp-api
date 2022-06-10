@@ -7,7 +7,7 @@ import lucuma.core.enums.{TacCategory, ToOActivation}
 import lucuma.core.model.{Partner, Proposal}
 import lucuma.odb.api.model.{PartnerSplit, WhereProposal}
 import lucuma.odb.api.model.query.{WhereEq, WhereOptionEq}
-import sangria.macros.derive.{InputObjectTypeName, ReplaceInputField, deriveInputObjectType}
+import sangria.macros.derive.{DocumentInputField, InputObjectTypeDescription, InputObjectTypeName, ReplaceInputField, deriveInputObjectType}
 import sangria.schema._
 
 object ProposalSchema {
@@ -39,7 +39,12 @@ object ProposalSchema {
   implicit val InputObjectWhereProposal: InputObjectType[WhereProposal] =
     deriveInputObjectType[WhereProposal](
       InputObjectTypeName("WhereProposal"),
-      ReplaceInputField("abstrakt", InputObjectWhereOptionString.optionField("abstract"))
+      InputObjectTypeDescription("Proposal filter options.  All specified items must match."),
+      ReplaceInputField("abstrakt", InputObjectWhereOptionString.optionField("abstract")),
+      DocumentInputField("AND",     document.andField("proposal")),
+      DocumentInputField("OR",      document.orField("proposal")),
+      DocumentInputField("NOT",     document.notField("proposal")),
+      DocumentInputField("IS_NULL", document.isNullField("proposal"))
     )
 
   implicit val PartnerSplitType: ObjectType[Any, PartnerSplit] =

@@ -12,7 +12,7 @@ import cats.syntax.functor._
 import lucuma.odb.api.model.query.WhereOrder
 import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
-import sangria.macros.derive.{InputObjectTypeName, deriveInputObjectType}
+import sangria.macros.derive.{DocumentInputField, InputObjectTypeDescription, InputObjectTypeName, deriveInputObjectType}
 import sangria.schema._
 
 import scala.collection.immutable.Seq
@@ -58,7 +58,11 @@ object ProgramSchema {
 
   implicit val InputObjectWhereProgram: InputObjectType[WhereProgram] =
     deriveInputObjectType[WhereProgram](
-      InputObjectTypeName("WhereProgram")
+      InputObjectTypeName("WhereProgram"),
+      InputObjectTypeDescription("Program filter options.  All specified items must match."),
+      DocumentInputField("AND", document.andField("program")),
+      DocumentInputField("OR",  document.orField("program")),
+      DocumentInputField("NOT", document.notField("program"))
     )
 
   def ProgramType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], ProgramModel] =

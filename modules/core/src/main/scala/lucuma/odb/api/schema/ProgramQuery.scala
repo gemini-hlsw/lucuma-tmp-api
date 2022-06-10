@@ -25,17 +25,17 @@ trait ProgramQuery {
     Argument(
       name         = "WHERE",
       argumentType = OptionInputType(InputObjectWhereProgram),
-      description  = "Filter the selection of programs using the where argument."
+      description  = "Filters the selection of programs."
     )
 
   implicit def ProgramSelectResult[F[_]: Dispatcher: Async: Logger]: ObjectType[Any, SelectResult[ProgramModel]] =
-    SelectResultType[ProgramModel]("ProgramSelectResult", ProgramType[F])
+    SelectResultType[ProgramModel]("program", ProgramType[F])
 
   def programs[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "programs",
       fieldType   = ProgramSelectResult[F],
-      description = Some("Pages through all requested programs (or all programs if no ids are given)."),
+      description = Some("Selects the first `LIMIT` matching programs based on the provided `WHERE` parameter, if any."),
       arguments   = List(ArgumentOptionWhereProgram, ArgumentLimit),
       resolve = c => c.program(_.selectWhere(c.arg(ArgumentOptionWhereProgram), c.arg(ArgumentLimit).getOrElse(DefaultLimit)))
     )
