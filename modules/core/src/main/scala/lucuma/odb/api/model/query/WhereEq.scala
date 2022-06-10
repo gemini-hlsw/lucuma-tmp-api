@@ -9,17 +9,17 @@ import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 
 final case class WhereEq[A: Eq](
-  eq:  Option[A],
-  neq: Option[A],
-  in:  Option[List[A]],
-  nin: Option[List[A]]
+  EQ:  Option[A],
+  NEQ: Option[A],
+  IN:  Option[List[A]],
+  NIN: Option[List[A]]
 ) extends WherePredicate[A] {
 
   def matches(a: A): Boolean =
-    eq.forall(_ === a)           &&
-      neq.forall(_ =!= a)        &&
-      in.forall(_.contains(a))   &&
-      nin.forall(!_.contains(a))
+    EQ.forall(_ === a)           &&
+      NEQ.forall(_ =!= a)        &&
+      IN.forall(_.contains(a))   &&
+      NIN.forall(!_.contains(a))
 
 }
 

@@ -10,23 +10,23 @@ import io.circe.refined._
 import io.circe.generic.semiauto.deriveDecoder
 
 final case class WhereOptionString(
-  eq:        Option[NonEmptyString],
-  neq:       Option[NonEmptyString],
-  in:        Option[List[NonEmptyString]],
-  nin:       Option[List[NonEmptyString]],
-  like:      Option[NonEmptyString],
-  nlike:     Option[NonEmptyString],
-  isNull:    Option[Boolean],
-  matchCase: Boolean = true
+  IS_NULL:    Option[Boolean],
+  EQ:         Option[NonEmptyString],
+  NEQ:        Option[NonEmptyString],
+  IN:         Option[List[NonEmptyString]],
+  NIN:        Option[List[NonEmptyString]],
+  LIKE:       Option[NonEmptyString],
+  NLIKE:      Option[NonEmptyString],
+  MATCH_CASE: Boolean = true
 ) extends WherePredicate[Option[String]] {
 
   def matches(s: Option[String]): Boolean = {
 
     def whenEmpty: Boolean =
-      eq.isEmpty && in.forall(_.isEmpty) && nin.forall(_.nonEmpty) && like.isEmpty
+      EQ.isEmpty && IN.forall(_.isEmpty) && NIN.forall(_.nonEmpty) && LIKE.isEmpty
 
-    isNull.forall(_ === s.isEmpty) &&
-      s.fold(whenEmpty)(WhereString(eq, neq, in, nin, like, nlike, matchCase).matches)
+    IS_NULL.forall(_ === s.isEmpty) &&
+      s.fold(whenEmpty)(WhereString(EQ, NEQ, IN, NIN, LIKE, NLIKE, MATCH_CASE).matches)
 
   }
 

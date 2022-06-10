@@ -23,7 +23,7 @@ trait ProgramQuery {
 
   implicit val ArgumentOptionWhereProgram: Argument[Option[WhereProgram]] =
     Argument(
-      name         = "where",
+      name         = "WHERE",
       argumentType = OptionInputType(InputObjectWhereProgram),
       description  = "Filter the selection of programs using the where argument."
     )

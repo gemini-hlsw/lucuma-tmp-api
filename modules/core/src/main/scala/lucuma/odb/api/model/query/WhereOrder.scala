@@ -9,25 +9,25 @@ import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 
 final case class WhereOrder[A: Order](
-  eq:  Option[A],
-  neq: Option[A],
-  gt:  Option[A],
-  lt:  Option[A],
-  gte: Option[A],
-  lte: Option[A],
-  in:  Option[List[A]],
-  nin: Option[List[A]]
+  EQ:  Option[A],
+  NEQ: Option[A],
+  GT:  Option[A],
+  LT:  Option[A],
+  GTE: Option[A],
+  LTE: Option[A],
+  IN:  Option[List[A]],
+  NIN: Option[List[A]]
 ) extends WherePredicate[A] {
 
   def matches(a: A): Boolean =
-    eq.forall(a === _)         &&
-      neq.forall(a =!= _)      &&
-      gt.forall(a > _)         &&
-      lt.forall(a < _)         &&
-      gte.forall(a >= _)       &&
-      lte.forall(a <= _)       &&
-      in.forall(_.contains(a)) &&
-      nin.forall(!_.contains(a))
+    EQ.forall(a === _)         &&
+      NEQ.forall(a =!= _)      &&
+      GT.forall(a > _)         &&
+      LT.forall(a < _)         &&
+      GTE.forall(a >= _)       &&
+      LTE.forall(a <= _)       &&
+      IN.forall(_.contains(a)) &&
+      NIN.forall(!_.contains(a))
 
 }
 

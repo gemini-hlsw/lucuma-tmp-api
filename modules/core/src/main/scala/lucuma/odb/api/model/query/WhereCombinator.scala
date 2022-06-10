@@ -8,15 +8,15 @@ package lucuma.odb.api.model.query
  */
 trait WhereCombinator[A] extends WherePredicate[A] {
 
-  def and: Option[List[WhereCombinator[A]]]
+  def AND: Option[List[WhereCombinator[A]]]
 
-  def or: Option[List[WhereCombinator[A]]]
+  def OR: Option[List[WhereCombinator[A]]]
 
-  def not: Option[WhereCombinator[A]]
+  def NOT: Option[WhereCombinator[A]]
 
   protected def combinatorMatch(a: A): Boolean =
-    and.forall(_.forall(_.matches(a)))  &&
-      or.forall(_.exists(_.matches(a))) &&
-      not.forall(!_.matches(a))
+    AND.forall(_.forall(_.matches(a)))  &&
+      OR.forall(_.exists(_.matches(a))) &&
+      NOT.forall(!_.matches(a))
 
 }

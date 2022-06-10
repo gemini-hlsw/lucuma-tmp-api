@@ -21,7 +21,7 @@ object QuerySchema {
 
   val ArgumentLimit: Argument[Option[NonNegInt]] =
     Argument(
-      name         = "limit",
+      name         = "LIMIT",
       argumentType =  OptionInputType(NonNegIntType.copy(description = "foo".some)),
       description  = s"Limits the result to at most this number of matches (but never more than $DefaultLimit)."
     )

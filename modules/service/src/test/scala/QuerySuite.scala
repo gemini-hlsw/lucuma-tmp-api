@@ -10,7 +10,7 @@ class QuerySuite extends OdbSuite {
   queryTest(
     query = """
       query Programs {
-        programs(where: { id: { in: ["p-2", "p-3", "p-4"] } } ) {
+        programs(WHERE: { id: { IN: ["p-2", "p-3", "p-4"] } } ) {
           matches {
             id
             name
