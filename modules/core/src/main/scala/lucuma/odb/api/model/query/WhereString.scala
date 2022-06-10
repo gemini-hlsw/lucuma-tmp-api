@@ -72,11 +72,12 @@ final case class WhereString(
   private val nlikeʹ: Option[Regex] =
     NLIKE.map(wildcardToRegex)
 
-  def matches(s: String): Boolean = {
+  override def matches(s: String): Boolean = {
 
     val sʹ = if (MATCH_CASE) s else s.toLowerCase
 
-    eqʹ.forall(_ === sʹ)           &&
+    super.matches(s)               &&
+      eqʹ.forall(_ === sʹ)         &&
       neqʹ.forall(_ =!= sʹ)        &&
       inʹ.forall(_.contains(sʹ))   &&
       ninʹ.forall(!_.contains(sʹ)) &&
@@ -84,8 +85,9 @@ final case class WhereString(
       nlikeʹ.forall(!_.matches(sʹ))
   }
 
-  def matchesNonEmpty(s: NonEmptyString): Boolean =
+  def matchesNonEmptyString(s: NonEmptyString): Boolean =
     matches(s.value)
+
 }
 
 
