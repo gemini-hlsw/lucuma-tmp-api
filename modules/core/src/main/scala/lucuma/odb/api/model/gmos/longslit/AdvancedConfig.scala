@@ -21,18 +21,18 @@ import monocle.{Focus, Lens}
  */
 final case class AdvancedConfig[G, F, U](
   name:                     Option[NonEmptyString],
-  overrideWavelength:       Option[Wavelength]                             = None,
-  overrideGrating:          Option[G]                                      = None,
-  overrideFilter:           Option[Option[F]]                              = None,
-  overrideFpu:              Option[U]                                      = None,
-  overrideExposureTimeMode: Option[ExposureTimeMode]                       = None,
-  explicitXBin:             Option[GmosXBinning]                           = None,  // calculated from effective slit and sampling by default
-  explicitYBin:             Option[GmosYBinning]                           = None,
-  explicitAmpReadMode:      Option[GmosAmpReadMode]                        = None,
-  explicitAmpGain:          Option[GmosAmpGain]                            = None,
-  explicitRoi:              Option[GmosRoi]                                = None,
-  explicitλDithers:         Option[NonEmptyList[Quantity[Int, Nanometer]]] = None,
-  explicitSpatialOffsets:   Option[NonEmptyList[Offset.Q]]                 = None
+  overrideWavelength:       Option[Wavelength]                                    = None,
+  overrideGrating:          Option[G]                                             = None,
+  overrideFilter:           Option[Option[F]]                                     = None,
+  overrideFpu:              Option[U]                                             = None,
+  overrideExposureTimeMode: Option[ExposureTimeMode]                              = None,
+  explicitXBin:             Option[GmosXBinning]                                  = None,  // calculated from effective slit and sampling by default
+  explicitYBin:             Option[GmosYBinning]                                  = None,
+  explicitAmpReadMode:      Option[GmosAmpReadMode]                               = None,
+  explicitAmpGain:          Option[GmosAmpGain]                                   = None,
+  explicitRoi:              Option[GmosRoi]                                       = None,
+  explicitλDithers:         Option[NonEmptyList[Quantity[BigDecimal, Nanometer]]] = None,
+  explicitSpatialOffsets:   Option[NonEmptyList[Offset.Q]]                        = None
 )
 
 object AdvancedConfig extends AdvancedConfigOptics {
@@ -40,8 +40,8 @@ object AdvancedConfig extends AdvancedConfigOptics {
   val Q15: Offset.Q =
     Offset.Q(Angle.arcseconds.reverseGet(15))
 
-  val zeroNm: Quantity[Int, Nanometer] =
-    Quantity[Int, Nanometer](0)
+  val zeroNm: Quantity[BigDecimal, Nanometer] =
+    Quantity[BigDecimal, Nanometer](BigDecimal(0))
 
   val DefaultYBinning: GmosYBinning =
     GmosYBinning.Two
@@ -59,7 +59,7 @@ object AdvancedConfig extends AdvancedConfigOptics {
     grating: G
   )(
     implicit calc: DeltaWavelengthCalculator[G]
-  ): NonEmptyList[Quantity[Int, Nanometer]] = {
+  ): NonEmptyList[Quantity[BigDecimal, Nanometer]] = {
     val deltaNm = calc.Δλ(grating)
     NonEmptyList.of(zeroNm, deltaNm, deltaNm, zeroNm)
   }
@@ -121,7 +121,7 @@ sealed trait AdvancedConfigOptics { self: AdvancedConfig.type =>
   def explicitRoi[G, F, U]: Lens[AdvancedConfig[G, F, U], Option[GmosRoi]] =
     Focus[AdvancedConfig[G, F, U]](_.explicitRoi)
 
-  def explicitλDithers[G, F, U]: Lens[AdvancedConfig[G, F, U], Option[NonEmptyList[Quantity[Int, Nanometer]]]] =
+  def explicitλDithers[G, F, U]: Lens[AdvancedConfig[G, F, U], Option[NonEmptyList[Quantity[BigDecimal, Nanometer]]]] =
     Focus[AdvancedConfig[G, F, U]](_.explicitλDithers)
 
   def explicitSpatialOffsets[G, F, U]: Lens[AdvancedConfig[G, F, U], Option[NonEmptyList[Offset.Q]]] =

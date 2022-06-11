@@ -4,7 +4,7 @@
 package lucuma.odb.api.schema
 
 import lucuma.core.`enum`.{GmosNorthFilter, GmosNorthFpu, GmosNorthGrating, GmosSouthFilter, GmosSouthFpu, GmosSouthGrating}
-import lucuma.odb.api.model.gmos.longslit.{AdvancedConfig, BasicConfigInput}
+import lucuma.odb.api.model.gmos.longslit.{AdvancedConfigInput, BasicConfigInput}
 import lucuma.odb.api.model.{ExposureTimeMode, ScienceMode, ScienceModeInput}
 import lucuma.odb.api.model.ExposureTimeMode.{FixedExposureInput, SignalToNoiseInput}
 import sangria.schema._
@@ -83,8 +83,8 @@ trait ScienceModeMutation {
     gratingEnum: EnumType[G],
     filterEnum:  EnumType[F],
     fpuEnum:     EnumType[U]
-  ): InputObjectType[AdvancedConfig[G, F, U]] =
-    InputObjectType[AdvancedConfig[G, F, U]](
+  ): InputObjectType[AdvancedConfigInput[G, F, U]] =
+    InputObjectType[AdvancedConfigInput[G, F, U]](
       s"Gmos${siteName.capitalize}LongSlitAdvancedConfigInput",
       s"Edit or create GMOS ${siteName.capitalize} Long Slit advanced configuration",
       List(
@@ -98,12 +98,12 @@ trait ScienceModeMutation {
         EnumTypeGmosAmpReadMode.nullableField("explicitAmpReadMode"),
         EnumTypeGmosAmpGain.nullableField("explicitAmpGain"),
         EnumTypeGmosRoi.nullableField("explicitRoi"),
-        ListInputType(IntType).nullableField("explicitWavelengthDithers"),
+        ListInputType(BigDecimalType).nullableField("explicitWavelengthDithersNm"),
         ListInputType(OffsetSchema.InputObjectTypeOffsetComponentInput).nullableField("explicitSpatialOffsets")
       )
     )
 
-  implicit val InputObjectTypeGmosNorthLongSlitAdvancedConfig: InputObjectType[AdvancedConfig[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu]] =
+  implicit val InputObjectTypeGmosNorthLongSlitAdvancedConfig: InputObjectType[AdvancedConfigInput[GmosNorthGrating, GmosNorthFilter, GmosNorthFpu]] =
     inputObjectTypeGmosLongSlitAdvancedConfig(
       "north",
       EnumTypeGmosNorthGrating,
@@ -111,7 +111,7 @@ trait ScienceModeMutation {
       EnumTypeGmosNorthFpu
     )
 
-  implicit val InputObjectTypeGmosSouthLongSlitAdvancedConfig: InputObjectType[AdvancedConfig[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu]] =
+  implicit val InputObjectTypeGmosSouthLongSlitAdvancedConfig: InputObjectType[AdvancedConfigInput[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu]] =
     inputObjectTypeGmosLongSlitAdvancedConfig(
       "south",
       EnumTypeGmosSouthGrating,

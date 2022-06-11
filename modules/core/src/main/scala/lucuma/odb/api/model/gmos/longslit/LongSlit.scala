@@ -50,7 +50,7 @@ trait LongSlit[G, F, U] {
   def roi: GmosRoi =
     explicitOr(_.explicitRoi, AdvancedConfig.DefaultRoi)
 
-  def λDithers(implicit calc: DeltaWavelengthCalculator[G]): NonEmptyList[Quantity[Int, Nanometer]] =
+  def λDithers(implicit calc: DeltaWavelengthCalculator[G]): NonEmptyList[Quantity[BigDecimal, Nanometer]] =
     explicitOr(_.explicitλDithers, AdvancedConfig.defaultλDithers(grating))
 
   def spatialOffsets: NonEmptyList[Offset.Q] =
