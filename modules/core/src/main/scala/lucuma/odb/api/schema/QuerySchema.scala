@@ -19,7 +19,7 @@ object QuerySchema {
   val DefaultLimit: NonNegInt =
     1000
 
-  val ArgumentLimit: Argument[Option[NonNegInt]] =
+  val ArgumentOptionLimit: Argument[Option[NonNegInt]] =
     Argument(
       name         = "LIMIT",
       argumentType =  OptionInputType(NonNegIntType.copy(description = "foo".some)),
@@ -83,13 +83,6 @@ object QuerySchema {
           description = s"Matching ${prefix}s up to the return size limit of $DefaultLimit".some,
           fieldType   = ListType(aType),
           resolve     = _.value.matches
-        ),
-
-        Field(
-          name        = "totalCount",
-          description = "Total match count, including any those that are past the return size cutoff limit.".some,
-          fieldType   = NonNegIntType,
-          resolve     = _.value.totalCount
         ),
 
         Field(

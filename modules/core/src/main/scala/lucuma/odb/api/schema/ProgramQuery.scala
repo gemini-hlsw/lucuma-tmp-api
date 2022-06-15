@@ -5,10 +5,11 @@ package lucuma.odb.api.schema
 
 import cats.effect.Async
 import cats.effect.std.Dispatcher
+import lucuma.core.model.Program
 import lucuma.odb.api.model.{ProgramModel, WhereProgram}
 import lucuma.odb.api.model.query.SelectResult
 import lucuma.odb.api.repo.OdbCtx
-import lucuma.odb.api.schema.ProgramSchema.InputObjectWhereProgram
+import lucuma.odb.api.schema.ProgramSchema.{InputObjectWhereProgram, ProgramIdType}
 import lucuma.odb.api.schema.QuerySchema.{DefaultLimit, SelectResultType}
 import org.typelevel.log4cats.Logger
 import sangria.marshalling.circe._
@@ -18,7 +19,7 @@ trait ProgramQuery {
 
   import GeneralSchema.ArgumentIncludeDeleted
   import ProgramSchema.{ProgramIdArgument, ProgramType}
-  import QuerySchema.ArgumentLimit
+  import QuerySchema.ArgumentOptionLimit
   import context._
 
   implicit val ArgumentOptionWhereProgram: Argument[Option[WhereProgram]] =
@@ -26,6 +27,13 @@ trait ProgramQuery {
       name         = "WHERE",
       argumentType = OptionInputType(InputObjectWhereProgram),
       description  = "Filters the selection of programs."
+    )
+
+  implicit val ArgumentOptionOffsetProgram: Argument[Option[Program.Id]] =
+    Argument(
+      name         = "OFFSET",
+      argumentType = OptionInputType(ProgramIdType),
+      description  = "Starts the result set at (or after if not existent) the given program id."
     )
 
   implicit def ProgramSelectResult[F[_]: Dispatcher: Async: Logger]: ObjectType[Any, SelectResult[ProgramModel]] =
@@ -36,8 +44,8 @@ trait ProgramQuery {
       name        = "programs",
       fieldType   = ProgramSelectResult[F],
       description = Some("Selects the first `LIMIT` matching programs based on the provided `WHERE` parameter, if any."),
-      arguments   = List(ArgumentOptionWhereProgram, ArgumentLimit),
-      resolve = c => c.program(_.selectWhere(c.arg(ArgumentOptionWhereProgram), c.arg(ArgumentLimit).getOrElse(DefaultLimit)))
+      arguments   = List(ArgumentOptionWhereProgram, ArgumentOptionOffsetProgram, ArgumentOptionLimit),
+      resolve = c => c.program(_.selectWhere(c.arg(ArgumentOptionWhereProgram), c.arg(ArgumentOptionOffsetProgram), c.arg(ArgumentOptionLimit).getOrElse(DefaultLimit)))
     )
 
   def program[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =

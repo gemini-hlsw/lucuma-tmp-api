@@ -3,11 +3,11 @@
 
 package lucuma.odb.api.model.query
 
-import eu.timepit.refined.types.all.NonNegInt
+import cats.Eq
+
 
 trait SelectResult[A] {
   def matches:    List[A]
-  def totalCount: NonNegInt
   def hasMore:    Boolean
 }
 
@@ -15,11 +15,16 @@ object SelectResult {
 
   final case class Standard[A](
     matches:    List[A],
-    totalCount: NonNegInt
-  ) extends SelectResult[A] {
+    hasMore:    Boolean,
+  ) extends SelectResult[A]
 
-    override def hasMore: Boolean =
-      matches.size < totalCount.value
+  object Standard {
+
+    implicit def EqStandard[A: Eq]: Eq[Standard[A]] =
+      Eq.by { a =>(
+        a.matches,
+        a.hasMore
+      )}
 
   }
 
