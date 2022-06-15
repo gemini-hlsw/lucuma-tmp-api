@@ -16,6 +16,7 @@ final case class WhereProposal(
   IS_NULL:       Option[Boolean],
 
   title:         Option[WhereOptionString],
+  clazz:         Option[WhereProposalClass],
   category:      Option[WhereOptionEq[TacCategory]],
   toOActivation: Option[WhereEq[ToOActivation]],
   abstrakt:      Option[WhereOptionString]
@@ -28,6 +29,7 @@ final case class WhereProposal(
     new WherePredicate[Proposal] {
       override def matches(a: Proposal): Boolean =
         title.forall(_.matchesNonEmptyString(a.title))     &&
+          clazz.forall(_.matches(a.proposalClass))         &&
           category.forall(_.matches(a.category))           &&
           toOActivation.forall(_.matches(a.toOActivation)) &&
           abstrakt.forall(_.matchesNonEmptyString(a.abstrakt))
@@ -43,11 +45,12 @@ object WhereProposal {
     Configuration.default.withDefaults
       .copy(transformMemberNames = {
          case "abstrakt" => "abstract"
-          case other => other
-        })
+         case "clazz"    => "class"
+         case other      => other
+      })
 
 
-  implicit val DecoderProposalWhere: Decoder[WhereProposal] =
+  implicit val DecoderWhereProposal: Decoder[WhereProposal] =
     deriveConfiguredDecoder[WhereProposal]
 
 }

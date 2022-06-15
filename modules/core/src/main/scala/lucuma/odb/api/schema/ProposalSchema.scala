@@ -5,7 +5,7 @@ package lucuma.odb.api.schema
 
 import lucuma.core.enums.{TacCategory, ToOActivation}
 import lucuma.core.model.{Partner, Proposal}
-import lucuma.odb.api.model.{PartnerSplit, WhereProposal}
+import lucuma.odb.api.model.{PartnerSplit, ProposalClassEnum, WhereProposal, WhereProposalClass}
 import lucuma.odb.api.model.query.{WhereEq, WhereOptionEq}
 import sangria.macros.derive.{DocumentInputField, InputObjectTypeDescription, InputObjectTypeName, ReplaceInputField, deriveInputObjectType}
 import sangria.schema._
@@ -26,6 +26,14 @@ object ProposalSchema {
   implicit val EnumTypeToOActivation: EnumType[ToOActivation] =
     EnumType.fromEnumerated("ToOActivation", "ToO Activation")
 
+  implicit val EnumTypeProposalClassEnum: EnumType[ProposalClassEnum] =
+    EnumType.fromEnumerated("ProposalClassEnum", "Proposal class type")
+
+  implicit val InputObjectWhereEqProposalClassEnum: InputObjectType[WhereEq[ProposalClassEnum]] =
+    deriveInputObjectType(
+      InputObjectTypeName("WhereProposalClassType")
+    )
+
   implicit val InputObjectWhereEqTacCategory: InputObjectType[WhereOptionEq[TacCategory]] =
     deriveInputObjectType(
       InputObjectTypeName("WhereTacCategory")
@@ -36,11 +44,19 @@ object ProposalSchema {
       InputObjectTypeName("WhereToOActivation")
     )
 
+  implicit val InputObjectWhereProposalClass: InputObjectType[WhereProposalClass] =
+    deriveInputObjectType[WhereProposalClass](
+      InputObjectTypeName("WhereProposalClass"),
+      InputObjectTypeDescription("Proposal class filter options."),
+      ReplaceInputField("classType", OptionInputType(InputObjectWhereEqProposalClassEnum).optionField("type"))
+    )
+
   implicit val InputObjectWhereProposal: InputObjectType[WhereProposal] =
     deriveInputObjectType[WhereProposal](
       InputObjectTypeName("WhereProposal"),
       InputObjectTypeDescription("Proposal filter options.  All specified items must match."),
       ReplaceInputField("abstrakt", InputObjectWhereOptionString.optionField("abstract")),
+      ReplaceInputField("clazz",    OptionInputType(InputObjectWhereProposalClass).optionField("class")),
       DocumentInputField("AND",     document.andField("proposal")),
       DocumentInputField("OR",      document.orField("proposal")),
       DocumentInputField("NOT",     document.notField("proposal")),

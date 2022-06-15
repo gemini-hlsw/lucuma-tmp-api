@@ -7,7 +7,7 @@ import cats.syntax.option._
 import eu.timepit.refined.auto._
 import eu.timepit.refined.types.all.NonNegInt
 import io.circe.refined._
-import lucuma.odb.api.model.query.{SelectResult, WhereOptionString, WhereString}
+import lucuma.odb.api.model.query.{SelectResult, WhereOptionString, WhereOrder, WhereString}
 import sangria.marshalling.circe._
 import sangria.macros.derive.{DocumentInputField, InputObjectTypeDescription, InputObjectTypeName, deriveInputObjectType}
 import sangria.schema._
@@ -43,6 +43,12 @@ object QuerySchema {
       DocumentInputField("LIKE",       document.like),
       DocumentInputField("NLIKE",      document.nlike),
       DocumentInputField("MATCH_CASE", document.matchCase)
+    )
+
+  implicit val InputObjectWhereOrderInt: InputObjectType[WhereOrder[Int]] =
+    deriveInputObjectType[WhereOrder[Int]](
+      InputObjectTypeName("WhereOrderInt"),
+      InputObjectTypeDescription("Integer matching options")
     )
 
   object document {
