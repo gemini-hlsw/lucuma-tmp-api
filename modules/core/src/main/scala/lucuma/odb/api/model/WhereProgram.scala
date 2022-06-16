@@ -20,7 +20,7 @@ final case class WhereProgram(
 ) extends WhereCombinator[ProgramModel] {
 
   override def matches(a: ProgramModel): Boolean =
-    super.matches(a)                              &&
+    combinatorMatches(a)                          &&
       id.forall(_.matches(a.id))                  &&
       name.forall(_.matches(a.name.map(_.value))) &&
       existence.forall(_.matches(a.existence))    &&

@@ -20,8 +20,7 @@ final case class WhereOrder[A: Order](
 ) extends WherePredicate[A] {
 
   override def matches(a: A): Boolean =
-    super.matches(a)           &&
-      EQ.forall(a === _)       &&
+    EQ.forall(a === _)         &&
       NEQ.forall(a =!= _)      &&
       GT.forall(a > _)         &&
       LT.forall(a < _)         &&

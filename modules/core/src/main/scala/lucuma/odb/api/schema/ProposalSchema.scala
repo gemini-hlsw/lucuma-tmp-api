@@ -5,7 +5,7 @@ package lucuma.odb.api.schema
 
 import lucuma.core.enums.{TacCategory, ToOActivation}
 import lucuma.core.model.{Partner, Proposal}
-import lucuma.odb.api.model.{PartnerSplit, ProposalClassEnum, WhereProposal, WhereProposalClass}
+import lucuma.odb.api.model.{PartnerSplit, ProposalClassEnum, WhereProposal, WhereProposalClass, WhereProposalPartnerEntry, WhereProposalPartners}
 import lucuma.odb.api.model.query.{WhereEq, WhereOptionEq}
 import sangria.macros.derive.{DocumentInputField, InputObjectTypeDescription, InputObjectTypeName, ReplaceInputField, deriveInputObjectType}
 import sangria.schema._
@@ -32,6 +32,21 @@ object ProposalSchema {
   implicit val InputObjectWhereEqProposalClassEnum: InputObjectType[WhereEq[ProposalClassEnum]] =
     deriveInputObjectType(
       InputObjectTypeName("WhereProposalClassType")
+    )
+
+  implicit val InputObjectWhereEqPartner: InputObjectType[WhereEq[Partner]] =
+    deriveInputObjectType(
+      InputObjectTypeName("WhereEqPartner")
+    )
+
+  implicit val InputObjectWhereProposalPartnerEntry: InputObjectType[WhereProposalPartnerEntry] =
+    deriveInputObjectType(
+      InputObjectTypeName("WhereProposalPartnerEntry")
+    )
+
+  implicit val InputObjectWhereProposalPartners: InputObjectType[WhereProposalPartners] =
+    deriveInputObjectType(
+      InputObjectTypeName("WhereProposalPartners")
     )
 
   implicit val InputObjectWhereEqTacCategory: InputObjectType[WhereOptionEq[TacCategory]] =

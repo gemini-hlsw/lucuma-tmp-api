@@ -13,8 +13,7 @@ final case class WhereProposalClass(
 ) extends WherePredicate[ProposalClass] {
 
   override def matches(a: ProposalClass): Boolean =
-    super.matches(a)                                                      &&
-      classType.forall(_.matches(ProposalClassEnum.fromProposalClass(a))) &&
+    classType.forall(_.matches(ProposalClassEnum.fromProposalClass(a))) &&
       minPercent.forall(_.matches(a.minPercentTime.value))
 
 }

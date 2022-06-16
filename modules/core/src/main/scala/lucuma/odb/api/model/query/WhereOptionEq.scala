@@ -16,12 +16,17 @@ final case class WhereOptionEq[A: Eq](
   NIN:     Option[List[A]],
 ) extends WhereOption[A] {
 
-  def whenEmpty: Boolean =
-    EQ.isEmpty && IN.forall(_.isEmpty) && NIN.forall(_.nonEmpty)
+  override def allEmpty: Boolean =
+    EQ.isEmpty     &&
+      NEQ.isEmpty  &&
+      IN.isEmpty   &&
+      NIN.isEmpty
 
   def whenNonEmpty: WherePredicate[A] =
     WhereEq(EQ, NEQ, IN, NIN)
 
+  override def matches(a: Option[A]): Boolean =
+    optionMatches(a)
 }
 
 object WhereOptionEq {

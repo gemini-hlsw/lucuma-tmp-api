@@ -76,8 +76,7 @@ final case class WhereString(
 
     val sʹ = if (MATCH_CASE) s else s.toLowerCase
 
-    super.matches(s)               &&
-      eqʹ.forall(_ === sʹ)         &&
+    eqʹ.forall(_ === sʹ)         &&
       neqʹ.forall(_ =!= sʹ)        &&
       inʹ.forall(_.contains(sʹ))   &&
       ninʹ.forall(!_.contains(sʹ)) &&

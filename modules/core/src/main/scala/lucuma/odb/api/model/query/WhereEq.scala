@@ -16,8 +16,7 @@ final case class WhereEq[A: Eq](
 ) extends WherePredicate[A] {
 
   override def matches(a: A): Boolean =
-    super.matches(a)             &&
-      EQ.forall(_ === a)         &&
+    EQ.forall(_ === a)           &&
       NEQ.forall(_ =!= a)        &&
       IN.forall(_.contains(a))   &&
       NIN.forall(!_.contains(a))

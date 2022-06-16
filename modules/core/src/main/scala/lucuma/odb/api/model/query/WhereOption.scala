@@ -9,12 +9,11 @@ trait WhereOption[A] extends WherePredicate[Option[A]] {
 
   def IS_NULL: Option[Boolean]
 
-  def whenEmpty: Boolean
+  def allEmpty: Boolean
   def whenNonEmpty: WherePredicate[A]
 
-  override def matches(a: Option[A]): Boolean =
-    super.matches(a)                           &&
-      IS_NULL.forall(_ === a.isEmpty)          &&
-      a.fold(whenEmpty)(whenNonEmpty.matches)
+  def optionMatches(a: Option[A]): Boolean =
+    IS_NULL.forall(_ === a.isEmpty)          &&
+      a.fold(allEmpty)(whenNonEmpty.matches)
 
 }

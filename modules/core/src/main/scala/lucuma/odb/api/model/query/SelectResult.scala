@@ -7,21 +7,21 @@ import cats.Eq
 
 
 trait SelectResult[A] {
-  def matches:    List[A]
-  def hasMore:    Boolean
+  def matches: List[A]
+  def hasMore: Boolean
 }
 
 object SelectResult {
 
   final case class Standard[A](
-    matches:    List[A],
-    hasMore:    Boolean,
+    matches: List[A],
+    hasMore: Boolean,
   ) extends SelectResult[A]
 
   object Standard {
 
     implicit def EqStandard[A: Eq]: Eq[Standard[A]] =
-      Eq.by { a =>(
+      Eq.by { a => (
         a.matches,
         a.hasMore
       )}

@@ -3,12 +3,8 @@
 
 package lucuma.odb.api.model.query
 
-import scala.annotation.nowarn
-
 trait WherePredicate[A] {
 
-  @nowarn
-  def matches(a: A): Boolean =
-    true
+  def matches(a: A): Boolean
 
 }

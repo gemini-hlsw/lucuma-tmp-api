@@ -19,22 +19,28 @@ final case class WhereProposal(
   clazz:         Option[WhereProposalClass],
   category:      Option[WhereOptionEq[TacCategory]],
   toOActivation: Option[WhereEq[ToOActivation]],
-  abstrakt:      Option[WhereOptionString]
+  abstrakt:      Option[WhereOptionString],
+  partners:      Option[WhereProposalPartners]
 ) extends WhereOption[Proposal] with WhereCombinator[Option[Proposal]] {
 
-  override def whenEmpty: Boolean =
-    title.isEmpty && category.isEmpty && toOActivation.isEmpty && abstrakt.isEmpty
+  override def allEmpty: Boolean =
+    title.isEmpty           &&
+      clazz.isEmpty         &&
+      category.isEmpty      &&
+      toOActivation.isEmpty &&
+      abstrakt.isEmpty      &&
+      partners.isEmpty
 
   override def whenNonEmpty: WherePredicate[Proposal] =
-    new WherePredicate[Proposal] {
-      override def matches(a: Proposal): Boolean =
-        title.forall(_.matchesNonEmptyString(a.title))     &&
-          clazz.forall(_.matches(a.proposalClass))         &&
-          category.forall(_.matches(a.category))           &&
-          toOActivation.forall(_.matches(a.toOActivation)) &&
-          abstrakt.forall(_.matchesNonEmptyString(a.abstrakt))
-    }
+    (a: Proposal) =>
+      title.forall(_.matchesNonEmptyString(a.title)) &&
+      clazz.forall(_.matches(a.proposalClass)) &&
+      category.forall(_.matches(a.category)) &&
+      toOActivation.forall(_.matches(a.toOActivation)) &&
+      abstrakt.forall(_.matchesNonEmptyString(a.abstrakt))
 
+  override def matches(a: Option[Proposal]): Boolean =
+    optionMatches(a) && combinatorMatches(a)
 }
 
 object WhereProposal {

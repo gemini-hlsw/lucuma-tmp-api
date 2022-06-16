@@ -19,14 +19,22 @@ final case class WhereOptionString(
   MATCH_CASE: Boolean = true
 ) extends WhereOption[String] {
 
-  def whenEmpty: Boolean =
-    EQ.isEmpty && IN.forall(_.isEmpty) && NIN.forall(_.nonEmpty) && LIKE.isEmpty
+  override def allEmpty: Boolean =
+    EQ.isEmpty     &&
+      NEQ.isEmpty  &&
+      IN.isEmpty   &&
+      NIN.isEmpty  &&
+      LIKE.isEmpty &&
+      NLIKE.isEmpty
 
   def whenNonEmpty: WherePredicate[String] =
     WhereString(EQ, NEQ, IN, NIN, LIKE, NLIKE, MATCH_CASE)
 
   def matchesNonEmptyString(s: Option[NonEmptyString]): Boolean =
     matches(s.map(_.value))
+
+  override def matches(a: Option[String]): Boolean =
+    optionMatches(a)
 
 }
 
