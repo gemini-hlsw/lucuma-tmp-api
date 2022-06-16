@@ -6,10 +6,13 @@ package lucuma.odb.api.schema
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
+import lucuma.core.model.Target
+import lucuma.odb.api.model.query.SelectResult
 import lucuma.odb.api.repo.{OdbCtx, ResultPage}
-import lucuma.odb.api.model.targetModel.TargetModel
-import lucuma.odb.api.schema.TargetSchema.ArgumentTargetId
+import lucuma.odb.api.model.targetModel.{TargetModel, WhereTargetInput}
+import lucuma.odb.api.schema.QuerySchema.DefaultLimit
 import org.typelevel.log4cats.Logger
+import sangria.marshalling.circe._
 import sangria.schema._
 
 trait TargetQuery {
@@ -19,7 +22,22 @@ trait TargetQuery {
   import ObservationSchema.{ ObservationIdArgument, OptionalListObservationIdArgument }
   import Paging._
   import ProgramSchema.OptionalProgramIdArgument
-  import TargetSchema.{TargetEnvironmentType, TargetConnectionType, TargetType}
+  import TargetSchema.{ArgumentTargetId, InputObjectWhereTarget, TargetEnvironmentType, TargetConnectionType, TargetIdType, TargetType}
+  import QuerySchema.{ArgumentOptionLimit, SelectResultType}
+
+  implicit val ArgumentOptionWhereTarget: Argument[Option[WhereTargetInput]] =
+    Argument(
+      name         = "WHERE",
+      argumentType = OptionInputType(InputObjectWhereTarget),
+      description  = "Filters the selection of targets."
+    )
+
+  implicit val ArgumentOptionOffsetTarget: Argument[Option[Target.Id]] =
+    Argument(
+      name         = "OFFSET",
+      argumentType = OptionInputType(TargetIdType),
+      description  = "Starts the result set at (or after if not existent) the given target id."
+    )
 
   def target[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
@@ -31,6 +49,18 @@ trait TargetQuery {
         ArgumentIncludeDeleted
       ),
       resolve     = c => c.target(_.select(c.targetId, c.includeDeleted))
+    )
+
+  implicit def TargetSelectResult[F[_]: Dispatcher: Async: Logger]: ObjectType[Any, SelectResult[TargetModel]] =
+    SelectResultType[TargetModel]("target", TargetType[F])
+
+  def targets[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+    Field(
+      name        = "targets",
+      fieldType   = TargetSelectResult[F],
+      description = "Selects the first `LIMIT` matching targets based on the provided `WHERE` parameter, if any.".some,
+      arguments   = List(ArgumentOptionWhereTarget, ArgumentOptionOffsetTarget, ArgumentOptionLimit),
+      resolve     = c => c.target(_.selectWhere(c.arg(ArgumentOptionWhereTarget), c.arg(ArgumentOptionOffsetTarget), c.arg(ArgumentOptionLimit).getOrElse(DefaultLimit)))
     )
 
   def scienceTargets[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
@@ -85,6 +115,7 @@ trait TargetQuery {
   def allFields[F[_]: Dispatcher: Async: Logger]: List[Field[OdbCtx[F], Unit]] =
     List(
       target[F],
+      targets[F],
       scienceTargets[F],
       firstScienceTarget[F],
       asterism[F],

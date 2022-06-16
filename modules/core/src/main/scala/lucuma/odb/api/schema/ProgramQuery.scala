@@ -5,12 +5,11 @@ package lucuma.odb.api.schema
 
 import cats.effect.Async
 import cats.effect.std.Dispatcher
+import cats.syntax.option._
 import lucuma.core.model.Program
 import lucuma.odb.api.model.{ProgramModel, WhereProgramInput}
 import lucuma.odb.api.model.query.SelectResult
 import lucuma.odb.api.repo.OdbCtx
-import lucuma.odb.api.schema.ProgramSchema.{InputObjectWhereProgram, ProgramIdType}
-import lucuma.odb.api.schema.QuerySchema.{DefaultLimit, SelectResultType}
 import org.typelevel.log4cats.Logger
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -18,8 +17,8 @@ import sangria.schema._
 trait ProgramQuery {
 
   import GeneralSchema.ArgumentIncludeDeleted
-  import ProgramSchema.{ProgramIdArgument, ProgramType}
-  import QuerySchema.ArgumentOptionLimit
+  import ProgramSchema.{InputObjectWhereProgram, ProgramIdArgument, ProgramIdType, ProgramType}
+  import QuerySchema.{ArgumentOptionLimit, DefaultLimit, SelectResultType}
   import context._
 
   implicit val ArgumentOptionWhereProgram: Argument[Option[WhereProgramInput]] =
@@ -43,16 +42,16 @@ trait ProgramQuery {
     Field(
       name        = "programs",
       fieldType   = ProgramSelectResult[F],
-      description = Some("Selects the first `LIMIT` matching programs based on the provided `WHERE` parameter, if any."),
+      description = "Selects the first `LIMIT` matching programs based on the provided `WHERE` parameter, if any.".some,
       arguments   = List(ArgumentOptionWhereProgram, ArgumentOptionOffsetProgram, ArgumentOptionLimit),
-      resolve = c => c.program(_.selectWhere(c.arg(ArgumentOptionWhereProgram), c.arg(ArgumentOptionOffsetProgram), c.arg(ArgumentOptionLimit).getOrElse(DefaultLimit)))
+      resolve     = c => c.program(_.selectWhere(c.arg(ArgumentOptionWhereProgram), c.arg(ArgumentOptionOffsetProgram), c.arg(ArgumentOptionLimit).getOrElse(DefaultLimit)))
     )
 
   def program[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "program",
       fieldType   = OptionType(ProgramType[F]),
-      description = Some("Returns the program with the given id, if any."),
+      description = "Returns the program with the given id, if any.".some,
       arguments   = List(ProgramIdArgument, ArgumentIncludeDeleted),
       resolve     = c => c.program(_.select(c.programId, c.includeDeleted))
     )

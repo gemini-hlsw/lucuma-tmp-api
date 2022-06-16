@@ -6,24 +6,27 @@ package lucuma.odb.api.schema
 import cats.effect.Async
 import lucuma.odb.api.schema.syntax.all._
 import lucuma.odb.api.model.{DeclinationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
-import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
+import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel, WhereTargetInput}
 import lucuma.core.enums.{CatalogName, EphemerisKeyType => EphemerisKeyTypeEnum}
 import lucuma.core.math.{Coordinates, Declination, Parallax, ProperMotion, RadialVelocity, RightAscension, VelocityAxis}
 import lucuma.core.model.{CatalogInfo, EphemerisKey, Target}
 import cats.syntax.all._
 import cats.effect.std.Dispatcher
 import lucuma.core.model.Target.{Nonsidereal, Sidereal}
+import lucuma.odb.api.model.query.WhereOrderInput
 import lucuma.odb.api.repo.OdbCtx
 import lucuma.odb.api.schema.GeneralSchema.EnumTypeExistence
 import org.typelevel.log4cats.Logger
+import sangria.macros.derive.{DocumentInputField, InputObjectTypeDescription, InputObjectTypeName, deriveInputObjectType}
 import sangria.schema.{Field, _}
 
 object TargetSchema extends TargetScalars {
 
-  import GeneralSchema.ArgumentIncludeDeleted
-  import ProgramSchema.ProgramType
+  import GeneralSchema.{ArgumentIncludeDeleted, InputObjectTypeWhereEqExistence}
+  import ProgramSchema.{ProgramType, InputObjectWhereOrderProgramId}
   import RefinedSchema.NonEmptyStringType
   import SourceProfileSchema._
+  import QuerySchema._
 
   import context._
 
@@ -42,6 +45,20 @@ object TargetSchema extends TargetScalars {
       name         = "targetId",
       argumentType = OptionInputType(TargetIdType),
       description  = "Target ID"
+    )
+
+  implicit val InputObjectWhereOrderTargetId: InputObjectType[WhereOrderInput[Target.Id]] =
+    deriveInputObjectType[WhereOrderInput[Target.Id]](
+      InputObjectTypeName("WhereTargetId")
+    )
+
+  implicit val InputObjectWhereTarget: InputObjectType[WhereTargetInput] =
+    deriveInputObjectType[WhereTargetInput](
+      InputObjectTypeName("WhereTarget"),
+      InputObjectTypeDescription("Target filter options.  All specified items must match."),
+      DocumentInputField("AND", document.andField("target")),
+      DocumentInputField("OR",  document.orField("target")),
+      DocumentInputField("NOT", document.notField("target"))
     )
 
   implicit val EnumTypeCatalogName: EnumType[CatalogName] =
