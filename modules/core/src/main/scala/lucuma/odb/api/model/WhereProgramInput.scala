@@ -6,17 +6,17 @@ package lucuma.odb.api.model
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import lucuma.core.model.Program
-import lucuma.odb.api.model.query.{WhereCombinator, WhereEq, WhereOptionString, WhereOrder}
+import lucuma.odb.api.model.query.{WhereCombinator, WhereEqInput, WhereOptionStringInput, WhereOrderInput}
 
-final case class WhereProgram(
-  AND:       Option[List[WhereProgram]],
-  OR:        Option[List[WhereProgram]],
-  NOT:       Option[WhereProgram],
+final case class WhereProgramInput(
+  AND:       Option[List[WhereProgramInput]],
+  OR:        Option[List[WhereProgramInput]],
+  NOT:       Option[WhereProgramInput],
 
-  id:        Option[WhereOrder[Program.Id]],
-  name:      Option[WhereOptionString],
-  existence: Option[WhereEq[Existence]],
-  proposal:  Option[WhereProposal]
+  id:        Option[WhereOrderInput[Program.Id]],
+  name:      Option[WhereOptionStringInput],
+  existence: Option[WhereEqInput[Existence]],
+  proposal:  Option[WhereProposalInput]
 ) extends WhereCombinator[ProgramModel] {
 
   override def matches(a: ProgramModel): Boolean =
@@ -28,9 +28,9 @@ final case class WhereProgram(
 
 }
 
-object WhereProgram {
+object WhereProgramInput {
 
-  implicit val DecoderProgramWhere: Decoder[WhereProgram] =
-    deriveDecoder[WhereProgram]
+  implicit val DecoderWhereProgramInput: Decoder[WhereProgramInput] =
+    deriveDecoder[WhereProgramInput]
 
 }

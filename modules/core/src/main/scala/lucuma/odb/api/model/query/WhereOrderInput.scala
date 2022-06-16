@@ -8,7 +8,7 @@ import cats.syntax.order._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 
-final case class WhereOrder[A: Order](
+final case class WhereOrderInput[A: Order](
   EQ:  Option[A],
   NEQ: Option[A],
   GT:  Option[A],
@@ -31,9 +31,9 @@ final case class WhereOrder[A: Order](
 
 }
 
-object WhereOrder {
+object WhereOrderInput {
 
-  implicit def DecoderOrderFilter[A: Decoder: Order]: Decoder[WhereOrder[A]] =
-    deriveDecoder[WhereOrder[A]]
+  implicit def DecoderWhereOrderInput[A: Decoder: Order]: Decoder[WhereOrderInput[A]] =
+    deriveDecoder[WhereOrderInput[A]]
 
 }

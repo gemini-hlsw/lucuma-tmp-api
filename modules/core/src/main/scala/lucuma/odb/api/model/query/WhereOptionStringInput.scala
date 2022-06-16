@@ -8,7 +8,7 @@ import io.circe.Decoder
 import io.circe.refined._
 import io.circe.generic.semiauto.deriveDecoder
 
-final case class WhereOptionString(
+final case class WhereOptionStringInput(
   IS_NULL:    Option[Boolean],
   EQ:         Option[NonEmptyString],
   NEQ:        Option[NonEmptyString],
@@ -28,7 +28,7 @@ final case class WhereOptionString(
       NLIKE.isEmpty
 
   def whenNonEmpty: WherePredicate[String] =
-    WhereString(EQ, NEQ, IN, NIN, LIKE, NLIKE, MATCH_CASE)
+    WhereStringInput(EQ, NEQ, IN, NIN, LIKE, NLIKE, MATCH_CASE)
 
   def matchesNonEmptyString(s: Option[NonEmptyString]): Boolean =
     matches(s.map(_.value))
@@ -38,9 +38,9 @@ final case class WhereOptionString(
 
 }
 
-object WhereOptionString {
+object WhereOptionStringInput {
 
-  implicit val DecoderWhereOptionString: Decoder[WhereOptionString] =
-    deriveDecoder[WhereOptionString]
+  implicit val DecoderWhereOptionStringInput: Decoder[WhereOptionStringInput] =
+    deriveDecoder[WhereOptionStringInput]
 
 }

@@ -3,13 +3,13 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{PlannedTimeSummaryModel, ProgramModel, WhereProgram}
+import lucuma.odb.api.model.{PlannedTimeSummaryModel, ProgramModel, WhereProgramInput}
 import lucuma.core.model.Program
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.foldable._
 import cats.syntax.functor._
-import lucuma.odb.api.model.query.WhereOrder
+import lucuma.odb.api.model.query.WhereOrderInput
 import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
 import sangria.macros.derive.{DocumentInputField, InputObjectTypeDescription, InputObjectTypeName, deriveInputObjectType}
@@ -44,8 +44,8 @@ object ProgramSchema {
       description  = "Program ID"
     )
 
-  implicit val InputObjectWhereOrderProgramId: InputObjectType[WhereOrder[Program.Id]] =
-    deriveInputObjectType[WhereOrder[Program.Id]](
+  implicit val InputObjectWhereOrderProgramId: InputObjectType[WhereOrderInput[Program.Id]] =
+    deriveInputObjectType[WhereOrderInput[Program.Id]](
       InputObjectTypeName("WhereProgramId")
     )
 
@@ -56,8 +56,8 @@ object ProgramSchema {
       description  = "Program Ids"
     )
 
-  implicit val InputObjectWhereProgram: InputObjectType[WhereProgram] =
-    deriveInputObjectType[WhereProgram](
+  implicit val InputObjectWhereProgram: InputObjectType[WhereProgramInput] =
+    deriveInputObjectType[WhereProgramInput](
       InputObjectTypeName("WhereProgram"),
       InputObjectTypeDescription("Program filter options.  All specified items must match."),
       DocumentInputField("AND", document.andField("program")),

@@ -5,7 +5,7 @@ package lucuma.odb.api.schema
 
 import lucuma.odb.api.model.{Existence, PlannedTimeSummaryModel}
 import cats.syntax.all._
-import lucuma.odb.api.model.query.WhereEq
+import lucuma.odb.api.model.query.WhereEqInput
 import sangria.macros.derive.{InputObjectTypeName, deriveInputObjectType}
 import sangria.schema._
 import sangria.validation.ValueCoercionViolation
@@ -25,8 +25,8 @@ object GeneralSchema {
       "State of being: either Deleted or Present"
     )
 
-  implicit val InputObjectTypeWhereEqExistence: InputObjectType[WhereEq[Existence]] =
-    deriveInputObjectType[WhereEq[Existence]](
+  implicit val InputObjectTypeWhereEqExistence: InputObjectType[WhereEqInput[Existence]] =
+    deriveInputObjectType[WhereEqInput[Existence]](
       InputObjectTypeName("WhereExistence")
     )
 

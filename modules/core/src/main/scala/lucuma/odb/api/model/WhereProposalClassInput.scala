@@ -5,11 +5,11 @@ package lucuma.odb.api.model
 
 import io.circe.Decoder
 import lucuma.core.model.ProposalClass
-import lucuma.odb.api.model.query.{WhereEq, WhereOrder, WherePredicate}
+import lucuma.odb.api.model.query.{WhereEqInput, WhereOrderInput, WherePredicate}
 
-final case class WhereProposalClass(
-  classType:  Option[WhereEq[ProposalClassEnum]],
-  minPercent: Option[WhereOrder[Int]]
+final case class WhereProposalClassInput(
+  classType:  Option[WhereEqInput[ProposalClassEnum]],
+  minPercent: Option[WhereOrderInput[Int]]
 ) extends WherePredicate[ProposalClass] {
 
   override def matches(a: ProposalClass): Boolean =
@@ -18,7 +18,7 @@ final case class WhereProposalClass(
 
 }
 
-object WhereProposalClass {
+object WhereProposalClassInput {
 
   import io.circe.generic.extras.semiauto._
   import io.circe.generic.extras.Configuration
@@ -29,7 +29,7 @@ object WhereProposalClass {
           case other      => other
       })
 
-  implicit val DecoderWhereProposalClass: Decoder[WhereProposalClass] =
-    deriveConfiguredDecoder[WhereProposalClass]
+  implicit val DecoderWhereProposalClassInput: Decoder[WhereProposalClassInput] =
+    deriveConfiguredDecoder[WhereProposalClassInput]
 
 }

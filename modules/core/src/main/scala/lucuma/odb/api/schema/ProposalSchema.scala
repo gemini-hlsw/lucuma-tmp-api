@@ -5,8 +5,8 @@ package lucuma.odb.api.schema
 
 import lucuma.core.enums.{TacCategory, ToOActivation}
 import lucuma.core.model.{Partner, Proposal}
-import lucuma.odb.api.model.{PartnerSplit, ProposalClassEnum, WhereProposal, WhereProposalClass, WhereProposalPartnerEntry, WhereProposalPartners}
-import lucuma.odb.api.model.query.{WhereEq, WhereOptionEq}
+import lucuma.odb.api.model.{PartnerSplit, ProposalClassEnum, WhereProposalInput, WhereProposalClassInput, WhereProposalPartnerEntryInput, WhereProposalPartnersInput}
+import lucuma.odb.api.model.query.{WhereEqInput, WhereOptionEqInput}
 import sangria.macros.derive.{DocumentInputField, InputObjectTypeDescription, InputObjectTypeName, ReplaceInputField, deriveInputObjectType}
 import sangria.schema._
 
@@ -29,45 +29,45 @@ object ProposalSchema {
   implicit val EnumTypeProposalClassEnum: EnumType[ProposalClassEnum] =
     EnumType.fromEnumerated("ProposalClassEnum", "Proposal class type")
 
-  implicit val InputObjectWhereEqProposalClassEnum: InputObjectType[WhereEq[ProposalClassEnum]] =
+  implicit val InputObjectWhereEqProposalClassEnum: InputObjectType[WhereEqInput[ProposalClassEnum]] =
     deriveInputObjectType(
       InputObjectTypeName("WhereProposalClassType")
     )
 
-  implicit val InputObjectWhereEqPartner: InputObjectType[WhereEq[Partner]] =
+  implicit val InputObjectWhereEqPartner: InputObjectType[WhereEqInput[Partner]] =
     deriveInputObjectType(
       InputObjectTypeName("WhereEqPartner")
     )
 
-  implicit val InputObjectWhereProposalPartnerEntry: InputObjectType[WhereProposalPartnerEntry] =
+  implicit val InputObjectWhereProposalPartnerEntry: InputObjectType[WhereProposalPartnerEntryInput] =
     deriveInputObjectType(
       InputObjectTypeName("WhereProposalPartnerEntry")
     )
 
-  implicit val InputObjectWhereProposalPartners: InputObjectType[WhereProposalPartners] =
+  implicit val InputObjectWhereProposalPartners: InputObjectType[WhereProposalPartnersInput] =
     deriveInputObjectType(
       InputObjectTypeName("WhereProposalPartners")
     )
 
-  implicit val InputObjectWhereEqTacCategory: InputObjectType[WhereOptionEq[TacCategory]] =
+  implicit val InputObjectWhereEqTacCategory: InputObjectType[WhereOptionEqInput[TacCategory]] =
     deriveInputObjectType(
       InputObjectTypeName("WhereTacCategory")
     )
 
-  implicit val InputObjectWhereEqToOActivation: InputObjectType[WhereEq[ToOActivation]] =
+  implicit val InputObjectWhereEqToOActivation: InputObjectType[WhereEqInput[ToOActivation]] =
     deriveInputObjectType(
       InputObjectTypeName("WhereToOActivation")
     )
 
-  implicit val InputObjectWhereProposalClass: InputObjectType[WhereProposalClass] =
-    deriveInputObjectType[WhereProposalClass](
+  implicit val InputObjectWhereProposalClass: InputObjectType[WhereProposalClassInput] =
+    deriveInputObjectType[WhereProposalClassInput](
       InputObjectTypeName("WhereProposalClass"),
       InputObjectTypeDescription("Proposal class filter options."),
       ReplaceInputField("classType", OptionInputType(InputObjectWhereEqProposalClassEnum).optionField("type"))
     )
 
-  implicit val InputObjectWhereProposal: InputObjectType[WhereProposal] =
-    deriveInputObjectType[WhereProposal](
+  implicit val InputObjectWhereProposal: InputObjectType[WhereProposalInput] =
+    deriveInputObjectType[WhereProposalInput](
       InputObjectTypeName("WhereProposal"),
       InputObjectTypeDescription("Proposal filter options.  All specified items must match."),
       ReplaceInputField("abstrakt", InputObjectWhereOptionString.optionField("abstract")),

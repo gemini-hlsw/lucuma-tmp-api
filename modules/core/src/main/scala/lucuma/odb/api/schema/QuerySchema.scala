@@ -7,7 +7,7 @@ import cats.syntax.option._
 import eu.timepit.refined.auto._
 import eu.timepit.refined.types.all.NonNegInt
 import io.circe.refined._
-import lucuma.odb.api.model.query.{SelectResult, WhereOptionString, WhereOrder, WhereString}
+import lucuma.odb.api.model.query.{SelectResult, WhereOptionStringInput, WhereOrderInput, WhereStringInput}
 import sangria.marshalling.circe._
 import sangria.macros.derive.{DocumentInputField, InputObjectTypeDescription, InputObjectTypeName, deriveInputObjectType}
 import sangria.schema._
@@ -26,8 +26,8 @@ object QuerySchema {
       description  = s"Limits the result to at most this number of matches (but never more than $DefaultLimit)."
     )
 
-  implicit val InputObjectWhereString: InputObjectType[WhereString] =
-    deriveInputObjectType[WhereString](
+  implicit val InputObjectWhereString: InputObjectType[WhereStringInput] =
+    deriveInputObjectType[WhereStringInput](
       InputObjectTypeName("WhereString"),
       InputObjectTypeDescription("String matching options."),
       DocumentInputField("LIKE",       document.like),
@@ -35,8 +35,8 @@ object QuerySchema {
       DocumentInputField("MATCH_CASE", document.matchCase)
     )
 
-  implicit val InputObjectWhereOptionString: InputObjectType[WhereOptionString] =
-    deriveInputObjectType[WhereOptionString](
+  implicit val InputObjectWhereOptionString: InputObjectType[WhereOptionStringInput] =
+    deriveInputObjectType[WhereOptionStringInput](
       InputObjectTypeName("WhereOptionString"),
       InputObjectTypeDescription("String matching options."),
       DocumentInputField("IS_NULL",    document.isNullField("string")),
@@ -45,8 +45,8 @@ object QuerySchema {
       DocumentInputField("MATCH_CASE", document.matchCase)
     )
 
-  implicit val InputObjectWhereOrderInt: InputObjectType[WhereOrder[Int]] =
-    deriveInputObjectType[WhereOrder[Int]](
+  implicit val InputObjectWhereOrderInt: InputObjectType[WhereOrderInput[Int]] =
+    deriveInputObjectType[WhereOrderInput[Int]](
       InputObjectTypeName("WhereOrderInt"),
       InputObjectTypeDescription("Integer matching options")
     )

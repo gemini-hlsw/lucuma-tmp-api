@@ -5,10 +5,13 @@ package lucuma.odb.api.model.query
 
 import cats.syntax.eq._
 import eu.timepit.refined.types.string.NonEmptyString
+import io.circe.Decoder
+import io.circe.generic.semiauto.deriveDecoder
+import io.circe.refined._
 
 import scala.util.matching.Regex
 
-final case class WhereString(
+final case class WhereStringInput(
   EQ:         Option[NonEmptyString],
   NEQ:        Option[NonEmptyString],
   IN:         Option[List[NonEmptyString]],
@@ -86,6 +89,13 @@ final case class WhereString(
 
   def matchesNonEmptyString(s: NonEmptyString): Boolean =
     matches(s.value)
+
+}
+
+object WhereStringInput {
+
+  implicit val DecoderWhereStringInput: Decoder[WhereStringInput] =
+    deriveDecoder[WhereStringInput]
 
 }
 

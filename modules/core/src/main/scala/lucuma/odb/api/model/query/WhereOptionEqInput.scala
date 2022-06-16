@@ -8,7 +8,7 @@ import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 
 
-final case class WhereOptionEq[A: Eq](
+final case class WhereOptionEqInput[A: Eq](
   IS_NULL: Option[Boolean],
   EQ:      Option[A],
   NEQ:     Option[A],
@@ -23,15 +23,15 @@ final case class WhereOptionEq[A: Eq](
       NIN.isEmpty
 
   def whenNonEmpty: WherePredicate[A] =
-    WhereEq(EQ, NEQ, IN, NIN)
+    WhereEqInput(EQ, NEQ, IN, NIN)
 
   override def matches(a: Option[A]): Boolean =
     optionMatches(a)
 }
 
-object WhereOptionEq {
+object WhereOptionEqInput {
 
-  implicit def DecoderWhereOptionEq[A: Decoder: Eq]: Decoder[WhereOptionEq[A]] =
-    deriveDecoder[WhereOptionEq[A]]
+  implicit def DecoderWhereOptionEqInput[A: Decoder: Eq]: Decoder[WhereOptionEqInput[A]] =
+    deriveDecoder[WhereOptionEqInput[A]]
 
 }

@@ -6,15 +6,15 @@ package lucuma.odb.api.model
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import lucuma.core.model.{IntPercent, Partner}
-import lucuma.odb.api.model.query.{WhereCombinator, WhereEq, WhereOrder}
+import lucuma.odb.api.model.query.{WhereCombinator, WhereEqInput, WhereOrderInput}
 
-final case class WhereProposalPartnerEntry(
-  AND:     Option[List[WhereProposalPartnerEntry]],
-  OR:      Option[List[WhereProposalPartnerEntry]],
-  NOT:     Option[WhereProposalPartnerEntry],
+final case class WhereProposalPartnerEntryInput(
+  AND:     Option[List[WhereProposalPartnerEntryInput]],
+  OR:      Option[List[WhereProposalPartnerEntryInput]],
+  NOT:     Option[WhereProposalPartnerEntryInput],
 
-  partner: Option[WhereEq[Partner]],
-  percent: Option[WhereOrder[Int]],
+  partner: Option[WhereEqInput[Partner]],
+  percent: Option[WhereOrderInput[Int]],
 ) extends WhereCombinator[Map[Partner, IntPercent]] {
 
   override def matches(a: Map[Partner, IntPercent]): Boolean = {
@@ -29,9 +29,9 @@ final case class WhereProposalPartnerEntry(
 
 }
 
-object WhereProposalPartnerEntry {
+object WhereProposalPartnerEntryInput {
 
-  implicit val DecoderWhereProposalPartnerEntry: Decoder[WhereProposalPartnerEntry] =
-    deriveDecoder[WhereProposalPartnerEntry]
+  implicit val DecoderWhereProposalPartnerEntryInput: Decoder[WhereProposalPartnerEntryInput] =
+    deriveDecoder[WhereProposalPartnerEntryInput]
 
 }

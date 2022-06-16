@@ -6,7 +6,7 @@ package lucuma.odb.api.schema
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import lucuma.core.model.Program
-import lucuma.odb.api.model.{ProgramModel, WhereProgram}
+import lucuma.odb.api.model.{ProgramModel, WhereProgramInput}
 import lucuma.odb.api.model.query.SelectResult
 import lucuma.odb.api.repo.OdbCtx
 import lucuma.odb.api.schema.ProgramSchema.{InputObjectWhereProgram, ProgramIdType}
@@ -22,7 +22,7 @@ trait ProgramQuery {
   import QuerySchema.ArgumentOptionLimit
   import context._
 
-  implicit val ArgumentOptionWhereProgram: Argument[Option[WhereProgram]] =
+  implicit val ArgumentOptionWhereProgram: Argument[Option[WhereProgramInput]] =
     Argument(
       name         = "WHERE",
       argumentType = OptionInputType(InputObjectWhereProgram),

@@ -6,21 +6,21 @@ package lucuma.odb.api.model
 import io.circe.Decoder
 import lucuma.core.`enum`.{TacCategory, ToOActivation}
 import lucuma.core.model.Proposal
-import lucuma.odb.api.model.query.{WhereCombinator, WhereEq, WhereOption, WhereOptionEq, WhereOptionString, WherePredicate}
+import lucuma.odb.api.model.query.{WhereCombinator, WhereEqInput, WhereOption, WhereOptionEqInput, WhereOptionStringInput, WherePredicate}
 
 
-final case class WhereProposal(
-  AND:           Option[List[WhereProposal]],
-  OR:            Option[List[WhereProposal]],
-  NOT:           Option[WhereProposal],
+final case class WhereProposalInput(
+  AND:           Option[List[WhereProposalInput]],
+  OR:            Option[List[WhereProposalInput]],
+  NOT:           Option[WhereProposalInput],
   IS_NULL:       Option[Boolean],
 
-  title:         Option[WhereOptionString],
-  clazz:         Option[WhereProposalClass],
-  category:      Option[WhereOptionEq[TacCategory]],
-  toOActivation: Option[WhereEq[ToOActivation]],
-  abstrakt:      Option[WhereOptionString],
-  partners:      Option[WhereProposalPartners]
+  title:         Option[WhereOptionStringInput],
+  clazz:         Option[WhereProposalClassInput],
+  category:      Option[WhereOptionEqInput[TacCategory]],
+  toOActivation: Option[WhereEqInput[ToOActivation]],
+  abstrakt:      Option[WhereOptionStringInput],
+  partners:      Option[WhereProposalPartnersInput]
 ) extends WhereOption[Proposal] with WhereCombinator[Option[Proposal]] {
 
   override def allEmpty: Boolean =
@@ -43,7 +43,7 @@ final case class WhereProposal(
     optionMatches(a) && combinatorMatches(a)
 }
 
-object WhereProposal {
+object WhereProposalInput {
 
   import io.circe.generic.extras.semiauto._
   import io.circe.generic.extras.Configuration
@@ -56,7 +56,7 @@ object WhereProposal {
       })
 
 
-  implicit val DecoderWhereProposal: Decoder[WhereProposal] =
-    deriveConfiguredDecoder[WhereProposal]
+  implicit val DecoderWhereProposalInput: Decoder[WhereProposalInput] =
+    deriveConfiguredDecoder[WhereProposalInput]
 
 }

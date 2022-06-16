@@ -9,8 +9,8 @@ import io.circe.generic.semiauto.deriveDecoder
 import lucuma.core.model.{IntPercent, Partner}
 import lucuma.odb.api.model.query.WherePredicate
 
-final case class WhereProposalPartners(
-  MATCH:   Option[WhereProposalPartnerEntry],
+final case class WhereProposalPartnersInput(
+  MATCH:   Option[WhereProposalPartnerEntryInput],
   EQ:      Option[List[Partner]],
   isJoint: Option[Boolean]
 ) extends WherePredicate[Map[Partner, IntPercent]] {
@@ -24,9 +24,9 @@ final case class WhereProposalPartners(
   }
 }
 
-object WhereProposalPartners {
+object WhereProposalPartnersInput {
 
-  implicit val DecoderWhereProposalPartners: Decoder[WhereProposalPartners] =
-    deriveDecoder[WhereProposalPartners]
+  implicit val DecoderWhereProposalPartnersInput: Decoder[WhereProposalPartnersInput] =
+    deriveDecoder[WhereProposalPartnersInput]
 
 }

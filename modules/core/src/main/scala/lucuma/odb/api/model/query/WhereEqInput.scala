@@ -8,7 +8,7 @@ import cats.syntax.eq._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 
-final case class WhereEq[A: Eq](
+final case class WhereEqInput[A: Eq](
   EQ:  Option[A],
   NEQ: Option[A],
   IN:  Option[List[A]],
@@ -23,9 +23,9 @@ final case class WhereEq[A: Eq](
 
 }
 
-object WhereEq {
+object WhereEqInput {
 
-  implicit def DecoderWhereEq[A: Decoder: Eq]: Decoder[WhereEq[A]] =
-    deriveDecoder[WhereEq[A]]
+  implicit def DecoderWhereEqInput[A: Decoder: Eq]: Decoder[WhereEqInput[A]] =
+    deriveDecoder[WhereEqInput[A]]
 
 }
