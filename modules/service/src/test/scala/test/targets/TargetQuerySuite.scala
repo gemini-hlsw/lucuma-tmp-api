@@ -19,24 +19,6 @@ class TargetQuerySuite extends OdbSuite {
   // o-7: <none>
   //
 
-  // Pick the first (or only in this case) science target for o-2.
-  queryTest(
-    query ="""
-      query ScienceTargetForObservation {
-        firstScienceTarget(observationId: "o-2") {
-          name
-        }
-      }
-    """,
-    expected =json"""
-      {
-        "firstScienceTarget": {
-          "name": "NGC 5949"
-        }
-      }
-    """
-  )
-
   // Fetch all science targets for o-6.
   queryTest(
     query ="""

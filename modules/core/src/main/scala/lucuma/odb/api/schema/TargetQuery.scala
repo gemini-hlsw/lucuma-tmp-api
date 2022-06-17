@@ -8,7 +8,7 @@ import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import lucuma.core.model.Target
 import lucuma.odb.api.model.query.SelectResult
-import lucuma.odb.api.repo.{OdbCtx, ResultPage}
+import lucuma.odb.api.repo.OdbCtx
 import lucuma.odb.api.model.targetModel.{TargetModel, WhereTargetInput}
 import lucuma.odb.api.schema.QuerySchema.DefaultLimit
 import org.typelevel.log4cats.Logger
@@ -19,10 +19,8 @@ trait TargetQuery {
   import context._
 
   import GeneralSchema.ArgumentIncludeDeleted
-  import ObservationSchema.{ ObservationIdArgument, OptionalListObservationIdArgument }
-  import Paging._
-  import ProgramSchema.OptionalProgramIdArgument
-  import TargetSchema.{ArgumentTargetId, InputObjectWhereTarget, TargetEnvironmentType, TargetConnectionType, TargetIdType, TargetType}
+  import ObservationSchema.ObservationIdArgument
+  import TargetSchema.{ArgumentTargetId, InputObjectWhereTarget, TargetEnvironmentType, TargetIdType, TargetType}
   import QuerySchema.{ArgumentOptionLimit, SelectResultType}
 
   implicit val ArgumentOptionWhereTarget: Argument[Option[WhereTargetInput]] =
@@ -63,37 +61,6 @@ trait TargetQuery {
       resolve     = c => c.target(_.selectWhere(c.arg(ArgumentOptionWhereTarget), c.arg(ArgumentOptionOffsetTarget), c.arg(ArgumentOptionLimit).getOrElse(DefaultLimit)))
     )
 
-  def scienceTargets[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
-    Field(
-      name        = "scienceTargets",
-      fieldType   = TargetConnectionType[F],
-      description = "All the science targets associated with a given program or specific observations".some,
-      arguments   = List(
-        OptionalProgramIdArgument,
-        OptionalListObservationIdArgument,
-        ArgumentPagingFirst,
-        ArgumentPagingCursor,
-        ArgumentIncludeDeleted
-      ),
-      resolve = c =>
-        unsafeSelectTopLevelPageFuture(c.pagingTargetId) { gid =>
-          (c.optionalProgramId, c.arg(OptionalListObservationIdArgument)) match {
-            case (_, Some(oids)) => c.ctx.odbRepo.target.selectPageForObservations(oids.toSet, c.pagingFirst, gid, c.includeDeleted)
-            case (Some(pid), _)  => c.ctx.odbRepo.target.selectPageForProgram(pid, c.pagingFirst, gid, c.includeDeleted)
-            case _               => ResultPage.empty[TargetModel].pure[F]
-          }
-        }
-    )
-
-  def firstScienceTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
-    Field(
-      name        = "firstScienceTarget",
-      fieldType   = OptionType(TargetType[F]),
-      description = "The first (or only) science target (if any) for the given observation.  This will essentially pick a random target from the observation's asterism and is meant as a convenience when there is only one target.".some,
-      arguments   = List(ObservationIdArgument, ArgumentIncludeDeleted),
-      resolve     = c => c.target(_.selectObservationFirstTarget(c.observationId))
-    )
-
   def asterism[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "asterism",
@@ -116,8 +83,6 @@ trait TargetQuery {
     List(
       target[F],
       targets[F],
-      scienceTargets[F],
-      firstScienceTarget[F],
       asterism[F],
       targetEnvironment[F]
     )
