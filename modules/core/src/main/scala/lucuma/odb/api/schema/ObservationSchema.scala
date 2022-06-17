@@ -8,10 +8,12 @@ import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import lucuma.core.enums.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.Observation
-import lucuma.odb.api.model.{ObservationModel, PlannedTimeSummaryModel}
+import lucuma.odb.api.model.query.WhereOrderInput
+import lucuma.odb.api.model.{ObservationModel, PlannedTimeSummaryModel, WhereObservationInput}
 import lucuma.odb.api.repo.OdbCtx
 import lucuma.odb.api.schema.TargetSchema.TargetEnvironmentType
 import org.typelevel.log4cats.Logger
+import sangria.macros.derive.{DocumentInputField, InputObjectTypeDescription, InputObjectTypeName, deriveInputObjectType}
 import sangria.schema._
 
 import scala.collection.immutable.Seq
@@ -23,10 +25,11 @@ object ObservationSchema {
   import ScienceModeSchema._
   import ExecutionSchema.ExecutionType
   import ItcSchema.ItcSuccessType
-  import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, PlannedTimeSummaryType}
+  import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, InputObjectTypeWhereEqExistence, PlannedTimeSummaryType}
   import PosAngleConstraintSchema._
-  import ProgramSchema.ProgramType
+  import ProgramSchema.{ProgramType,  InputObjectWhereOrderProgramId}
   import RefinedSchema.NonEmptyStringType
+  import QuerySchema._
   import ScienceRequirementsSchema.ScienceRequirementsType
   import TimeSchema.InstantScalar
 
@@ -46,6 +49,30 @@ object ObservationSchema {
     EnumType.fromEnumerated(
       "ObsActiveStatus",
       "Observation operational/active status options"
+    )
+
+  implicit val InputObjectWhereOrderObservationId: InputObjectType[WhereOrderInput[Observation.Id]] =
+    deriveInputObjectType[WhereOrderInput[Observation.Id]](
+      InputObjectTypeName("WhereObservationId")
+    )
+
+  implicit val InputObjectWhereOrderObsStatus: InputObjectType[WhereOrderInput[ObsStatus]] =
+    deriveInputObjectType[WhereOrderInput[ObsStatus]](
+      InputObjectTypeName("WhereObsStatus")
+    )
+
+  implicit val InputObjectWhereOrderObsActiveStatus: InputObjectType[WhereOrderInput[ObsActiveStatus]] =
+    deriveInputObjectType[WhereOrderInput[ObsActiveStatus]](
+      InputObjectTypeName("WhereObsActiveStatus")
+    )
+
+  implicit val InputObjectWhereObservation: InputObjectType[WhereObservationInput] =
+    deriveInputObjectType[WhereObservationInput](
+      InputObjectTypeName("WhereObservation"),
+      InputObjectTypeDescription("Observation filter options.  All specified items must match."),
+      DocumentInputField("AND", document.andField("observation")),
+      DocumentInputField("OR",  document.orField("observation")),
+      DocumentInputField("NOT", document.notField("observation"))
     )
 
   val ObservationIdArgument: Argument[Observation.Id] =

@@ -3,16 +3,18 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{InputError, ObservationModel, ScienceMode, ScienceRequirements}
-import lucuma.odb.api.repo.{OdbCtx, ResultPage}
-import cats.MonadError
+import lucuma.odb.api.model.{ObservationModel, ScienceMode, ScienceRequirements, WhereObservationInput}
+import lucuma.odb.api.repo.OdbCtx
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import lucuma.core.model.{ConstraintSet, Observation, Target}
+import lucuma.odb.api.model.query.SelectResult
 import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
+import lucuma.odb.api.schema.QuerySchema.DefaultLimit
 import lucuma.odb.api.schema.TargetSchema.TargetEnvironmentType
 import org.typelevel.log4cats.Logger
+import sangria.marshalling.circe._
 import sangria.schema._
 
 trait ObservationQuery {
@@ -20,42 +22,41 @@ trait ObservationQuery {
   import ConstraintSetSchema.ConstraintSetType
   import context._
   import GeneralSchema.ArgumentIncludeDeleted
-  import Paging._
-  import ProgramSchema.OptionalProgramIdArgument
-  import ObservationSchema.{ObservationIdArgument, ObservationType, ObservationConnectionType, OptionalListObservationIdArgument}
+  import ObservationSchema.{InputObjectWhereObservation, ObservationIdArgument, ObservationIdType, ObservationType}
+  import QuerySchema.{ArgumentOptionLimit, SelectResultType}
   import ScienceModeSchema.ScienceModeType
   import ScienceRequirementsSchema.ScienceRequirementsType
   import TargetSchema.TargetType
 
+  implicit val ArgumentOptionWhereObservation: Argument[Option[WhereObservationInput]] =
+    Argument(
+      name         = "WHERE",
+      argumentType = OptionInputType(InputObjectWhereObservation),
+      description  = "Filters the selection of observations."
+    )
+
+  implicit val ArgumentOptionOffsetObservation: Argument[Option[Observation.Id]] =
+    Argument(
+      name         = "OFFSET",
+      argumentType = OptionInputType(ObservationIdType),
+      description  = "Starts the result set at (or after if not existent) the given observation id."
+    )
+
+  implicit def ObservationSelectResult[F[_]: Dispatcher: Async: Logger]: ObjectType[Any, SelectResult[ObservationModel]] =
+    SelectResultType[ObservationModel]("observation", ObservationType[F])
+
   def observations[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "observations",
-      fieldType   = ObservationConnectionType[F],
-      description = "Returns all observations associated with the given ids or program, or all observations if neither is specified.".some,
+      fieldType   = ObservationSelectResult[F],
+      description = "Selects the first `LIMIT` matching observations based on the provided `WHERE` parameter, if any.".some,
       arguments   = List(
-        OptionalListObservationIdArgument.copy(description = "(Optional) listing of specific observations to retrieve".some),
-        OptionalProgramIdArgument.copy(description = "(Optional) program whose observations are sought".some),
-        ArgumentPagingFirst,
-        ArgumentPagingCursor,
-        ArgumentIncludeDeleted
+        ArgumentOptionWhereObservation,
+        ArgumentOptionOffsetObservation,
+        ArgumentOptionLimit
       ),
       resolve     = c =>
-        unsafeSelectTopLevelPageFuture(c.pagingObservationId) { gid =>
-          (c.arg(OptionalListObservationIdArgument), c.arg(OptionalProgramIdArgument)) match {
-            case (Some(_), Some(_)) =>
-              MonadError[F, Throwable].raiseError[ResultPage[ObservationModel]](
-                InputError.fromMessage(
-                  s"Specify only one of `${OptionalListObservationIdArgument.name}` or `${OptionalProgramIdArgument.name}`"
-                ).toException
-              )
-            case (Some(oids), None) =>
-              c.ctx.odbRepo.observation.selectPageForObservations(oids.toSet, c.pagingFirst, gid, c.includeDeleted)
-            case (None, Some(pid))  =>
-              c.ctx.odbRepo.observation.selectPageForProgram(pid, c.pagingFirst, gid, c.includeDeleted)
-            case (None, None)       =>
-              c.ctx.odbRepo.observation.selectPage(c.pagingFirst, gid, c.includeDeleted)
-          }
-        }
+        c.observation(_.selectWhere(c.arg(ArgumentOptionWhereObservation), c.arg(ArgumentOptionOffsetObservation), c.arg(ArgumentOptionLimit).getOrElse(DefaultLimit)))
     )
 
   def forId[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =

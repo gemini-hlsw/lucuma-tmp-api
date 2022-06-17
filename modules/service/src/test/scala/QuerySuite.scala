@@ -87,8 +87,8 @@ class QuerySuite extends OdbSuite {
   queryTest(
     query = """
       query Observations {
-        observations(programId: "p-2") {
-          nodes {
+        observations(WHERE: { programId: { EQ: "p-2" } }) {
+          matches {
             id
             constraintSet {
               cloudExtinction
@@ -103,7 +103,7 @@ class QuerySuite extends OdbSuite {
     expected = json"""
       {
         "observations" : {
-          "nodes" : [
+          "matches" : [
             {
               "id" : "o-2",
               "constraintSet" : {
