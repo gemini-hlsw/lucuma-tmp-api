@@ -434,22 +434,6 @@ object TargetSchema extends TargetScalars {
       )
     )
 
-
-  def TargetEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Edge[TargetModel]] =
-    Paging.EdgeType(
-      "TargetEdge",
-      "A Target and its cursor",
-      TargetType[F]
-    )
-
-  def TargetConnectionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Connection[TargetModel]] =
-    Paging.ConnectionType(
-      "TargetConnection",
-      "Targets in the current page",
-      TargetType[F],
-      TargetEdgeType[F]
-    )
-
   def TargetEnvironmentType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], TargetEnvironmentModel] = {
 
     def asterism(
