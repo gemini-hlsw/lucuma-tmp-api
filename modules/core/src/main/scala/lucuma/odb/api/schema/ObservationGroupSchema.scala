@@ -68,28 +68,6 @@ object ObservationGroupSchema {
       )
     )
 
-  def ObservationGroupEdgeType[F[_], A](
-    groupType: ObjectType[OdbCtx[F], ObservationModel.Group[A]]
-  ): ObjectType[OdbCtx[F], Paging.Edge[ObservationModel.Group[A]]] =
-
-    Paging.EdgeType[F, ObservationModel.Group[A]](
-      s"${groupType.name}Edge",
-      "An observation group and its cursor",
-      groupType
-    )
-
-  def ObservationGroupConnectionType[F[_], A](
-    groupType: ObjectType[OdbCtx[F], ObservationModel.Group[A]],
-    edgeType:  ObjectType[OdbCtx[F], Paging.Edge[ObservationModel.Group[A]]]
-  ): ObjectType[OdbCtx[F], Paging.Connection[ObservationModel.Group[A]]] =
-
-    Paging.ConnectionType[F, ObservationModel.Group[A]](
-      s"${groupType.name}Connection",
-      "Observations grouped by common properties",
-      groupType,
-      edgeType
-    )
-
   def groupingField[F[_]: Dispatcher: Async: Logger, A](
     name:        String,
     description: String,
