@@ -34,7 +34,7 @@ object WhereEqInput {
   def EQ[A: Eq](a: A): WhereEqInput[A] =
     WhereEqInput[A](EQ = a.some)
 
-  def IN[A: Enumerated]: WhereEqInput[A] =
+  def ANY[A: Enumerated]: WhereEqInput[A] =
     WhereEqInput(IN = Enumerated[A].all.some)
 
   implicit def DecoderWhereEqInput[A: Decoder: Eq]: Decoder[WhereEqInput[A]] =

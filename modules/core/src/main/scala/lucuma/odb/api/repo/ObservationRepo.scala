@@ -20,13 +20,6 @@ import scala.collection.immutable.SortedSet
 
 sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, ObservationModel] {
 
-  def selectPageForObservations(
-    oids:           Set[Observation.Id],
-    count:          Option[Int]            = None,
-    afterGid:       Option[Observation.Id] = None,
-    includeDeleted: Boolean                = false
-  ): F[ResultPage[ObservationModel]]
-
   def selectForProgram(
     pid:            Program.Id,
     includeDeleted: Boolean                = false,
@@ -117,15 +110,6 @@ object ObservationRepo {
           offset,
           limit
         )
-
-      override def selectPageForObservations(
-        oids:           Set[Observation.Id],
-        count:          Option[Int],
-        afterGid:       Option[Observation.Id],
-        includeDeleted: Boolean
-      ): F[ResultPage[ObservationModel]] =
-
-        selectPageFiltered(count, afterGid, includeDeleted) { o => oids(o.id) }
 
       override def selectManualConfig(
         oid:            Observation.Id,

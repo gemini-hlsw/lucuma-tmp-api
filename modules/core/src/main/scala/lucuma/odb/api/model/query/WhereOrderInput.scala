@@ -4,6 +4,7 @@
 package lucuma.odb.api.model.query
 
 import cats.Order
+import cats.syntax.option._
 import cats.syntax.order._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
@@ -32,6 +33,9 @@ final case class WhereOrderInput[A: Order](
 }
 
 object WhereOrderInput {
+
+  def IN[A: Order](lst: List[A]): WhereOrderInput[A] =
+    WhereOrderInput(IN = lst.some)
 
   implicit def DecoderWhereOrderInput[A: Decoder: Order]: Decoder[WhereOrderInput[A]] =
     deriveDecoder[WhereOrderInput[A]]

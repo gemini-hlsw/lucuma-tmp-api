@@ -6,9 +6,11 @@ package lucuma.odb.api.repo
 import cats.syntax.all._
 import cats.kernel.instances.order._
 import clue.data.Input
+import eu.timepit.refined.types.numeric.NonNegInt
 import eu.timepit.refined.types.string.NonEmptyString
-import lucuma.odb.api.model.{Database, ObservationModel, ProgramModel}
+import lucuma.odb.api.model.{Database, Existence, ObservationModel, ProgramModel, WhereObservationInput}
 import lucuma.odb.api.model.arb.ArbDatabase
+import lucuma.odb.api.model.query.{WhereEqInput, WhereOrderInput}
 import org.scalacheck.Prop.forAll
 import munit.ScalaCheckSuite
 
@@ -36,7 +38,13 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
     forAll { (db: Database, indices: List[Int]) =>
 
       val expected = randomSelect(db, indices).filter(_.existence.isPresent).map(_.id)
-      val obtained = runTest(db) { _.observation.selectPageForObservations(expected.toSet) }.nodes.map(_.id)
+      val obtained = runTest(db) {
+        _.observation.selectWhere(
+          WhereObservationInput(id = WhereOrderInput.IN(expected).some),
+          None,
+          None
+        )
+      }.matches.map(_.id)
 
       assertEquals(obtained, expected)
     }
@@ -46,7 +54,16 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
     forAll { (t: Database, indices: List[Int]) =>
 
       val expected = randomSelect(t, indices).map(_.id)
-      val obtained = runTest(t) { _.observation.selectPageForObservations(expected.toSet, includeDeleted = true) }.nodes.map(_.id)
+      val obtained = runTest(t) {
+        _.observation.selectWhere(
+          WhereObservationInput(
+            id        = WhereOrderInput.IN(expected).some,
+            existence = WhereEqInput.ANY[Existence].some
+          ),
+          None,
+          None
+        )
+      }.matches.map(_.id)
 
       assertEquals(obtained, expected)
     }
@@ -58,7 +75,15 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
       val limitedFirst = if (t.observations.rows.size === 0) 0 else (first % t.observations.rows.size).abs
 
       val expected = randomSelect(t, indices).filter(_.existence.isPresent).map(_.id)
-      val obtained = runTest(t) { _.observation.selectPageForObservations(expected.toSet, count = limitedFirst.some ) }.nodes.map(_.id)
+      val obtained = runTest(t) {
+        _.observation.selectWhere(
+          WhereObservationInput(
+            id = WhereOrderInput.IN(expected).some
+          ),
+          None,
+          NonNegInt.unsafeFrom(limitedFirst).some
+        )
+      }.matches.map(_.id)
 
       assertEquals(obtained, expected.take(limitedFirst))
     }
