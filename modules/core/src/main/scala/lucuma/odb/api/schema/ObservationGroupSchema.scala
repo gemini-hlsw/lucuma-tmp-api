@@ -10,7 +10,6 @@ import lucuma.core.model.Program
 import lucuma.odb.api.model.{ObservationModel, WhereObservationInput}
 import lucuma.odb.api.model.query.SelectResult
 import lucuma.odb.api.repo.{ObservationRepo, OdbCtx}
-import lucuma.odb.api.schema.QuerySchema.{ArgumentOptionLimit, DefaultLimit}
 import org.typelevel.log4cats.Logger
 import sangria.schema._
 
@@ -19,11 +18,11 @@ object ObservationGroupSchema {
 
   import context._
   import GeneralSchema.ArgumentIncludeDeleted
-  import ObservationSchema.{ObservationConnectionType, ObservationIdType}
+  import ObservationQuery.{ArgumentOptionOffsetObservation, ObservationSelectResult}
+  import ObservationSchema.ObservationIdType
   import ObservationQuery.ArgumentOptionWhereObservation
-  import Paging._
   import ProgramSchema.ProgramIdArgument
-  import QuerySchema.SelectResultType
+  import QuerySchema.{ArgumentOptionLimit, DefaultLimit, SelectResultType}
 
   def ObservationGroupType[F[_]: Dispatcher: Async: Logger, A](
     prefix:      String,
@@ -44,19 +43,19 @@ object ObservationGroupSchema {
 
         Field(
           name        = "observations",
-          fieldType   = ObservationConnectionType[F],
+          fieldType   = ObservationSelectResult[F],
           description = "Observations associated with the common value".some,
           arguments   = List(
-            ArgumentPagingFirst,
-            ArgumentPagingCursor,
-            ArgumentIncludeDeleted
+            ArgumentIncludeDeleted,
+            ArgumentOptionOffsetObservation,
+            ArgumentOptionLimit
           ),
           resolve     = c =>
-            unsafeSelectTopLevelPageFuture(c.pagingObservationId) { gid =>
-              c.ctx.odbRepo.observation.selectPageFromIds(c.pagingFirst, gid, c.includeDeleted) { _ =>
-                c.value.observationIds
-              }
-            }
+            c.observation(_.selectWhere(
+              (o: ObservationModel) => c.value.observationIds(o.id) && (c.includeDeleted || o.existence.isPresent),
+              c.arg(ArgumentOptionOffsetObservation),
+              c.resultSetLimit
+            ))
         ),
 
         Field(

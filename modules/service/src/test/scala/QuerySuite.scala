@@ -176,8 +176,8 @@ class QuerySuite extends OdbSuite {
               waterVapor
             }
             observationIds
-            observations(first: 10) {
-              nodes {
+            observations(LIMIT: 10) {
+              matches {
                 id
                 title
               }
@@ -206,7 +206,7 @@ class QuerySuite extends OdbSuite {
                 "o-7"
               ],
               "observations" : {
-                "nodes" : [
+                "matches" : [
                   {
                     "id" : "o-2",
                     "title" : "NGC 5949"
@@ -252,8 +252,8 @@ class QuerySuite extends OdbSuite {
               }
             }
             observationIds
-            observations(first: 10) {
-              nodes {
+            observations(LIMIT: 10) {
+              matches {
                 id
                 title
               }
@@ -282,7 +282,7 @@ class QuerySuite extends OdbSuite {
                 "o-7"
               ],
               "observations" : {
-                "nodes" : [
+                "matches" : [
                   {
                     "id" : "o-2",
                     "title" : "NGC 5949"

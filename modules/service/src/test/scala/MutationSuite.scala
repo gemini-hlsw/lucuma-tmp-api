@@ -145,8 +145,8 @@ class MutationSuite extends OdbSuite {
               }
             }
             observationIds
-            observations(first: 10) {
-              nodes {
+            observations(LIMIT: 10) {
+              matches {
                 id
                 title
               }
@@ -172,7 +172,7 @@ class MutationSuite extends OdbSuite {
                 "o-7"
               ],
               "observations" : {
-                "nodes" : [
+                "matches" : [
                   {
                     "id" : "o-2",
                     "title" : "NGC 5949"
@@ -205,7 +205,7 @@ class MutationSuite extends OdbSuite {
                 "o-4"
               ],
               "observations" : {
-                "nodes" : [
+                "matches" : [
                   {
                     "id" : "o-3",
                     "title" : "NGC 3312"
