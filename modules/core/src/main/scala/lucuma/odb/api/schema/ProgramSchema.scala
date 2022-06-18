@@ -23,7 +23,6 @@ object ProgramSchema {
   import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, InputObjectTypeWhereEqExistence, PlannedTimeSummaryType}
   import ObservationQuery.{ArgumentOptionOffsetObservation, ObservationSelectResult}
   import ProposalSchema.{ProposalType, InputObjectWhereProposal}
-  import Paging._
   import RefinedSchema.NonEmptyStringType
   import QuerySchema._
   import context._
@@ -127,23 +126,7 @@ object ProgramSchema {
           }
         )
 
-
       )
-    )
-
-  def ProgramEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Edge[ProgramModel]] =
-    EdgeType(
-      "ProgramEdge",
-      "A Program node and its cursor",
-      ProgramType[F]
-    )
-
-  def ProgramConnectionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Connection[ProgramModel]] =
-    ConnectionType(
-      "ProgramConnection",
-      "Programs in the current page",
-      ProgramType[F],
-      ProgramEdgeType[F]
     )
 
 }
