@@ -11,7 +11,6 @@ import cats.syntax.all._
 import lucuma.core.model.{ConstraintSet, Observation}
 import lucuma.odb.api.model.query.SelectResult
 import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
-import lucuma.odb.api.schema.QuerySchema.DefaultLimit
 import lucuma.odb.api.schema.TargetSchema.TargetEnvironmentType
 import org.typelevel.log4cats.Logger
 import sangria.marshalling.circe._
@@ -58,7 +57,7 @@ trait ObservationQuery {
       resolve     = c => {
         val where = c.arg(ArgumentOptionWhereObservation).getOrElse(WhereObservationInput.MatchPresent)
         val off   = c.arg(ArgumentOptionOffsetObservation)
-        val limit = c.arg(ArgumentOptionLimit).getOrElse(DefaultLimit)
+        val limit = c.resultSetLimit
         c.observation(_.selectWhere(where, off, limit))
       }
     )

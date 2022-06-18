@@ -36,7 +36,7 @@ trait TopLevelRepo[F[_], I, T] {
   def selectWhere(
     where:  WherePredicate[T],
     offset: Option[I],
-    limit:  NonNegInt
+    limit:  Option[NonNegInt]
   ): F[SelectResult[T]]
 
   def selectPage(
@@ -123,14 +123,15 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, *]: Eq](
   override def selectWhere(
     where:  WherePredicate[T],
     offset: Option[I],
-    limit:  NonNegInt
+    limit:  Option[NonNegInt]
   ): F[SelectResult[T]] =
     databaseRef.get.map { tables =>
       val all     = mapLens.get(tables)
       val off     = offset.fold(all.iterator)(all.iteratorFrom).to(LazyList).map(_._2)
       val matches = off.filter(where.matches)
+      val lim     = limit.map(_.value).getOrElse(Int.MaxValue)
 
-      val (result, rest) = matches.splitAt(limit.value)
+      val (result, rest) = matches.splitAt(lim)
 
       SelectResult.Standard(
         result.toList,

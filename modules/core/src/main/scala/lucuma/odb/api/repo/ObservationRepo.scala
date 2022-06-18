@@ -6,8 +6,10 @@ package lucuma.odb.api.repo
 import cats.data.{EitherT, StateT}
 import cats.effect.{Async, Ref}
 import cats.implicits._
+import eu.timepit.refined.types.all.NonNegInt
 import lucuma.core.model.{ConstraintSet, Observation, Program, Target}
 import lucuma.odb.api.model.ObservationModel.{BulkEdit, CloneInput, CreateInput, EditInput, Group, ObservationEvent}
+import lucuma.odb.api.model.query.SelectResult
 import lucuma.odb.api.model.{Database, EitherInput, Event, ExecutionModel, InputError, ObservationModel, ScienceMode, ScienceRequirements, Table, WhereObservationInput}
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.model.syntax.databasestate._
@@ -25,12 +27,12 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
     includeDeleted: Boolean                = false
   ): F[ResultPage[ObservationModel]]
 
-  def selectPageForProgram(
+  def selectForProgram(
     pid:            Program.Id,
-    count:          Option[Int]            = None,
-    afterGid:       Option[Observation.Id] = None,
-    includeDeleted: Boolean                = false
-  ): F[ResultPage[ObservationModel]]
+    includeDeleted: Boolean                = false,
+    offset:         Option[Observation.Id] = None,
+    limit:          Option[NonNegInt]      = None
+  ): F[SelectResult[ObservationModel]]
 
   def selectManualConfig(
     oid:            Observation.Id,
@@ -104,6 +106,18 @@ object ObservationRepo {
       (editType, model) => ObservationEvent(_, editType, model)
     ) with ObservationRepo[F] {
 
+      override def selectForProgram(
+        pid:            Program.Id,
+        includeDeleted: Boolean,
+        offset:         Option[Observation.Id],
+        limit:          Option[NonNegInt]
+      ): F[SelectResult[ObservationModel]] =
+        selectWhere(
+          (a: ObservationModel) => a.programId === pid && (includeDeleted || a.existence.isPresent),
+          offset,
+          limit
+        )
+
       override def selectPageForObservations(
         oids:           Set[Observation.Id],
         count:          Option[Int],
@@ -112,15 +126,6 @@ object ObservationRepo {
       ): F[ResultPage[ObservationModel]] =
 
         selectPageFiltered(count, afterGid, includeDeleted) { o => oids(o.id) }
-
-      override def selectPageForProgram(
-        pid:            Program.Id,
-        count:          Option[Int],
-        afterGid:       Option[Observation.Id],
-        includeDeleted: Boolean
-      ): F[ResultPage[ObservationModel]] =
-
-        selectPageFiltered(count, afterGid, includeDeleted) { _.programId === pid }
 
       override def selectManualConfig(
         oid:            Observation.Id,

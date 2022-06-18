@@ -10,7 +10,6 @@ import lucuma.core.model.Target
 import lucuma.odb.api.model.query.SelectResult
 import lucuma.odb.api.repo.OdbCtx
 import lucuma.odb.api.model.targetModel.{TargetModel, WhereTargetInput}
-import lucuma.odb.api.schema.QuerySchema.DefaultLimit
 import org.typelevel.log4cats.Logger
 import sangria.marshalling.circe._
 import sangria.schema._
@@ -61,7 +60,7 @@ trait TargetQuery {
       resolve     = c => {
         val where = c.arg(ArgumentOptionWhereTarget).getOrElse(WhereTargetInput.MatchPresent)
         val off   = c.arg(ArgumentOptionOffsetTarget)
-        val limit = c.arg(ArgumentOptionLimit).getOrElse(DefaultLimit)
+        val limit = c.resultSetLimit
         c.target(_.selectWhere(where, off, limit))
       }
     )

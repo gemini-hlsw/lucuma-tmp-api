@@ -7,6 +7,7 @@ import lucuma.core.model.{ExecutionEvent, Observation, Program, Target}
 import lucuma.odb.api.repo.{DatasetRepo, ExecutionEventRepo, ObservationRepo, OdbCtx, ProgramRepo, TargetRepo}
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
+import eu.timepit.refined.types.all.NonNegInt
 import lucuma.core.util.Gid
 import lucuma.odb.api.model.{Atom, InputError, Step, Uid, Visit}
 import sangria.schema.Context
@@ -53,6 +54,12 @@ final class OdbContextOps[F[_]](val self: Context[OdbCtx[F], _]) {
 
   def includeDeleted: Boolean =
     self.arg(GeneralSchema.ArgumentIncludeDeleted)
+
+  def resultSetLimit: Option[NonNegInt] =
+    self
+      .arg(QuerySchema.ArgumentOptionLimit)
+      .orElse(QuerySchema.DefaultLimit.some)
+      .map { lim => if (lim.value > QuerySchema.DefaultLimit.value) QuerySchema.DefaultLimit else lim }
 
   def pagingFirst: Option[Int] =
     self.arg(Paging.ArgumentPagingFirst)

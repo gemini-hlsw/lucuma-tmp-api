@@ -21,7 +21,7 @@ import scala.collection.immutable.Seq
 object ProgramSchema {
 
   import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, InputObjectTypeWhereEqExistence, PlannedTimeSummaryType}
-  import ObservationSchema.ObservationConnectionType
+  import ObservationQuery.{ArgumentOptionOffsetObservation, ObservationSelectResult}
   import ProposalSchema.{ProposalType, InputObjectWhereProposal}
   import Paging._
   import RefinedSchema.NonEmptyStringType
@@ -105,17 +105,15 @@ object ProgramSchema {
 
         Field(
           name        = "observations",
-          fieldType   = ObservationConnectionType[F],
-          description = Some("All observations associated with the program (needs pagination)."),
+          fieldType   = ObservationSelectResult[F],
+          description = Some("All observations associated with the program."),
           arguments   = List(
-            ArgumentPagingFirst,
-            ArgumentPagingCursor,
-            ArgumentIncludeDeleted
+            ArgumentIncludeDeleted,
+            ArgumentOptionOffsetObservation,
+            ArgumentOptionLimit
           ),
           resolve     = c =>
-            unsafeSelectTopLevelPageFuture(c.pagingObservationId) { gid =>
-              c.ctx.odbRepo.observation.selectPageForProgram(c.value.id, c.pagingFirst, gid, c.includeDeleted)
-            }
+            c.observation(_.selectForProgram(c.value.id, c.includeDeleted, c.arg(ArgumentOptionOffsetObservation), c.resultSetLimit))
         ),
 
         Field(
@@ -124,8 +122,8 @@ object ProgramSchema {
           description = Some("Program planned time calculation."),
           arguments   = List(ArgumentIncludeDeleted),
           resolve     = c => c.observation {
-            _.selectPageForProgram(c.value.id, Some(Integer.MAX_VALUE), None, c.includeDeleted)
-             .map(_.nodes.foldMap(PlannedTimeSummaryModel.forObservation))
+            _.selectForProgram(c.value.id, c.includeDeleted, None)
+             .map(_.matches.foldMap(PlannedTimeSummaryModel.forObservation))
           }
         )
 

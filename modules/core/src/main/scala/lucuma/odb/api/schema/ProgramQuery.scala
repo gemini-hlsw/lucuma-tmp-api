@@ -18,7 +18,7 @@ trait ProgramQuery {
 
   import GeneralSchema.ArgumentIncludeDeleted
   import ProgramSchema.{InputObjectWhereProgram, ProgramIdArgument, ProgramIdType, ProgramType}
-  import QuerySchema.{ArgumentOptionLimit, DefaultLimit, SelectResultType}
+  import QuerySchema.{ArgumentOptionLimit, SelectResultType}
   import context._
 
   implicit val ArgumentOptionWhereProgram: Argument[Option[WhereProgramInput]] =
@@ -47,7 +47,7 @@ trait ProgramQuery {
       resolve     = c => {
         val where = c.arg(ArgumentOptionWhereProgram).getOrElse(WhereProgramInput.MatchPresent)
         val off   = c.arg(ArgumentOptionOffsetProgram)
-        val limit = c.arg(ArgumentOptionLimit).getOrElse(DefaultLimit)
+        val limit = c.resultSetLimit
         c.program(_.selectWhere(where, off, limit))
       }
     )
