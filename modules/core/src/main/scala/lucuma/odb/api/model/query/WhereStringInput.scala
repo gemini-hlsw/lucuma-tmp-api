@@ -12,13 +12,13 @@ import io.circe.refined._
 import scala.util.matching.Regex
 
 final case class WhereStringInput(
-  EQ:         Option[NonEmptyString],
-  NEQ:        Option[NonEmptyString],
-  IN:         Option[List[NonEmptyString]],
-  NIN:        Option[List[NonEmptyString]],
-  LIKE:       Option[NonEmptyString],
-  NLIKE:      Option[NonEmptyString],
-  MATCH_CASE: Boolean = true
+  EQ:         Option[NonEmptyString]       = None,
+  NEQ:        Option[NonEmptyString]       = None,
+  IN:         Option[List[NonEmptyString]] = None,
+  NIN:        Option[List[NonEmptyString]] = None,
+  LIKE:       Option[NonEmptyString]       = None,
+  NLIKE:      Option[NonEmptyString]       = None,
+  MATCH_CASE: Boolean                      = true
 ) extends WherePredicate[String] {
 
   private def forMatching(s: NonEmptyString): String =

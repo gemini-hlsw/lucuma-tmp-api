@@ -136,7 +136,7 @@ class MutationSuite extends OdbSuite {
     query = """
       query ObservationsByScienceMode {
         scienceModeGroup(programId:"p-2") {
-          nodes {
+          matches {
             scienceMode {
               gmosSouthLongSlit {
                 advanced {
@@ -158,7 +158,7 @@ class MutationSuite extends OdbSuite {
     expected = json"""
       {
         "scienceModeGroup" : {
-          "nodes" : [
+          "matches" : [
             {
               "scienceMode" : {
                 "gmosSouthLongSlit": {

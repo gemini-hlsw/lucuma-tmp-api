@@ -90,7 +90,7 @@ class TargetQuerySuite extends OdbSuite {
     query ="""
       query GroupByScienceTarget {
         targetGroup(programId: "p-2") {
-          nodes {
+          matches {
             observationIds
             target {
               name
@@ -102,7 +102,7 @@ class TargetQuerySuite extends OdbSuite {
     expected = json"""
       {
         "targetGroup": {
-          "nodes": [
+          "matches": [
             {
               "observationIds": [
                 "o-2",
@@ -155,7 +155,7 @@ class TargetQuerySuite extends OdbSuite {
     query ="""
       query GroupByAsterism {
         asterismGroup(programId: "p-2") {
-          nodes {
+          matches {
             observationIds
             asterism {
               name
@@ -167,7 +167,7 @@ class TargetQuerySuite extends OdbSuite {
     expected = json"""
       {
         "asterismGroup": {
-          "nodes": [
+          "matches": [
             {
               "observationIds": [
                 "o-2"
@@ -227,7 +227,7 @@ class TargetQuerySuite extends OdbSuite {
     query ="""
       query GroupByTargetEnvironment {
         targetEnvironmentGroup(programId: "p-2") {
-          nodes {
+          matches {
             observationIds
             targetEnvironment {
               explicitBase {
@@ -245,7 +245,7 @@ class TargetQuerySuite extends OdbSuite {
     expected = json"""
       {
         "targetEnvironmentGroup": {
-          "nodes": [
+          "matches": [
             {
               "observationIds" : [
                 "o-2"

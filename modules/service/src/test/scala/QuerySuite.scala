@@ -168,7 +168,7 @@ class QuerySuite extends OdbSuite {
     query = """
       query ObservationsByConstraintSet {
         constraintSetGroup(programId:"p-2") {
-          nodes {
+          matches {
             constraintSet {
               cloudExtinction
               imageQuality
@@ -189,7 +189,7 @@ class QuerySuite extends OdbSuite {
     expected = json"""
       {
         "constraintSetGroup" : {
-          "nodes" : [
+          "matches" : [
             {
               "constraintSet" : {
                 "cloudExtinction" : "POINT_THREE",
@@ -244,7 +244,7 @@ class QuerySuite extends OdbSuite {
     query = """
       query ObservationsByScienceRequirements {
         scienceRequirementsGroup(programId:"p-2") {
-          nodes {
+          matches {
             scienceRequirements {
               mode
               spectroscopy {
@@ -265,7 +265,7 @@ class QuerySuite extends OdbSuite {
     expected = json"""
       {
         "scienceRequirementsGroup" : {
-          "nodes" : [
+          "matches" : [
             {
               "scienceRequirements" : {
                 "mode" : "SPECTROSCOPY",

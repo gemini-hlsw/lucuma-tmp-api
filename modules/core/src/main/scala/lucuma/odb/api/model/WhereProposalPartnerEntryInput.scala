@@ -9,12 +9,12 @@ import lucuma.core.model.{IntPercent, Partner}
 import lucuma.odb.api.model.query.{WhereCombinator, WhereEqInput, WhereOrderInput}
 
 final case class WhereProposalPartnerEntryInput(
-  AND:     Option[List[WhereProposalPartnerEntryInput]],
-  OR:      Option[List[WhereProposalPartnerEntryInput]],
-  NOT:     Option[WhereProposalPartnerEntryInput],
+  AND:     Option[List[WhereProposalPartnerEntryInput]] = None,
+  OR:      Option[List[WhereProposalPartnerEntryInput]] = None,
+  NOT:     Option[WhereProposalPartnerEntryInput]       = None,
 
-  partner: Option[WhereEqInput[Partner]],
-  percent: Option[WhereOrderInput[Int]],
+  partner: Option[WhereEqInput[Partner]]                = None,
+  percent: Option[WhereOrderInput[Int]]                 = None
 ) extends WhereCombinator[Map[Partner, IntPercent]] {
 
   override def matches(a: Map[Partner, IntPercent]): Boolean = {

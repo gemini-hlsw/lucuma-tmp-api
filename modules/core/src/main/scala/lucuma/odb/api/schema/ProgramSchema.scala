@@ -3,16 +3,17 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{PlannedTimeSummaryModel, ProgramModel, WhereProgramInput}
-import lucuma.core.model.Program
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.foldable._
+import cats.syntax.option._
 import cats.syntax.functor._
-import lucuma.odb.api.model.query.WhereOrderInput
+import lucuma.core.model.Program
+import lucuma.odb.api.model.{Existence, PlannedTimeSummaryModel, ProgramModel, WhereProgramInput}
+import lucuma.odb.api.model.query.{WhereEqInput, WhereOrderInput}
 import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
-import sangria.macros.derive.{DocumentInputField, InputObjectTypeDescription, InputObjectTypeName, deriveInputObjectType}
+import sangria.marshalling.circe._
 import sangria.schema._
 
 import scala.collection.immutable.Seq
@@ -26,6 +27,7 @@ object ProgramSchema {
   import RefinedSchema.NonEmptyStringType
   import QuerySchema._
   import context._
+  import syntax.inputtype._
 
   implicit val ProgramIdType: ScalarType[Program.Id] =
     ObjectIdSchema.gidType[Program.Id]("ProgramId")
@@ -45,9 +47,7 @@ object ProgramSchema {
     )
 
   implicit val InputObjectWhereOrderProgramId: InputObjectType[WhereOrderInput[Program.Id]] =
-    deriveInputObjectType[WhereOrderInput[Program.Id]](
-      InputObjectTypeName("WhereProgramId")
-    )
+    inputObjectWhereOrder[Program.Id]("ProgramId", ProgramIdType)
 
   val OptionalListProgramIdArgument: Argument[Option[Seq[Program.Id]]] =
     Argument(
@@ -57,12 +57,17 @@ object ProgramSchema {
     )
 
   implicit val InputObjectWhereProgram: InputObjectType[WhereProgramInput] =
-    deriveInputObjectType[WhereProgramInput](
-      InputObjectTypeName("WhereProgram"),
-      InputObjectTypeDescription("Program filter options.  All specified items must match."),
-      DocumentInputField("AND", document.andField("program")),
-      DocumentInputField("OR",  document.orField("program")),
-      DocumentInputField("NOT", document.notField("program"))
+    InputObjectType[WhereProgramInput](
+      "WhereProgram",
+      "Program filter options.  All specified items must match.",
+      () =>
+        combinatorFields(InputObjectWhereProgram, "program") :::
+          List(
+            InputObjectWhereOrderProgramId.optionField("id", "Matches the program ID."),
+            InputObjectWhereOptionString.optionField("name", "Matches the program name."),
+            InputObjectWhereProposal.optionField("proposal", "Matches the proposal."),
+            InputField("existence", OptionInputType(InputObjectTypeWhereEqExistence), "By default matching is limited to PRESENT programs.  Use this filter to included DELETED programs for example.", WhereEqInput.EQ(Existence.Present: Existence).some)
+          )
     )
 
   def ProgramType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], ProgramModel] =

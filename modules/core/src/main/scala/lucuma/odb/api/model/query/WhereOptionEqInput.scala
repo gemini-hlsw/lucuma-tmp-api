@@ -9,11 +9,11 @@ import io.circe.generic.semiauto.deriveDecoder
 
 
 final case class WhereOptionEqInput[A: Eq](
-  IS_NULL: Option[Boolean],
-  EQ:      Option[A],
-  NEQ:     Option[A],
-  IN:      Option[List[A]],
-  NIN:     Option[List[A]],
+  IS_NULL: Option[Boolean] = None,
+  EQ:      Option[A]       = None,
+  NEQ:     Option[A]       = None,
+  IN:      Option[List[A]] = None,
+  NIN:     Option[List[A]] = None
 ) extends WhereOption[A] {
 
   override def allEmpty: Boolean =

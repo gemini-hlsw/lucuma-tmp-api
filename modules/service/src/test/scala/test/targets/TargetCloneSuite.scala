@@ -89,7 +89,7 @@ class TargetCloneSuite extends OdbSuite {
     query ="""
       query GroupByAsterism {
         asterismGroup(programId: "p-2") {
-          nodes {
+          matches {
             observationIds
             asterism {
               name
@@ -101,7 +101,7 @@ class TargetCloneSuite extends OdbSuite {
     expected = json"""
       {
         "asterismGroup": {
-          "nodes": [
+          "matches": [
             {
               "observationIds": [
                 "o-2"

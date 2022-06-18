@@ -3,21 +3,23 @@
 
 package lucuma.odb.api.model.targetModel
 
+import cats.syntax.option._
 import io.circe.Decoder
-import io.circe.generic.semiauto.deriveDecoder
+import io.circe.generic.extras.Configuration
+import io.circe.generic.extras.semiauto.deriveConfiguredDecoder
 import lucuma.core.model.{Program, Target}
 import lucuma.odb.api.model.Existence
 import lucuma.odb.api.model.query.{WhereCombinator, WhereEqInput, WhereOrderInput, WhereStringInput}
 
 final case class WhereTargetInput(
-  AND:       Option[List[WhereTargetInput]],
-  OR:        Option[List[WhereTargetInput]],
-  NOT:       Option[WhereTargetInput],
+  AND:       Option[List[WhereTargetInput]]      = None,
+  OR:        Option[List[WhereTargetInput]]      = None,
+  NOT:       Option[WhereTargetInput]            = None,
 
-  id:        Option[WhereOrderInput[Target.Id]],
-  programId: Option[WhereOrderInput[Program.Id]],
-  name:      Option[WhereStringInput],
-  existence: Option[WhereEqInput[Existence]]
+  id:        Option[WhereOrderInput[Target.Id]]  = None,
+  programId: Option[WhereOrderInput[Program.Id]] = None,
+  name:      Option[WhereStringInput]            = None,
+  existence: Option[WhereEqInput[Existence]]     = WhereEqInput.EQ(Existence.Present: Existence).some
 ) extends WhereCombinator[TargetModel] {
 
   override def matches(a: TargetModel): Boolean =
@@ -31,7 +33,13 @@ final case class WhereTargetInput(
 
 object WhereTargetInput {
 
+  val MatchPresent: WhereTargetInput =
+    WhereTargetInput()
+
+  implicit val customConfig: Configuration =
+    Configuration.default.withDefaults
+
   implicit val DecoderWhereTargetInput: Decoder[WhereTargetInput] =
-    deriveDecoder[WhereTargetInput]
+    deriveConfiguredDecoder[WhereTargetInput]
 
 }

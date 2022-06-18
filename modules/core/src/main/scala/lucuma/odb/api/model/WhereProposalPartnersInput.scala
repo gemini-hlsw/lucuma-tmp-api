@@ -10,9 +10,9 @@ import lucuma.core.model.{IntPercent, Partner}
 import lucuma.odb.api.model.query.WherePredicate
 
 final case class WhereProposalPartnersInput(
-  MATCH:   Option[WhereProposalPartnerEntryInput],
-  EQ:      Option[List[Partner]],
-  isJoint: Option[Boolean]
+  MATCH:   Option[WhereProposalPartnerEntryInput] = None,
+  EQ:      Option[List[Partner]]                  = None,
+  isJoint: Option[Boolean]                        = None
 ) extends WherePredicate[Map[Partner, IntPercent]] {
 
   override def matches(a: Map[Partner, IntPercent]): Boolean = {

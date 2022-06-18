@@ -10,17 +10,17 @@ import lucuma.odb.api.model.query.{WhereCombinator, WhereEqInput, WhereOption, W
 
 
 final case class WhereProposalInput(
-  AND:           Option[List[WhereProposalInput]],
-  OR:            Option[List[WhereProposalInput]],
-  NOT:           Option[WhereProposalInput],
-  IS_NULL:       Option[Boolean],
+  IS_NULL:       Option[Boolean]                         = None,
+  AND:           Option[List[WhereProposalInput]]        = None,
+  OR:            Option[List[WhereProposalInput]]        = None,
+  NOT:           Option[WhereProposalInput]              = None,
 
-  title:         Option[WhereOptionStringInput],
-  clazz:         Option[WhereProposalClassInput],
-  category:      Option[WhereOptionEqInput[TacCategory]],
-  toOActivation: Option[WhereEqInput[ToOActivation]],
-  abstrakt:      Option[WhereOptionStringInput],
-  partners:      Option[WhereProposalPartnersInput]
+  title:         Option[WhereOptionStringInput]          = None,
+  clazz:         Option[WhereProposalClassInput]         = None,
+  category:      Option[WhereOptionEqInput[TacCategory]] = None,
+  toOActivation: Option[WhereEqInput[ToOActivation]]     = None,
+  abstrakt:      Option[WhereOptionStringInput]          = None,
+  partners:      Option[WhereProposalPartnersInput]      = None
 ) extends WhereOption[Proposal] with WhereCombinator[Option[Proposal]] {
 
   override def allEmpty: Boolean =

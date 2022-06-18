@@ -34,7 +34,7 @@ trait TopLevelRepo[F[_], I, T] {
   ): F[List[T]]
 
   def selectWhere(
-    where:  Option[WherePredicate[T]],
+    where:  WherePredicate[T],
     offset: Option[I],
     limit:  NonNegInt
   ): F[SelectResult[T]]
@@ -121,14 +121,14 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, *]: Eq](
     ).map(_.nodes)
 
   override def selectWhere(
-    where:  Option[WherePredicate[T]],
+    where:  WherePredicate[T],
     offset: Option[I],
     limit:  NonNegInt
   ): F[SelectResult[T]] =
     databaseRef.get.map { tables =>
       val all     = mapLens.get(tables)
       val off     = offset.fold(all.iterator)(all.iteratorFrom).to(LazyList).map(_._2)
-      val matches = where.fold(off) { w => off.filter(w.matches) }
+      val matches = off.filter(where.matches)
 
       val (result, rest) = matches.splitAt(limit.value)
 

@@ -44,7 +44,12 @@ trait ProgramQuery {
       fieldType   = ProgramSelectResult[F],
       description = "Selects the first `LIMIT` matching programs based on the provided `WHERE` parameter, if any.".some,
       arguments   = List(ArgumentOptionWhereProgram, ArgumentOptionOffsetProgram, ArgumentOptionLimit),
-      resolve     = c => c.program(_.selectWhere(c.arg(ArgumentOptionWhereProgram), c.arg(ArgumentOptionOffsetProgram), c.arg(ArgumentOptionLimit).getOrElse(DefaultLimit)))
+      resolve     = c => {
+        val where = c.arg(ArgumentOptionWhereProgram).getOrElse(WhereProgramInput.MatchPresent)
+        val off   = c.arg(ArgumentOptionOffsetProgram)
+        val limit = c.arg(ArgumentOptionLimit).getOrElse(DefaultLimit)
+        c.program(_.selectWhere(where, off, limit))
+      }
     )
 
   def program[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =

@@ -7,7 +7,7 @@ import cats.syntax.option._
 import eu.timepit.refined.auto._
 import eu.timepit.refined.types.all.NonNegInt
 import io.circe.refined._
-import lucuma.odb.api.model.query.{SelectResult, WhereOptionStringInput, WhereOrderInput, WhereStringInput}
+import lucuma.odb.api.model.query.{SelectResult, WhereEqInput, WhereOptionEqInput, WhereOptionStringInput, WhereOrderInput, WhereStringInput}
 import sangria.marshalling.circe._
 import sangria.macros.derive.{DocumentInputField, InputObjectTypeDescription, InputObjectTypeName, deriveInputObjectType}
 import sangria.schema._
@@ -15,6 +15,7 @@ import sangria.schema._
 object QuerySchema {
 
   import RefinedSchema._
+  import syntax.inputtype._
 
   val DefaultLimit: NonNegInt =
     1000
@@ -45,21 +46,76 @@ object QuerySchema {
       DocumentInputField("MATCH_CASE", document.matchCase)
     )
 
-  implicit val InputObjectWhereOrderInt: InputObjectType[WhereOrderInput[Int]] =
-    deriveInputObjectType[WhereOrderInput[Int]](
-      InputObjectTypeName("WhereOrderInt"),
-      InputObjectTypeDescription("Integer matching options")
+  def isNullField(name: String): InputField[_] =
+    BooleanType.optionField("IS_NULL", s"When `true`, matches if the $name is not defined. When `false` matches if the $name is defined.")
+
+  def eqFields[A](inputType: InputType[A]): List[InputField[_]] =
+    List(
+      inputType.optionField("EQ",  "Matches if the property is exactly the supplied value."),
+      inputType.optionField("NEQ", "Matches if the property is not the supplied value."),
+      ListInputType(inputType).optionField("IN",  "Matches if the property value is any of the supplied options."),
+      ListInputType(inputType).optionField("NIN", "Matches if the property value is none of the supplied values.")
     )
 
+  def orderFields[A](inputType: InputType[A]): List[InputField[_]] =
+    eqFields(inputType) ::: List(
+      inputType.optionField("GT",  "Matches if the property is ordered after (>) the supplied value."),
+      inputType.optionField("LT",  "Matches if the property is ordered before (<) the supplied value."),
+      inputType.optionField("GTE", "Matches if the property is ordered after or equal (>=) the supplied value."),
+      inputType.optionField("LTE", "Matches if the property is ordered before or equal (<=) the supplied value."),
+    )
+
+  def combinatorFields[A](inputType: InputType[A], name: String): List[InputField[_]] =
+    List(
+      ListInputType(inputType).optionField("AND", s"A list of nested $name filters that all must match in order for the AND group as a whole to match."),
+      ListInputType(inputType).optionField("OR",  s"A list of nested $name filters where any one match causes the entire OR group as a whole to match."),
+      inputType.optionField("NOT", s"A nested $name filter that must not match in order for the NOT itself to match.")
+    )
+
+  def inputObjectWhereEq[A](
+    name:      String,
+    inputType: InputType[A]
+  ): InputObjectType[WhereEqInput[A]] =
+    InputObjectType[WhereEqInput[A]](
+      s"WhereEq${name.capitalize}",
+      """Filters on equality (or not) of the property value and the supplied criteria.
+        |All supplied criteria must match, but usually only one is selected.  E.g.
+        |'EQ = "Foo"' will match when the property value is "FOO".
+      """.stripMargin,
+      eqFields(inputType)
+    )
+
+  def inputObjectWhereOptionEq[A](
+    name:      String,
+    inputType: InputType[A]
+  ): InputObjectType[WhereOptionEqInput[A]] =
+    InputObjectType[WhereOptionEqInput[A]](
+      s"WhereOptionEq${name.capitalize}",
+      """Filters on equality (or not) of the property value and the supplied criteria.
+        |All supplied criteria must match, but usually only one is selected.  E.g.
+        |'EQ = "Foo"' will match when the property value is "FOO".  Defining, `EQ`,
+        |`NEQ` etc. implies `IS_NULL` is `false`.
+      """.stripMargin,
+      isNullField(name) :: eqFields(inputType)
+    )
+
+  def inputObjectWhereOrder[A](
+    name:      String,
+    inputType: InputType[A]
+  ): InputObjectType[WhereOrderInput[A]] =
+    InputObjectType[WhereOrderInput[A]](
+      s"WhereOrder${name.capitalize}",
+      """Filters on equality or order comparisons of the property.  All supplied
+        |criteria must match, but usually only one is selected.  E.g., 'GT = 2'
+        |for an integer property will match when the value is 3 or more.
+      """.stripMargin,
+      orderFields(inputType)
+    )
+
+  implicit val InputObjectWhereOrderInt: InputObjectType[WhereOrderInput[Int]] =
+    inputObjectWhereOrder[Int]("Int", IntType)
+
   object document {
-    def andField(n: String): String =
-      s"A list of nested $n filters that all must match in order for the AND group as a whole to match."
-
-    def orField(n: String): String =
-      s"A list of nested $n filters where any one match causes the entire OR group as a whole to match."
-
-    def notField(n: String): String =
-      s"A nested $n filter that must not match in order for the NOT itself to match."
 
     def isNullField(n: String): String =
       s"When `true` the $n must not be defined.  When `false` the $n must be defined."

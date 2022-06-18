@@ -8,7 +8,7 @@ import lucuma.odb.api.repo.OdbCtx
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
-import lucuma.core.model.{ConstraintSet, Observation, Target}
+import lucuma.core.model.{ConstraintSet, Observation}
 import lucuma.odb.api.model.query.SelectResult
 import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
 import lucuma.odb.api.schema.QuerySchema.DefaultLimit
@@ -55,8 +55,12 @@ trait ObservationQuery {
         ArgumentOptionOffsetObservation,
         ArgumentOptionLimit
       ),
-      resolve     = c =>
-        c.observation(_.selectWhere(c.arg(ArgumentOptionWhereObservation), c.arg(ArgumentOptionOffsetObservation), c.arg(ArgumentOptionLimit).getOrElse(DefaultLimit)))
+      resolve     = c => {
+        val where = c.arg(ArgumentOptionWhereObservation).getOrElse(WhereObservationInput.MatchPresent)
+        val off   = c.arg(ArgumentOptionOffsetObservation)
+        val limit = c.arg(ArgumentOptionLimit).getOrElse(DefaultLimit)
+        c.observation(_.selectWhere(where, off, limit))
+      }
     )
 
   def forId[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
@@ -70,68 +74,56 @@ trait ObservationQuery {
 
   def groupByTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
 
-    ObservationGroupSchema.groupingField[F, TargetModel, Target.Id](
+    ObservationGroupSchema.groupingField[F, TargetModel](
       "target",
       "Observations grouped by commonly held targets",
       TargetType[F],
-      (repo, pid, includeDeleted) => repo.groupByTargetInstantiated(pid, includeDeleted),
-      _.pagingTargetId,
-      _.value.id
+      (repo, pid, where) => repo.groupByTargetInstantiated(pid, where)
     )
 
   def groupByAsterism[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
 
-    ObservationGroupSchema.groupingField[F, Seq[TargetModel], Observation.Id](
+    ObservationGroupSchema.groupingField[F, Seq[TargetModel]](
       "asterism",
       "Observations grouped by commonly held science asterisms",
       ListType(TargetType[F]),
-      (repo, pid, includeDeleted) => repo.groupByAsterismInstantiated(pid, includeDeleted),
-      _.pagingObservationId,
-      _.observationIds.head
+      (repo, pid, where) => repo.groupByAsterismInstantiated(pid, where)
     )
 
   def groupByTargetEnvironment[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
 
-    ObservationGroupSchema.groupingField[F, TargetEnvironmentModel, Observation.Id](
+    ObservationGroupSchema.groupingField[F, TargetEnvironmentModel](
       "targetEnvironment",
       "Observations grouped by common target environment",
       TargetEnvironmentType[F],
-      (repo, pid, includeDeleted) => repo.groupByTargetEnvironment(pid, includeDeleted),
-      _.pagingObservationId,
-      _.observationIds.head
+      (repo, pid, where) => repo.groupByTargetEnvironment(pid, where)
     )
 
   def groupByConstraintSet[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
 
-    ObservationGroupSchema.groupingField[F, ConstraintSet, Observation.Id](
+    ObservationGroupSchema.groupingField[F, ConstraintSet](
       "constraintSet",
       "Observations grouped by commonly held constraints",
       ConstraintSetType,
-      (repo, pid, includeDeleted) => repo.groupByConstraintSet(pid, includeDeleted),
-      _.pagingObservationId,
-      _.observationIds.head
+      (repo, pid, where) => repo.groupByConstraintSet(pid, where)
     )
 
   def groupByScienceMode[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
 
-    ObservationGroupSchema.groupingField[F, Option[ScienceMode], Observation.Id](
+    ObservationGroupSchema.groupingField[F, Option[ScienceMode]](
       "scienceMode",
       "Observations grouped by commonly held science mode",
       OptionType(ScienceModeType),
-      (repo, pid, includeDeleted) => repo.groupByScienceMode(pid, includeDeleted),
-      _.pagingObservationId,
-      _.observationIds.head
+      (repo, pid, where) => repo.groupByScienceMode(pid, where)
     )
 
   def groupByScienceRequirements[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
 
-    ObservationGroupSchema.groupingField[F, ScienceRequirements, Observation.Id](
+    ObservationGroupSchema.groupingField[F, ScienceRequirements](
       "scienceRequirements",
       "Observations grouped by commonly held science requirements",
       ScienceRequirementsType[F],
-      (repo, pid, includeDeleted) => repo.groupByScienceRequirements(pid, includeDeleted),
-      _.pagingObservationId,
-      _.observationIds.head
+      (repo, pid, where) => repo.groupByScienceRequirements(pid, where)
     )
 
   def allFields[F[_]: Dispatcher: Async: Logger]: List[Field[OdbCtx[F], Unit]] =

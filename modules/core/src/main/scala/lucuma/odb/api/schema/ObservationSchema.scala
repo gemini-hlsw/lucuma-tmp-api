@@ -8,12 +8,12 @@ import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import lucuma.core.enums.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.Observation
-import lucuma.odb.api.model.query.WhereOrderInput
-import lucuma.odb.api.model.{ObservationModel, PlannedTimeSummaryModel, WhereObservationInput}
+import lucuma.odb.api.model.query.{WhereEqInput, WhereOrderInput}
+import lucuma.odb.api.model.{Existence, ObservationModel, PlannedTimeSummaryModel, WhereObservationInput}
 import lucuma.odb.api.repo.OdbCtx
 import lucuma.odb.api.schema.TargetSchema.TargetEnvironmentType
 import org.typelevel.log4cats.Logger
-import sangria.macros.derive.{DocumentInputField, InputObjectTypeDescription, InputObjectTypeName, deriveInputObjectType}
+import sangria.marshalling.circe._
 import sangria.schema._
 
 import scala.collection.immutable.Seq
@@ -35,6 +35,7 @@ object ObservationSchema {
 
   import context._
   import syntax.`enum`._
+  import syntax.inputtype._
 
   implicit val ObservationIdType: ScalarType[Observation.Id] =
     ObjectIdSchema.gidType[Observation.Id](name = "ObservationId")
@@ -52,27 +53,28 @@ object ObservationSchema {
     )
 
   implicit val InputObjectWhereOrderObservationId: InputObjectType[WhereOrderInput[Observation.Id]] =
-    deriveInputObjectType[WhereOrderInput[Observation.Id]](
-      InputObjectTypeName("WhereObservationId")
-    )
+    inputObjectWhereOrder[Observation.Id]("ObservationId", ObservationIdType)
 
   implicit val InputObjectWhereOrderObsStatus: InputObjectType[WhereOrderInput[ObsStatus]] =
-    deriveInputObjectType[WhereOrderInput[ObsStatus]](
-      InputObjectTypeName("WhereObsStatus")
-    )
+    inputObjectWhereOrder[ObsStatus]("ObsStatus", ObsStatusType)
 
   implicit val InputObjectWhereOrderObsActiveStatus: InputObjectType[WhereOrderInput[ObsActiveStatus]] =
-    deriveInputObjectType[WhereOrderInput[ObsActiveStatus]](
-      InputObjectTypeName("WhereObsActiveStatus")
-    )
+    inputObjectWhereOrder[ObsActiveStatus]("ObsActiveStatus", ObsActiveStatusType)
 
   implicit val InputObjectWhereObservation: InputObjectType[WhereObservationInput] =
-    deriveInputObjectType[WhereObservationInput](
-      InputObjectTypeName("WhereObservation"),
-      InputObjectTypeDescription("Observation filter options.  All specified items must match."),
-      DocumentInputField("AND", document.andField("observation")),
-      DocumentInputField("OR",  document.orField("observation")),
-      DocumentInputField("NOT", document.notField("observation"))
+    InputObjectType[WhereObservationInput](
+      "WhereObservation",
+      "Observation filter options.  All specified items must match.",
+      () =>
+        combinatorFields(InputObjectWhereObservation, "observation") :::
+          List(
+            InputObjectWhereOrderObservationId.optionField("id", "Matches the observation id."),
+            InputObjectWhereOrderProgramId.optionField("programId", "Matches the id of the program associated with this observation."),
+            InputObjectWhereOptionString.optionField("subtitle", "Matches the subtitle of the observation."),
+            InputObjectWhereOrderObsStatus.optionField("status", "Matches the observation status."),
+            InputObjectWhereOrderObsActiveStatus.optionField("activeStatus", "Matches the observation active status."),
+            InputField("existence", OptionInputType(InputObjectTypeWhereEqExistence), "By default matching is limited to PRESENT observations.  Use this filter to include DELETED observations as well, for example.", WhereEqInput.EQ(Existence.Present: Existence).some)
+          )
     )
 
   val ObservationIdArgument: Argument[Observation.Id] =

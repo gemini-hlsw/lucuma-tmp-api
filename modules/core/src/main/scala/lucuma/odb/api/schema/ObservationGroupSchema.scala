@@ -3,14 +3,14 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{InputError, ObservationModel}
-import lucuma.odb.api.repo.{ObservationRepo, OdbCtx, ResultPage}
-import cats.Order.catsKernelOrderingForOrder
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import lucuma.core.model.Program
-import lucuma.core.util.Gid
+import lucuma.odb.api.model.{ObservationModel, WhereObservationInput}
+import lucuma.odb.api.model.query.SelectResult
+import lucuma.odb.api.repo.{ObservationRepo, OdbCtx}
+import lucuma.odb.api.schema.QuerySchema.{ArgumentOptionLimit, DefaultLimit}
 import org.typelevel.log4cats.Logger
 import sangria.schema._
 
@@ -20,8 +20,10 @@ object ObservationGroupSchema {
   import context._
   import GeneralSchema.ArgumentIncludeDeleted
   import ObservationSchema.{ObservationConnectionType, ObservationIdType}
+  import ObservationQuery.ArgumentOptionWhereObservation
   import Paging._
   import ProgramSchema.ProgramIdArgument
+  import QuerySchema.SelectResultType
 
   def ObservationGroupType[F[_]: Dispatcher: Async: Logger, A](
     prefix:      String,
@@ -36,14 +38,14 @@ object ObservationGroupSchema {
         Field(
           name        = "observationIds",
           fieldType   = ListType(ObservationIdType),
-          description = Some("IDs of observations that use the same constraints"),
+          description = "IDs of observations that use the same constraints".some,
           resolve     = _.value.observationIds.toList
         ),
 
         Field(
           name        = "observations",
           fieldType   = ObservationConnectionType[F],
-          description = Some("Observations that use this constraint set"),
+          description = "Observations associated with the common value".some,
           arguments   = List(
             ArgumentPagingFirst,
             ArgumentPagingCursor,
@@ -89,13 +91,11 @@ object ObservationGroupSchema {
       edgeType
     )
 
-  def groupingField[F[_]: Dispatcher: Async: Logger, A, G: Gid](
+  def groupingField[F[_]: Dispatcher: Async: Logger, A](
     name:        String,
     description: String,
     outType:     OutputType[A],
-    lookupAll:   (ObservationRepo[F], Program.Id, Boolean) => F[List[ObservationModel.Group[A]]],
-    cursor:      Context[OdbCtx[F], Unit] => Either[InputError, Option[G]],
-    gid:         ObservationModel.Group[A] => G
+    lookupAll:   (ObservationRepo[F], Program.Id, Option[WhereObservationInput]) => F[List[ObservationModel.Group[A]]]
   ): Field[OdbCtx[F], Unit] = {
 
     val groupType =
@@ -105,35 +105,31 @@ object ObservationGroupSchema {
         outType
       )
 
-    val edgeType =
-      ObservationGroupSchema.ObservationGroupEdgeType[F, A](
-        groupType
-      )
-
-    val connectionType =
-      ObservationGroupSchema.ObservationGroupConnectionType[F, A](
-        groupType,
-        edgeType
-      )
+    val selectResultType =
+      SelectResultType[ObservationModel.Group[A]](name, groupType)
 
     Field(
       name        = s"${name}Group",
-      fieldType   = connectionType,
+      fieldType   = selectResultType,
       description = description.some,
       arguments   = List(
         ProgramIdArgument,
-        ArgumentPagingFirst,
-        ArgumentPagingCursor,
-        ArgumentIncludeDeleted
+        ArgumentOptionWhereObservation,
+        ArgumentOptionLimit
       ),
-      resolve    = c =>
-        Paging.unsafeSelectPageFuture[F, G, ObservationModel.Group[A]](
-          cursor(c),
-          grp   => Cursor.gid[G].reverseGet(gid(grp)),
-          after => lookupAll(c.ctx.odbRepo.observation, c.programId, c.includeDeleted).map { gs =>
-            ResultPage.fromSeq(gs.sortBy(gid), c.arg(ArgumentPagingFirst), after, gid)
-          }
-        )
+      resolve    = c => c.unsafeToFuture {
+
+        val limit = c.arg(ArgumentOptionLimit).getOrElse(DefaultLimit).value
+
+        lookupAll(c.ctx.odbRepo.observation, c.programId, c.arg(ArgumentOptionWhereObservation)).map { gs =>
+          val (result, rest) = gs.splitAt(limit)
+
+          SelectResult.Standard(
+            result,
+            rest.nonEmpty
+          )
+        }
+      }
     )
   }
 

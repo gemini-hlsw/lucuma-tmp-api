@@ -8,8 +8,8 @@ import lucuma.core.model.ProposalClass
 import lucuma.odb.api.model.query.{WhereEqInput, WhereOrderInput, WherePredicate}
 
 final case class WhereProposalClassInput(
-  classType:  Option[WhereEqInput[ProposalClassEnum]],
-  minPercent: Option[WhereOrderInput[Int]]
+  classType:  Option[WhereEqInput[ProposalClassEnum]] = None,
+  minPercent: Option[WhereOrderInput[Int]]            = None
 ) extends WherePredicate[ProposalClass] {
 
   override def matches(a: ProposalClass): Boolean =

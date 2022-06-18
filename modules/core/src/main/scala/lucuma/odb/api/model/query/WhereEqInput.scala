@@ -5,14 +5,17 @@ package lucuma.odb.api.model.query
 
 import cats.Eq
 import cats.syntax.eq._
-import io.circe.Decoder
+import cats.syntax.option._
+import io.circe.{Decoder, Encoder, Json}
 import io.circe.generic.semiauto.deriveDecoder
+import io.circe.syntax.EncoderOps
+import lucuma.core.util.Enumerated
 
 final case class WhereEqInput[A: Eq](
-  EQ:  Option[A],
-  NEQ: Option[A],
-  IN:  Option[List[A]],
-  NIN: Option[List[A]]
+  EQ:  Option[A]       = none,
+  NEQ: Option[A]       = none,
+  IN:  Option[List[A]] = none,
+  NIN: Option[List[A]] = none
 ) extends WherePredicate[A] {
 
   override def matches(a: A): Boolean =
@@ -25,7 +28,26 @@ final case class WhereEqInput[A: Eq](
 
 object WhereEqInput {
 
+  def MatchAll[A: Eq]: WhereEqInput[A] =
+    WhereEqInput[A]()
+
+  def EQ[A: Eq](a: A): WhereEqInput[A] =
+    WhereEqInput[A](EQ = a.some)
+
+  def IN[A: Enumerated]: WhereEqInput[A] =
+    WhereEqInput(IN = Enumerated[A].all.some)
+
   implicit def DecoderWhereEqInput[A: Decoder: Eq]: Decoder[WhereEqInput[A]] =
     deriveDecoder[WhereEqInput[A]]
+
+  // Need an encoder so we can define a default value for the WhereEqInput[Existence]
+  // property. Inexplicably automatic derivation doesn't work.
+  implicit def EncoderWhereEqInput[A: Encoder]: Encoder[WhereEqInput[A]] =
+    (a: WhereEqInput[A]) => Json.fromFields(
+      a.EQ.map(v => "EQ" -> v.asJson).toList     ++
+        a.NEQ.map(v => "NEQ" -> v.asJson).toList ++
+        a.IN.map(vs => "IN" -> vs.asJson).toList ++
+        a.NIN.map(vs => "NIN" -> vs.asJson).toList
+    )
 
 }

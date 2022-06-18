@@ -58,7 +58,12 @@ trait TargetQuery {
       fieldType   = TargetSelectResult[F],
       description = "Selects the first `LIMIT` matching targets based on the provided `WHERE` parameter, if any.".some,
       arguments   = List(ArgumentOptionWhereTarget, ArgumentOptionOffsetTarget, ArgumentOptionLimit),
-      resolve     = c => c.target(_.selectWhere(c.arg(ArgumentOptionWhereTarget), c.arg(ArgumentOptionOffsetTarget), c.arg(ArgumentOptionLimit).getOrElse(DefaultLimit)))
+      resolve     = c => {
+        val where = c.arg(ArgumentOptionWhereTarget).getOrElse(WhereTargetInput.MatchPresent)
+        val off   = c.arg(ArgumentOptionOffsetTarget)
+        val limit = c.arg(ArgumentOptionLimit).getOrElse(DefaultLimit)
+        c.target(_.selectWhere(where, off, limit))
+      }
     )
 
   def asterism[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =

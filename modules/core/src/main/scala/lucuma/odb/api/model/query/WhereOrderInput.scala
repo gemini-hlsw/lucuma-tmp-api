@@ -9,14 +9,14 @@ import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 
 final case class WhereOrderInput[A: Order](
-  EQ:  Option[A],
-  NEQ: Option[A],
-  GT:  Option[A],
-  LT:  Option[A],
-  GTE: Option[A],
-  LTE: Option[A],
-  IN:  Option[List[A]],
-  NIN: Option[List[A]]
+  EQ:  Option[A]       = None,
+  NEQ: Option[A]       = None,
+  GT:  Option[A]       = None,
+  LT:  Option[A]       = None,
+  GTE: Option[A]       = None,
+  LTE: Option[A]       = None,
+  IN:  Option[List[A]] = None,
+  NIN: Option[List[A]] = None
 ) extends WherePredicate[A] {
 
   override def matches(a: A): Boolean =
