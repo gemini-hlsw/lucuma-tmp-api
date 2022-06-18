@@ -247,19 +247,4 @@ object ObservationSchema {
       )
     )
 
-  def ObservationEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Edge[ObservationModel]] =
-    Paging.EdgeType[F, ObservationModel](
-      "ObservationEdge",
-      "An observation and its cursor",
-      ObservationType[F]
-    )
-
-  def ObservationConnectionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Connection[ObservationModel]] =
-    Paging.ConnectionType[F, ObservationModel](
-      "ObservationConnection",
-      "Matching observations",
-      ObservationType[F],
-      ObservationEdgeType[F]
-    )
-
 }
