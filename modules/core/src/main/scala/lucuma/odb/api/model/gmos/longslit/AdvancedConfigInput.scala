@@ -19,8 +19,7 @@ import lucuma.core.enums.{GmosAmpGain, GmosAmpReadMode, GmosRoi, GmosXBinning, G
 import lucuma.core.math.Axis.Q
 import lucuma.core.math.{Offset, Wavelength}
 import lucuma.core.math.units.Nanometer
-import lucuma.odb.api.model.{EditorInput, EitherInput, InputError, OffsetModel, ValidatedInput}
-import lucuma.odb.api.model.ExposureTimeMode.ExposureModeInput
+import lucuma.odb.api.model.{EditorInput, EitherInput, ExposureModeInput, InputError, OffsetModel, ValidatedInput}
 import lucuma.odb.api.model.WavelengthModel.WavelengthInput
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._

@@ -9,6 +9,8 @@ import eu.timepit.refined.types.all.NonEmptyString
 import lucuma.core.enums.{GmosAmpGain, GmosAmpReadMode, GmosNorthFilter, GmosNorthFpu, GmosNorthGrating, GmosRoi, GmosSouthFilter, GmosSouthFpu, GmosSouthGrating, GmosXBinning, GmosYBinning}
 import lucuma.core.math.Wavelength
 import lucuma.core.math.arb.ArbWavelength
+import lucuma.core.model.ExposureTimeMode
+import lucuma.core.model.arb.ArbExposureTimeMode
 import lucuma.odb.api.model.gmos.longslit.{AdvancedConfig, BasicConfig}
 import lucuma.core.util.arb.ArbEnumerated
 import org.scalacheck.Arbitrary
@@ -21,7 +23,7 @@ trait ArbScienceMode {
   import ScienceMode.{GmosNorthLongSlit, GmosSouthLongSlit}
 
   import ArbEnumerated._
-  import ArbExposureMode._
+  import ArbExposureTimeMode._
   import ArbWavelength._
 
   implicit def arbBasicConfig[G: Arbitrary, F: Arbitrary, U: Arbitrary]: Arbitrary[BasicConfig[G, F, U]] =
