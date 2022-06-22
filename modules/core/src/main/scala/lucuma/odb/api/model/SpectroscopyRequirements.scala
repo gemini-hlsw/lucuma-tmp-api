@@ -15,8 +15,8 @@ import eu.timepit.refined.types.numeric.PosInt
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
-import lucuma.core.enum.FocalPlane
-import lucuma.core.enum.SpectroscopyCapabilities
+import lucuma.core.enums.FocalPlane
+import lucuma.core.enums.SpectroscopyCapabilities
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.util.Display

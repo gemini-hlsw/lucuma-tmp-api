@@ -11,7 +11,7 @@ import cats.syntax.functor._
 import cats.syntax.traverse._
 import clue.data.Input
 import io.circe.Decoder
-import lucuma.core.`enum`.{GmosNorthFilter, GmosNorthFpu, GmosNorthGrating, GmosSouthFilter, GmosSouthFpu, GmosSouthGrating, Instrument}
+import lucuma.core.enums.{GmosNorthFilter, GmosNorthFpu, GmosNorthGrating, GmosSouthFilter, GmosSouthFpu, GmosSouthGrating, Instrument}
 import lucuma.odb.api.model.ScienceMode.{GmosNorthLongSlit, GmosNorthLongSlitInput, GmosSouthLongSlit, GmosSouthLongSlitInput}
 import lucuma.odb.api.model.gmos.longslit.{AdvancedConfig, AdvancedConfigInput, BasicConfig, BasicConfigInput}
 import lucuma.odb.api.model.syntax.input._

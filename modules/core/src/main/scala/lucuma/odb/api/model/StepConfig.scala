@@ -4,7 +4,7 @@
 package lucuma.odb.api.model
 
 import lucuma.core.math.Offset
-import lucuma.core.`enum`.StepType
+import lucuma.core.enums.StepType
 import lucuma.odb.api.model.syntax.inputvalidator._
 import cats.{Applicative, Eq, Eval, Traverse}
 import cats.syntax.all._

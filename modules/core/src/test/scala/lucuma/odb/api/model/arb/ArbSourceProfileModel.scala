@@ -6,7 +6,7 @@ package arb
 
 import clue.data.Input
 import eu.timepit.refined.types.all.{PosBigDecimal, PosInt}
-import lucuma.core.`enum`.{Band, CoolStarTemperature, GalaxySpectrum, HIIRegionSpectrum, PlanetSpectrum, PlanetaryNebulaSpectrum, StellarLibrarySpectrum}
+import lucuma.core.enums.{Band, CoolStarTemperature, GalaxySpectrum, HIIRegionSpectrum, PlanetSpectrum, PlanetaryNebulaSpectrum, StellarLibrarySpectrum}
 import lucuma.core.math.BrightnessUnits.{Brightness, FluxDensityContinuum, Integrated, LineFlux, Surface}
 import lucuma.core.math.arb.ArbRefined
 import lucuma.core.math.dimensional.{Of, Units}

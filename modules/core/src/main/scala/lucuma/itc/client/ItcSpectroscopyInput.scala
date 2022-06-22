@@ -7,7 +7,7 @@ import cats.syntax.all._
 import eu.timepit.refined.types.all.PosBigDecimal
 import io.circe._
 import io.circe.syntax._
-import lucuma.core.`enum`.Band
+import lucuma.core.enums.Band
 import lucuma.core.math.BrightnessUnits.{BrightnessMeasure, Integrated, Surface}
 import lucuma.core.math.{RadialVelocity, Wavelength}
 import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}

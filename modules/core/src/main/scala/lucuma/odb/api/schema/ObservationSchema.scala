@@ -6,7 +6,7 @@ package lucuma.odb.api.schema
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
-import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
+import lucuma.core.enums.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.Observation
 import lucuma.odb.api.model.{ObservationModel, PlannedTimeSummaryModel}
 import lucuma.odb.api.repo.OdbCtx

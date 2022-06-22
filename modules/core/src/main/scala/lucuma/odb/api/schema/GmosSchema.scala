@@ -4,7 +4,7 @@
 package lucuma.odb.api.schema
 
 import cats.syntax.option._
-import lucuma.core.`enum`._
+import lucuma.core.enums._
 import lucuma.core.util.Enumerated
 import lucuma.odb.api.model.GmosModel
 import sangria.marshalling.circe._

@@ -4,7 +4,7 @@
 package lucuma.gen
 
 import cats.data.State
-import lucuma.core.`enum`.{GcalContinuum, GcalDiffuser, GcalFilter, GcalShutter}
+import lucuma.core.enums.{GcalContinuum, GcalDiffuser, GcalFilter, GcalShutter}
 import lucuma.core.math.{Angle, Offset}
 import lucuma.odb.api.model.{GcalModel, StepConfig}
 

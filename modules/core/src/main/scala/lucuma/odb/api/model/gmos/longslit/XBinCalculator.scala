@@ -5,7 +5,7 @@ package lucuma.odb.api.model.gmos.longslit
 
 import eu.timepit.refined.types.all
 import eu.timepit.refined.types.all.PosDouble
-import lucuma.core.`enum`.{GmosNorthFpu, GmosSouthFpu, GmosXBinning, ImageQuality}
+import lucuma.core.enums.{GmosNorthFpu, GmosSouthFpu, GmosXBinning, ImageQuality}
 import lucuma.core.model.SourceProfile
 
 trait XBinCalculator[U] {

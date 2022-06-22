@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.model
 
-import lucuma.core.`enum`._
+import lucuma.core.enums._
 import lucuma.core.math.{Offset, Wavelength}
 import lucuma.core.model.NonNegDuration
 import lucuma.core.optics.syntax.lens._

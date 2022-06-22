@@ -9,7 +9,7 @@ import coulomb.Quantity
 import coulomb.cats.implicits._
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.all.NonEmptyString
-import lucuma.core.`enum`.{GmosAmpGain, GmosAmpReadMode, GmosRoi, GmosXBinning, GmosYBinning}
+import lucuma.core.enums.{GmosAmpGain, GmosAmpReadMode, GmosRoi, GmosXBinning, GmosYBinning}
 import lucuma.core.math.{Angle, Offset, Wavelength}
 import lucuma.core.math.units.Nanometer
 import lucuma.odb.api.model.ExposureTimeMode

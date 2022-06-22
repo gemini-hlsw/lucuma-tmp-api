@@ -13,7 +13,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
-import lucuma.core.enum._
+import lucuma.core.enums._
 import lucuma.core.model.IntPercent
 import lucuma.core.model.{Partner, Proposal}
 import lucuma.odb.api.model.EitherInput

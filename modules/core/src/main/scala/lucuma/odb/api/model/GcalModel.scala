@@ -4,7 +4,7 @@
 package lucuma.odb.api.model
 
 import cats.Eq
-import lucuma.core.`enum`.{GcalArc, GcalContinuum, GcalDiffuser, GcalFilter, GcalShutter}
+import lucuma.core.enums.{GcalArc, GcalContinuum, GcalDiffuser, GcalFilter, GcalShutter}
 import cats.data.OneAnd
 import cats.implicits._
 import io.circe.Decoder

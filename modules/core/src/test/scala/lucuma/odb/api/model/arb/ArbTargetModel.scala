@@ -9,7 +9,7 @@ import clue.data.Input
 import clue.data.syntax._
 import eu.timepit.refined.scalacheck.string._
 import eu.timepit.refined.types.string.NonEmptyString
-import lucuma.core.`enum`.EphemerisKeyType
+import lucuma.core.enums.EphemerisKeyType
 import lucuma.core.math.{Coordinates, Epoch}
 import lucuma.core.math.arb.{ArbCoordinates, ArbEpoch}
 import lucuma.core.model.{Program, Target}

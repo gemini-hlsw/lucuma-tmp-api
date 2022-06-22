@@ -7,7 +7,7 @@ import cats.data.NonEmptyList
 import cats.syntax.either._
 import cats.syntax.option._
 import eu.timepit.refined.auto._
-import lucuma.core.`enum`.{GmosNorthFilter, GmosNorthFpu, GmosNorthGrating, GmosRoi, GmosSouthFilter, GmosSouthFpu, GmosSouthGrating, GmosXBinning, GmosYBinning}
+import lucuma.core.enums.{GmosNorthFilter, GmosNorthFpu, GmosNorthGrating, GmosRoi, GmosSouthFilter, GmosSouthFpu, GmosSouthGrating, GmosXBinning, GmosYBinning}
 import lucuma.core.math.Wavelength
 import lucuma.core.math.syntax.int._
 import lucuma.core.model.NonNegDuration

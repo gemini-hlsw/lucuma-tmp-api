@@ -4,9 +4,9 @@
 package lucuma.odb.api.schema
 
 import lucuma.core.math.Angle
-import lucuma.core.enum.FocalPlane
-import lucuma.core.enum.SpectroscopyCapabilities
-import lucuma.core.enum.ScienceMode
+import lucuma.core.enums.FocalPlane
+import lucuma.core.enums.SpectroscopyCapabilities
+import lucuma.core.enums.ScienceMode
 import lucuma.odb.api.model.{FocalPlaneAngleInput, ScienceRequirements, SpectroscopyScienceRequirements}
 import lucuma.odb.api.schema.syntax.all._
 import sangria.schema._

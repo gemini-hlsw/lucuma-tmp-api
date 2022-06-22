@@ -5,7 +5,7 @@ package lucuma.gen
 package gmos
 
 import cats.effect.Sync
-import lucuma.core.`enum`._
+import lucuma.core.enums._
 import lucuma.odb.api.model.GmosModel.{NorthDynamic, NorthStatic}
 import lucuma.odb.api.model.ExecutionModel
 

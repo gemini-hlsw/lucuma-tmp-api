@@ -8,7 +8,7 @@ import cats.syntax.either._
 import cats.syntax.eq._
 import cats.syntax.option._
 import eu.timepit.refined.types.all.PosDouble
-import lucuma.core.`enum`.{GmosGratingOrder, GmosNorthFilter, GmosNorthFpu, GmosNorthGrating, GmosSouthFilter, GmosSouthFpu, GmosSouthGrating, ImageQuality}
+import lucuma.core.enums.{GmosGratingOrder, GmosNorthFilter, GmosNorthFpu, GmosNorthGrating, GmosSouthFilter, GmosSouthFpu, GmosSouthGrating, ImageQuality}
 import lucuma.core.math.{Offset, Wavelength}
 import lucuma.core.math.syntax.int._
 import lucuma.core.model.SourceProfile

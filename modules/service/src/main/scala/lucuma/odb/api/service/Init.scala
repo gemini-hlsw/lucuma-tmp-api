@@ -13,7 +13,7 @@ import eu.timepit.refined.auto._
 import eu.timepit.refined.types.numeric._
 import eu.timepit.refined.types.string._
 import io.circe.parser.decode
-import lucuma.core.`enum`.{ScienceMode => ScienceModeEnum, _}
+import lucuma.core.enums.{ScienceMode => ScienceModeEnum, _}
 import lucuma.core.optics.syntax.all._
 import lucuma.core.model.ZeroTo100
 import lucuma.core.math.syntax.int._

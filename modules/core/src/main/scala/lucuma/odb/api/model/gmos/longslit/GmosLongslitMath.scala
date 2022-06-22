@@ -8,7 +8,7 @@ import cats.Order
 import cats.syntax.order._
 import coulomb._
 import eu.timepit.refined.types.all.{PosDouble, PosInt}
-import lucuma.core.`enum`.{GmosNorthDetector, GmosNorthFpu, GmosSouthDetector, GmosSouthFpu, GmosXBinning, ImageQuality, Site}
+import lucuma.core.enums.{GmosNorthDetector, GmosNorthFpu, GmosSouthDetector, GmosSouthFpu, GmosXBinning, ImageQuality, Site}
 import lucuma.core.math.Angle
 import lucuma.core.math.units.{Nanometer, NanometersPerPixel, Pixels}
 import lucuma.core.model.SourceProfile

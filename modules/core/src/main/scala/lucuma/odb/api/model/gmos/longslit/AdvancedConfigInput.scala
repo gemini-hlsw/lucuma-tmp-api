@@ -15,7 +15,7 @@ import eu.timepit.refined.cats._
 import eu.timepit.refined.types.all.NonEmptyString
 import io.circe.Decoder
 import io.circe.refined._
-import lucuma.core.`enum`.{GmosAmpGain, GmosAmpReadMode, GmosRoi, GmosXBinning, GmosYBinning}
+import lucuma.core.enums.{GmosAmpGain, GmosAmpReadMode, GmosRoi, GmosXBinning, GmosYBinning}
 import lucuma.core.math.Axis.Q
 import lucuma.core.math.{Offset, Wavelength}
 import lucuma.core.math.units.Nanometer

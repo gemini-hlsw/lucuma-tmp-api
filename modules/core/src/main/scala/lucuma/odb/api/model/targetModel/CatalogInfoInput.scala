@@ -12,7 +12,7 @@ import eu.timepit.refined.cats._
 import eu.timepit.refined.types.all.NonEmptyString
 import io.circe.Decoder
 import io.circe.refined._
-import lucuma.core.`enum`.CatalogName
+import lucuma.core.enums.CatalogName
 import lucuma.core.model.CatalogInfo
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._

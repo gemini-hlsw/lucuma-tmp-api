@@ -4,7 +4,7 @@
 package lucuma.odb.api.model
 package arb
 
-import lucuma.core.`enum`._
+import lucuma.core.enums._
 import lucuma.core.math.{Offset, Wavelength}
 import lucuma.core.math.arb.{ArbOffset, ArbWavelength}
 import lucuma.core.model.NonNegDuration

@@ -14,7 +14,7 @@ import eu.timepit.refined.types.all.PosInt
 import io.circe._
 import io.circe.generic.semiauto._
 import io.circe.refined._
-import lucuma.core.`enum`.DatasetQaState
+import lucuma.core.enums.DatasetQaState
 import lucuma.core.model.Observation
 import lucuma.core.optics.Format
 import lucuma.core.util.Gid

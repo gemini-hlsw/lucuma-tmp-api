@@ -6,7 +6,7 @@ package arb
 
 import clue.data.Input
 import eu.timepit.refined.scalacheck._
-import lucuma.core.enum._
+import lucuma.core.enums._
 import lucuma.core.util.arb.ArbEnumerated
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary

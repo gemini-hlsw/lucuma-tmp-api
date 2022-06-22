@@ -12,7 +12,7 @@ import cats.syntax.functor._
 import cats.syntax.option._
 import eu.timepit.refined.auto._
 import eu.timepit.refined.types.all.{PosDouble, PosInt}
-import lucuma.core.`enum`.{GmosNorthFilter, GmosNorthFpu, GmosNorthGrating, GmosXBinning, ImageQuality}
+import lucuma.core.enums.{GmosNorthFilter, GmosNorthFpu, GmosNorthGrating, GmosXBinning, ImageQuality}
 import lucuma.core.math.Wavelength
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.arb.ArbSourceProfile

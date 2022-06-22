@@ -4,8 +4,8 @@
 package lucuma.odb.api.model.gmos.syntax
 
 import cats.data.NonEmptyList
-import lucuma.core.`enum`.GmosSouthFilter
-import lucuma.core.`enum`.GmosSouthFilter.{GPrime, IPrime, RPrime, UPrime, ZPrime}
+import lucuma.core.enums.GmosSouthFilter
+import lucuma.core.enums.GmosSouthFilter.{GPrime, IPrime, RPrime, UPrime, ZPrime}
 
 final class GmosSouthFilterCompanionOps(val self: GmosSouthFilter.type) extends AnyVal {
 

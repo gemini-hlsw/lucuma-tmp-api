@@ -4,7 +4,7 @@
 package lucuma.odb.api.model
 package arb
 
-import lucuma.core.`enum`.{GcalArc, GcalContinuum, GcalDiffuser, GcalFilter, GcalShutter}
+import lucuma.core.enums.{GcalArc, GcalContinuum, GcalDiffuser, GcalFilter, GcalShutter}
 import lucuma.core.util.arb.ArbEnumerated
 
 import org.scalacheck._

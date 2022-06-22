@@ -68,7 +68,7 @@ final class FS2IntegrationSpec extends CatsSuite {
     an [IllegalStateException] should be thrownBy execStream(_.failed(new IllegalStateException("foo")))
   }
 
-  def execOnComplete(s: Stream[IO, _root_.fs2.INothing]): Assertion = {
+  def execOnComplete(s: Stream[IO, Nothing]): Assertion = {
     val count = new AtomicInteger(0)
     def inc(): Unit = { val _ = count.getAndIncrement }
 

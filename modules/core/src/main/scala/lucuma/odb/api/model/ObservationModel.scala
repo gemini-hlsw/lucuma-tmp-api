@@ -24,7 +24,7 @@ import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.odb.api.model.targetModel.{TargetEnvironmentInput, TargetEnvironmentModel}
-import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
+import lucuma.core.enums.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.{ConstraintSet, Observation, Program}
 import monocle.{Focus, Lens, Optional}
 

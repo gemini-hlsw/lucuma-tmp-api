@@ -4,7 +4,7 @@
 package lucuma.odb.api.model.gmos.longslit
 
 import coulomb.Quantity
-import lucuma.core.`enum`.{GmosNorthGrating, GmosSouthGrating}
+import lucuma.core.enums.{GmosNorthGrating, GmosSouthGrating}
 import lucuma.core.math.units.Nanometer
 
 trait DeltaWavelengthCalculator[G] {
