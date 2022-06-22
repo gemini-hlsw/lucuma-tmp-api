@@ -5,8 +5,9 @@ package lucuma.odb.api.schema
 
 import cats.syntax.option._
 import lucuma.core.math.Axis.Q
+import lucuma.core.model.ExposureTimeMode
 import lucuma.core.syntax.string._
-import lucuma.odb.api.model.{ConfigurationMode, ExposureTimeMode, ScienceMode}
+import lucuma.odb.api.model.{ConfigurationMode, ScienceMode}
 import lucuma.odb.api.model.gmos.longslit.{AdvancedConfig, BasicConfig}
 import lucuma.odb.api.schema.syntax.all._
 import sangria.schema._

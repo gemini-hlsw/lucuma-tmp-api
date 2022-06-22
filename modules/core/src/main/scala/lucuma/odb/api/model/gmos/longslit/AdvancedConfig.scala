@@ -12,7 +12,7 @@ import eu.timepit.refined.types.all.NonEmptyString
 import lucuma.core.enums.{GmosAmpGain, GmosAmpReadMode, GmosRoi, GmosXBinning, GmosYBinning}
 import lucuma.core.math.{Angle, Offset, Wavelength}
 import lucuma.core.math.units.Nanometer
-import lucuma.odb.api.model.ExposureTimeMode
+import lucuma.core.model.ExposureTimeMode
 import monocle.{Focus, Lens}
 
 /**

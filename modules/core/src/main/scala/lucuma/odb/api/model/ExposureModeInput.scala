@@ -5,7 +5,6 @@ package lucuma.odb.api.model
 
 import cats.Eq
 import cats.data.StateT
-import cats.syntax.eq._
 import cats.syntax.functor._
 import cats.syntax.validated._
 import clue.data.Input
@@ -15,25 +14,10 @@ import eu.timepit.refined.types.all.{NonNegInt, PosBigDecimal}
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import io.circe.refined._
-import lucuma.core.model.NonNegDuration
+import lucuma.core.model.ExposureTimeMode
+import lucuma.core.model.ExposureTimeMode._
 import lucuma.odb.api.model.DurationModel.NonNegDurationInput
 import lucuma.odb.api.model.syntax.validatedinput._
-import monocle.Prism
-import monocle.macros.GenPrism
-
-sealed trait ExposureTimeMode extends Product with Serializable
-
-object ExposureTimeMode {
-
-  final case class SignalToNoise(value: PosBigDecimal)                   extends ExposureTimeMode
-  final case class FixedExposure(count: NonNegInt, time: NonNegDuration) extends ExposureTimeMode
-
-  implicit val EqExposureMode: Eq[ExposureTimeMode] =
-    Eq.instance {
-      case (SignalToNoise(a), SignalToNoise(b))           => a === b
-      case (FixedExposure(ac, ad), FixedExposure(bc, bd)) => ac === bc && ad.equals(bd)
-      case _                                              => false
-    }
 
   final case class SignalToNoiseInput(
     value: PosBigDecimal
@@ -125,11 +109,3 @@ object ExposureTimeMode {
       )}
 
   }
-
-  val signalToNoise: Prism[ExposureTimeMode, SignalToNoise] =
-    GenPrism[ExposureTimeMode, SignalToNoise]
-
-  val fixedExposure: Prism[ExposureTimeMode, FixedExposure] =
-    GenPrism[ExposureTimeMode, FixedExposure]
-
-}

@@ -19,11 +19,11 @@ import eu.timepit.refined.types.all.{NonNegInt, PosDouble}
 import lucuma.core.enums.ImageQuality
 import lucuma.core.math.{Angle, Wavelength}
 import lucuma.core.math.units.Nanometer
-import lucuma.core.model.{NonNegDuration, SourceProfile, Target}
+import lucuma.core.model.{ExposureTimeMode, NonNegDuration, SourceProfile, Target}
+import lucuma.core.model.ExposureTimeMode.{FixedExposure, SignalToNoise}
 import lucuma.core.syntax.time._
 import lucuma.itc.client.ItcClient
-import lucuma.odb.api.model.{ExposureTimeMode, ObservationModel, ScienceMode, Sequence}
-import lucuma.odb.api.model.ExposureTimeMode.{FixedExposure, SignalToNoise}
+import lucuma.odb.api.model.{ObservationModel, ScienceMode, Sequence}
 import lucuma.odb.api.model.gmos.longslit.{GmosLongslitMath, LongSlit}
 import lucuma.odb.api.repo.OdbRepo
 
