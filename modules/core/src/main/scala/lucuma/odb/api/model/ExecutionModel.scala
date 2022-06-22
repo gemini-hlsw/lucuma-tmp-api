@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.model
 
-import lucuma.core.`enum`.Instrument
+import lucuma.core.enums.Instrument
 import cats.Eq
 import cats.effect.Sync
 import cats.syntax.all._

@@ -16,7 +16,7 @@ import cats.syntax.traverse._
 import coulomb.Quantity
 import eu.timepit.refined.auto._
 import eu.timepit.refined.types.all.{NonNegInt, PosDouble}
-import lucuma.core.`enum`.ImageQuality
+import lucuma.core.enums.ImageQuality
 import lucuma.core.math.{Angle, Wavelength}
 import lucuma.core.math.units.Nanometer
 import lucuma.core.model.{NonNegDuration, SourceProfile, Target}

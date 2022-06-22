@@ -3,7 +3,7 @@
 
 package lucuma.gen.gmos
 
-import lucuma.core.`enum`.{GmosAmpCount, GmosAmpGain, GmosAmpReadMode, GmosDtax, GmosRoi, GmosXBinning, GmosYBinning}
+import lucuma.core.enums.{GmosAmpCount, GmosAmpGain, GmosAmpReadMode, GmosDtax, GmosRoi, GmosXBinning, GmosYBinning}
 import lucuma.core.model.NonNegDuration
 import lucuma.odb.api.model.GmosModel.{CcdReadout, NorthDynamic}
 

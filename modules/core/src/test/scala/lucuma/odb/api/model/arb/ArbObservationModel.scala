@@ -5,7 +5,7 @@ package lucuma.odb.api.model
 package arb
 
 import clue.data.Input
-import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
+import lucuma.core.enums.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.{ConstraintSet, Observation, Program}
 import lucuma.core.model.arb.ArbConstraintSet
 import lucuma.core.util.arb.{ArbEnumerated, ArbGid}

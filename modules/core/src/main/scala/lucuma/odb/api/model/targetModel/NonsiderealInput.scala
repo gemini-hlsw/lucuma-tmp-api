@@ -14,7 +14,7 @@ import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.refined._
-import lucuma.core.`enum`.EphemerisKeyType
+import lucuma.core.enums.EphemerisKeyType
 import lucuma.core.model.{EphemerisKey, Target}
 import lucuma.odb.api.model.{EditorInput, EitherInput, InputError, ValidatedInput}
 import lucuma.odb.api.model.targetModel.SourceProfileModel.SourceProfileInput

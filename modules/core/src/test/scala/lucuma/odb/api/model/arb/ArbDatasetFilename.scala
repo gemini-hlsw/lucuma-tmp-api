@@ -4,7 +4,7 @@
 package lucuma.odb.api.model
 package arb
 
-import lucuma.core.`enum`.Site
+import lucuma.core.enums.Site
 import lucuma.core.util.arb.ArbEnumerated
 import lucuma.odb.api.model.time.FourDigitYearLocalDate
 import eu.timepit.refined.scalacheck.all.greaterArbitrary

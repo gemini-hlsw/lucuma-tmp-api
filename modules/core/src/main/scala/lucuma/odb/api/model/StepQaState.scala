@@ -6,7 +6,7 @@ package lucuma.odb.api.model
 import cats.syntax.eq._
 import cats.syntax.traverse._
 import cats.syntax.option._
-import lucuma.core.`enum`.DatasetQaState
+import lucuma.core.enums.DatasetQaState
 import lucuma.core.util.Enumerated
 import monocle.Iso
 

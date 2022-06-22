@@ -8,7 +8,7 @@ import cats.data.StateT
 import cats.syntax.all._
 import clue.data.Input
 import io.circe.Decoder
-import lucuma.core.enum._
+import lucuma.core.enums._
 import lucuma.core.model.{ConstraintSet, ElevationRange}
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._

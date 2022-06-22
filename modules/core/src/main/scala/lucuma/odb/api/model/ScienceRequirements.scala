@@ -10,7 +10,7 @@ import cats.syntax.traverse._
 import clue.data.Input
 import clue.data.syntax._
 import io.circe.Decoder
-import lucuma.core.enum.ScienceMode
+import lucuma.core.enums.ScienceMode
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.validatedinput._

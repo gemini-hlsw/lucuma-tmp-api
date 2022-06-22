@@ -6,7 +6,7 @@ package arb
 
 import eu.timepit.refined.scalacheck.string._
 import eu.timepit.refined.types.all.NonEmptyString
-import lucuma.core.`enum`.{GmosAmpGain, GmosAmpReadMode, GmosNorthFilter, GmosNorthFpu, GmosNorthGrating, GmosRoi, GmosSouthFilter, GmosSouthFpu, GmosSouthGrating, GmosXBinning, GmosYBinning}
+import lucuma.core.enums.{GmosAmpGain, GmosAmpReadMode, GmosNorthFilter, GmosNorthFpu, GmosNorthGrating, GmosRoi, GmosSouthFilter, GmosSouthFpu, GmosSouthGrating, GmosXBinning, GmosYBinning}
 import lucuma.core.math.Wavelength
 import lucuma.core.math.arb.ArbWavelength
 import lucuma.odb.api.model.gmos.longslit.{AdvancedConfig, BasicConfig}

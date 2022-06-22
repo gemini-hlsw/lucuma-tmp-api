@@ -7,7 +7,7 @@ import cats.Eq
 import cats.data.StateT
 import cats.syntax.eq._
 import cats.syntax.option._
-import lucuma.core.`enum`.Instrument
+import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
 import lucuma.odb.api.model.syntax.lens._
 import monocle.Prism

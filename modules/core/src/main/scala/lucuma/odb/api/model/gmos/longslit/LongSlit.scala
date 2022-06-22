@@ -6,7 +6,7 @@ package lucuma.odb.api.model.gmos.longslit
 import cats.data.NonEmptyList
 import coulomb.Quantity
 import eu.timepit.refined.types.all.PosDouble
-import lucuma.core.`enum`.{GmosAmpGain, GmosAmpReadMode, GmosRoi, GmosXBinning, GmosYBinning, ImageQuality}
+import lucuma.core.enums.{GmosAmpGain, GmosAmpReadMode, GmosRoi, GmosXBinning, GmosYBinning, ImageQuality}
 import lucuma.core.math.Offset
 import lucuma.core.math.units.Nanometer
 import lucuma.core.model.SourceProfile

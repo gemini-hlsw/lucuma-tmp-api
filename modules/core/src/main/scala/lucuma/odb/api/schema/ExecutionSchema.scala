@@ -6,7 +6,7 @@ package lucuma.odb.api.schema
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
-import lucuma.core.`enum`.Instrument
+import lucuma.core.enums.Instrument
 import lucuma.core.model.{ExecutionEvent, Observation}
 import lucuma.gen.SequenceComputation
 import lucuma.odb.api.model._

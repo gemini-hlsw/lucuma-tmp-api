@@ -6,7 +6,7 @@ package lucuma.odb.api.model.arb
 import clue.data.Input
 import eu.timepit.refined.scalacheck.all._
 import eu.timepit.refined.types.string.NonEmptyString
-import lucuma.core.enum.{TacCategory, ToOActivation}
+import lucuma.core.enums.{TacCategory, ToOActivation}
 import lucuma.core.model.{IntPercent, Partner}
 import lucuma.core.util.arb.ArbEnumerated
 import lucuma.odb.api.model.{ProposalClassInput, ProposalInput}

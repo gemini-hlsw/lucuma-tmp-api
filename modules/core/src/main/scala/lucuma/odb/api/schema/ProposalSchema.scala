@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.core.enum.{TacCategory, ToOActivation}
+import lucuma.core.enums.{TacCategory, ToOActivation}
 import lucuma.core.model.{Partner, Proposal}
 import lucuma.odb.api.model.PartnerSplit
 

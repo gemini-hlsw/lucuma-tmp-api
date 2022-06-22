@@ -21,7 +21,7 @@ import eu.timepit.refined.types.all.{PosBigDecimal, PosInt}
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import io.circe.refined._
-import lucuma.core.`enum`.{Band, CoolStarTemperature, GalaxySpectrum, HIIRegionSpectrum, PlanetSpectrum, PlanetaryNebulaSpectrum, QuasarSpectrum, StellarLibrarySpectrum}
+import lucuma.core.enums.{Band, CoolStarTemperature, GalaxySpectrum, HIIRegionSpectrum, PlanetSpectrum, PlanetaryNebulaSpectrum, QuasarSpectrum, StellarLibrarySpectrum}
 import lucuma.core.math.BrightnessUnits._
 import lucuma.core.math.dimensional.{Measure, Of, Units}
 import lucuma.core.math.units.KilometersPerSecond

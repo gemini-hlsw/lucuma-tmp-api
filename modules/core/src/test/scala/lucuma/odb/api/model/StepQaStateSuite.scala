@@ -4,7 +4,7 @@
 package lucuma.odb.api.model
 
 import cats.syntax.eq._
-import lucuma.core.`enum`.DatasetQaState
+import lucuma.core.enums.DatasetQaState
 import lucuma.core.util.arb.ArbEnumerated
 import munit.ScalaCheckSuite
 import org.scalacheck.Prop.forAll

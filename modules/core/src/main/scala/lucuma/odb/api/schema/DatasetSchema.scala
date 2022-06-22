@@ -7,7 +7,7 @@ import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import eu.timepit.refined.types.all.PosInt
-import lucuma.core.`enum`.DatasetQaState
+import lucuma.core.enums.DatasetQaState
 import lucuma.odb.api.model.{DatasetFilename, DatasetModel}
 import lucuma.odb.api.model.format.ScalarFormat
 import lucuma.odb.api.repo.OdbCtx

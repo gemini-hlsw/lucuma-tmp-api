@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.core.`enum`.{GmosNorthFilter, GmosNorthFpu, GmosNorthGrating, GmosSouthFilter, GmosSouthFpu, GmosSouthGrating}
+import lucuma.core.enums.{GmosNorthFilter, GmosNorthFpu, GmosNorthGrating, GmosSouthFilter, GmosSouthFpu, GmosSouthGrating}
 import lucuma.odb.api.model.gmos.longslit.{AdvancedConfigInput, BasicConfigInput}
 import lucuma.odb.api.model.{ExposureTimeMode, ScienceMode, ScienceModeInput}
 import lucuma.odb.api.model.ExposureTimeMode.{FixedExposureInput, SignalToNoiseInput}

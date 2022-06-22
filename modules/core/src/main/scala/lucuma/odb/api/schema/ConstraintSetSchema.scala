@@ -4,7 +4,7 @@
 package lucuma.odb.api.schema
 
 import eu.timepit.refined.types.all.PosBigDecimal
-import lucuma.core.enum.{CloudExtinction, ImageQuality, SkyBackground, WaterVapor}
+import lucuma.core.enums.{CloudExtinction, ImageQuality, SkyBackground, WaterVapor}
 import lucuma.core.model.{ConstraintSet, ElevationRange}
 import lucuma.odb.api.schema.syntax.all._
 import sangria.schema._

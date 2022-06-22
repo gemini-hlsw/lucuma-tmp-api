@@ -6,7 +6,7 @@ package lucuma.odb.api.schema
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.option._
-import lucuma.core.enum.{TacCategory, ToOActivation}
+import lucuma.core.enums.{TacCategory, ToOActivation}
 import lucuma.core.model.Partner
 import lucuma.odb.api.model.{ProgramModel, ProposalInput, ProposalClassInput}
 import lucuma.odb.api.schema.syntax.inputtype._

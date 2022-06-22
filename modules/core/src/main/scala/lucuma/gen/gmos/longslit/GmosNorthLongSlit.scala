@@ -9,7 +9,7 @@ import cats.effect.Sync
 import cats.syntax.functor._
 import eu.timepit.refined.auto._
 import eu.timepit.refined.types.all.PosDouble
-import lucuma.core.`enum`._
+import lucuma.core.enums._
 import lucuma.itc.client.ItcClient
 import lucuma.odb.api.model.{ObservationModel, ScienceMode, Sequence}
 import lucuma.odb.api.model.gmos.syntax.gmosNorthFilter._

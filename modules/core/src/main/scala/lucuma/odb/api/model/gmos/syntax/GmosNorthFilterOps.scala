@@ -4,8 +4,8 @@
 package lucuma.odb.api.model.gmos.syntax
 
 import cats.data.NonEmptyList
-import lucuma.core.`enum`.GmosNorthFilter
-import lucuma.core.`enum`.GmosNorthFilter.{GPrime, IPrime, RPrime, UPrime, ZPrime}
+import lucuma.core.enums.GmosNorthFilter
+import lucuma.core.enums.GmosNorthFilter.{GPrime, IPrime, RPrime, UPrime, ZPrime}
 
 final class GmosNorthFilterCompanionOps(val self: GmosNorthFilter.type) extends AnyVal {
 

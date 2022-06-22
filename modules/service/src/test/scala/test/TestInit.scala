@@ -12,7 +12,7 @@ import eu.timepit.refined._
 import eu.timepit.refined.types.numeric.{NonNegBigDecimal, PosBigDecimal}
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.parser.decode
-import lucuma.core.`enum`.{ScienceMode => _, _}
+import lucuma.core.enums.{ScienceMode => _, _}
 import lucuma.core.math.syntax.int._
 import lucuma.core.model.ZeroTo100
 import lucuma.core.model.{Partner, Program}

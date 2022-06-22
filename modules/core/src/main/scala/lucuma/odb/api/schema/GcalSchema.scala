@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.core.`enum`._
+import lucuma.core.enums._
 import lucuma.odb.api.model.GcalModel
 import sangria.schema._
 

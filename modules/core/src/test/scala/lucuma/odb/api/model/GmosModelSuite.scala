@@ -4,7 +4,7 @@
 package lucuma.odb.api.model
 
 import lucuma.odb.api.model.arb._
-import lucuma.core.`enum`.GmosNorthGrating
+import lucuma.core.enums.GmosNorthGrating
 import lucuma.core.util.arb.ArbEnumerated
 
 import cats.kernel.laws.discipline.EqTests

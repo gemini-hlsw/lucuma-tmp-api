@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.model
 
-import lucuma.core.`enum`.Site
+import lucuma.core.enums.Site
 import lucuma.odb.api.model.time.FourDigitYearLocalDate
 import lucuma.core.optics.Format
 import atto._

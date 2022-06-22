@@ -7,7 +7,7 @@ import cats.Monad
 import cats.effect.Sync
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import lucuma.core.`enum`.Instrument
+import lucuma.core.enums.Instrument
 import lucuma.odb.api.model.{ExecutionModel, Sequence, SequenceModel}
 
 /**

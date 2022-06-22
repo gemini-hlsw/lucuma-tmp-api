@@ -5,7 +5,7 @@ package lucuma.odb.api.schema
 
 import cats.syntax.option._
 import eu.timepit.refined.types.all.PosBigDecimal
-import lucuma.core.`enum`.{Band, CoolStarTemperature, GalaxySpectrum, HIIRegionSpectrum, PlanetSpectrum, PlanetaryNebulaSpectrum, QuasarSpectrum, StellarLibrarySpectrum}
+import lucuma.core.enums.{Band, CoolStarTemperature, GalaxySpectrum, HIIRegionSpectrum, PlanetSpectrum, PlanetaryNebulaSpectrum, QuasarSpectrum, StellarLibrarySpectrum}
 import lucuma.core.math.Wavelength
 import lucuma.core.math.BrightnessUnits.{Brightness, FluxDensityContinuum, Integrated, LineFlux, Surface}
 import lucuma.core.math.dimensional.{Measure, Of, Units}

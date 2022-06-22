@@ -5,7 +5,7 @@ package lucuma.odb.api.model
 package arb
 
 import eu.timepit.refined.types.numeric.PosInt
-import lucuma.core.`enum`.DatasetQaState
+import lucuma.core.enums.DatasetQaState
 import lucuma.core.model.Observation
 import lucuma.core.util.arb.{ArbEnumerated, ArbGid}
 import org.scalacheck._
