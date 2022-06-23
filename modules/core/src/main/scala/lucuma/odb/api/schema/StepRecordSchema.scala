@@ -3,29 +3,21 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{StepQaState, StepRecord, WhereDatasetInput}
+import lucuma.odb.api.model.{StepQaState, StepRecord}
 import cats.effect.Async
-import cats.effect.kernel.Sync
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
-import lucuma.core.model.ExecutionEvent
-import lucuma.odb.api.model.ExecutionEventModel.{DatasetEvent, StepEvent}
-import lucuma.odb.api.repo.{OdbCtx, ResultPage}
+import lucuma.odb.api.repo.OdbCtx
+import lucuma.odb.api.schema.DatasetSchema.DatasetType
+import lucuma.odb.api.schema.ExecutionEventSchema.{DatasetEventType, StepEventType}
 import lucuma.odb.api.schema.syntax.`enum`._
 import org.typelevel.log4cats.Logger
 import sangria.schema._
 
 object StepRecordSchema {
 
-  import context._
-  import Paging._
-
-  import DatasetSchema.DatasetSelectResult
-  import DatasetQuery.ArgumentOptionOffsetDataset
-  import ExecutionEventSchema.{DatasetEventConnectionType, StepEventConnectionType}
   import StepSchema.{StepConfigType, StepIdType}
   import TimeSchema.{NonNegativeDurationType, InstantScalar}
-  import QuerySchema.ArgumentOptionLimit
   import VisitRecordSchema.VisitIdType
 
   implicit val EnumTypeStepQaState: EnumType[StepQaState] =
@@ -101,20 +93,9 @@ object StepRecordSchema {
 
         Field(
           name        = "stepEvents",
-          fieldType   = StepEventConnectionType[F],
+          fieldType   = ListType(StepEventType[F]),
           description = "Step events associated with this step".some,
-          arguments   = List(
-            ArgumentPagingFirst,
-            ArgumentPagingCursor
-          ),
-          resolve     = c =>
-            unsafeSelectPageFuture[F, ExecutionEvent.Id, StepEvent](
-              c.pagingExecutionEventId,
-              s => Cursor.gid[ExecutionEvent.Id].reverseGet(s.id),
-              g => Sync[F].delay(
-                ResultPage.fromSeq[StepEvent, ExecutionEvent.Id](c.value.stepEvents, c.pagingFirst, g, _.id)
-              )
-            )
+          resolve     = _.value.stepEvents
         ),
 
         Field(
@@ -126,36 +107,16 @@ object StepRecordSchema {
 
         Field(
           name        = "datasetEvents",
-          fieldType   = DatasetEventConnectionType[F],
+          fieldType   = ListType(DatasetEventType[F]),
           description = "Dataset events associated with this step".some,
-          arguments   = List(
-            ArgumentPagingFirst,
-            ArgumentPagingCursor
-          ),
-          resolve     = c =>
-            unsafeSelectPageFuture[F, ExecutionEvent.Id, DatasetEvent](
-              c.pagingExecutionEventId,
-              d => Cursor.gid[ExecutionEvent.Id].reverseGet(d.id),
-              g => Sync[F].delay(
-                ResultPage.fromSeq[DatasetEvent, ExecutionEvent.Id](c.value.datasetEvents, c.pagingFirst, g, _.id)
-              )
-            )
+          resolve     = _.value.datasetEvents
         ),
 
         Field(
           name        = "datasets",
-          fieldType   = DatasetSelectResult[F],
+          fieldType   = ListType(DatasetType[F]),
           description = "Datasets associated with this step".some,
-          arguments   = List(
-            ArgumentOptionOffsetDataset,
-            ArgumentOptionLimit
-          ),
-          resolve     = c => {
-            val where = WhereDatasetInput.matchStep(c.value.observationId, c.value.stepId)
-            val off   = c.arg(ArgumentOptionOffsetDataset)
-            val limit = c.resultSetLimit
-            c.dataset(_.selectWhere(where, off, limit))
-          }
+          resolve     = _.value.datasets
         )
 
       )

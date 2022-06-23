@@ -7,10 +7,9 @@ import cats.effect.Async
 import cats.effect.kernel.Sync
 import cats.effect.std.Dispatcher
 import cats.syntax.option._
-import lucuma.core.model.ExecutionEvent
 import lucuma.odb.api.model.{Step, StepRecord, Visit, VisitRecord}
-import lucuma.odb.api.model.ExecutionEventModel.SequenceEvent
 import lucuma.odb.api.repo.{OdbCtx, ResultPage}
+import lucuma.odb.api.schema.ExecutionEventSchema.SequenceEventType
 import org.typelevel.log4cats.Logger
 import sangria.schema._
 
@@ -19,7 +18,6 @@ object VisitRecordSchema {
   import context._
   import Paging._
 
-  import ExecutionEventSchema.SequenceEventConnectionType
   import StepRecordSchema.StepRecordConnectionType
   import TimeSchema.{NonNegativeDurationType, InstantScalar}
 
@@ -108,21 +106,9 @@ object VisitRecordSchema {
 
         Field(
           name        = "sequenceEvents",
-          fieldType   = SequenceEventConnectionType[F],
+          fieldType   = ListType(SequenceEventType[F]),
           description = "Sequence events associated with this visit".some,
-          arguments   = List(
-            ArgumentPagingFirst,
-            ArgumentPagingCursor
-          ),
-          resolve    = c =>
-            unsafeSelectPageFuture[F, ExecutionEvent.Id, SequenceEvent](
-              c.pagingExecutionEventId,
-              e => Cursor.gid[ExecutionEvent.Id].reverseGet(e.id),
-              g => Sync[F].delay(
-                ResultPage.fromSeq[SequenceEvent, ExecutionEvent.Id](c.value.sequenceEvents, c.pagingFirst, g, _.id)
-              )
-            )
-
+          resolve    = _.value.sequenceEvents
         )
 
       )

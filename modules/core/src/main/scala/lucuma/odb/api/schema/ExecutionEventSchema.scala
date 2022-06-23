@@ -271,51 +271,6 @@ object ExecutionEventSchema {
       )
     )
 
-  def SequenceEventEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Edge[SequenceEvent]] =
-    Paging.EdgeType(
-      "SequenceEventEdge",
-      "A sequence ExecutionEvent and its cursor",
-      SequenceEventType[F]
-    )
-
-  def SequenceEventConnectionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Connection[SequenceEvent]] =
-    Paging.ConnectionType(
-      "SequenceEventConnection",
-      "Sequence ExecutionEvents in the current page",
-      SequenceEventType[F],
-      SequenceEventEdgeType[F]
-    )
-
-  def StepEventEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Edge[StepEvent]] =
-    Paging.EdgeType(
-      "StepEventEdge",
-      "A step ExecutionEvent and its cursor",
-      StepEventType[F]
-    )
-
-  def StepEventConnectionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Connection[StepEvent]] =
-    Paging.ConnectionType(
-      "StepEventConnection",
-      "Step ExecutionEvents in the current page",
-      StepEventType[F],
-      StepEventEdgeType[F]
-    )
-
-  def DatasetEventEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Edge[DatasetEvent]] =
-    Paging.EdgeType(
-      "DatasetEventEdge",
-      "A dataset ExecutionEvent and its cursor",
-      DatasetEventType[F]
-    )
-
-  def DatasetEventConnectionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Connection[DatasetEvent]] =
-    Paging.ConnectionType(
-      "DatasetEventConnection",
-      "Dataset ExecutionEvents in the current page",
-      DatasetEventType[F],
-      DatasetEventEdgeType[F]
-    )
-
   def ExecutionEventEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Edge[ExecutionEventModel]] =
     Paging.EdgeType(
       "ExecutionEventEdge",
