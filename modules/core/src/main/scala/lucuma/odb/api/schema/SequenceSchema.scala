@@ -3,6 +3,7 @@
 
 package lucuma.odb.api.schema
 
+import lucuma.odb.api.model.query.WhereOrderInput
 import lucuma.odb.api.model.{PlannedTime, Sequence, SequenceModel}
 import lucuma.odb.api.repo.OdbCtx
 import sangria.schema._
@@ -13,12 +14,16 @@ object SequenceSchema {
 
   import AtomSchema._
   import PlannedTimeSchema._
+  import QuerySchema._
 
   implicit val EnumTypeSequenceType: EnumType[SequenceModel.SequenceType] =
     EnumType.fromEnumerated(
       "SequenceType",
       "Type of sequence, acquisition or science"
     )
+
+  implicit val InputObjectWhereOrderSequenceType: InputObjectType[WhereOrderInput[SequenceModel.SequenceType]] =
+    inputObjectWhereOrder("SequenceType", EnumTypeSequenceType)
 
   def SequenceType[F[_], D](
     typePrefix:  String,

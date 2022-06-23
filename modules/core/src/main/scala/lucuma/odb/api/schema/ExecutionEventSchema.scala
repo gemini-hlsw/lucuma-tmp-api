@@ -4,10 +4,11 @@
 package lucuma.odb.api.schema
 
 import lucuma.core.model.ExecutionEvent
-import lucuma.odb.api.model.ExecutionEventModel
+import lucuma.odb.api.model.{ExecutionEventModel, WhereDatasetEventInput, WhereExecutionEventInput, WhereSequenceEventInput, WhereStepEventInput}
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.option._
+import lucuma.odb.api.model.query.WhereOrderInput
 import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
 import sangria.schema.{Field, _}
@@ -17,13 +18,16 @@ object ExecutionEventSchema {
 
   import context._
 
-  import DatasetSchema.DatasetIdType
+  import DatasetSchema.{DatasetIdType, InputObjectWhereOrderDatasetIndex}
   import TimeSchema._
   import ExecutionEventModel._
-  import ObservationSchema.ObservationIdType
-  import StepSchema.StepIdType
-  import VisitRecordSchema.VisitIdType
+  import ObservationSchema.{ObservationIdType, InputObjectWhereOrderObservationId}
+  import QuerySchema._
+  import SequenceSchema.InputObjectWhereOrderSequenceType
+  import StepSchema.{StepIdType, InputObjectWhereEqStepId}
+  import VisitRecordSchema.{InputObjectWhereEqVisitId, VisitIdType}
   import syntax.`enum`._
+  import syntax.inputtype._
 
   implicit val ExecutionEventIdType: ScalarType[ExecutionEvent.Id] =
     ObjectIdSchema.gidType[ExecutionEvent.Id](name = "ExecutionEventId")
@@ -42,6 +46,9 @@ object ExecutionEventSchema {
       description  = "Execution Event ID"
     )
 
+  implicit val InputObjectWhereOrderExecutionEventId: InputObjectType[WhereOrderInput[ExecutionEvent.Id]] =
+    inputObjectWhereOrder[ExecutionEvent.Id]("ExecutionEventId", ExecutionEventIdType)
+
   implicit val EnumTypeSequenceCommand: EnumType[SequenceCommandType] =
     EnumType.fromEnumerated(
       "SequenceCommand",
@@ -54,11 +61,17 @@ object ExecutionEventSchema {
       "Execution stage or phase of an individual step"
     )
 
+  implicit val InputObjectWhereOrderStepStage: InputObjectType[WhereOrderInput[StepStageType]] =
+    inputObjectWhereOrder("StepStage", EnumTypeStepStage)
+
   implicit val EnumTypeDatasetStage: EnumType[DatasetStageType] =
     EnumType.fromEnumerated(
       "DatasetStage",
       "Execution stage or phase of an individual dataset"
     )
+
+  implicit val InputObjectWhereOrderDatasetStage: InputObjectType[WhereOrderInput[DatasetStageType]] =
+    inputObjectWhereOrder("DatasetStage", EnumTypeDatasetStage)
 
   def ExecutionEventType[F[_]: Dispatcher: Async: Logger]: InterfaceType[OdbCtx[F], ExecutionEventModel] =
     InterfaceType[OdbCtx[F], ExecutionEventModel](
@@ -193,10 +206,10 @@ object ExecutionEventSchema {
         ),
 
         Field(
-          name        = "stage",
+          name        = "stepStage",
           fieldType   = EnumTypeStepStage,
           description = Some("Step execution stage"),
-          resolve     = _.value.stage
+          resolve     = _.value.stepStage
         )
       )
 
@@ -240,10 +253,10 @@ object ExecutionEventSchema {
         ),
 
         Field(
-          name        = "stage",
+          name        = "datasetStage",
           fieldType   = EnumTypeDatasetStage,
           description = Some("Dataset execution stage"),
-          resolve     = _.value.stage
+          resolve     = _.value.datasetStage
         )
       )
     )
@@ -269,6 +282,58 @@ object ExecutionEventSchema {
           resolve     = _.value.payload
         )
       )
+    )
+
+  implicit val InputObjectWhereOrderSequenceCommandType: InputObjectType[WhereOrderInput[SequenceCommandType]] =
+    inputObjectWhereOrder[SequenceCommandType]("SequenceCommand", EnumTypeSequenceCommand)
+
+  implicit val InputObjectWhereSequenceEvent: InputObjectType[WhereSequenceEventInput] =
+    InputObjectType[WhereSequenceEventInput](
+      "WhereSequenceEvent",
+      "SequenceEvent filter options.",
+      List(
+        InputObjectWhereOrderSequenceCommandType.optionField("command", "Matches the sequence command type")
+      )
+    )
+
+  implicit val InputObjectWhereStepEvent: InputObjectType[WhereStepEventInput] =
+    InputObjectType[WhereStepEventInput](
+      "WhereStepEvent",
+      "StepEvent filter options.",
+      List(
+        InputObjectWhereEqStepId.optionField("stepId", "Matches on the step id."),
+        InputObjectWhereOrderSequenceType.optionField("sequenceType", "Matches on the sequence type"),
+        InputObjectWhereOrderStepStage.optionField("stage", "Matches on the step stage")
+      )
+    )
+
+  implicit val InputObjectWhereDatasetEvent: InputObjectType[WhereDatasetEventInput] =
+    InputObjectType[WhereDatasetEventInput](
+      "WhereDatasetEvent",
+      "DatasetEvent filter options.",
+      List(
+        InputObjectWhereEqStepId.optionField("stepId", "Matches on the step id."),
+        InputObjectWhereOrderDatasetIndex.optionField("index", "Matches on the dataset index within the step."),
+        InputObjectWhereOrderDatasetStage.optionField("stage", "Matches on the dataset stage."),
+        InputObjectWhereOptionString.optionField("filename", "Matches on the dataset filename.")
+      )
+    )
+
+  implicit val InputObjectWhereExecutionEvent: InputObjectType[WhereExecutionEventInput] =
+    InputObjectType[WhereExecutionEventInput](
+      "WhereExecutionEvent",
+      "ExecutionEvent filter options.",
+      () =>
+      combinatorFields(InputObjectWhereExecutionEvent, "execution event") :::
+        List(
+          InputObjectWhereOrderExecutionEventId.optionField("id", "Matches on the execution event id"),
+          InputObjectWhereEqVisitId.optionField("visitId", "Matches on the visit id"),
+          InputObjectWhereOrderObservationId.optionField("observationId", "Matches on observation id"),
+          InputObjectWhereOrderInstant.optionField("received", "Matches on event reception time"),
+          InputObjectWhereSequenceEvent.optionField("sequenceEvent", "Matches sequence events only"),
+          InputObjectWhereStepEvent.optionField("stepEvent", "Matches step events only"),
+          InputObjectWhereDatasetEvent.optionField("datasetEvent", "Matches dataset events only")
+        )
     )
 
   def ExecutionEventEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Edge[ExecutionEventModel]] =

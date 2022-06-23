@@ -99,7 +99,7 @@ trait ArbExecutionEventModel {
       a.location.observationId,
       a.location.stepId,
       a.payload.sequenceType,
-      a.payload.stage
+      a.payload.stepStage
     )}
 
   def arbStepEventAdd(
@@ -149,7 +149,7 @@ trait ArbExecutionEventModel {
       in.location.observationId,
       in.location.stepId,
       in.location.index.value,
-      in.payload.stage,
+      in.payload.datasetStage,
       in.payload.filename
     )}
 

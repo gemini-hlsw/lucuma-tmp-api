@@ -265,8 +265,8 @@ object ExecutionEventModel {
     }
 
     final case class Payload(
-      sequenceType:  SequenceModel.SequenceType,
-      stage:         StepStageType
+      sequenceType: SequenceModel.SequenceType,
+      stepStage:    StepStageType
     )
 
     object Payload {
@@ -276,7 +276,7 @@ object ExecutionEventModel {
       implicit val OrderPayload: Order[Payload] =
         Order.by { a => (
           a.sequenceType,
-          a.stage
+          a.stepStage
         )}
     }
 
@@ -405,8 +405,8 @@ object ExecutionEventModel {
       )}
 
     final case class Payload(
-      stage:         DatasetStageType,
-      filename:      Option[DatasetFilename]
+      datasetStage: DatasetStageType,
+      filename:     Option[DatasetFilename]
     )
 
     object Payload {
@@ -415,7 +415,7 @@ object ExecutionEventModel {
 
       implicit val OrderPayload: Order[Payload] =
         Order.by { a => (
-          a.stage,
+          a.datasetStage,
           a.filename
         )}
     }

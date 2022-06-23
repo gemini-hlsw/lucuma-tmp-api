@@ -6,6 +6,7 @@ package lucuma.odb.api.schema
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.option._
+import lucuma.odb.api.model.query.WhereEqInput
 import lucuma.odb.api.model.{Visit, VisitRecord}
 import lucuma.odb.api.repo.OdbCtx
 import lucuma.odb.api.schema.ExecutionEventSchema.SequenceEventType
@@ -15,10 +16,14 @@ import sangria.schema._
 
 object VisitRecordSchema {
 
+  import QuerySchema._
   import TimeSchema.{NonNegativeDurationType, InstantScalar}
 
   implicit val VisitIdType: ScalarType[Visit.Id] =
     ObjectIdSchema.uidType[Visit.Id]("VisitId")
+
+  implicit val InputObjectWhereEqVisitId: InputObjectType[WhereEqInput[Visit.Id]] =
+    inputObjectWhereEq("visitId", VisitIdType)
 
   val ArgumentVisitId: Argument[Visit.Id] =
     Argument(

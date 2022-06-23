@@ -21,7 +21,8 @@ object QueryType {
         ObservationQuery.allFields[F]   ++
         ProgramQuery.allFields[F]       ++
         TargetQuery.allFields[F]        ++
-        DatasetQuery.allFields[F]
+        DatasetQuery.allFields[F]       ++
+        ExecutionEventQuery.allFields[F]
       ).sortBy(_.name)
     )
 

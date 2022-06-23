@@ -8,9 +8,9 @@ import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import eu.timepit.refined.types.all.PosInt
 import lucuma.core.enums.DatasetQaState
-import lucuma.odb.api.model.{DatasetFilename, DatasetModel, Step, WhereDatasetInput}
+import lucuma.odb.api.model.{DatasetFilename, DatasetModel, WhereDatasetInput}
 import lucuma.odb.api.model.format.ScalarFormat
-import lucuma.odb.api.model.query.{SelectResult, WhereEqInput, WhereOptionEqInput, WhereOrderInput}
+import lucuma.odb.api.model.query.{SelectResult, WhereOptionEqInput, WhereOrderInput}
 import lucuma.odb.api.repo.OdbCtx
 import lucuma.odb.api.schema.ObservationSchema.InputObjectWhereOrderObservationId
 import org.typelevel.log4cats.Logger
@@ -23,7 +23,7 @@ object DatasetSchema {
   import ObservationSchema.ObservationIdType
   import RefinedSchema.PosIntType
   import QuerySchema._
-  import StepSchema.StepIdType
+  import StepSchema.{StepIdType, InputObjectWhereEqStepId}
   import syntax.`enum`._
   import syntax.inputtype._
   import syntax.scalar._
@@ -102,9 +102,6 @@ object DatasetSchema {
 
   implicit val InputObjectWhereOrderDatasetId: InputObjectType[WhereOrderInput[DatasetModel.Id]] =
     inputObjectWhereOrder[DatasetModel.Id]("DatasetId", InputObjectDatasetId)
-
-  implicit val InputObjectWhereEqStepId: InputObjectType[WhereEqInput[Step.Id]] =
-    inputObjectWhereEq("StepId", StepIdType)
 
   implicit val InputObjectWhereOrderDatasetIndex: InputObjectType[WhereOrderInput[PosInt]] =
     inputObjectWhereOrder("DatasetIndex", PosIntType)

@@ -154,7 +154,7 @@ class VisitSuite extends OdbSuite {
         addStepEvent(input: $$eventInput) {
           event {
             payload {
-              stage
+              stepStage
             }
           }
         }
@@ -165,7 +165,7 @@ class VisitSuite extends OdbSuite {
         "addStepEvent": {
           "event": {
             "payload": {
-              "stage": "START_STEP"
+              "stepStage": "START_STEP"
             }
           }
         }
@@ -181,7 +181,7 @@ class VisitSuite extends OdbSuite {
           },
           "payload": {
              "sequenceType": "SCIENCE",
-             "stage": "START_STEP"
+             "stepStage": "START_STEP"
           }
         }
       }
@@ -196,7 +196,7 @@ class VisitSuite extends OdbSuite {
         addDatasetEvent(input: $$eventInput) {
           event {
             payload {
-              stage
+              datasetStage
             }
           }
         }
@@ -207,7 +207,7 @@ class VisitSuite extends OdbSuite {
         "addDatasetEvent": {
           "event": {
             "payload": {
-               "stage": "START_OBSERVE"
+               "datasetStage": "START_OBSERVE"
              }
            }
         }
@@ -223,7 +223,7 @@ class VisitSuite extends OdbSuite {
             "index":          1
           },
           "payload": {
-            "stage": "START_OBSERVE",
+            "datasetStage": "START_OBSERVE",
             "filename": "S20220504S0001.fits"
           }
         }
@@ -320,5 +320,82 @@ class VisitSuite extends OdbSuite {
     List(ClientOption.Http)
   )
 
+  // List the events
+  queryTest(
+    query = s"""
+      query ListEvents {
+        executionEvents {
+          matches {
+            id
+            observation {
+              id
+            }
+            visitId
+            __typename
+            ... on SequenceEvent {
+              payload {
+                command
+              }
+            }
+            ... on StepEvent {
+              payload {
+                stepStage
+              }
+            }
+            ... on DatasetEvent {
+              payload {
+                filename
+                datasetStage
+              }
+            }
+          }
+        }
+      }
+    """,
+    expected =json"""
+      {
+        "executionEvents": {
+          "matches": [
+            {
+              "id": "e-2",
+              "observation": {
+                "id": "o-2"
+              },
+              "visitId": ${vid.toString},
+              "__typename" : "SequenceEvent",
+              "payload": {
+                "command": "START"
+              }
+            },
+            {
+              "id": "e-3",
+              "observation": {
+                "id": "o-2"
+              },
+              "visitId": ${vid.toString},
+              "__typename" : "StepEvent",
+              "payload": {
+                "stepStage": "START_STEP"
+              }
+            },
+            {
+              "id": "e-4",
+              "observation": {
+                "id": "o-2"
+              },
+              "visitId": ${vid.toString},
+              "__typename" : "DatasetEvent",
+              "payload": {
+                "filename": "S20220504S0001.fits",
+                "datasetStage": "START_OBSERVE"
+              }
+            }
+          ]
+        }
+      }
+    """,
+    variables = None,
+    List(ClientOption.Http)
+  )
 
 }

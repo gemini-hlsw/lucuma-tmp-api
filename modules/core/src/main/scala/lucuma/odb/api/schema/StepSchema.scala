@@ -5,8 +5,10 @@ package lucuma.odb.api.schema
 
 import lucuma.core.enums._
 import lucuma.odb.api.model
+import lucuma.odb.api.model.query.WhereEqInput
 import lucuma.odb.api.model.{PlannedTime, Step, StepConfig, StepModel}
 import lucuma.odb.api.repo.OdbCtx
+import lucuma.odb.api.schema.QuerySchema.inputObjectWhereEq
 import sangria.schema._
 
 
@@ -74,6 +76,9 @@ object StepSchema {
       "StepType",
       "Step type"
     )
+
+  implicit val InputObjectWhereEqStepId: InputObjectType[WhereEqInput[Step.Id]] =
+    inputObjectWhereEq("StepId", StepIdType)
 
   def StepInterfaceType[F[_]]: InterfaceType[OdbCtx[F], StepModel[_]] =
     InterfaceType[OdbCtx[F], StepModel[_]](

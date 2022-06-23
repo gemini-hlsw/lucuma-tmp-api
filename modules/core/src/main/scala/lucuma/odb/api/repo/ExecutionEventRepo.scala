@@ -7,14 +7,16 @@ import cats.data.StateT
 import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.all._
 import cats.effect.{Clock, Ref, Sync}
+import eu.timepit.refined.types.all.NonNegInt
 import lucuma.core.enums.Instrument
-import lucuma.odb.api.model.{Database, DatasetModel, DatasetTable, EitherInput, ExecutionEventModel, InputValidator, Step, StepRecord, ValidatedInput, Visit, VisitRecord, VisitRecords}
+import lucuma.odb.api.model.{Database, DatasetModel, DatasetTable, EitherInput, ExecutionEventModel, InputValidator, Step, StepRecord, ValidatedInput, Visit, VisitRecord, VisitRecords, WhereExecutionEventInput}
 import lucuma.odb.api.model.ExecutionEventModel.{DatasetEvent, SequenceEvent, StepEvent}
 import lucuma.odb.api.model.syntax.databasestate._
 import lucuma.odb.api.model.syntax.eitherinput._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.optional._
 import lucuma.core.model.{ExecutionEvent, Observation}
+import lucuma.odb.api.model.query.SelectResult
 import monocle.Prism
 
 import java.time.Instant
@@ -26,6 +28,12 @@ sealed trait ExecutionEventRepo[F[_]] {
   def selectEvent(
     eid: ExecutionEvent.Id
   ): F[Option[ExecutionEventModel]]
+
+  def selectWhere(
+    where:  WhereExecutionEventInput,
+    offset: Option[ExecutionEvent.Id],
+    limit:  Option[NonNegInt]
+  ): F[SelectResult[ExecutionEventModel]]
 
   /** Page events associated with an observation */
   def selectEventsPageForObservation(
@@ -92,6 +100,27 @@ object ExecutionEventRepo {
         eid: ExecutionEvent.Id
       ): F[Option[ExecutionEventModel]] =
         databaseRef.get.map(_.executionEvents.rows.get(eid))
+
+      override def selectWhere(
+        where:  WhereExecutionEventInput,
+        offset: Option[ExecutionEvent.Id],
+        limit:  Option[NonNegInt]
+      ): F[SelectResult[ExecutionEventModel]] =
+
+        databaseRef.get.map { tables =>
+
+          val all     = tables.executionEvents.rows
+          val off     = offset.fold(all.iterator)(all.iteratorFrom).to(LazyList).map(_._2)
+          val matches = off.filter(where.matches)
+          val lim     = limit.map(_.value).getOrElse(Int.MaxValue)
+
+          val (result, rest) = matches.splitAt(lim)
+
+          SelectResult.Standard(
+            result.toList,
+            rest.nonEmpty
+          )
+        }
 
       // Sort events by timestamp + event id
 
