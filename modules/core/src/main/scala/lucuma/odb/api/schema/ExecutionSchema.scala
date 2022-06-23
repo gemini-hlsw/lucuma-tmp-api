@@ -26,6 +26,7 @@ object ExecutionSchema {
   import GmosSchema.{GmosNorthDynamicType, GmosNorthStaticConfigType, GmosSouthDynamicType, GmosSouthStaticConfigType}
   import Paging._
   import QuerySchema.ArgumentOptionLimit
+  import VisitRecordSchema.VisitRecordType
 
 
   def ExecutionConfigType[F[_]]: InterfaceType[OdbCtx[F], ExecutionContext] =
@@ -105,22 +106,8 @@ object ExecutionSchema {
 
       Field(
         name        = "visits",
-        fieldType   = VisitRecordSchema.visitRecordConnectionType[F, S, D](instrument.tag, staticType, dynamicType),
-        arguments   = List(
-          ArgumentPagingFirst,
-          ArgumentPagingCursor
-        ),
-        resolve     = c =>
-          unsafeSelectPageFuture[F, Visit.Id, VisitRecord.Output[S, D]](
-            c.pagingVisitId,
-            (r: VisitRecord.Output[S, D]) => Cursor.uid[Visit.Id].reverseGet(r.visitId),
-            vid => c.ctx.odbRepo.executionEvent.selectVisitsPageForObservation[S, D](
-              c.value.oid,
-              visits,
-              c.pagingFirst,
-              vid
-            )
-          )
+        fieldType   = ListType(VisitRecordType[F, S, D](instrument.tag, staticType, dynamicType)),
+        resolve     = c => c.executionEvent(_.selectVisitsForObservation(c.value.oid, visits))
       )
 
     )
