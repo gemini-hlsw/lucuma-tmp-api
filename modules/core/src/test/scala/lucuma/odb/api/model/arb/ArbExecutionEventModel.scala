@@ -129,7 +129,7 @@ trait ArbExecutionEventModel {
         idx <- arbitrary[PosInt]
         sge <- arbitrary[DatasetStageType]
         fnm <- arbitrary[Option[DatasetFilename]]
-      } yield DatasetEvent(id, vid, rec, DatasetEvent.Location(oid, sid, idx),  DatasetEvent.Payload(sge, fnm))
+      } yield DatasetEvent(id, vid, rec, DatasetModel.Id(oid, sid, idx),  DatasetEvent.Payload(sge, fnm))
     }
 
   implicit val cogDatasetEvent: Cogen[DatasetEvent] =
@@ -164,7 +164,7 @@ trait ArbExecutionEventModel {
         cmd <- arbitrary[DatasetStageType]
       } yield DatasetEvent.Add(
         vid,
-        DatasetEvent.Location(oid, sid, PosInt.MinValue),
+        DatasetModel.Id(oid, sid, PosInt.MinValue),
         DatasetEvent.Payload(cmd, fnm)
       )
     }

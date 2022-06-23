@@ -24,11 +24,10 @@ import scala.collection.immutable.ListMap
 
 trait ExecutionEventMutation {
 
-  import DatasetSchema.DatasetFilenameScalar
+  import DatasetSchema.{InputObjectDatasetId, DatasetFilenameScalar}
   import ExecutionEventSchema.{DatasetEventType, EnumTypeDatasetStage, EnumTypeSequenceCommand, EnumTypeStepStage, SequenceEventType, StepEventType}
   import ExecutionEventModel.{DatasetEvent, SequenceEvent, StepEvent}
   import ObservationSchema.ObservationIdType
-  import RefinedSchema.PosIntType
   import SequenceSchema.EnumTypeSequenceType
   import StepMutation.InputObjectTypeCreateStepConfig
   import StepSchema.{ArgumentStepId, StepIdType}
@@ -344,12 +343,6 @@ trait ExecutionEventMutation {
 
 
   // DatasetEvent -------------------------------------------------------------
-
-  implicit val InputObjectTypeDatasetEventLocation: InputObjectType[DatasetEvent.Location] =
-    deriveInputObjectType[DatasetEvent.Location](
-      InputObjectTypeName("DatasetEventLocationInput"),
-      InputObjectTypeDescription("DatasetEvent location parameters")
-    )
 
   implicit val InputObjectTypeDatasetEventPayload: InputObjectType[DatasetEvent.Payload] =
     deriveInputObjectType[DatasetEvent.Payload](
