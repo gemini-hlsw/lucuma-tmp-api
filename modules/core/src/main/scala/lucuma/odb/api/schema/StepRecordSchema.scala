@@ -122,25 +122,4 @@ object StepRecordSchema {
       )
     )
 
-  def StepRecordEdgeType[F[_]: Dispatcher: Async: Logger, D](
-    typePrefix:  String,
-    dynamicType: OutputType[D]
-  ): ObjectType[OdbCtx[F], Paging.Edge[StepRecord.Output[D]]] =
-    Paging.EdgeType(
-      s"${typePrefix}StepRecordEdge",
-      "A step recorded by Observe and its cursor",
-      StepRecordType[F, D](typePrefix, dynamicType)
-    )
-
-  def StepRecordConnectionType[F[_]: Dispatcher: Async: Logger, D](
-    typePrefix:  String,
-    dynamicType: OutputType[D]
-  ): ObjectType[OdbCtx[F], Paging.Connection[StepRecord.Output[D]]] =
-    Paging.ConnectionType(
-      s"${typePrefix}StepRecordConnection",
-      "Steps recorded by Observe in the current page",
-      StepRecordType[F, D](typePrefix, dynamicType),
-      StepRecordEdgeType[F, D](typePrefix, dynamicType)
-    )
-
 }

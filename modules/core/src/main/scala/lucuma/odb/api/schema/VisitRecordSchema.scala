@@ -4,21 +4,17 @@
 package lucuma.odb.api.schema
 
 import cats.effect.Async
-import cats.effect.kernel.Sync
 import cats.effect.std.Dispatcher
 import cats.syntax.option._
-import lucuma.odb.api.model.{Step, StepRecord, Visit, VisitRecord}
-import lucuma.odb.api.repo.{OdbCtx, ResultPage}
+import lucuma.odb.api.model.{Visit, VisitRecord}
+import lucuma.odb.api.repo.OdbCtx
 import lucuma.odb.api.schema.ExecutionEventSchema.SequenceEventType
+import lucuma.odb.api.schema.StepRecordSchema.StepRecordType
 import org.typelevel.log4cats.Logger
 import sangria.schema._
 
 object VisitRecordSchema {
 
-  import context._
-  import Paging._
-
-  import StepRecordSchema.StepRecordConnectionType
   import TimeSchema.{NonNegativeDurationType, InstantScalar}
 
   implicit val VisitIdType: ScalarType[Visit.Id] =
@@ -88,20 +84,9 @@ object VisitRecordSchema {
 
         Field(
           name        = "steps",
-          fieldType   = StepRecordConnectionType[F, D](typePrefix, dynamicType),
+          fieldType   = ListType(StepRecordType[F, D](typePrefix, dynamicType)),
           description = s"$typePrefix recorded steps".some,
-          arguments   = List(
-            ArgumentPagingFirst,
-            ArgumentPagingCursor
-          ),
-          resolve     = c =>
-            unsafeSelectPageFuture[F, Step.Id, StepRecord.Output[D]](
-              c.pagingStepId,
-              s => Cursor.uid[Step.Id].reverseGet(s.stepId),
-              u => Sync[F].delay(
-                ResultPage.fromSeq[StepRecord.Output[D], Step.Id](c.value.steps, c.pagingFirst, u, _.stepId)
-              )
-            )
+          resolve     = _.value.steps
         ),
 
         Field(
@@ -114,26 +99,4 @@ object VisitRecordSchema {
       )
     )
 
-  def VisitRecordEdgeType[F[_]: Dispatcher: Async: Logger, S, D](
-    typePrefix:  String,
-    staticType:  OutputType[S],
-    dynamicType: OutputType[D]
-  ): ObjectType[OdbCtx[F], Paging.Edge[VisitRecord.Output[S, D]]] =
-    Paging.EdgeType(
-      s"${typePrefix.capitalize}VisitRecordEdge",
-      "A visit (and its cursor) as recorded by Observe",
-      VisitRecordType[F, S, D](typePrefix, staticType, dynamicType)
-    )
-
-  def visitRecordConnectionType[F[_]: Dispatcher: Async: Logger, S, D](
-    typePrefix:  String,
-    staticType:  OutputType[S],
-    dynamicType: OutputType[D]
-  ): ObjectType[OdbCtx[F], Paging.Connection[VisitRecord.Output[S, D]]] =
-    Paging.ConnectionType(
-      s"${typePrefix.capitalize}VisitRecordConnection",
-      "Visits as recorded by Observe",
-      VisitRecordType[F, S, D](typePrefix, staticType, dynamicType),
-      VisitRecordEdgeType[F, S, D](typePrefix, staticType, dynamicType)
-    )
 }
