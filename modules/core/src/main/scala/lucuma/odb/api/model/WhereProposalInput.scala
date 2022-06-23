@@ -4,7 +4,7 @@
 package lucuma.odb.api.model
 
 import io.circe.Decoder
-import lucuma.core.`enum`.{TacCategory, ToOActivation}
+import lucuma.core.enums.{TacCategory, ToOActivation}
 import lucuma.core.model.Proposal
 import lucuma.odb.api.model.query.{WhereCombinator, WhereEqInput, WhereOption, WhereOptionEqInput, WhereOptionStringInput, WherePredicate}
 

@@ -7,7 +7,7 @@ import cats.syntax.option._
 import io.circe.Decoder
 import io.circe.generic.extras.Configuration
 import io.circe.generic.extras.semiauto.deriveConfiguredDecoder
-import lucuma.core.`enum`.{ObsActiveStatus, ObsStatus}
+import lucuma.core.enums.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.{Observation, Program}
 import lucuma.odb.api.model.query.{WhereCombinator, WhereEqInput, WhereOptionStringInput, WhereOrderInput}
 

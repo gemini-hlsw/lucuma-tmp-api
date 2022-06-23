@@ -10,7 +10,7 @@ import io.circe.refined._
 import io.circe.Decoder
 import io.circe.generic.extras.Configuration
 import io.circe.generic.extras.semiauto.deriveConfiguredDecoder
-import lucuma.core.`enum`.DatasetQaState
+import lucuma.core.enums.DatasetQaState
 import lucuma.core.model.Observation
 import lucuma.odb.api.model.query.{WhereEqInput, WhereOptionEqInput, WhereOrderInput, WherePredicate, WhereStringInput}
 
