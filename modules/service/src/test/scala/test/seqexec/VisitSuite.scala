@@ -236,8 +236,8 @@ class VisitSuite extends OdbSuite {
   queryTest(
     query = s"""
       query ListDatasets {
-        datasets(observationId: "o-2") {
-          nodes {
+        datasets(WHERE: { observationId: { EQ: "o-2" } } ) {
+          matches {
             id {
               observationId
               stepId
@@ -252,7 +252,7 @@ class VisitSuite extends OdbSuite {
     expected =json"""
       {
         "datasets": {
-          "nodes": [
+          "matches": [
             {
               "id": {
                 "observationId": "o-2",

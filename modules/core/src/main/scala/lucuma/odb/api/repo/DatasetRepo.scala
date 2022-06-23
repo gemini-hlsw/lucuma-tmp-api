@@ -7,7 +7,10 @@ import cats.MonadError
 import cats.effect.Ref
 import cats.syntax.flatMap._
 import cats.syntax.functor._
+//import cats.syntax.all._
+import eu.timepit.refined.types.all.NonNegInt
 import lucuma.core.model.Observation
+import lucuma.odb.api.model.query.{SelectResult, WherePredicate}
 import lucuma.odb.api.model.{Database, DatasetModel, Step}
 import lucuma.odb.api.model.syntax.databasestate._
 import lucuma.odb.api.model.syntax.eitherinput._
@@ -17,6 +20,12 @@ sealed trait DatasetRepo[F[_]] {
   def selectDataset(
     id: DatasetModel.Id
   ): F[Option[DatasetModel]]
+
+  def selectWhere(
+    where:  WherePredicate[DatasetModel],
+    offset: Option[DatasetModel.Id],
+    limit:  Option[NonNegInt]
+  ): F[SelectResult[DatasetModel]]
 
   def selectDatasets(
     oid: Observation.Id,
@@ -48,6 +57,28 @@ object DatasetRepo {
         id: DatasetModel.Id
       ): F[Option[DatasetModel]] =
         databaseRef.get.map { db => db.datasets.select(id) }
+
+      override def selectWhere(
+        where:  WherePredicate[DatasetModel],
+        offset: Option[DatasetModel.Id],
+        limit:  Option[NonNegInt]
+      ): F[SelectResult[DatasetModel]] = {
+
+        databaseRef.get.map { tables =>
+          val all     = tables.datasets.datasets
+          val off     = offset.fold(all.iterator)(all.iteratorFrom).to(LazyList).map((DatasetModel.apply _).tupled)
+          val matches = off.filter(where.matches)
+          val lim     = limit.map(_.value).getOrElse(Int.MaxValue)
+
+          val (result, rest) = matches.splitAt(lim)
+
+          SelectResult.Standard(
+            result.toList,
+            rest.nonEmpty
+          )
+        }
+      }
+
 
       override def selectDatasets(
         oid: Observation.Id,

@@ -7,7 +7,8 @@ import cats.Order
 import cats.syntax.option._
 import cats.syntax.order._
 import io.circe.Decoder
-import io.circe.generic.semiauto.deriveDecoder
+import io.circe.generic.extras.Configuration
+import io.circe.generic.extras.semiauto.deriveConfiguredDecoder
 
 final case class WhereOrderInput[A: Order](
   EQ:  Option[A]       = None,
@@ -34,10 +35,16 @@ final case class WhereOrderInput[A: Order](
 
 object WhereOrderInput {
 
+  def EQ[A: Order](a: A): WhereOrderInput[A] =
+    WhereOrderInput(EQ = a.some)
+
   def IN[A: Order](lst: List[A]): WhereOrderInput[A] =
     WhereOrderInput(IN = lst.some)
 
+  implicit val customConfig: Configuration =
+    Configuration.default.withDefaults
+
   implicit def DecoderWhereOrderInput[A: Decoder: Order]: Decoder[WhereOrderInput[A]] =
-    deriveDecoder[WhereOrderInput[A]]
+    deriveConfiguredDecoder[WhereOrderInput[A]]
 
 }

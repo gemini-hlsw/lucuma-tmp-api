@@ -3,13 +3,11 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{DatasetModel, StepQaState, StepRecord}
+import lucuma.odb.api.model.{StepQaState, StepRecord, WhereDatasetInput}
 import cats.effect.Async
 import cats.effect.kernel.Sync
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
-import eu.timepit.refined.types.all.PosInt
-import eu.timepit.refined.cats._
 import lucuma.core.model.ExecutionEvent
 import lucuma.odb.api.model.ExecutionEventModel.{DatasetEvent, StepEvent}
 import lucuma.odb.api.repo.{OdbCtx, ResultPage}
@@ -22,10 +20,12 @@ object StepRecordSchema {
   import context._
   import Paging._
 
-  import DatasetSchema.{DatasetConnectionType, IndexCursor}
+  import DatasetSchema.DatasetSelectResult
+  import DatasetQuery.ArgumentOptionOffsetDataset
   import ExecutionEventSchema.{DatasetEventConnectionType, StepEventConnectionType}
   import StepSchema.{StepConfigType, StepIdType}
   import TimeSchema.{NonNegativeDurationType, InstantScalar}
+  import QuerySchema.ArgumentOptionLimit
   import VisitRecordSchema.VisitIdType
 
   implicit val EnumTypeStepQaState: EnumType[StepQaState] =
@@ -144,20 +144,18 @@ object StepRecordSchema {
 
         Field(
           name        = "datasets",
-          fieldType   = DatasetConnectionType[F],
+          fieldType   = DatasetSelectResult[F],
           description = "Datasets associated with this step".some,
           arguments   = List(
-            ArgumentPagingFirst,
-            ArgumentPagingCursor
+            ArgumentOptionOffsetDataset,
+            ArgumentOptionLimit
           ),
-          resolve     = c =>
-            unsafeSelectPageFuture[F, PosInt, DatasetModel](
-              c.pagingCursor("index")(IndexCursor.getOption),
-              dm => IndexCursor.reverseGet(dm.id.index),
-              o  => Sync[F].delay(
-                ResultPage.fromSeq[DatasetModel, PosInt](c.value.datasets, c.pagingFirst, o, _.id.index)
-              )
-            )
+          resolve     = c => {
+            val where = WhereDatasetInput.matchStep(c.value.observationId, c.value.stepId)
+            val off   = c.arg(ArgumentOptionOffsetDataset)
+            val limit = c.resultSetLimit
+            c.dataset(_.selectWhere(where, off, limit))
+          }
         )
 
       )

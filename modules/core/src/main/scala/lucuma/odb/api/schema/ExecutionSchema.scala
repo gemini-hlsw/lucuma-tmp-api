@@ -20,10 +20,12 @@ object ExecutionSchema {
   import AtomSchema.AtomConcreteType
   import context._
   import DatasetSchema._
+  import DatasetQuery.ArgumentOptionOffsetDataset
   import ExecutionEventSchema._
   import InstrumentSchema.EnumTypeInstrument
   import GmosSchema.{GmosNorthDynamicType, GmosNorthStaticConfigType, GmosSouthDynamicType, GmosSouthStaticConfigType}
   import Paging._
+  import QuerySchema.ArgumentOptionLimit
 
 
   def ExecutionConfigType[F[_]]: InterfaceType[OdbCtx[F], ExecutionContext] =
@@ -165,18 +167,18 @@ object ExecutionSchema {
 
         Field(
           name        = "datasets",
-          fieldType   = DatasetConnectionType[F],
+          fieldType   = DatasetSelectResult[F],
           description = "Datasets associated with the observation".some,
           arguments   = List(
-            ArgumentPagingFirst,
-            ArgumentPagingCursor
+            ArgumentOptionOffsetDataset,
+            ArgumentOptionLimit
           ),
-          resolve     = c =>
-            unsafeSelectPageFuture[F, DatasetModel.Id, DatasetModel](
-              c.pagingCursor("(observation-id,step-id,index)")(s => DatasetIdCursor.getOption(s)),
-              dm => DatasetIdCursor.reverseGet(dm.id),
-              o  => c.ctx.odbRepo.dataset.selectDatasetsPage(c.value, None, c.pagingFirst, o)
-            )
+          resolve     = c => {
+            val where = WhereDatasetInput.matchObservation(c.value)
+            val off   = c.arg(ArgumentOptionOffsetDataset)
+            val limit = c.resultSetLimit
+            c.dataset(_.selectWhere(where, off, limit))
+          }
         ),
 
         Field(

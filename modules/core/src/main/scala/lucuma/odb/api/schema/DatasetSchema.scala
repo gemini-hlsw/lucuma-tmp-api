@@ -8,13 +8,11 @@ import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import eu.timepit.refined.types.all.PosInt
 import lucuma.core.enums.DatasetQaState
-import lucuma.odb.api.model.{DatasetFilename, DatasetModel}
+import lucuma.odb.api.model.{DatasetFilename, DatasetModel, Step, WhereDatasetInput}
 import lucuma.odb.api.model.format.ScalarFormat
+import lucuma.odb.api.model.query.{SelectResult, WhereEqInput, WhereOptionEqInput, WhereOrderInput}
 import lucuma.odb.api.repo.OdbCtx
-import lucuma.odb.api.schema.Paging.Cursor
-import lucuma.odb.api.schema.syntax.`enum`._
-import lucuma.odb.api.schema.syntax.scalar._
-import monocle.Prism
+import lucuma.odb.api.schema.ObservationSchema.InputObjectWhereOrderObservationId
 import org.typelevel.log4cats.Logger
 import sangria.schema._
 
@@ -24,22 +22,11 @@ object DatasetSchema {
   import context._
   import ObservationSchema.ObservationIdType
   import RefinedSchema.PosIntType
+  import QuerySchema._
   import StepSchema.StepIdType
-
-  val DatasetIdCursor: Prism[Cursor, DatasetModel.Id] =
-    Prism[Cursor, DatasetModel.Id] { c =>
-      DatasetModel.Id.fromString.getOption(c.toString)
-    } { did => new Cursor(DatasetModel.Id.fromString.reverseGet(did)) }
-
-  val IndexCursor: Prism[Cursor, PosInt] =
-    Prism[Cursor, PosInt](
-      _.toString match {
-        case DatasetModel.Id.PosIntPattern(idx) => PosInt.unapply(java.lang.Integer.parseInt(idx))
-        case _                                  => None
-      }
-    ) {
-      idx => new Cursor(idx.value.toString)
-    }
+  import syntax.`enum`._
+  import syntax.inputtype._
+  import syntax.scalar._
 
   implicit val DatasetFilenameScalar: ScalarType[DatasetFilename] =
     ScalarType.fromScalarFormat(
@@ -102,6 +89,42 @@ object DatasetSchema {
       )
     )
 
+  implicit val InputObjectDatasetId: InputObjectType[DatasetModel.Id] =
+    InputObjectType[DatasetModel.Id](
+      "DatasetIdInput",
+      "Dataset ID input type",
+      List(
+        InputField("observationId", ObservationIdType, "Associated observation id."),
+        InputField("stepId", StepIdType, "Associated step id."),
+        InputField("index", PosIntType, "Dataset index within the step.")
+      )
+    )
+
+  implicit val InputObjectWhereOrderDatasetId: InputObjectType[WhereOrderInput[DatasetModel.Id]] =
+    inputObjectWhereOrder[DatasetModel.Id]("DatasetId", InputObjectDatasetId)
+
+  implicit val InputObjectWhereEqStepId: InputObjectType[WhereEqInput[Step.Id]] =
+    inputObjectWhereEq("StepId", StepIdType)
+
+  implicit val InputObjectWhereOrderDatasetIndex: InputObjectType[WhereOrderInput[PosInt]] =
+    inputObjectWhereOrder("DatasetIndex", PosIntType)
+
+  implicit val InputObjectWhereOptionEqQaState: InputObjectType[WhereOptionEqInput[DatasetQaState]] =
+    inputObjectWhereOptionEq("QaState", EnumTypeDatasetQaState)
+
+  implicit val InputObjectWhereDataset: InputObjectType[WhereDatasetInput] =
+    InputObjectType[WhereDatasetInput](
+      "WhereDataset",
+      "Dataset filter options.  All specified items must match.",
+      List(
+        InputObjectWhereOrderObservationId.optionField("observationId", "Matches the dataset observation id."),
+        InputObjectWhereEqStepId.optionField("stepId", "Matches the dataset step id."),
+        InputObjectWhereOrderDatasetIndex.optionField("index", "Matches the dataset index within the step."),
+        InputObjectWhereString.optionField("filename", "Matches the dataset file name."),
+        InputObjectWhereOptionEqQaState.optionField("qaState", "Matches the dataset QA state.")
+      )
+    )
+
   def DatasetType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], DatasetModel] =
     ObjectType(
       name     = "Dataset",
@@ -138,19 +161,7 @@ object DatasetSchema {
       )
     )
 
-  def DatasetEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Edge[DatasetModel]] =
-    Paging.EdgeType(
-      "DatasetEdge",
-      "A Dataset and its cursor",
-      DatasetType[F]
-    )
-
-  def DatasetConnectionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Connection[DatasetModel]] =
-    Paging.ConnectionType(
-      "DatasetConnection",
-      "Datasets in the current page",
-      DatasetType[F],
-      DatasetEdgeType[F]
-    )
+  implicit def DatasetSelectResult[F[_]: Dispatcher: Async: Logger]: ObjectType[Any, SelectResult[DatasetModel]] =
+    SelectResultType[DatasetModel]("dataset", DatasetType[F])
 
 }

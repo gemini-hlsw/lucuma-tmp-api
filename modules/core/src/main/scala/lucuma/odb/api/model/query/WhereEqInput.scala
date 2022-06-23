@@ -6,8 +6,9 @@ package lucuma.odb.api.model.query
 import cats.Eq
 import cats.syntax.eq._
 import cats.syntax.option._
+import io.circe.generic.extras.Configuration
+import io.circe.generic.extras.semiauto.deriveConfiguredDecoder
 import io.circe.{Decoder, Encoder, Json}
-import io.circe.generic.semiauto.deriveDecoder
 import io.circe.syntax.EncoderOps
 import lucuma.core.util.Enumerated
 
@@ -37,8 +38,11 @@ object WhereEqInput {
   def ANY[A: Enumerated]: WhereEqInput[A] =
     WhereEqInput(IN = Enumerated[A].all.some)
 
+  implicit val customConfig: Configuration =
+    Configuration.default.withDefaults
+
   implicit def DecoderWhereEqInput[A: Decoder: Eq]: Decoder[WhereEqInput[A]] =
-    deriveDecoder[WhereEqInput[A]]
+    deriveConfiguredDecoder[WhereEqInput[A]]
 
   // Need an encoder so we can define a default value for the WhereEqInput[Existence]
   // property. Inexplicably automatic derivation doesn't work.
