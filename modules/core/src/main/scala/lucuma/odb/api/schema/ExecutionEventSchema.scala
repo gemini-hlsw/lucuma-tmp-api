@@ -336,18 +336,4 @@ object ExecutionEventSchema {
         )
     )
 
-  def ExecutionEventEdgeType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Edge[ExecutionEventModel]] =
-    Paging.EdgeType(
-      "ExecutionEventEdge",
-      "An ExecutionEvent and its cursor",
-      ExecutionEventType[F]
-    )
-
-  def ExecutionEventConnectionType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], Paging.Connection[ExecutionEventModel]] =
-    Paging.ConnectionType(
-      "ExecutionEventConnection",
-      "ExecutionEvents in the current page",
-      ExecutionEventType[F],
-      ExecutionEventEdgeType[F]
-    )
 }

@@ -3,6 +3,7 @@
 
 package lucuma.odb.api.model
 
+import cats.syntax.option._
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.all.PosInt
 import io.circe.Decoder
@@ -136,6 +137,9 @@ object WhereExecutionEventInput {
 
   val MatchAll: WhereExecutionEventInput =
     WhereExecutionEventInput()
+
+  def matchObservation(observationId: Observation.Id): WhereExecutionEventInput =
+    MatchAll.copy(observationId = WhereOrderInput.EQ(observationId).some)
 
   implicit val customConfig: Configuration =
     Configuration.default.withDefaults

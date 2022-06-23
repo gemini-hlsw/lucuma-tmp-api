@@ -7,7 +7,7 @@ import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import lucuma.core.enums.Instrument
-import lucuma.core.model.{ExecutionEvent, Observation}
+import lucuma.core.model.Observation
 import lucuma.gen.SequenceComputation
 import lucuma.odb.api.model._
 import lucuma.odb.api.repo.OdbCtx
@@ -21,10 +21,9 @@ object ExecutionSchema {
   import context._
   import DatasetSchema._
   import DatasetQuery.ArgumentOptionOffsetDataset
-  import ExecutionEventSchema._
+  import ExecutionEventQuery.{ArgumentOptionOffsetExecutionEvent, ExecutionEventSelectResult}
   import InstrumentSchema.EnumTypeInstrument
   import GmosSchema.{GmosNorthDynamicType, GmosNorthStaticConfigType, GmosSouthDynamicType, GmosSouthStaticConfigType}
-  import Paging._
   import QuerySchema.ArgumentOptionLimit
   import VisitRecordSchema.VisitRecordType
 
@@ -170,18 +169,18 @@ object ExecutionSchema {
 
         Field(
           name        = "events",
-          fieldType   = ExecutionEventConnectionType[F],
+          fieldType   = ExecutionEventSelectResult[F],
           description = "Events associated with the observation".some,
           arguments   = List(
-            ArgumentPagingFirst,
-            ArgumentPagingCursor
+            ArgumentOptionOffsetExecutionEvent,
+            ArgumentOptionLimit
           ),
-          resolve     = c =>
-            unsafeSelectPageFuture[F, ExecutionEvent.Id, ExecutionEventModel](
-              c.pagingExecutionEventId,
-              (e: ExecutionEventModel) => Cursor.gid[ExecutionEvent.Id].reverseGet(e.id),
-              eid => c.ctx.odbRepo.executionEvent.selectEventsPageForObservation(c.value, c.pagingFirst, eid)
-            )
+          resolve     = c => {
+            val where = WhereExecutionEventInput.matchObservation(c.value)
+            val off   = c.arg(ArgumentOptionOffsetExecutionEvent)
+            val limit = c.resultSetLimit
+            c.executionEvent(_.selectWhere(where, off, limit))
+          }
         ),
 
         Field(
