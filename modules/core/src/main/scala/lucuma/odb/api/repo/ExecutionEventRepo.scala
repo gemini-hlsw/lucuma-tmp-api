@@ -35,13 +35,6 @@ sealed trait ExecutionEventRepo[F[_]] {
     limit:  Option[NonNegInt]
   ): F[SelectResult[ExecutionEventModel]]
 
-  /** Page events associated with an observation */
-  def selectEventsPageForObservation(
-    oid:      Observation.Id,
-    count:    Option[Int],
-    afterGid: Option[ExecutionEvent.Id] = None
-  ): F[ResultPage[ExecutionEventModel]]
-
   def selectStepForId[S, D](
     oid:    Observation.Id,
     stepId: Step.Id,
@@ -258,16 +251,6 @@ object ExecutionEventRepo {
               seqEvents
             )
           }
-        }
-
-
-      override def selectEventsPageForObservation(
-        oid:      Observation.Id,
-        count:    Option[Int],
-        afterGid: Option[ExecutionEvent.Id]
-      ): F[ResultPage[ExecutionEventModel]] =
-        databaseRef.get.map { db =>
-          ResultPage.fromSeq(sortedEvents(db)(_.observationId === oid), count, afterGid, _.id)
         }
 
       private def received: F[Instant] =

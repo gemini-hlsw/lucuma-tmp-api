@@ -51,48 +51,12 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
   ): F[SortedSet[TargetModel]]
 
   /**
-   * Selects the first (or next) page of targets associated with the program.
-   * Like `selectProgramTargets` but with paging.
-   */
-  def selectPageForProgram(
-    pid:            Program.Id,
-    count:          Option[Int]       = None,
-    afterGid:       Option[Target.Id] = None,
-    includeDeleted: Boolean           = false
-  ): F[ResultPage[TargetModel]]
-
-  /**
-   * Selects the first (or next) page of targets that are associated with the
-   * program and which are actually referenced by one or more observations.
-   * Like `selectPageForProgram` but only including targets that are used by
-   * an observation.
-   */
-  def selectReferencedPageForProgram(
-    pid:            Program.Id,
-    count:          Option[Int]       = None,
-    afterGid:       Option[Target.Id] = None,
-    includeDeleted: Boolean           = false
-  ): F[ResultPage[TargetModel]]
-
-  /**
    * Selects the asterism associated with the given observation.
    */
   def selectObservationAsterism(
     oid:            Observation.Id,
     includeDeleted: Boolean = false
   ): F[SortedSet[TargetModel]]
-
-  /**
-   * Selects the first (or next) page of targets that are associated with the
-   * given observation(s).  Like `selectObservationAsterism` but for multiple
-   * observations and with paging.
-   */
-  def selectPageForObservations(
-    oids:           Set[Observation.Id],
-    count:          Option[Int]       = None,
-    afterGid:       Option[Target.Id] = None,
-    includeDeleted: Boolean           = false
-  ): F[ResultPage[TargetModel]]
 
   def selectProgramAsterisms(
     pid:            Program.Id,
@@ -161,49 +125,6 @@ object TargetRepo {
           SortedSet.from {
             db.targets.rows.values.filter(t => t.programId === pid && (includeDeleted || t.isPresent))
           }
-        }
-
-     override def selectPageForProgram(
-       pid:            Program.Id,
-       count:          Option[Int]       = None,
-       afterGid:       Option[Target.Id] = None,
-       includeDeleted: Boolean           = false
-     ): F[ResultPage[TargetModel]] =
-       selectPageFiltered(count, afterGid, includeDeleted)(_.programId === pid)
-
-     def selectReferencedPageForProgram(
-       pid:            Program.Id,
-       count:          Option[Int]       = None,
-       afterGid:       Option[Target.Id] = None,
-       includeDeleted: Boolean           = false
-      ): F[ResultPage[TargetModel]] =
-        selectPageFromIds(count, afterGid, includeDeleted) { tab =>
-          tab
-            .observations
-            .rows
-            .values
-            .filter(o => o.programId === pid && (includeDeleted || o.isPresent))
-            .map(_.targetEnvironment.asterism)
-            .reduceOption(_.union(_))
-            .getOrElse(SortedSet.empty[Target.Id])
-        }
-
-      override def selectPageForObservations(
-        oids:           Set[Observation.Id],
-        count:          Option[Int]       = None,
-        afterGid:       Option[Target.Id] = None,
-        includeDeleted: Boolean           = false
-      ): F[ResultPage[TargetModel]] =
-        selectPageFromIds(count, afterGid, includeDeleted) { tab =>
-          oids.map { oid =>
-            tab
-              .observations
-              .rows
-              .get(oid)
-              .map(_.targetEnvironment.asterism)
-              .getOrElse(SortedSet.empty[Target.Id])
-          }.reduceOption(_.union(_))
-           .getOrElse(SortedSet.empty[Target.Id])
         }
 
       private def unsafeSelect[I: Gid, A](

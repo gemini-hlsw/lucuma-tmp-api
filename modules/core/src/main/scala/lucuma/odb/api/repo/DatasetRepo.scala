@@ -32,13 +32,6 @@ sealed trait DatasetRepo[F[_]] {
     sid: Option[Step.Id],
   ): F[List[DatasetModel]]
 
-  def selectDatasetsPage(
-    oid:   Observation.Id,
-    sid:   Option[Step.Id],
-    count: Option[Int],
-    after: Option[DatasetModel.Id]
-  ): F[ResultPage[DatasetModel]]
-
   def edit(
     editInput: DatasetModel.EditInput
   ): F[DatasetModel.EditResult]
@@ -85,21 +78,6 @@ object DatasetRepo {
         sid: Option[Step.Id]
       ): F[List[DatasetModel]] =
         databaseRef.get.map { db => db.datasets.selectAll(oid, sid, None) }
-
-      override def selectDatasetsPage(
-        oid:   Observation.Id,
-        sid:   Option[Step.Id],
-        count: Option[Int],
-        after: Option[DatasetModel.Id]
-      ): F[ResultPage[DatasetModel]] =
-        selectDatasets(oid, sid).map { all =>
-          ResultPage.fromSeq(
-            all,
-            count,
-            after,
-            _.id
-          )
-        }
 
       override def edit(
         editInput: DatasetModel.EditInput

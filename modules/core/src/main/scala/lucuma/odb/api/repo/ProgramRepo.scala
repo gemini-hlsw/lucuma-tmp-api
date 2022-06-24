@@ -15,13 +15,6 @@ import lucuma.odb.api.model.syntax.eitherinput._
 
 trait ProgramRepo[F[_]] extends TopLevelRepo[F, Program.Id, ProgramModel] {
 
-  def selectPageForPrograms(
-    pids:           Set[Program.Id],
-    count:          Option[Int]        = None,
-    afterGid:       Option[Program.Id] = None,
-    includeDeleted: Boolean            = false
-  ): F[ResultPage[ProgramModel]]
-
   def insert(input: ProgramModel.CreateInput): F[ProgramModel.CreateResult]
 
   def edit(input: ProgramModel.EditInput): F[ProgramModel.EditResult]
@@ -41,15 +34,6 @@ object ProgramRepo {
       Database.programs.andThen(Table.rows),
       (editType, model) => ProgramEvent(_, editType, model)
     ) with ProgramRepo[F] {
-
-      override def selectPageForPrograms(
-        pids:           Set[Program.Id],
-        count:          Option[Int]        = None,
-        afterGid:       Option[Program.Id] = None,
-        includeDeleted: Boolean            = false
-      ): F[ResultPage[ProgramModel]] =
-
-        selectPageFiltered(count, afterGid, includeDeleted) { p => pids(p.id) }
 
       override def insert(
         input: ProgramModel.CreateInput

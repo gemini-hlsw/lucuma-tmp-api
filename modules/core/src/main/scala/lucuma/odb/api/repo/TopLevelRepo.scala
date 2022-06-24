@@ -39,29 +39,6 @@ trait TopLevelRepo[F[_], I, T] {
     limit:  Option[NonNegInt]
   ): F[SelectResult[T]]
 
-  def selectPage(
-    count:          Option[Int] = None,
-    afterGid:       Option[I]   = None,
-    includeDeleted: Boolean     = false
-  ): F[ResultPage[T]] =
-    selectPageFiltered(count, afterGid, includeDeleted) { Function.const(true) }
-
-  def selectPageFiltered(
-    count:          Option[Int] = None,
-    afterGid:       Option[I]   = None,
-    includeDeleted: Boolean     = false
-  )(
-    predicate: T => Boolean
-  ): F[ResultPage[T]]
-
-  def selectPageFromIds(
-    count:          Option[Int] = None,
-    afterGid:       Option[I]   = None,
-    includeDeleted: Boolean     = false
-  )(
-    ids: Database => scala.collection.immutable.SortedSet[I]
-  ): F[ResultPage[T]]
-
   /**
    * Edits the top-level item identified by the given id and editor
    *
@@ -114,11 +91,10 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, *]: Eq](
   override def selectAll(
     includeDeleted: Boolean
   ): F[List[T]] =
-    selectPage(
-      count          = Some(Integer.MAX_VALUE),
-      afterGid       = None,
-      includeDeleted = includeDeleted
-    ).map(_.nodes)
+    databaseRef.get.map { tables =>
+      val all = mapLens.get(tables).values
+      (if (includeDeleted) all else all.filter(_.isPresent)).toList
+    }
 
   override def selectWhere(
     where:  WherePredicate[T],
@@ -136,44 +112,6 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, *]: Eq](
       SelectResult.Standard(
         result.toList,
         rest.nonEmpty
-      )
-    }
-
-  def selectPageFiltered(
-    count:          Option[Int],
-    afterGid:       Option[I],
-    includeDeleted: Boolean
-  )(
-    predicate: T => Boolean
-  ): F[ResultPage[T]] =
-
-    databaseRef.get.map { tables =>
-      val all = mapLens.get(tables)
-
-      ResultPage.select(
-        count,
-        afterGid,
-        all.keySet,
-        all.apply,
-        t => (includeDeleted || t.isPresent) && predicate(t)
-      )
-    }
-
-  def selectPageFromIds(
-    count:          Option[Int],
-    afterGid:       Option[I],
-    includeDeleted: Boolean
-  )(
-    ids: Database => scala.collection.immutable.SortedSet[I]
-  ): F[ResultPage[T]] =
-
-    databaseRef.get.map { tables =>
-      ResultPage.select(
-        count,
-        afterGid,
-        ids(tables),
-        mapLens.get(tables).apply,
-        t => includeDeleted || t.isPresent
       )
     }
 

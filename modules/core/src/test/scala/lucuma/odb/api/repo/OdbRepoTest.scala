@@ -5,11 +5,10 @@ package lucuma.odb.api.repo
 
 import lucuma.odb.api.model.{Database, TopLevelModel}
 import lucuma.odb.api.model.syntax.toplevel._
-import cats.effect.{Async, IO, Sync}
+import cats.effect.{Async, IO}
 import cats.effect.unsafe.implicits.global
 import cats.syntax.all._
 import eu.timepit.refined.types.all.PosInt
-import fs2.Stream
 
 import scala.collection.immutable.SortedMap
 
@@ -17,31 +16,6 @@ trait OdbRepoTest {
 
   def makeRepo(db: Database): IO[OdbRepo[IO]] =
     OdbRepo.fromDatabase[IO](db)(Async[IO])
-
-  protected def allPages[F[_]: Sync, I, T: TopLevelModel[I, *]](
-    pageSize: PosInt,
-    afterGid: Option[I],
-    repo:     TopLevelRepo[F, I, T]
-  ): F[List[ResultPage[T]]] =
-    allPagesFiltered[F, I, T](pageSize, afterGid, repo)(Function.const(true))
-
-  protected def allPagesFiltered[F[_]: Sync, I, T: TopLevelModel[I, *]](
-    pageSize: PosInt,
-    afterGid: Option[I],
-    repo:     TopLevelRepo[F, I, T]
-  )(
-    predicate: T => Boolean
-  ): F[List[ResultPage[T]]] =
-    Stream.unfoldLoopEval(afterGid) { gid =>
-      repo.selectPageFiltered(Some(pageSize.value), gid)(predicate).map { page =>
-        val next =
-          if (page.hasNextPage)
-            page.nodes.lastOption.map(t => Option(TopLevelModel[I, T].id(t)))
-          else
-            None
-        (page, next)
-      }
-    }.compile.toList
 
   protected def selectOne[I, T: TopLevelModel[I, *]](
     m: SortedMap[I, T],

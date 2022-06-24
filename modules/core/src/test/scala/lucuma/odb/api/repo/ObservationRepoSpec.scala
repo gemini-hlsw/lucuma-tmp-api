@@ -34,7 +34,7 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
 
   }
 
-  property("selectPageForObservations") {
+  property("selectWhere") {
     forAll { (db: Database, indices: List[Int]) =>
 
       val expected = randomSelect(db, indices).filter(_.existence.isPresent).map(_.id)
@@ -50,7 +50,7 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
     }
   }
 
-  property("selectPageForObservations with deleted") {
+  property("selectWhere with deleted") {
     forAll { (t: Database, indices: List[Int]) =>
 
       val expected = randomSelect(t, indices).map(_.id)
@@ -69,7 +69,7 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
     }
   }
 
-  property("selectPageForObservations with first") {
+  property("selectWhere with limit") {
     forAll { (t: Database, indices: List[Int], first: Int) =>
 
       val limitedFirst = if (t.observations.rows.size === 0) 0 else (first % t.observations.rows.size).abs
