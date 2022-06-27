@@ -170,7 +170,7 @@ trait ObservationMutation {
   def updateObservations[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "updateObservations",
-      fieldType   = UpdateResultType("observations", ObservationType[F]),
+      fieldType   = UpdateResultType("UpdateObservationsResult", "observations", ObservationType[F]),
       description = "Updates existing observations".some,
       arguments   = List(ArgumentUpdateObservations),
       resolve     = c => c.observation(_.update(c.arg(ArgumentUpdateObservations)))
@@ -215,7 +215,7 @@ trait ObservationMutation {
         """Update asterisms, adding or deleting targets, in (potentially) multiple
           |observations at once.
         """.stripMargin.some,
-      fieldType   = UpdateResultType("asterisms", ObservationType[F], "observations".some),
+      fieldType   = UpdateResultType("UpdateAsterismsResult", "observations", ObservationType[F]),
       arguments   = List(ArgumentUpdateAsterisms),
       resolve     = c => c.observation(_.updateAsterism(c.arg(ArgumentUpdateAsterisms)))
     )
@@ -243,7 +243,7 @@ trait ObservationMutation {
     Field(
       name        = s"${name}Observations",
       description = s"${name.capitalize}s all the observations identified by the `WHERE` field".some,
-      fieldType   = UpdateResultType("observations", ObservationType[F]),
+      fieldType   = UpdateResultType(s"${name.capitalize}ObservationsResult", "observations", ObservationType[F]),
       arguments   = List(arg),
       resolve     = c => c.observation(_.update(c.arg(arg)))
     )

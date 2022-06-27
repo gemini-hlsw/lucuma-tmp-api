@@ -59,7 +59,7 @@ trait DatasetMutation {
   def updateDatasets[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name      = "updateDatasets",
-      fieldType = UpdateResultType("datasets", DatasetType[F]),
+      fieldType = UpdateResultType("UpdateDatasetsResult", "datasets", DatasetType[F]),
       arguments = List(ArgumentUpdateDatasets),
       resolve   = c => c.dataset(_.update(c.arg(ArgumentUpdateDatasets)))
     )

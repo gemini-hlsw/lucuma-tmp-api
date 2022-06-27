@@ -306,7 +306,7 @@ trait TargetMutation extends TargetScalars {
   def updateTargets[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name        = "updateTargets",
-      fieldType   = UpdateResultType("targets", TargetType[F]),
+      fieldType   = UpdateResultType("UpdateTargetsResult", "targets", TargetType[F]),
       description = "Updates existing targets".some,
       arguments   = List(ArgumentUpdateTargets),
       resolve     = c => c.target(_.update(c.arg(ArgumentUpdateTargets)))
@@ -335,7 +335,7 @@ trait TargetMutation extends TargetScalars {
     Field(
       name        = s"${name}Targets",
       description = s"${name.capitalize}s all the targets identified by the `WHERE` field".some,
-      fieldType   =  UpdateResultType("targets", TargetType[F]),
+      fieldType   =  UpdateResultType(s"${name.capitalize}TargetsResult", "targets", TargetType[F]),
       arguments   = List(arg),
       resolve     = c => c.target(_.update(c.arg(arg)))
     )

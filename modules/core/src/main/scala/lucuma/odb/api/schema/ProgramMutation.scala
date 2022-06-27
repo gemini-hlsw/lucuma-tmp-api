@@ -229,7 +229,7 @@ trait ProgramMutation {
   def update[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
       name      = "updatePrograms",
-      fieldType = UpdateResultType("programs", ProgramType[F]),
+      fieldType = UpdateResultType("UpdateProgramsResult", "programs", ProgramType[F]),
       arguments = List(ArgumentUpdatePrograms),
       resolve   = c => c.program(_.update(c.arg(ArgumentUpdatePrograms)))
     )
