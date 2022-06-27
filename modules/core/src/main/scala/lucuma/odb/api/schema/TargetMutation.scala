@@ -9,9 +9,11 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
 import clue.data.syntax._
+import eu.timepit.refined.types.all.NonNegInt
 import io.circe.{Decoder, HCursor}
+import io.circe.refined._
 import lucuma.odb.api.model.{CoordinatesModel, DeclinationModel, Existence, ObservationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
-import lucuma.odb.api.model.targetModel.{CatalogInfoInput, EditAsterismPatchInput, NonsiderealInput, SiderealInput, TargetEnvironmentInput, TargetModel}
+import lucuma.odb.api.model.targetModel.{CatalogInfoInput, EditAsterismPatchInput, NonsiderealInput, SiderealInput, TargetEnvironmentInput, TargetModel, WhereTargetInput}
 import lucuma.odb.api.schema.syntax.`enum`._
 import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
@@ -26,9 +28,10 @@ trait TargetMutation extends TargetScalars {
   import GeneralSchema.EnumTypeExistence
   import ObservationSchema.ObservationIdType
   import ProgramSchema.ProgramIdType
-  import RefinedSchema.NonEmptyStringType
+  import QuerySchema.UpdateResultType
+  import RefinedSchema.{NonEmptyStringType, NonNegIntType}
   import SourceProfileSchema.InputObjectSourceProfile
-  import TargetSchema.{EnumTypeCatalogName, EphemerisKeyTypeEnumType, TargetIdType, TargetType}
+  import TargetSchema.{EnumTypeCatalogName, EphemerisKeyTypeEnumType, InputObjectWhereTarget, TargetIdType, TargetType}
 
   import syntax.inputtype._
   import syntax.inputobjecttype._
@@ -163,49 +166,38 @@ trait TargetMutation extends TargetScalars {
       "Target description.  One (and only one) of sidereal or nonsidereal must be specified."
     )
 
-  implicit val InputObjectTypeTargetSelect: InputObjectType[TargetModel.SelectInput] =
-    InputObjectType[TargetModel.SelectInput](
-      "TargetSelectInput",
-      """Choose programId to include all of its targets, observationIds to
-       |include each listed observation's targets, or else individual targets
-       |via targetIds.""".stripMargin,
+  implicit val InputObjectTypeUpdateTargets: InputObjectType[TargetModel.UpdateInput] =
+    InputObjectType[TargetModel.UpdateInput](
+      "UpdateTargetsInput",
+      "Target selection and update description. Use `SET` to specify the changes, `WHERE` to select the targets to update, and `LIMIT` to control the size of the return value.",
       List(
-        InputField("programId",      OptionInputType(ProgramIdType)),
-        InputField("observationIds", OptionInputType(ListInputType(ObservationIdType))),
-        InputField("targetIds",      OptionInputType(ListInputType(TargetIdType)))
+        InputField("SET",  InputObjectTypeTargetProperties, "Describes the target values to modify."),
+        InputObjectWhereTarget.optionField("WHERE", "Filters the targets to be updated according to those that match the given constraints."),
+        NonNegIntType.optionField("LIMIT", "Caps the number of results returned to the given value (if additional targets match the WHERE clause they will be updated but not returned).")
       )
     )
 
-  implicit val InputObjectTypeEditTargets: InputObjectType[TargetModel.EditInput] =
-    InputObjectType[TargetModel.EditInput](
-      "EditTargetsInput",
-      "Target selection and update description.",
-      List(
-        InputField("select", InputObjectTypeTargetSelect),
-        InputField("patch",  InputObjectTypeTargetProperties)
-      )
-    )
-
-  val ArgumentEditTargetsInput: Argument[TargetModel.EditInput] =
-    InputObjectTypeEditTargets.argument(
+  val ArgumentUpdateTargets: Argument[TargetModel.UpdateInput] =
+    InputObjectTypeUpdateTargets.argument(
       "input",
-      "Parameters for editing existing targets. "
+      "Parameters for updating existing targets. "
     )
 
-  def existenceEditInput(name: String): InputObjectType[TargetModel.EditInput] =
-    InputObjectType[TargetModel.EditInput](
+  def existenceEditInput(name: String): InputObjectType[TargetModel.UpdateInput] =
+    InputObjectType[TargetModel.UpdateInput](
       s"${name.capitalize}TargetsInput",
       s"Selects the targets for $name",
       List(
-        InputField("select", InputObjectTypeTargetSelect)
-        // leave out the "patch" since that is implied
+        InputObjectWhereTarget.optionField("WHERE", s"Filters the targets for $name according to those that match the given constraints."),
+        NonNegIntType.optionField("LIMIT", "Caps the number of results returned to the given value (if additional targets match the WHERE clause they will be updated but not returned).")
+        // leave out the "set" since that is implied
       )
     )
 
-  val InputObjectTypeTargetDelete: InputObjectType[TargetModel.EditInput] =
+  val InputObjectTypeTargetDelete: InputObjectType[TargetModel.UpdateInput] =
     existenceEditInput("delete")
 
-  val InputObjectTypeTargetUndelete: InputObjectType[TargetModel.EditInput] =
+  val InputObjectTypeTargetUndelete: InputObjectType[TargetModel.UpdateInput] =
     existenceEditInput("undelete")
 
 
@@ -312,50 +304,27 @@ trait TargetMutation extends TargetScalars {
       }
     )
 
-  def EditTargetsResultType[F[_]: Dispatcher: Async: Logger](
-    operation:      String,
-    description:    String,
-    obsDescription: String
-  ): ObjectType[OdbCtx[F], TargetModel.EditResult] =
-    ObjectType(
-      name        = s"${operation.capitalize}TargetsResult",
-      description = description,
-      fieldsFn    = () => fields(
-
-        Field(
-          name        = "targets",
-          description = obsDescription.some,
-          fieldType   = ListType(TargetType[F]),
-          resolve     = _.value.targets
-        )
-
-      )
-    )
-
-  def editTargets[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def updateTargets[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name        = "editTargets",
-      fieldType   = EditTargetsResultType[F](
-        "edit",
-        "The result of editing select targets.",
-        "The edited targets."
-      ),
-      description = "Edits existing targets".some,
-      arguments   = List(ArgumentEditTargetsInput),
-      resolve     = c => c.target(_.edit(c.arg(ArgumentEditTargetsInput)))
+      name        = "updateTargets",
+      fieldType   = UpdateResultType("targets", TargetType[F]),
+      description = "Updates existing targets".some,
+      arguments   = List(ArgumentUpdateTargets),
+      resolve     = c => c.target(_.update(c.arg(ArgumentUpdateTargets)))
     )
 
   private def existenceEditField[F[_]: Dispatcher: Async: Logger](
     to: Existence
   ): Field[OdbCtx[F], Unit] = {
-    val name  = to.fold("delete", "undelete")
-    val patch = TargetModel.PropertiesInput.Empty.copy(existence = to.assign)
+    val name = to.fold("delete", "undelete")
+    val set  = TargetModel.PropertiesInput.Empty.copy(existence = to.assign)
 
     // Need a custom decoder because we don't want to look for a "patch" field.
-    implicit val decoder: Decoder[TargetModel.EditInput] =
+    implicit val decoder: Decoder[TargetModel.UpdateInput] =
       (c: HCursor) => for {
-        sel <- c.downField("select").as[TargetModel.SelectInput]
-      } yield TargetModel.EditInput(sel, patch)
+        where <- c.downField("WHERE").as[Option[WhereTargetInput]]
+        limit <- c.downField("LIMIT").as[Option[NonNegInt]]
+      } yield TargetModel.UpdateInput(set, where, limit)
 
     val arg   =
       to.fold(InputObjectTypeTargetDelete, InputObjectTypeTargetUndelete)
@@ -366,14 +335,10 @@ trait TargetMutation extends TargetScalars {
 
     Field(
       name        = s"${name}Targets",
-      description = s"${name.capitalize}s all the targets identified by the `select` field".some,
-      fieldType   = EditTargetsResultType(
-        name,
-        s"The result of performing a target $name mutation.",
-        s"The ${name}d targets."
-      ),
+      description = s"${name.capitalize}s all the targets identified by the `WHERE` field".some,
+      fieldType   =  UpdateResultType("targets", TargetType[F]),
       arguments   = List(arg),
-      resolve     = c => c.target(_.edit(c.arg(arg)))
+      resolve     = c => c.target(_.update(c.arg(arg)))
     )
   }
 
@@ -381,7 +346,7 @@ trait TargetMutation extends TargetScalars {
     List(
       createTarget,
       cloneTarget,
-      editTargets,
+      updateTargets,
       existenceEditField(Existence.Deleted),
       existenceEditField(Existence.Present)
     )

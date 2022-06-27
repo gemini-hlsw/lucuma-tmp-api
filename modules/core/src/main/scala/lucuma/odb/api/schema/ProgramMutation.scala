@@ -12,7 +12,6 @@ import lucuma.odb.api.model.{ProgramModel, ProposalClassInput, ProposalInput}
 import lucuma.odb.api.schema.syntax.inputtype._
 import lucuma.odb.api.repo.OdbCtx
 import lucuma.odb.api.schema.ProgramSchema.ProgramType
-import lucuma.odb.api.schema.RefinedSchema.NonNegIntType
 import org.typelevel.log4cats.Logger
 import sangria.macros.derive._
 import sangria.marshalling.circe._
@@ -26,7 +25,7 @@ trait ProgramMutation {
   import QuerySchema.UpdateResultType
   import TimeSchema.InputObjectTypeNonNegDuration
   import context._
-  import RefinedSchema.NonEmptyStringType
+  import RefinedSchema.{NonEmptyStringType, NonNegIntType}
   import syntax.`enum`._
   import syntax.inputobjecttype._
 
@@ -185,19 +184,19 @@ trait ProgramMutation {
       "Program description"
     )
 
-  val InputObjectTypeProgramEdit: InputObjectType[ProgramModel.UpdateInput] =
+  val InputObjectTypeUpdatePrograms: InputObjectType[ProgramModel.UpdateInput] =
     InputObjectType[ProgramModel.UpdateInput](
-      "UpdateProgramInput",
+      "UpdateProgramsInput",
       "Program selection and update description.  Use `SET` to specify the changes, `WHERE` to select the programs to update, and `LIMIT` to control the size of the return value.",
       List(
         InputField("SET", InputObjectTypeProgramProperties, "Describes the program values to modify."),
-        InputObjectWhereProgram.optionField("WHERE", "Filters the programs to be update according to those that match the given constraints."),
+        InputObjectWhereProgram.optionField("WHERE", "Filters the programs to be updated according to those that match the given constraints."),
         NonNegIntType.optionField("LIMIT", "Caps the number of results returned to the given value (if additional programs match the WHERE clause they will be updated but not returned).")
       )
     )
 
-  val ArgumentProgramEdit: Argument[ProgramModel.UpdateInput] =
-    InputObjectTypeProgramEdit.argument(
+  val ArgumentUpdatePrograms: Argument[ProgramModel.UpdateInput] =
+    InputObjectTypeUpdatePrograms.argument(
       "input",
       "Parameters for updating existing programs."
     )
@@ -229,10 +228,10 @@ trait ProgramMutation {
 
   def update[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name      = "updateProgram",
-      fieldType = UpdateResultType("program", ProgramType[F]),
-      arguments = List(ArgumentProgramEdit),
-      resolve   = c => c.program(_.update(c.arg(ArgumentProgramEdit)))
+      name      = "updatePrograms",
+      fieldType = UpdateResultType("programs", ProgramType[F]),
+      arguments = List(ArgumentUpdatePrograms),
+      resolve   = c => c.program(_.update(c.arg(ArgumentUpdatePrograms)))
     )
 
   def allFields[F[_]: Dispatcher: Async: Logger]: List[Field[OdbCtx[F], Unit]] =

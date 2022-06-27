@@ -45,8 +45,8 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
     variables = json"""
       {
         "deleteTargetInput": {
-          "select": {
-            "targetIds": [ "t-3" ]
+          "WHERE": {
+            "id": { "EQ": "t-3" }
           }
         }
       }

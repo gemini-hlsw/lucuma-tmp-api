@@ -14,6 +14,7 @@ import cats.syntax.functor._
 import cats.syntax.traverse._
 import lucuma.core.model.{Observation, Program, Target}
 import lucuma.core.util.Gid
+import lucuma.odb.api.model.query.SizeLimitedResult
 import lucuma.odb.api.model.{Database, Event, InputError, Table}
 import lucuma.odb.api.model.targetModel._
 import lucuma.odb.api.model.targetModel.TargetModel.TargetEvent
@@ -78,7 +79,7 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
 
   def insert(newTarget: TargetModel.CreateInput): F[TargetModel.CreateResult]
 
-  def edit(edit: TargetModel.EditInput): F[TargetModel.EditResult]
+  def update(edit: TargetModel.UpdateInput): F[SizeLimitedResult.Update[TargetModel]]
 
   /**
    * Clones the target referenced by `existingTid`.  Uses the `suggestedTid` for
@@ -204,11 +205,11 @@ object TargetRepo {
         } yield TargetModel.CreateResult(t)
       }
 
-      override def edit(editInput: TargetModel.EditInput): F[TargetModel.EditResult] =
+      override def update(input: TargetModel.UpdateInput): F[SizeLimitedResult.Update[TargetModel]] =
         for {
-          ts <- databaseRef.modifyState(editInput.editor.flipF).flatMap(_.liftTo[F])
-          _  <- ts.traverse(t => eventService.publish(TargetEvent.updated(t)))
-        } yield TargetModel.EditResult(ts)
+          ts <- databaseRef.modifyState(input.editor.flipF).flatMap(_.liftTo[F])
+          _  <- ts.allValues.traverse(t => eventService.publish(TargetEvent.updated(t)))
+        } yield ts
 
       override def clone(
         cloneInput: TargetModel.CloneInput

@@ -162,13 +162,13 @@ object QuerySchema {
   ): ObjectType[Any, SizeLimitedResult[A]] =
     ObjectType(
       name        = s"Update${name.capitalize}Result",
-      description = s"The result of updating the selected ${name}s, up to `LIMIT` or the maximum of (${SizeLimitedResult.MaxSize}).  If `hasMore` is true, additional ${name}s were modified and not included here.",
+      description = s"The result of updating the selected $name, up to `LIMIT` or the maximum of (${SizeLimitedResult.MaxSize}).  If `hasMore` is true, additional $name were modified and not included here.",
 
       fieldsFn    = () => List(
 
         Field(
-          name        = s"${name}s",
-          description = s"The edited ${name}s, up to the specified LIMIT or the default maximum of ${SizeLimitedResult.MaxSize}.".some,
+          name        = s"$name",
+          description = s"The edited $name, up to the specified LIMIT or the default maximum of ${SizeLimitedResult.MaxSize}.".some,
           fieldType   = ListType(aType),
           resolve     = _.value.limitedValues
         ),

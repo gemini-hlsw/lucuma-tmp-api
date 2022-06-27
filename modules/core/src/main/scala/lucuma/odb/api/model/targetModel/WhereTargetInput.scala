@@ -3,6 +3,7 @@
 
 package lucuma.odb.api.model.targetModel
 
+import cats.kernel.Eq
 import cats.syntax.option._
 import io.circe.Decoder
 import io.circe.generic.extras.Configuration
@@ -36,10 +37,16 @@ object WhereTargetInput {
   val MatchPresent: WhereTargetInput =
     WhereTargetInput()
 
+  def matchId(id: Target.Id): WhereTargetInput =
+    MatchPresent.copy(id = WhereOrderInput.EQ(id).some)
+
   implicit val customConfig: Configuration =
     Configuration.default.withDefaults
 
   implicit val DecoderWhereTargetInput: Decoder[WhereTargetInput] =
     deriveConfiguredDecoder[WhereTargetInput]
+
+  implicit val EqWhereTargetInput: Eq[WhereTargetInput] =
+    Eq.fromUniversalEquals
 
 }

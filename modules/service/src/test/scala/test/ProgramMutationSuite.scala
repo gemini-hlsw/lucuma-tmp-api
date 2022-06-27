@@ -35,8 +35,8 @@ class ProgramMutationSuite extends OdbSuite {
 
   queryTestFailure(
     query = """
-      mutation UpdateProgramNewProposalError($updateProgram: UpdateProgramInput!) {
-        updateProgram(input: $updateProgram)
+      mutation UpdateProgramNewProposalError($updatePrograms: UpdateProgramsInput!) {
+        updatePrograms(input: $updatePrograms)
     """ + programQuery("programs") + "}",
     errors = List(
       "No minPercentTime definition provided",
@@ -46,8 +46,7 @@ class ProgramMutationSuite extends OdbSuite {
     ),
     variables = json"""
       {
-        "updateProgram": {
-          "WHERE": { "id": { "EQ": "p-3" } },
+        "updatePrograms": {
           "SET": {
             "name": "Jack",
             "proposal": {
@@ -58,7 +57,8 @@ class ProgramMutationSuite extends OdbSuite {
                 }
               }
             }
-          }
+          },
+          "WHERE": { "id": { "EQ": "p-3" } }
         }
       }
     """.some
@@ -66,12 +66,12 @@ class ProgramMutationSuite extends OdbSuite {
 
   queryTest(
     query = """
-      mutation UpdateProgramNewProposal($updateProgram: UpdateProgramInput!) {
-        updateProgram(input: $updateProgram)
+      mutation UpdateProgramNewProposal($updatePrograms: UpdateProgramsInput!) {
+        updatePrograms(input: $updatePrograms)
     """ + programQuery("programs") + "}",
     expected = json"""
       {
-        "updateProgram": {
+        "updatePrograms": {
           "programs": [
             {
               "id": "p-3",
@@ -99,8 +99,7 @@ class ProgramMutationSuite extends OdbSuite {
     """,
     variables = json"""
       {
-        "updateProgram": {
-          "WHERE": { "id": { "EQ": "p-3" } },
+        "updatePrograms": {
           "SET": {
             "name": "Jack",
             "proposal": {
@@ -115,7 +114,8 @@ class ProgramMutationSuite extends OdbSuite {
               "toOActivation": "STANDARD",
               "partnerSplits": []
             }
-          }
+          },
+          "WHERE": { "id": { "EQ": "p-3" } }
         }
       }
     """.some
@@ -123,12 +123,12 @@ class ProgramMutationSuite extends OdbSuite {
 
   queryTest(
     query = """
-      mutation UpdateProgramExisting($updateProgram: UpdateProgramInput!) {
-        updateProgram(input: $updateProgram)
+      mutation UpdateProgramExisting($updatePrograms: UpdateProgramsInput!) {
+        updatePrograms(input: $updatePrograms)
     """ + programQuery("programs") + "}",
     expected = json"""
       {
-        "updateProgram": {
+        "updatePrograms": {
           "programs": [
             {
               "id": "p-3",
@@ -165,8 +165,7 @@ class ProgramMutationSuite extends OdbSuite {
     """,
     variables = json"""
       {
-        "updateProgram": {
-          "WHERE": { "id": { "EQ": "p-3" } },
+        "updatePrograms": {
           "SET": {
             "proposal": {
               "proposalClass": {
@@ -185,7 +184,8 @@ class ProgramMutationSuite extends OdbSuite {
                 }
               ]
             }
-          }
+          },
+          "WHERE": { "id": { "EQ": "p-3" } }
         }
       }
     """.some
