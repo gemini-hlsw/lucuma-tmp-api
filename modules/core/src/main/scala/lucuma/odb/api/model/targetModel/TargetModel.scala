@@ -17,7 +17,7 @@ import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
 import lucuma.core.model.{Observation, Program, SourceProfile, Target}
-import lucuma.odb.api.model.{Database, EitherInput, Event, Existence, InputError, TopLevelModel, ValidatedInput}
+import lucuma.odb.api.model.{Database, EitherInput, Event, Existence, InputError, TopLevelModel, ValidatedInput, WhereObservationInput}
 import lucuma.odb.api.model.query.SizeLimitedResult
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
@@ -252,9 +252,9 @@ object TargetModel extends TargetModelOptics {
   }
 
   final case class CloneInput(
-    targetId:  Target.Id,
-    patch:     Option[PropertiesInput],
-    replaceIn: Option[List[Observation.Id]]
+    targetId:   Target.Id,
+    SET:        Option[PropertiesInput],
+    REPLACE_IN: Option[List[Observation.Id]]
   ) {
 
     val go: StateT[EitherInput, Database, CloneResult] =
@@ -263,7 +263,7 @@ object TargetModel extends TargetModelOptics {
         i  <- Database.target.cycleNextUnused
         c   = t.clone(i)
         _  <- Database.target.saveNew(i, c)
-        cʹ <- patch.fold(StateT.pure[EitherInput, Database, TargetModel](c)) { p =>
+        cʹ <- SET.fold(StateT.pure[EitherInput, Database, TargetModel](c)) { p =>
           TargetModel.UpdateInput(
             p,
             WhereTargetInput.MatchAll.withId(i).some,
@@ -271,6 +271,9 @@ object TargetModel extends TargetModelOptics {
           ).editor.map(_.limitedValues.head)
         }
       } yield CloneResult(originalTarget = t, newTarget = cʹ)
+
+    def replaceWhereObservation: Option[WhereObservationInput] =
+      REPLACE_IN.map(WhereObservationInput.MatchAll.withIds)
 
   }
 
@@ -282,8 +285,8 @@ object TargetModel extends TargetModelOptics {
     implicit val EqCloneInput: Eq[CloneInput] =
       Eq.by { a => (
         a.targetId,
-        a.patch,
-        a.replaceIn
+        a.SET,
+        a.REPLACE_IN
       )}
 
   }

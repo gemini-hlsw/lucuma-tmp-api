@@ -12,7 +12,7 @@ import clue.data.syntax._
 import eu.timepit.refined.types.all.NonNegInt
 import io.circe.{Decoder, HCursor}
 import io.circe.refined._
-import lucuma.odb.api.model.{CoordinatesModel, DeclinationModel, Existence, ObservationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel, WhereObservationInput}
+import lucuma.odb.api.model.{CoordinatesModel, DeclinationModel, Existence, ObservationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
 import lucuma.odb.api.model.targetModel.{CatalogInfoInput, EditAsterismPatchInput, NonsiderealInput, SiderealInput, TargetEnvironmentInput, TargetModel, WhereTargetInput}
 import lucuma.odb.api.schema.syntax.`enum`._
 import lucuma.odb.api.repo.OdbCtx
@@ -220,7 +220,7 @@ trait TargetMutation extends TargetScalars {
   implicit val InputObjectCloneTarget: InputObjectType[TargetModel.CloneInput] =
     deriveInputObjectType[TargetModel.CloneInput](
       InputObjectTypeName("CloneTargetInput"),
-      InputObjectTypeDescription("Describes a target clone operation, making any edits in the patch parameter and replacing the target in the selected observations")
+      InputObjectTypeDescription("Describes a target clone operation, making any edits in the `SET` parameter and replacing the target in the selected `REPLACE_IN` observations")
     )
 
   val ArgumentCloneTarget: Argument[TargetModel.CloneInput] =
@@ -281,23 +281,25 @@ trait TargetMutation extends TargetScalars {
     Field(
       name        = "cloneTarget",
       fieldType   = CloneTargetResultType[F],
-      description = "Makes a copy of an existing target, setting it to unobserved and to PRESENT.  If observationIds is specified, the clone will replace the existing target in those observations".some,
+      description = "Makes a copy of an existing target, setting it to unobserved and to PRESENT.  If `REPLACE_IN` observationIds are specified in the input, the clone will replace the existing target in those observations".some,
       arguments   = List(ArgumentCloneTarget),
       resolve     = c => {
         val cloneInput = c.arg(ArgumentCloneTarget)
         c.unsafeToFuture(
           for {
             r <- c.ctx.odbRepo.target.clone(cloneInput)
-            _ <- c.ctx.odbRepo.observation.updateAsterism(
-              ObservationModel.BulkEdit(
-                List(
-                  EditAsterismPatchInput.delete(cloneInput.targetId),
-                  EditAsterismPatchInput.add(r.newTarget.id)
-                ),
-                WhereObservationInput.MatchAll.withIds(cloneInput.replaceIn.toList.flatten).some,
-                None
-              )
-            )
+            _ <- cloneInput.replaceWhereObservation.fold(Async[F].pure(())) { where =>
+              c.ctx.odbRepo.observation.updateAsterism(
+                ObservationModel.BulkEdit(
+                  List(
+                    EditAsterismPatchInput.delete(cloneInput.targetId),
+                    EditAsterismPatchInput.add(r.newTarget.id)
+                  ),
+                  where.some,
+                  None
+                )
+              ).void
+            }
           } yield r
         )
       }

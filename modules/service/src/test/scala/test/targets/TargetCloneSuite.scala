@@ -35,7 +35,7 @@ class TargetCloneSuite extends OdbSuite {
       {
         "cloneInput": {
           "targetId": "t-4",
-          "patch": {
+          "SET": {
             "name": "Biff"
           }
         }
@@ -68,10 +68,10 @@ class TargetCloneSuite extends OdbSuite {
       {
         "cloneInput": {
           "targetId": "t-4",
-          "patch": {
+          "SET": {
             "name": "NGC 3312 (2)"
           },
-          "replaceIn": [ "o-3", "o-4" ]
+          "REPLACE_IN": [ "o-3", "o-4" ]
         }
       }
     """.some,
