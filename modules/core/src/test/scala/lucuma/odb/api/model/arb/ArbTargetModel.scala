@@ -186,8 +186,8 @@ trait ArbTargetModel {
       Option[Target.Id],
       Option[Target.Id]
     )].contramap { in => (
-      in.add,
-      in.delete
+      in.ADD,
+      in.DELETE
     )}
 
   implicit val arbTargetEnvironmentInput: Arbitrary[TargetEnvironmentInput] =

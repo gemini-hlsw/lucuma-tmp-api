@@ -70,10 +70,10 @@ class AsterismMutationSuite extends OdbSuite {
         "listEdit": {
           "SET": [
             {
-              "delete": "t-4"
+              "DELETE": "t-4"
             },
             {
-              "add": "t-2"
+              "ADD": "t-2"
             }
           ],
           "WHERE": {
