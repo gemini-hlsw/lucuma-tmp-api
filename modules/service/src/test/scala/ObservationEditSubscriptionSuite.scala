@@ -19,8 +19,8 @@ class ObservationEditSubscriptionSuite extends OdbSuite {
 
   // A parameterized mutation for observations
   val mutation: String = """
-    mutation UpdateObservation($editObservation: EditObservationsInput!) {
-      editObservations(input: $editObservation) { observations { id } }
+    mutation UpdateObservation($editObservation: UpdateObservationsInput!) {
+      updateObservations(input: $editObservation) { observations { id } }
     }
   """
 
@@ -33,11 +33,11 @@ class ObservationEditSubscriptionSuite extends OdbSuite {
     json"""
       {
         "editObservation": {
-          "select": {
-            "observationIds": [ "o-2" ]
-          },
-          "patch": {
+          "SET": {
             "subtitle": $newName
+          },
+          "WHERE": {
+            "id": { "EQ": "o-2" }
           }
         }
       }

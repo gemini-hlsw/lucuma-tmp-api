@@ -29,12 +29,23 @@ final case class WhereProgramInput(
       proposal.forall(_.matches(a.proposal))      &&
       existence.forall(_.matches(a.existence))
 
+  def withId(id: Program.Id): WhereProgramInput =
+    copy(id = WhereOrderInput.EQ(id).some)
+
+  def withIds(ids: List[Program.Id]): WhereProgramInput =
+    copy(id = WhereOrderInput.IN(ids).some)
+
+  def includeDeleted: WhereProgramInput =
+    copy(existence = None)
 }
 
 object WhereProgramInput {
 
   val MatchPresent: WhereProgramInput =
     WhereProgramInput()
+
+  val MatchAll: WhereProgramInput =
+    MatchPresent.includeDeleted
 
   implicit val customConfig: Configuration =
     Configuration.default.withDefaults

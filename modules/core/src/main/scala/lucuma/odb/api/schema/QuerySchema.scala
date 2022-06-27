@@ -157,18 +157,21 @@ object QuerySchema {
     )
 
   def UpdateResultType[A](
-    name:  String,
-    aType: OutputType[A]
-  ): ObjectType[Any, SizeLimitedResult[A]] =
+    name:     String,
+    aType:    OutputType[A],
+    typeName: Option[String] = None
+  ): ObjectType[Any, SizeLimitedResult[A]] = {
+    val tn = typeName.getOrElse(name)
+
     ObjectType(
       name        = s"Update${name.capitalize}Result",
-      description = s"The result of updating the selected $name, up to `LIMIT` or the maximum of (${SizeLimitedResult.MaxSize}).  If `hasMore` is true, additional $name were modified and not included here.",
+      description = s"The result of updating the selected $tn, up to `LIMIT` or the maximum of (${SizeLimitedResult.MaxSize}).  If `hasMore` is true, additional $tn were modified and not included here.",
 
       fieldsFn    = () => List(
 
         Field(
-          name        = s"$name",
-          description = s"The edited $name, up to the specified LIMIT or the default maximum of ${SizeLimitedResult.MaxSize}.".some,
+          name        = s"$tn",
+          description = s"The edited $tn, up to the specified LIMIT or the default maximum of ${SizeLimitedResult.MaxSize}.".some,
           fieldType   = ListType(aType),
           resolve     = _.value.limitedValues
         ),
@@ -181,5 +184,6 @@ object QuerySchema {
         )
       )
     )
+  }
 
 }

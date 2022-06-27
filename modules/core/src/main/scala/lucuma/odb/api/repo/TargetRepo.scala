@@ -79,7 +79,7 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
 
   def insert(newTarget: TargetModel.CreateInput): F[TargetModel.CreateResult]
 
-  def update(edit: TargetModel.UpdateInput): F[SizeLimitedResult.Update[TargetModel]]
+  def update(input: TargetModel.UpdateInput): F[SizeLimitedResult.Update[TargetModel]]
 
   /**
    * Clones the target referenced by `existingTid`.  Uses the `suggestedTid` for

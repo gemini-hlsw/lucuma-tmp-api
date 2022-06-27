@@ -3,14 +3,16 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{Existence, ObservationModel}
+import lucuma.odb.api.model.{Existence, ObservationModel, WhereObservationInput}
 import lucuma.odb.api.model.ObservationModel.BulkEdit
 import lucuma.odb.api.schema.syntax.inputtype._
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.option._
 import clue.data.syntax._
+import eu.timepit.refined.types.numeric.NonNegInt
 import io.circe.{Decoder, HCursor}
+import io.circe.refined._
 import lucuma.odb.api.model.targetModel.EditAsterismPatchInput
 import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
@@ -25,10 +27,11 @@ trait ObservationMutation {
   import ScienceModeMutation.InputObjectTypeScienceMode
   import ScienceRequirementsMutation.InputObjectTypeScienceRequirements
   import GeneralSchema.EnumTypeExistence
-  import ObservationSchema.{ObsActiveStatusType, ObservationIdType, ObsStatusType, ObservationType}
+  import ObservationSchema.{InputObjectWhereObservation, ObsActiveStatusType, ObservationIdType, ObsStatusType, ObservationType}
   import PosAngleConstraintSchema._
   import ProgramSchema.ProgramIdType
-  import RefinedSchema.NonEmptyStringType
+  import QuerySchema.UpdateResultType
+  import RefinedSchema.{NonEmptyStringType, NonNegIntType}
   import TargetMutation.{InputObjectTypeEditAsterisms, InputObjectTypeTargetEnvironment}
   import TimeSchema.InstantScalar
   import syntax.inputobjecttype._
@@ -63,47 +66,38 @@ trait ObservationMutation {
       "Observation description"
     )
 
-  implicit val InputObjectTypeObservationSelect: InputObjectType[ObservationModel.SelectInput] =
-    InputObjectType[ObservationModel.SelectInput](
-      "ObservationSelectInput",
-      """Choose programId to include all of its observations, or else a
-        |collection of observationIds to include particular observations.""".stripMargin,
+  val InputObjectTypeUpdateObservations: InputObjectType[ObservationModel.UpdateInput] =
+    InputObjectType[ObservationModel.UpdateInput](
+      "UpdateObservationsInput",
+      "Observation selection and update description.  Use `SET` to specify the changes, `WHERE` to select the observations to update, and `LIMIT` to control the size of the return value.",
       List(
-        InputField("programId",      OptionInputType(ProgramIdType)),
-        InputField("observationIds", OptionInputType(ListInputType(ObservationIdType)))
+        InputField("SET",  InputObjectTypeObservationProperties, "Describes the observation values to modify."),
+        InputObjectWhereObservation.optionField("WHERE", "Filters the observations to be updated according to those that match the given constraints."),
+        NonNegIntType.optionField("LIMIT", "Caps the number of results returned to the given value (if additional observations match the WHERE clause they will be updated but not returned).")
       )
     )
 
-  val InputObjectTypeObservationsEdit: InputObjectType[ObservationModel.EditInput] =
-    InputObjectType[ObservationModel.EditInput](
-      "EditObservationsInput",
-      "Observation selection and update description",
-      List(
-        InputField("select", InputObjectTypeObservationSelect),
-        InputField("patch",  InputObjectTypeObservationProperties)
-      )
-    )
-
-  val ArgumentObservationsEdit: Argument[ObservationModel.EditInput] =
-    InputObjectTypeObservationsEdit.argument(
+  val ArgumentUpdateObservations: Argument[ObservationModel.UpdateInput] =
+    InputObjectTypeUpdateObservations.argument(
       "input",
-      "Parameters for editing existing observations"
+      "Parameters for editing existing observations."
     )
 
-  def existenceEditInput(name: String): InputObjectType[ObservationModel.EditInput] =
-    InputObjectType[ObservationModel.EditInput](
+  def existenceEditInput(name: String): InputObjectType[ObservationModel.UpdateInput] =
+    InputObjectType[ObservationModel.UpdateInput](
       s"${name.capitalize}ObservationsInput",
       s"Selects the observations for $name",
       List(
-        InputField("select", InputObjectTypeObservationSelect)
-        // leave out the "patch" since that is implied
+        InputObjectWhereObservation.optionField("WHERE", s"Filters the observations for $name according to those that match the given constraints."),
+        NonNegIntType.optionField("LIMIT", "Caps the number of results returned to the given value (if additional observations match the WHERE clause they will be updated but not returned).")
+        // leave out the "set" since that is implied
       )
     )
 
-  val InputObjectTypeObservationDelete: InputObjectType[ObservationModel.EditInput] =
+  val InputObjectTypeObservationDelete: InputObjectType[ObservationModel.UpdateInput] =
     existenceEditInput("delete")
 
-  val InputObjectTypeObservationUndelete: InputObjectType[ObservationModel.EditInput] =
+  val InputObjectTypeObservationUndelete: InputObjectType[ObservationModel.UpdateInput] =
     existenceEditInput("undelete")
 
   val InputObjectTypeObservationCloneInput: InputObjectType[ObservationModel.CloneInput] =
@@ -119,30 +113,31 @@ trait ObservationMutation {
     )
 
 
-  private def bulkEditArgument[A: Decoder](
+  private def bulkUpdateArgument[A: Decoder](
     name:       String,
     editType:   InputType[A]
   ): Argument[BulkEdit[A]] = {
 
     val io: InputObjectType[BulkEdit[A]] =
       InputObjectType[BulkEdit[A]](
-        name        = s"Edit${name.capitalize}sInput",
+        name        = s"Update${name.capitalize}sInput",
         description =
-          """Input for bulk editing multiple observations.  Select observations
-            |with the 'select' input and specify the changes in 'edit'.
+          """Input for bulk updating multiple observations.  Select observations
+            |with the 'WHERE' input and specify the changes in 'SET'.
             |""".stripMargin,
         List(
-          InputField("select", InputObjectTypeObservationSelect),
-          InputField("patch",  editType)
+          InputField("SET",  editType, "Describes the values to modify."),
+          InputObjectWhereObservation.optionField("WHERE", "Filters the observations to be updated according to those that match the given constraints."),
+          NonNegIntType.optionField("LIMIT", "Caps the number of results returned to the given value (if additional observations match the WHERE clause they will be updated but not returned).")
         )
       )
 
-    io.argument("input", s"Bulk edit $name")
+    io.argument("input", s"Bulk update $name")
 
   }
 
-  val ArgumentEditAsterisms: Argument[BulkEdit[Seq[EditAsterismPatchInput]]] =
-    bulkEditArgument[Seq[EditAsterismPatchInput]](
+  val ArgumentUpdateAsterisms: Argument[BulkEdit[Seq[EditAsterismPatchInput]]] =
+    bulkUpdateArgument[Seq[EditAsterismPatchInput]](
       "asterism",
       ListInputType(InputObjectTypeEditAsterisms)
     )
@@ -172,36 +167,13 @@ trait ObservationMutation {
       resolve     = c => c.observation(_.insert(c.arg(ArgumentObservationCreate)))
     )
 
-  def EditObservationsResultType[F[_]: Dispatcher: Async: Logger](
-    name:           String,
-    description:    String,
-    obsDescription: String
-  ): ObjectType[OdbCtx[F], ObservationModel.EditResult] =
-    ObjectType(
-      name        = name,
-      description = description,
-      fieldsFn    = () => fields(
-
-        Field(
-          name        = "observations",
-          description = obsDescription.some,
-          fieldType   = ListType(ObservationType[F]),
-          resolve     = _.value.observations
-        )
-
-      )
-    )
-
-  def editObservations[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def updateObservations[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name      = "editObservations",
-      fieldType = EditObservationsResultType[F](
-        "EditObservationsResult",
-        "The result of editing select observations.",
-        "The edited observations."
-      ),
-      arguments = List(ArgumentObservationsEdit),
-      resolve   = c => c.observation(_.edit(c.arg(ArgumentObservationsEdit)))
+      name        = "updateObservations",
+      fieldType   = UpdateResultType("observations", ObservationType[F]),
+      description = "Updates existing observations".some,
+      arguments   = List(ArgumentUpdateObservations),
+      resolve     = c => c.observation(_.update(c.arg(ArgumentUpdateObservations)))
     )
 
   def CloneObservationResultType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], ObservationModel.CloneResult] =
@@ -236,33 +208,30 @@ trait ObservationMutation {
       resolve   = c => c.observation(_.clone(c.arg(ArgumentObservationCloneInput)))
     )
 
-  def editAsterisms[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def updateAsterisms[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name        = "editAsterisms",
+      name        = "updateAsterisms",
       description =
-        """Edit asterisms, adding or deleting targets, in (potentially) multiple
+        """Update asterisms, adding or deleting targets, in (potentially) multiple
           |observations at once.
         """.stripMargin.some,
-      fieldType   = EditObservationsResultType(
-        "EditAsterismsResult",
-        "The result of editing the asterism of the selected observations.",
-        "The edited observations."
-      ),
-      arguments   = List(ArgumentEditAsterisms),
-      resolve     = c => c.observation(_.editAsterism(c.arg(ArgumentEditAsterisms)))
+      fieldType   = UpdateResultType("asterisms", ObservationType[F], "observations".some),
+      arguments   = List(ArgumentUpdateAsterisms),
+      resolve     = c => c.observation(_.updateAsterism(c.arg(ArgumentUpdateAsterisms)))
     )
 
   private def existenceEditField[F[_]: Dispatcher: Async: Logger](
     to: Existence
   ): Field[OdbCtx[F], Unit] = {
-    val name  = to.fold("delete", "undelete")
-    val patch = ObservationModel.PropertiesInput.Empty.copy(existence = to.assign)
+    val name = to.fold("delete", "undelete")
+    val set  = ObservationModel.PropertiesInput.Empty.copy(existence = to.assign)
 
     // Need a custom decoder because we don't want to look for a "patch" field.
-    implicit val decoder: Decoder[ObservationModel.EditInput] =
+    implicit val decoder: Decoder[ObservationModel.UpdateInput] =
       (c: HCursor) => for {
-        sel <- c.downField("select").as[ObservationModel.SelectInput]
-      } yield ObservationModel.EditInput(sel, patch)
+        where <- c.downField("WHERE").as[Option[WhereObservationInput]]
+        limit <- c.downField("LIMIT").as[Option[NonNegInt]]
+      } yield ObservationModel.UpdateInput(set, where, limit)
 
     val arg   =
       to.fold(InputObjectTypeObservationDelete, InputObjectTypeObservationUndelete)
@@ -273,23 +242,19 @@ trait ObservationMutation {
 
     Field(
       name        = s"${name}Observations",
-      description = s"${name.capitalize}s all the observations identified by the `select` field".some,
-      fieldType   = EditObservationsResultType(
-        s"${name.capitalize}ObservationsResult",
-        s"The result of performing an observation $name mutation.",
-        s"The ${name}d observations."
-      ),
+      description = s"${name.capitalize}s all the observations identified by the `WHERE` field".some,
+      fieldType   = UpdateResultType("observations", ObservationType[F]),
       arguments   = List(arg),
-      resolve     = c => c.observation(_.edit(c.arg(arg)))
+      resolve     = c => c.observation(_.update(c.arg(arg)))
     )
   }
 
   def allFields[F[_]: Dispatcher: Async: Logger]: List[Field[OdbCtx[F], Unit]] =
     List(
       create,
-      editObservations,
+      updateObservations,
       clone,
-      editAsterisms,
+      updateAsterisms,
       existenceEditField(Existence.Deleted),
       existenceEditField(Existence.Present),
     )

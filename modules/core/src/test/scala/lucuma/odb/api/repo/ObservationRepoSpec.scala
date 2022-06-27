@@ -90,23 +90,23 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
   }
 
   private def runEditTest(
-    t: Database
+    d: Database
   )(
-    f: ObservationModel => ObservationModel.EditInput
+    f: ObservationModel => ObservationModel.UpdateInput
   ): (ObservationModel, ObservationModel) =
 
-    runTest(t) { odb =>
+    runTest(d) { odb =>
       for {
         // Insert a program and observation to insure that at least one exists
         p  <- odb.program.insert(ProgramModel.CreateInput(ProgramModel.PropertiesInput.Empty.some))
         _  <- odb.observation.insert(ObservationModel.CreateInput.empty(p.program.id))
 
         // Pick whatever the first observation may be
-        tʹ    <- odb.database.get
-        before = tʹ.observations.rows.values.head
+        dʹ    <- odb.database.get
+        before = dʹ.observations.rows.values.head
 
         // Do the prescribed edit.
-        after <- odb.observation.edit(f(before)).map(_.observations.head)
+        after <- odb.observation.update(f(before)).map(_.allValues.head)
       } yield (before, after)
     }
 
@@ -114,11 +114,12 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
 
     forAll { (t: Database) =>
       val (_, obs) = runEditTest(t) { o =>
-        ObservationModel.EditInput(
-          ObservationModel.SelectInput.observationId(o.id),
+        ObservationModel.UpdateInput(
           ObservationModel.PropertiesInput(
             subtitle = Input(NonEmptyString.unsafeFrom("Biff"))
-          )
+          ),
+          WhereObservationInput.MatchAll.withId(o.id).some,
+          None
         )
       }
       assert(obs.subtitle.contains(NonEmptyString.unsafeFrom("Biff")))
@@ -129,11 +130,12 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
   property("simple non-edit") {
     forAll { (t: Database) =>
       val (before, after) = runEditTest(t) { o =>
-        ObservationModel.EditInput(
-          ObservationModel.SelectInput.observationId(o.id),
+        ObservationModel.UpdateInput(
           ObservationModel.PropertiesInput(
             subtitle = o.subtitle.fold(Input.ignore[NonEmptyString])(n => Input(n))
-          )
+          ),
+          WhereObservationInput.MatchAll.withId(o.id).some,
+          None
         )
       }
       assertEquals(after, before)

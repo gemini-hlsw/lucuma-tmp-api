@@ -266,7 +266,7 @@ object TargetModel extends TargetModelOptics {
         cʹ <- patch.fold(StateT.pure[EitherInput, Database, TargetModel](c)) { p =>
           TargetModel.UpdateInput(
             p,
-            WhereTargetInput.matchId(i).some,
+            WhereTargetInput.MatchAll.withId(i).some,
             None
           ).editor.map(_.limitedValues.head)
         }

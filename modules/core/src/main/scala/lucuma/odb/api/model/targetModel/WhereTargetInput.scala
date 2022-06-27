@@ -30,6 +30,17 @@ final case class WhereTargetInput(
       name.forall(_.matchesNonEmptyString(a.name)) &&
       existence.forall(_.matches(a.existence))
 
+  def withId(id: Target.Id): WhereTargetInput =
+    copy(id = WhereOrderInput.EQ(id).some)
+
+  def withIds(ids: List[Target.Id]): WhereTargetInput =
+    copy(id = WhereOrderInput.IN(ids).some)
+
+  def withProgramId(pid: Program.Id): WhereTargetInput =
+    copy(programId = WhereOrderInput.EQ(pid).some)
+
+  def includeDeleted: WhereTargetInput =
+    copy(existence = None)
 }
 
 object WhereTargetInput {
@@ -37,8 +48,8 @@ object WhereTargetInput {
   val MatchPresent: WhereTargetInput =
     WhereTargetInput()
 
-  def matchId(id: Target.Id): WhereTargetInput =
-    MatchPresent.copy(id = WhereOrderInput.EQ(id).some)
+  val MatchAll: WhereTargetInput =
+    MatchPresent.includeDeleted
 
   implicit val customConfig: Configuration =
     Configuration.default.withDefaults

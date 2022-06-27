@@ -12,7 +12,7 @@ import clue.data.syntax._
 import eu.timepit.refined.types.all.NonNegInt
 import io.circe.{Decoder, HCursor}
 import io.circe.refined._
-import lucuma.odb.api.model.{CoordinatesModel, DeclinationModel, Existence, ObservationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
+import lucuma.odb.api.model.{CoordinatesModel, DeclinationModel, Existence, ObservationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel, WhereObservationInput}
 import lucuma.odb.api.model.targetModel.{CatalogInfoInput, EditAsterismPatchInput, NonsiderealInput, SiderealInput, TargetEnvironmentInput, TargetModel, WhereTargetInput}
 import lucuma.odb.api.schema.syntax.`enum`._
 import lucuma.odb.api.repo.OdbCtx
@@ -288,15 +288,14 @@ trait TargetMutation extends TargetScalars {
         c.unsafeToFuture(
           for {
             r <- c.ctx.odbRepo.target.clone(cloneInput)
-            _ <- c.ctx.odbRepo.observation.editAsterism(
+            _ <- c.ctx.odbRepo.observation.updateAsterism(
               ObservationModel.BulkEdit(
-                ObservationModel.SelectInput.observationIds(
-                  cloneInput.replaceIn.toList.flatten
-                ),
                 List(
                   EditAsterismPatchInput.delete(cloneInput.targetId),
                   EditAsterismPatchInput.add(r.newTarget.id)
-                )
+                ),
+                WhereObservationInput.MatchAll.withIds(cloneInput.replaceIn.toList.flatten).some,
+                None
               )
             )
           } yield r

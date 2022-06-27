@@ -3,6 +3,7 @@
 
 package lucuma.odb.api.model
 
+import cats.Eq
 import cats.syntax.option._
 import io.circe.Decoder
 import io.circe.generic.extras.Configuration
@@ -33,6 +34,18 @@ final case class WhereObservationInput(
       activeStatus.forall(_.matches(a.activeStatus))       &&
       existence.forall(_.matches(a.existence))
 
+  def withId(id: Observation.Id): WhereObservationInput =
+    copy(id = WhereOrderInput.EQ(id).some)
+
+  def withIds(ids: List[Observation.Id]): WhereObservationInput =
+    copy(id = WhereOrderInput.IN(ids).some)
+
+  def withProgramId(pid: Program.Id): WhereObservationInput =
+    copy(programId = WhereOrderInput.EQ(pid).some)
+
+  def includeDeleted: WhereObservationInput =
+    copy(existence = None)
+
 }
 
 object WhereObservationInput {
@@ -40,10 +53,16 @@ object WhereObservationInput {
   val MatchPresent: WhereObservationInput =
     WhereObservationInput()
 
+  val MatchAll: WhereObservationInput =
+    MatchPresent.includeDeleted
+
   implicit val customConfig: Configuration =
     Configuration.default.withDefaults
 
   implicit val DecoderWhereObservationInput: Decoder[WhereObservationInput] =
    deriveConfiguredDecoder[WhereObservationInput]
+
+  implicit val EqWhereObservationInput: Eq[WhereObservationInput] =
+    Eq.fromUniversalEquals
 
 }

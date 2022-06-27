@@ -8,7 +8,7 @@ import cats.effect.{Async, Ref}
 import cats.implicits._
 import eu.timepit.refined.types.all.NonNegInt
 import lucuma.core.model.{ConstraintSet, Observation, Program, Target}
-import lucuma.odb.api.model.ObservationModel.{BulkEdit, CloneInput, CreateInput, EditInput, Group, ObservationEvent}
+import lucuma.odb.api.model.ObservationModel.{BulkEdit, CloneInput, CreateInput, UpdateInput, Group, ObservationEvent}
 import lucuma.odb.api.model.query.SizeLimitedResult
 import lucuma.odb.api.model.{Database, EitherInput, Event, ExecutionModel, InputError, ObservationModel, ScienceMode, ScienceRequirements, Table, WhereObservationInput}
 import lucuma.odb.api.model.syntax.toplevel._
@@ -34,7 +34,7 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
 
   def insert(input: CreateInput): F[ObservationModel.CreateResult]
 
-  def edit(edit: EditInput): F[ObservationModel.EditResult]
+  def update(input: UpdateInput): F[SizeLimitedResult.Update[ObservationModel]]
 
   def clone(input: CloneInput): F[ObservationModel.CloneResult]
 
@@ -78,9 +78,9 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
     WHERE: Option[WhereObservationInput]
   ): F[List[Group[ScienceRequirements]]]
 
-  def editAsterism(
+  def updateAsterism(
     be: BulkEdit[Seq[EditAsterismPatchInput]]
-  ): F[ObservationModel.EditResult]
+  ): F[SizeLimitedResult.Update[ObservationModel]]
 
 }
 
@@ -141,17 +141,18 @@ object ObservationRepo {
 
       }
 
-      override def edit(editInput: ObservationModel.EditInput): F[ObservationModel.EditResult] = {
+      override def update(input: ObservationModel.UpdateInput): F[SizeLimitedResult.Update[ObservationModel]] = {
         val editAndValidate =
           for {
-            os  <- editInput.editor
-            osʹ <- os.traverse(_.validate)
-          } yield osʹ
+            r  <- input.editor
+            os  = r.allValues
+            _  <- os.traverse(_.validate)
+          } yield r
 
         for {
           os <- databaseRef.modifyState(editAndValidate.flipF).flatMap(_.liftTo[F])
-          _  <- os.traverse(o => eventService.publish(ObservationEvent.updated(o)))
-        } yield ObservationModel.EditResult(os)
+          _  <- os.allValues.traverse(o => eventService.publish(ObservationEvent.updated(o)))
+        } yield os
       }
 
       override def clone(
@@ -287,11 +288,16 @@ object ObservationRepo {
       private def doBulkEditTargets(
         be: BulkEdit[_],
         ed: StateT[EitherInput, TargetEnvironmentModel, Unit]
-      ): F[ObservationModel.EditResult] = {
+      ): F[SizeLimitedResult.Update[ObservationModel]] = {
+
+        def filteredObservations(db: Database): List[ObservationModel] = {
+          val all = db.observations.rows.values
+          be.WHERE.fold(all)(where => all.filter(where.matches)).toList
+        }
 
         val update =
           for {
-            ini  <- be.select.go
+            ini  <- StateT.inspect[EitherInput, Database, List[ObservationModel]](filteredObservations)
             osʹ  <- StateT.liftF(ini.traverse(ObservationModel.targetEnvironment.modifyA(ed.runS)))
             vos  <- osʹ.traverse(_.validate)
             _    <- vos.traverse(o => Database.observation.update(o.id, o))
@@ -300,14 +306,14 @@ object ObservationRepo {
         for {
           os <- databaseRef.modifyState(update.flipF).flatMap(_.liftTo[F])
           _  <- os.traverse_(o => eventService.publish(ObservationModel.ObservationEvent.updated(o)))
-        } yield ObservationModel.EditResult(os)
+        } yield SizeLimitedResult.Update.fromAll(os, be.LIMIT)
 
       }
 
-      override def editAsterism(
+      override def updateAsterism(
         be: BulkEdit[Seq[EditAsterismPatchInput]]
-      ): F[ObservationModel.EditResult] =
-        doBulkEditTargets(be, EditAsterismPatchInput.multiEditor(be.patch.toList))
+      ): F[SizeLimitedResult.Update[ObservationModel]] =
+        doBulkEditTargets(be, EditAsterismPatchInput.multiEditor(be.SET.toList))
 
     }
 }

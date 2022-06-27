@@ -9,8 +9,8 @@ class MutationSuite extends OdbSuite {
 
   queryTest(
     query = """
-      mutation BulkEditConstraints($bulkEditConstraints: EditObservationsInput!) {
-        editObservations(input: $bulkEditConstraints) {
+      mutation BulkEditConstraints($bulkEditConstraints: UpdateObservationsInput!) {
+        updateObservations(input: $bulkEditConstraints) {
           observations {
             id
             constraintSet {
@@ -22,7 +22,7 @@ class MutationSuite extends OdbSuite {
     """,
     expected = json"""
       {
-        "editObservations" : {
+        "updateObservations" : {
           "observations": [
             {
               "id" : "o-3",
@@ -43,13 +43,13 @@ class MutationSuite extends OdbSuite {
     variables = Some(json"""
       {
         "bulkEditConstraints": {
-          "select": {
-            "observationIds": [ "o-3", "o-4" ]
-          },
-          "patch": {
+          "SET": {
             "constraintSet": {
               "skyBackground": "GRAY"
             }
+          },
+          "WHERE": {
+            "id": { "IN": [ "o-3", "o-4" ] }
           }
         }
       }
@@ -58,8 +58,8 @@ class MutationSuite extends OdbSuite {
 
   queryTest(
     query = """
-      mutation BulkEditScienceMode($bulkEditScienceMode: EditObservationsInput!) {
-        editObservations(input: $bulkEditScienceMode) {
+      mutation BulkEditScienceMode($bulkEditScienceMode: UpdateObservationsInput!) {
+        updateObservations(input: $bulkEditScienceMode) {
           observations {
             id
             scienceMode {
@@ -78,7 +78,7 @@ class MutationSuite extends OdbSuite {
     """,
     expected = json"""
       {
-        "editObservations" : {
+        "updateObservations" : {
           "observations": [
             {
               "id" : "o-3",
@@ -113,10 +113,7 @@ class MutationSuite extends OdbSuite {
     variables = Some(json"""
       {
         "bulkEditScienceMode": {
-          "select": {
-            "observationIds": [ "o-3", "o-4" ]
-          },
-          "patch": {
+          "SET": {
             "scienceMode": {
               "gmosSouthLongSlit": {
                 "advanced": {
@@ -124,6 +121,9 @@ class MutationSuite extends OdbSuite {
                 }
               }
             }
+          },
+          "WHERE": {
+            "id": { "IN": [ "o-3", "o-4" ] }
           }
         }
       }
@@ -229,8 +229,8 @@ class MutationSuite extends OdbSuite {
   queryTestFailure(
     query =
       """
-        mutation BulkEditConstraints($bulkEditConstraints: EditObservationsInput!) {
-          editObservations(input: $bulkEditConstraints) {
+        mutation BulkEditConstraints($bulkEditConstraints: UpdateObservationsInput!) {
+          updateObservations(input: $bulkEditConstraints) {
             observations {
               id
               constraintSet {
@@ -252,10 +252,7 @@ class MutationSuite extends OdbSuite {
     variables = Some(json"""
       {
         "bulkEditConstraints": {
-          "select": {
-            "observationIds": [ "o-3", "o-4" ]
-          },
-          "patch": {
+          "SET": {
             "constraintSet": {
               "skyBackground": "GRAY",
               "elevationRange": {
@@ -265,6 +262,9 @@ class MutationSuite extends OdbSuite {
                 }
               }
             }
+          },
+          "WHERE": {
+            "id": { "IN": [ "o-3", "o-4" ] }
           }
         }
       }
@@ -273,8 +273,8 @@ class MutationSuite extends OdbSuite {
 
   queryTest(
     query = """
-      mutation EditMiscProperties($editObservationInput: EditObservationsInput!) {
-        editObservations(input: $editObservationInput) {
+      mutation EditMiscProperties($editObservationInput: UpdateObservationsInput!) {
+        updateObservations(input: $editObservationInput) {
           observations {
             id
             visualizationTime
@@ -288,7 +288,7 @@ class MutationSuite extends OdbSuite {
     """,
     expected = json"""
       {
-        "editObservations" : {
+        "updateObservations" : {
           "observations": [
             {
               "id": "o-3",
@@ -307,10 +307,7 @@ class MutationSuite extends OdbSuite {
     variables = Some(json"""
       {
         "editObservationInput": {
-          "select": {
-            "observationIds": [ "o-3" ]
-          },
-          "patch": {
+          "SET": {
             "visualizationTime": "2017-02-16T20:30:00Z",
             "posAngleConstraint": {
               "constraint": "ALLOW_FLIP",
@@ -318,6 +315,9 @@ class MutationSuite extends OdbSuite {
                 "degrees": 123.45
               }
             }
+          },
+          "WHERE": {
+            "id": { "EQ": "o-3" }
           }
         }
       }
@@ -326,8 +326,8 @@ class MutationSuite extends OdbSuite {
 
   queryTest(
     query = """
-      mutation RemovePosAngleConstraint($editObservationInput: EditObservationsInput!) {
-        editObservations(input: $editObservationInput) {
+      mutation RemovePosAngleConstraint($editObservationInput: UpdateObservationsInput!) {
+        updateObservations(input: $editObservationInput) {
           observations {
             id
             posAngleConstraint {
@@ -339,7 +339,7 @@ class MutationSuite extends OdbSuite {
     """,
     expected = json"""
       {
-        "editObservations" : {
+        "updateObservations" : {
           "observations": [
             {
               "id": "o-3",
@@ -352,11 +352,11 @@ class MutationSuite extends OdbSuite {
     variables = Some(json"""
       {
         "editObservationInput": {
-          "select": {
-            "observationIds": [ "o-3" ]
-          },
-          "patch": {
+          "SET": {
             "posAngleConstraint": null
+          },
+          "WHERE": {
+            "id": { "EQ": "o-3" }
           }
         }
       }
@@ -365,8 +365,8 @@ class MutationSuite extends OdbSuite {
 
   queryTest(
     query = """
-      mutation ToAverageParallactic($editObservationInput: EditObservationsInput!) {
-        editObservations(input: $editObservationInput) {
+      mutation ToAverageParallactic($editObservationInput: UpdateObservationsInput!) {
+        updateObservations(input: $editObservationInput) {
           observations {
             id
             posAngleConstraint {
@@ -381,7 +381,7 @@ class MutationSuite extends OdbSuite {
     """,
     expected = json"""
       {
-        "editObservations" : {
+        "updateObservations" : {
           "observations": [
             {
               "id": "o-3",
@@ -397,14 +397,14 @@ class MutationSuite extends OdbSuite {
     variables = Some(json"""
       {
         "editObservationInput": {
-          "select": {
-            "observationIds": [ "o-3" ]
-          },
-          "patch": {
+          "SET": {
             "posAngleConstraint": {
               "constraint": "AVERAGE_PARALLACTIC",
               "angle": null
             }
+          },
+          "WHERE": {
+            "id": { "EQ": "o-3" }
           }
         }
       }
@@ -416,8 +416,8 @@ class MutationSuite extends OdbSuite {
   queryTestFailure(
     query =
       """
-        mutation InvalidPosAngleConstraint($editObservationInput: EditObservationsInput!) {
-          editObservations(input: $editObservationInput) {
+        mutation InvalidPosAngleConstraint($editObservationInput: UpdateObservationsInput!) {
+          updateObservations(input: $editObservationInput) {
             observations {
               id
               posAngleConstraint {
@@ -436,14 +436,14 @@ class MutationSuite extends OdbSuite {
     variables = Some(json"""
       {
         "editObservationInput": {
-          "select": {
-            "observationIds": [ "o-3" ]
-          },
-          "patch": {
+          "SET": {
             "posAngleConstraint": {
               "constraint": "FIXED",
               "angle": null
             }
+          },
+          "WHERE": {
+            "id": { "EQ": "o-3" }
           }
         }
      }

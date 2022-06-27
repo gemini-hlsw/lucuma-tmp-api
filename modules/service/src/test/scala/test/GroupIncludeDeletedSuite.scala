@@ -32,8 +32,8 @@ class GroupIncludeDeletedSuite extends OdbSuite {
     variables =json"""
       {
         "deleteObservationInput": {
-          "select": {
-            "observationIds": [ "o-5" ]
+          "WHERE": {
+            "id": { "EQ": "o-5" }
           }
         }
       }
