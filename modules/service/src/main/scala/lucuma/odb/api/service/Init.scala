@@ -364,7 +364,7 @@ object Init {
   ): ObservationModel.CreateInput =
     ObservationModel.CreateInput(
       programId            = pid,
-      SET           = ObservationModel.PropertiesInput(
+      SET                  = ObservationModel.PropertiesInput(
         subtitle             = Input.ignore,
         status               = ObsStatus.New.assign,
         activeStatus         = ObsActiveStatus.Active.assign,
