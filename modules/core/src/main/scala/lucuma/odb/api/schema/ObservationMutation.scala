@@ -103,7 +103,7 @@ trait ObservationMutation {
   val InputObjectTypeObservationCloneInput: InputObjectType[ObservationModel.CloneInput] =
     deriveInputObjectType[ObservationModel.CloneInput](
       InputObjectTypeName("CloneObservationInput"),
-      InputObjectTypeDescription("Describes an observation clone operation, making any edits in the patch parameter.  The observation status in the cloned observation defaults to NEW."),
+      InputObjectTypeDescription("Describes an observation clone operation, making any edits in the `SET` parameter.  The observation status in the cloned observation defaults to NEW."),
     )
 
   val ArgumentObservationCloneInput: Argument[ObservationModel.CloneInput] =

@@ -153,7 +153,7 @@ trait ArbObservationModel {
       Option[ObservationModel.PropertiesInput]
     )].contramap { in => (
       in.observationId,
-      in.patch
+      in.SET
     )}
 }
 

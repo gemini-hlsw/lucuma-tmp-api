@@ -300,7 +300,7 @@ object ObservationModel extends ObservationOptics {
 
   final case class CloneInput(
     observationId: Observation.Id,
-    patch:         Option[PropertiesInput]
+    SET:           Option[PropertiesInput]
   ) {
 
     // At the moment, manual config (if present in patch) is ignored
@@ -310,7 +310,7 @@ object ObservationModel extends ObservationOptics {
         i  <- Database.observation.cycleNextUnused
         c   = o.clone(i)
         _  <- Database.observation.saveNew(i, c)
-        cʹ <- patch.fold(StateT.pure[EitherInput, Database, ObservationModel](c)) { p =>
+        cʹ <- SET.fold(StateT.pure[EitherInput, Database, ObservationModel](c)) { p =>
           ObservationModel.UpdateInput(
             p,
             WhereObservationInput.MatchAll.withId(i).some,
@@ -329,7 +329,7 @@ object ObservationModel extends ObservationOptics {
     implicit val EqCloneInput: Eq[CloneInput] =
       Eq.by { a => (
         a.observationId,
-        a.patch
+        a.SET
       )}
 
   }

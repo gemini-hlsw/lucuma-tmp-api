@@ -497,7 +497,7 @@ class MutationSuite extends OdbSuite {
       {
         "cloneObservationInput": {
           "observationId": "o-3",
-          "patch": {
+          "SET": {
             "posAngleConstraint": {
               "constraint": "FIXED",
               "angle": {
