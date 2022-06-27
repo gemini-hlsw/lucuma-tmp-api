@@ -20,7 +20,7 @@ object SizeLimitedResult {
     1000
 
   def size(explicitLimit: Option[NonNegInt]): NonNegInt =
-    explicitLimit.getOrElse(MaxSize) max MaxSize
+    explicitLimit.getOrElse(MaxSize) min MaxSize
 
   final case class Select[A](
     limitedValues: List[A],

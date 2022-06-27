@@ -54,14 +54,7 @@ object DatasetRepo {
           val all     = tables.datasets.datasets
           val off     = offset.fold(all.iterator)(all.iteratorFrom).to(LazyList).map((DatasetModel.apply _).tupled)
           val matches = off.filter(where.matches)
-          val lim     = limit.map(_.value).getOrElse(Int.MaxValue)
-
-          val (result, rest) = matches.splitAt(lim)
-
-          SizeLimitedResult.Select(
-            result.toList,
-            rest.nonEmpty
-          )
+          SizeLimitedResult.Select.fromAll(matches.toList, limit)
         }
       }
 

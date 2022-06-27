@@ -105,14 +105,7 @@ object ExecutionEventRepo {
           val all     = tables.executionEvents.rows
           val off     = offset.fold(all.iterator)(all.iteratorFrom).to(LazyList).map(_._2)
           val matches = off.filter(where.matches)
-          val lim     = limit.map(_.value).getOrElse(Int.MaxValue)
-
-          val (result, rest) = matches.splitAt(lim)
-
-          SizeLimitedResult.Select(
-            result.toList,
-            rest.nonEmpty
-          )
+          SizeLimitedResult.Select.fromAll(matches.toList, limit)
         }
 
       // Sort events by timestamp + event id

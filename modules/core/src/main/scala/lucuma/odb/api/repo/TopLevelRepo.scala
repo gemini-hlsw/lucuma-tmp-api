@@ -105,14 +105,7 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, *]: Eq](
       val all     = mapLens.get(tables)
       val off     = offset.fold(all.iterator)(all.iteratorFrom).to(LazyList).map(_._2)
       val matches = off.filter(where.matches)
-      val lim     = limit.map(_.value).getOrElse(Int.MaxValue)
-
-      val (result, rest) = matches.splitAt(lim)
-
-      SizeLimitedResult.Select(
-        result.toList,
-        rest.nonEmpty
-      )
+      SizeLimitedResult.Select.fromAll(matches.toList, limit)
     }
 
   def constructAndPublish[U <: T](

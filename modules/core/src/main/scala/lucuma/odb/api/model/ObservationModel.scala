@@ -211,8 +211,8 @@ object ObservationModel extends ObservationOptics {
 
     def empty(programId: Program.Id): CreateInput =
       CreateInput(
-        programId   = programId,
-        SET  = None
+        programId = programId,
+        SET       = None
       )
 
     import io.circe.generic.extras.semiauto._
