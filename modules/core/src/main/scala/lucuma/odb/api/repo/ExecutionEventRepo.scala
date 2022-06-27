@@ -16,7 +16,7 @@ import lucuma.odb.api.model.syntax.eitherinput._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.optional._
 import lucuma.core.model.{ExecutionEvent, Observation}
-import lucuma.odb.api.model.query.SelectResult
+import lucuma.odb.api.model.query.SizeLimitedResult
 import monocle.Prism
 
 import java.time.Instant
@@ -33,7 +33,7 @@ sealed trait ExecutionEventRepo[F[_]] {
     where:  WhereExecutionEventInput,
     offset: Option[ExecutionEvent.Id],
     limit:  Option[NonNegInt]
-  ): F[SelectResult[ExecutionEventModel]]
+  ): F[SizeLimitedResult[ExecutionEventModel]]
 
   def selectStepForId[S, D](
     oid:    Observation.Id,
@@ -98,7 +98,7 @@ object ExecutionEventRepo {
         where:  WhereExecutionEventInput,
         offset: Option[ExecutionEvent.Id],
         limit:  Option[NonNegInt]
-      ): F[SelectResult[ExecutionEventModel]] =
+      ): F[SizeLimitedResult[ExecutionEventModel]] =
 
         databaseRef.get.map { tables =>
 
@@ -109,7 +109,7 @@ object ExecutionEventRepo {
 
           val (result, rest) = matches.splitAt(lim)
 
-          SelectResult.Standard(
+          SizeLimitedResult.Select(
             result.toList,
             rest.nonEmpty
           )

@@ -7,7 +7,7 @@ import cats.syntax.option._
 import eu.timepit.refined.auto._
 import eu.timepit.refined.types.all.NonNegInt
 import io.circe.refined._
-import lucuma.odb.api.model.query.{SelectResult, WhereEqInput, WhereOptionEqInput, WhereOptionStringInput, WhereOrderInput, WhereStringInput}
+import lucuma.odb.api.model.query.{SizeLimitedResult, WhereEqInput, WhereOptionEqInput, WhereOptionStringInput, WhereOrderInput, WhereStringInput}
 import sangria.marshalling.circe._
 import sangria.macros.derive.{DocumentInputField, InputObjectTypeDescription, InputObjectTypeName, deriveInputObjectType}
 import sangria.schema._
@@ -24,7 +24,7 @@ object QuerySchema {
     Argument(
       name         = "LIMIT",
       argumentType =  OptionInputType(NonNegIntType.copy(description = "foo".some)),
-      description  = s"Limits the result to at most this number of matches (but never more than $DefaultLimit)."
+      description  = s"Limits the result to at most this number of matches (but never more than ${SizeLimitedResult.MaxSize})."
     )
 
   implicit val InputObjectWhereString: InputObjectType[WhereStringInput] =
@@ -133,18 +133,18 @@ object QuerySchema {
   def SelectResultType[A](
     prefix: String,
     aType:  OutputType[A]
-  ): ObjectType[Any, SelectResult[A]] =
+  ): ObjectType[Any, SizeLimitedResult[A]] =
     ObjectType(
       name        = s"${prefix.capitalize}SelectResult",
-      description = s"The matching $prefix results, limited to a maximum of $DefaultLimit entries.",
+      description = s"The matching $prefix results, limited to a maximum of ${SizeLimitedResult.MaxSize} entries.",
 
       fieldsFn    = () => List(
 
         Field(
           name        = "matches",
-          description = s"Matching ${prefix}s up to the return size limit of $DefaultLimit".some,
+          description = s"Matching ${prefix}s up to the return size limit of ${SizeLimitedResult.MaxSize}".some,
           fieldType   = ListType(aType),
-          resolve     = _.value.matches
+          resolve     = _.value.limitedValues
         ),
 
         Field(
@@ -155,4 +155,31 @@ object QuerySchema {
         )
       )
     )
+
+  def UpdateResultType[A](
+    name:  String,
+    aType: OutputType[A]
+  ): ObjectType[Any, SizeLimitedResult[A]] =
+    ObjectType(
+      name        = s"Update${name.capitalize}Result",
+      description = s"The result of updating the selected ${name}s, up to `LIMIT` or the maximum of (${SizeLimitedResult.MaxSize}).  If `hasMore` is true, additional ${name}s were modified and not included here.",
+
+      fieldsFn    = () => List(
+
+        Field(
+          name        = s"${name}s",
+          description = s"The edited ${name}s, up to the specified LIMIT or the default maximum of ${SizeLimitedResult.MaxSize}.".some,
+          fieldType   = ListType(aType),
+          resolve     = _.value.limitedValues
+        ),
+
+        Field(
+          name        = "hasMore",
+          description = "`true` when there were additional edits that were not returned.".some,
+          fieldType   = BooleanType,
+          resolve     = _.value.hasMore
+        )
+      )
+    )
+
 }

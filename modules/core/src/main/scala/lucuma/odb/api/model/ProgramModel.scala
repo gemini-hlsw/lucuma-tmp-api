@@ -8,6 +8,7 @@ import cats.syntax.all._
 import cats.Eq
 import clue.data.Input
 import eu.timepit.refined.cats._
+import eu.timepit.refined.types.all.NonNegInt
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.generic.semiauto._
@@ -16,6 +17,7 @@ import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.core.model.{Program, Proposal}
+import lucuma.odb.api.model.query.SizeLimitedResult
 import monocle.{Focus, Lens}
 
 /**
@@ -123,66 +125,37 @@ object ProgramModel extends ProgramOptics {
 
   }
 
-  final case class SelectInput(
-    programId: Option[Program.Id]
+  final case class UpdateInput(
+    SET:   PropertiesInput,
+    WHERE: Option[WhereProgramInput],
+    LIMIT: Option[NonNegInt]
   ) {
 
-    val go: StateT[EitherInput, Database, Option[ProgramModel]] =
-      programId.traverse(Database.program.lookup)
+    private def filteredPrograms(db: Database): List[ProgramModel] = {
+      val ps = db.programs.rows.values
+      WHERE.fold(ps)(where => ps.filter(where.matches)).toList
+    }
 
-  }
-
-  object SelectInput {
-
-    val Empty: SelectInput =
-      SelectInput(None)
-
-    def programId(pid: Program.Id): SelectInput =
-      Empty.copy(programId = pid.some)
-
-    implicit val DecoderSelectInput: Decoder[SelectInput] =
-      deriveDecoder[SelectInput]
-
-    implicit val EqSelectInput: Eq[SelectInput] =
-      Eq.by(_.programId)
-
-  }
-
-  final case class EditInput(
-    select: SelectInput,
-    patch:  PropertiesInput
-  ) {
-
-    val editor: StateT[EitherInput, Database, Option[ProgramModel]] =
+    val editor: StateT[EitherInput, Database, SizeLimitedResult.Update[ProgramModel]] =
       for {
-        p  <- select.go
-        pʹ <- StateT.liftF[EitherInput, Database, Option[ProgramModel]](p.traverse(patch.edit.runS))
-        _  <- pʹ.traverse(p => Database.program.update(p.id, p))
-      } yield pʹ
+        ps  <- StateT.inspect[EitherInput, Database, List[ProgramModel]](filteredPrograms)
+        psʹ <- StateT.liftF[EitherInput, Database, List[ProgramModel]](ps.traverse(SET.edit.runS))
+        _   <- psʹ.traverse(p => Database.program.update(p.id, p))
+      } yield SizeLimitedResult.Update.fromAll(psʹ, LIMIT)
 
   }
 
-  object EditInput {
+  object UpdateInput {
 
-    implicit val DecoderEditInput: Decoder[EditInput] =
-      deriveDecoder[EditInput]
+    implicit val DecoderUpdateInput: Decoder[UpdateInput] =
+      deriveDecoder[UpdateInput]
 
-    implicit val EqEdit: Eq[EditInput] =
+    implicit val EqUpdateInput: Eq[UpdateInput] =
       Eq.by { a => (
-        a.select,
-        a.patch
+        a.SET,
+        a.WHERE,
+        a.LIMIT
       )}
-
-  }
-
-  final case class EditResult(
-    program: Option[ProgramModel]
-  )
-
-  object EditResult {
-
-    implicit val EqEditResult: Eq[EditResult] =
-      Eq.by(_.program)
 
   }
 

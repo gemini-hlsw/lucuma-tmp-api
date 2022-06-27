@@ -3,12 +3,11 @@
 
 package lucuma.odb.api.model
 
+import cats.Eq
 import cats.syntax.option._
 import io.circe.generic.extras.Configuration
 import io.circe.generic.extras.semiauto.deriveConfiguredDecoder
-//import io.circe.{Decoder, HCursor}
 import io.circe.Decoder
-//import io.circe.generic.extras.Configuration
 import lucuma.core.model.Program
 import lucuma.odb.api.model.query.{WhereCombinator, WhereEqInput, WhereOptionStringInput, WhereOrderInput}
 
@@ -41,29 +40,9 @@ object WhereProgramInput {
     Configuration.default.withDefaults
 
   implicit val DecoderWhereProgramInput: Decoder[WhereProgramInput] =
-/*
-    (c: HCursor) => {
-      println("\n\n\n\n******* SHIT ******\n\n\n\n")
-      for {
-        and       <- c.get[Option[List[WhereProgramInput]]]("AND")
-        or        <- c.get[Option[List[WhereProgramInput]]]("OR")
-        not       <- c.get[Option[WhereProgramInput]]("NOT")
-        id        <- c.get[Option[WhereOrderInput[Program.Id]]]("id")
-        name      <- c.get[Option[WhereOptionStringInput]]("name")
-        proposal  <- c.get[Option[WhereProposalInput]]("proposal")
-        existence <- c.getOrElse[WhereEqInput[Existence]]("existence")(WhereEqInput.EQ(Existence.Present: Existence)).map(_.some)
-      } yield WhereProgramInput(
-        and,
-        or,
-        not,
-        id,
-        name,
-        proposal,
-        existence
-      )
-    }
-
- */
     deriveConfiguredDecoder[WhereProgramInput]
+
+  implicit val EqWhereProgramInput: Eq[WhereProgramInput] =
+    Eq.fromUniversalEquals
 
 }

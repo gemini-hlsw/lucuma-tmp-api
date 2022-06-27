@@ -8,7 +8,7 @@ import cats.effect.std.Dispatcher
 import cats.syntax.option._
 import lucuma.core.model.Program
 import lucuma.odb.api.model.{ProgramModel, WhereProgramInput}
-import lucuma.odb.api.model.query.SelectResult
+import lucuma.odb.api.model.query.SizeLimitedResult
 import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
 import sangria.marshalling.circe._
@@ -35,7 +35,7 @@ trait ProgramQuery {
       description  = "Starts the result set at (or after if not existent) the given program id."
     )
 
-  implicit def ProgramSelectResult[F[_]: Dispatcher: Async: Logger]: ObjectType[Any, SelectResult[ProgramModel]] =
+  implicit def ProgramSelectResult[F[_]: Dispatcher: Async: Logger]: ObjectType[Any, SizeLimitedResult[ProgramModel]] =
     SelectResultType[ProgramModel]("program", ProgramType[F])
 
   def programs[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =

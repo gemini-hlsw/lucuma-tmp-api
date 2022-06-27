@@ -7,7 +7,7 @@ import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import lucuma.core.model.Target
-import lucuma.odb.api.model.query.SelectResult
+import lucuma.odb.api.model.query.SizeLimitedResult
 import lucuma.odb.api.repo.OdbCtx
 import lucuma.odb.api.model.targetModel.{TargetModel, WhereTargetInput}
 import org.typelevel.log4cats.Logger
@@ -48,7 +48,7 @@ trait TargetQuery {
       resolve     = c => c.target(_.select(c.targetId, c.includeDeleted))
     )
 
-  implicit def TargetSelectResult[F[_]: Dispatcher: Async: Logger]: ObjectType[Any, SelectResult[TargetModel]] =
+  implicit def TargetSelectResult[F[_]: Dispatcher: Async: Logger]: ObjectType[Any, SizeLimitedResult[TargetModel]] =
     SelectResultType[TargetModel]("target", TargetType[F])
 
   def targets[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =

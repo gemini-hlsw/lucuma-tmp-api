@@ -10,7 +10,7 @@ import cats.syntax.functor._
 //import cats.syntax.all._
 import eu.timepit.refined.types.all.NonNegInt
 import lucuma.core.model.Observation
-import lucuma.odb.api.model.query.{SelectResult, WherePredicate}
+import lucuma.odb.api.model.query.{SizeLimitedResult, WherePredicate}
 import lucuma.odb.api.model.{Database, DatasetModel, Step}
 import lucuma.odb.api.model.syntax.databasestate._
 import lucuma.odb.api.model.syntax.eitherinput._
@@ -25,7 +25,7 @@ sealed trait DatasetRepo[F[_]] {
     where:  WherePredicate[DatasetModel],
     offset: Option[DatasetModel.Id],
     limit:  Option[NonNegInt]
-  ): F[SelectResult[DatasetModel]]
+  ): F[SizeLimitedResult[DatasetModel]]
 
   def selectDatasets(
     oid: Observation.Id,
@@ -55,7 +55,7 @@ object DatasetRepo {
         where:  WherePredicate[DatasetModel],
         offset: Option[DatasetModel.Id],
         limit:  Option[NonNegInt]
-      ): F[SelectResult[DatasetModel]] = {
+      ): F[SizeLimitedResult[DatasetModel]] = {
 
         databaseRef.get.map { tables =>
           val all     = tables.datasets.datasets
@@ -65,7 +65,7 @@ object DatasetRepo {
 
           val (result, rest) = matches.splitAt(lim)
 
-          SelectResult.Standard(
+          SizeLimitedResult.Select(
             result.toList,
             rest.nonEmpty
           )

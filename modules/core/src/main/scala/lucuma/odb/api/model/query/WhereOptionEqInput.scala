@@ -34,4 +34,13 @@ object WhereOptionEqInput {
   implicit def DecoderWhereOptionEqInput[A: Decoder: Eq]: Decoder[WhereOptionEqInput[A]] =
     deriveDecoder[WhereOptionEqInput[A]]
 
+  implicit def EqWhereOptionEqInput[A: Eq]: Eq[WhereOptionEqInput[A]] = {
+    Eq.by { a => (
+      a.IS_NULL,
+      a.EQ,
+      a.NEQ,
+      a.IN,
+      a.NIN
+    )}
+  }
 }

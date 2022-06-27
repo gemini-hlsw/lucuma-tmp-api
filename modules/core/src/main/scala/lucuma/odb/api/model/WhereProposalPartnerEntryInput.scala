@@ -3,6 +3,7 @@
 
 package lucuma.odb.api.model
 
+import cats.Eq
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import lucuma.core.model.{IntPercent, Partner}
@@ -34,4 +35,6 @@ object WhereProposalPartnerEntryInput {
   implicit val DecoderWhereProposalPartnerEntryInput: Decoder[WhereProposalPartnerEntryInput] =
     deriveDecoder[WhereProposalPartnerEntryInput]
 
+  implicit val EqWhereProposalPartnerEntryInput: Eq[WhereProposalPartnerEntryInput] =
+    Eq.fromUniversalEquals
 }

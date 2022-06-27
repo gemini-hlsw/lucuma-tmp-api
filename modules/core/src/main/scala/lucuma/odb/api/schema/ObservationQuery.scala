@@ -9,7 +9,7 @@ import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import lucuma.core.model.{ConstraintSet, Observation}
-import lucuma.odb.api.model.query.SelectResult
+import lucuma.odb.api.model.query.SizeLimitedResult
 import lucuma.odb.api.model.targetModel.{TargetEnvironmentModel, TargetModel}
 import lucuma.odb.api.schema.TargetSchema.TargetEnvironmentType
 import org.typelevel.log4cats.Logger
@@ -41,7 +41,7 @@ trait ObservationQuery {
       description  = "Starts the result set at (or after if not existent) the given observation id."
     )
 
-  implicit def ObservationSelectResult[F[_]: Dispatcher: Async: Logger]: ObjectType[Any, SelectResult[ObservationModel]] =
+  implicit def ObservationSelectResult[F[_]: Dispatcher: Async: Logger]: ObjectType[Any, SizeLimitedResult[ObservationModel]] =
     SelectResultType[ObservationModel]("observation", ObservationType[F])
 
   def observations[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =

@@ -122,7 +122,7 @@ object ProgramSchema {
           arguments   = List(ArgumentIncludeDeleted),
           resolve     = c => c.observation {
             _.selectForProgram(c.value.id, c.includeDeleted, None)
-             .map(_.matches.foldMap(PlannedTimeSummaryModel.forObservation))
+             .map(_.limitedValues.foldMap(PlannedTimeSummaryModel.forObservation))
           }
         )
 

@@ -3,6 +3,7 @@
 
 package lucuma.odb.api.model
 
+import cats.kernel.Eq
 import io.circe.Decoder
 import lucuma.core.enums.{TacCategory, ToOActivation}
 import lucuma.core.model.Proposal
@@ -59,4 +60,6 @@ object WhereProposalInput {
   implicit val DecoderWhereProposalInput: Decoder[WhereProposalInput] =
     deriveConfiguredDecoder[WhereProposalInput]
 
+  implicit val EqWhereProposalInput: Eq[WhereProposalInput] =
+    Eq.fromUniversalEquals
 }

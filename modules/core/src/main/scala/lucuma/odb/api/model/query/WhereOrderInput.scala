@@ -3,7 +3,7 @@
 
 package lucuma.odb.api.model.query
 
-import cats.Order
+import cats.{Eq, Order}
 import cats.syntax.option._
 import cats.syntax.order._
 import io.circe.Decoder
@@ -46,5 +46,17 @@ object WhereOrderInput {
 
   implicit def DecoderWhereOrderInput[A: Decoder: Order]: Decoder[WhereOrderInput[A]] =
     deriveConfiguredDecoder[WhereOrderInput[A]]
+
+  implicit def EqWhereOrderInput[A: Eq]: Eq[WhereOrderInput[A]] =
+    Eq.by { a => (
+      a.EQ,
+      a.NEQ,
+      a.GT,
+      a.LT,
+      a.GTE,
+      a.LTE,
+      a.IN,
+      a.NIN
+    )}
 
 }

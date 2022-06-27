@@ -8,10 +8,11 @@ import cats.effect.std.Dispatcher
 import cats.syntax.option._
 import lucuma.core.enums.{TacCategory, ToOActivation}
 import lucuma.core.model.Partner
-import lucuma.odb.api.model.{ProgramModel, ProposalInput, ProposalClassInput}
+import lucuma.odb.api.model.{ProgramModel, ProposalClassInput, ProposalInput}
 import lucuma.odb.api.schema.syntax.inputtype._
 import lucuma.odb.api.repo.OdbCtx
 import lucuma.odb.api.schema.ProgramSchema.ProgramType
+import lucuma.odb.api.schema.RefinedSchema.NonNegIntType
 import org.typelevel.log4cats.Logger
 import sangria.macros.derive._
 import sangria.marshalling.circe._
@@ -20,8 +21,9 @@ import sangria.schema._
 trait ProgramMutation {
 
   import GeneralSchema.EnumTypeExistence
-  import ProgramSchema.ProgramIdType
+  import ProgramSchema.InputObjectWhereProgram
   import RefinedSchema.IntPercentType
+  import QuerySchema.UpdateResultType
   import TimeSchema.InputObjectTypeNonNegDuration
   import context._
   import RefinedSchema.NonEmptyStringType
@@ -183,29 +185,21 @@ trait ProgramMutation {
       "Program description"
     )
 
-  implicit val InputObjectTypeProgramSelect: InputObjectType[ProgramModel.SelectInput] =
-    InputObjectType[ProgramModel.SelectInput](
-      "ProgramSelectInput",
-      "Choose programId to select the program for editing",
+  val InputObjectTypeProgramEdit: InputObjectType[ProgramModel.UpdateInput] =
+    InputObjectType[ProgramModel.UpdateInput](
+      "UpdateProgramInput",
+      "Program selection and update description.  Use `SET` to specify the changes, `WHERE` to select the programs to update, and `LIMIT` to control the size of the return value.",
       List(
-        ProgramIdType.optionField("programId")
+        InputField("SET", InputObjectTypeProgramProperties, "Describes the program values to modify."),
+        InputObjectWhereProgram.optionField("WHERE", "Filters the programs to be update according to those that match the given constraints."),
+        NonNegIntType.optionField("LIMIT", "Caps the number of results returned to the given value (if additional programs match the WHERE clause they will be updated but not returned).")
       )
     )
 
-  val InputObjectTypeProgramEdit: InputObjectType[ProgramModel.EditInput] =
-    InputObjectType[ProgramModel.EditInput](
-      "EditProgramInput",
-      "Program selection and update description",
-      List(
-        InputField("select", InputObjectTypeProgramSelect),
-        InputField("patch",  InputObjectTypeProgramProperties)
-      )
-    )
-
-  val ArgumentProgramEdit: Argument[ProgramModel.EditInput] =
+  val ArgumentProgramEdit: Argument[ProgramModel.UpdateInput] =
     InputObjectTypeProgramEdit.argument(
       "input",
-      "Parameters for editing an existing program"
+      "Parameters for updating existing programs."
     )
 
    def CreateProgramResultType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], ProgramModel.CreateResult] =
@@ -233,33 +227,18 @@ trait ProgramMutation {
       resolve     = c => c.program(_.insert(c.arg(ArgumentProgramCreate)))
     )
 
-  def EditProgramResultType[F[_]: Dispatcher: Async: Logger]: ObjectType[OdbCtx[F], ProgramModel.EditResult] =
-    ObjectType(
-      name        = "EditProgramResult",
-      description = "The result of editing the selected program.",
-      fieldsFn    = () => fields(
-
-        Field(
-          name        = "program",
-          description = "The edited program.".some,
-          fieldType   = OptionType(ProgramType[F]),
-          resolve     = _.value.program
-        )
-      )
-    )
-
-  def edit[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
+  def update[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
     Field(
-      name      = "editProgram",
-      fieldType = EditProgramResultType[F],
+      name      = "updateProgram",
+      fieldType = UpdateResultType("program", ProgramType[F]),
       arguments = List(ArgumentProgramEdit),
-      resolve   = c => c.program(_.edit(c.arg(ArgumentProgramEdit)))
+      resolve   = c => c.program(_.update(c.arg(ArgumentProgramEdit)))
     )
 
   def allFields[F[_]: Dispatcher: Async: Logger]: List[Field[OdbCtx[F], Unit]] =
     List(
       create,
-      edit
+      update
     )
 
 }

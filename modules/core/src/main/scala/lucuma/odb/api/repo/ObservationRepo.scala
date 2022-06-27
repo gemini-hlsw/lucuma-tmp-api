@@ -9,7 +9,7 @@ import cats.implicits._
 import eu.timepit.refined.types.all.NonNegInt
 import lucuma.core.model.{ConstraintSet, Observation, Program, Target}
 import lucuma.odb.api.model.ObservationModel.{BulkEdit, CloneInput, CreateInput, EditInput, Group, ObservationEvent}
-import lucuma.odb.api.model.query.SelectResult
+import lucuma.odb.api.model.query.SizeLimitedResult
 import lucuma.odb.api.model.{Database, EitherInput, Event, ExecutionModel, InputError, ObservationModel, ScienceMode, ScienceRequirements, Table, WhereObservationInput}
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.model.syntax.databasestate._
@@ -25,7 +25,7 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
     includeDeleted: Boolean                = false,
     offset:         Option[Observation.Id] = None,
     limit:          Option[NonNegInt]      = None
-  ): F[SelectResult[ObservationModel]]
+  ): F[SizeLimitedResult[ObservationModel]]
 
   def selectManualConfig(
     oid:            Observation.Id,
@@ -104,7 +104,7 @@ object ObservationRepo {
         includeDeleted: Boolean,
         offset:         Option[Observation.Id],
         limit:          Option[NonNegInt]
-      ): F[SelectResult[ObservationModel]] =
+      ): F[SizeLimitedResult[ObservationModel]] =
         selectWhere(
           (a: ObservationModel) => a.programId === pid && (includeDeleted || a.existence.isPresent),
           offset,

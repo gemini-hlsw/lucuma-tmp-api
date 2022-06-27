@@ -8,7 +8,7 @@ import cats.effect.std.Dispatcher
 import cats.syntax.option._
 import lucuma.core.model.ExecutionEvent
 import lucuma.odb.api.model.{ExecutionEventModel, WhereExecutionEventInput}
-import lucuma.odb.api.model.query.SelectResult
+import lucuma.odb.api.model.query.SizeLimitedResult
 import lucuma.odb.api.repo.OdbCtx
 import lucuma.odb.api.schema.ExecutionEventSchema.{ExecutionEventIdType, ExecutionEventType}
 import org.typelevel.log4cats.Logger
@@ -35,7 +35,7 @@ trait ExecutionEventQuery {
       description  = "Starts the result set at (or after if not existent) the given execution event id."
     )
 
-  implicit def ExecutionEventSelectResult[F[_]: Dispatcher: Async: Logger]: ObjectType[Any, SelectResult[ExecutionEventModel]] =
+  implicit def ExecutionEventSelectResult[F[_]: Dispatcher: Async: Logger]: ObjectType[Any, SizeLimitedResult[ExecutionEventModel]] =
     SelectResultType[ExecutionEventModel]("ExecutionEvent", ExecutionEventType[F])
 
   def executionEvents[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =

@@ -8,7 +8,7 @@ import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import lucuma.core.model.Program
 import lucuma.odb.api.model.{ObservationModel, WhereObservationInput}
-import lucuma.odb.api.model.query.SelectResult
+import lucuma.odb.api.model.query.SizeLimitedResult
 import lucuma.odb.api.repo.{ObservationRepo, OdbCtx}
 import org.typelevel.log4cats.Logger
 import sangria.schema._
@@ -22,7 +22,7 @@ object ObservationGroupSchema {
   import ObservationSchema.ObservationIdType
   import ObservationQuery.ArgumentOptionWhereObservation
   import ProgramSchema.ProgramIdArgument
-  import QuerySchema.{ArgumentOptionLimit, DefaultLimit, SelectResultType}
+  import QuerySchema.{ArgumentOptionLimit, SelectResultType}
 
   def ObservationGroupType[F[_]: Dispatcher: Async: Logger, A](
     prefix:      String,
@@ -95,16 +95,8 @@ object ObservationGroupSchema {
         ArgumentOptionLimit
       ),
       resolve    = c => c.unsafeToFuture {
-
-        val limit = c.arg(ArgumentOptionLimit).getOrElse(DefaultLimit).value
-
         lookupAll(c.ctx.odbRepo.observation, c.programId, c.arg(ArgumentOptionWhereObservation)).map { gs =>
-          val (result, rest) = gs.splitAt(limit)
-
-          SelectResult.Standard(
-            result,
-            rest.nonEmpty
-          )
+          SizeLimitedResult.Select.fromAll(gs, c.arg(ArgumentOptionLimit))
         }
       }
     )

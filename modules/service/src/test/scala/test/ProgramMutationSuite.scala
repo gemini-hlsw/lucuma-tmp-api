@@ -11,7 +11,7 @@ class ProgramMutationSuite extends OdbSuite {
     query = """
       mutation CreateEmptyProgram($programCreate: CreateProgramInput!) {
         createProgram(input: $programCreate)
-    """ + programQuery + "}",
+    """ + programQuery("program") + "}",
     expected = json"""
       {
         "createProgram": {
@@ -35,9 +35,9 @@ class ProgramMutationSuite extends OdbSuite {
 
   queryTestFailure(
     query = """
-      mutation EditProgramNewProposalError($programEdit: EditProgramInput!) {
-        editProgram(input: $programEdit)
-    """ + programQuery + "}",
+      mutation UpdateProgramNewProposalError($updateProgram: UpdateProgramInput!) {
+        updateProgram(input: $updateProgram)
+    """ + programQuery("programs") + "}",
     errors = List(
       "No minPercentTime definition provided",
       "No totalTime definition provided",
@@ -46,9 +46,9 @@ class ProgramMutationSuite extends OdbSuite {
     ),
     variables = json"""
       {
-        "programEdit": {
-          "select": { "programId": "p-3" },
-          "patch": {
+        "updateProgram": {
+          "WHERE": { "id": { "EQ": "p-3" } },
+          "SET": {
             "name": "Jack",
             "proposal": {
               "title": "Classy Proposal",
@@ -66,40 +66,42 @@ class ProgramMutationSuite extends OdbSuite {
 
   queryTest(
     query = """
-      mutation EditProgramNewProposal($programEdit: EditProgramInput!) {
-        editProgram(input: $programEdit)
-    """ + programQuery + "}",
+      mutation UpdateProgramNewProposal($updateProgram: UpdateProgramInput!) {
+        updateProgram(input: $updateProgram)
+    """ + programQuery("programs") + "}",
     expected = json"""
       {
-        "editProgram": {
-          "program": {
-            "id": "p-3",
-            "name": "Jack",
-            "existence": "PRESENT",
-            "proposal": {
-              "title": "Classy Proposal",
-              "proposalClass": {
-                "__typename": "LargeProgram",
-                "minPercentTime": 77,
-                "minPercentTotalTime": 88,
-                "totalTime": {
-                  "seconds": 660.000000
-                }
-              },
-              "category": null,
-              "toOActivation": "STANDARD",
-              "abstract": null,
-              "partnerSplits": []
+        "updateProgram": {
+          "programs": [
+            {
+              "id": "p-3",
+              "name": "Jack",
+              "existence": "PRESENT",
+              "proposal": {
+                "title": "Classy Proposal",
+                "proposalClass": {
+                  "__typename": "LargeProgram",
+                  "minPercentTime": 77,
+                  "minPercentTotalTime": 88,
+                  "totalTime": {
+                    "seconds": 660.000000
+                  }
+                },
+                "category": null,
+                "toOActivation": "STANDARD",
+                "abstract": null,
+                "partnerSplits": []
+              }
             }
-          }
+          ]
         }
       }
     """,
     variables = json"""
       {
-        "programEdit": {
-          "select": { "programId": "p-3" },
-          "patch": {
+        "updateProgram": {
+          "WHERE": { "id": { "EQ": "p-3" } },
+          "SET": {
             "name": "Jack",
             "proposal": {
               "title": "Classy Proposal",
@@ -121,49 +123,51 @@ class ProgramMutationSuite extends OdbSuite {
 
   queryTest(
     query = """
-      mutation EditProgramExisting($programEdit: EditProgramInput!) {
-        editProgram(input: $programEdit)
-    """ + programQuery + "}",
+      mutation UpdateProgramExisting($updateProgram: UpdateProgramInput!) {
+        updateProgram(input: $updateProgram)
+    """ + programQuery("programs") + "}",
     expected = json"""
       {
-        "editProgram": {
-          "program": {
-            "id": "p-3",
-            "name": "Jack",
-            "existence": "PRESENT",
-            "proposal": {
-              "title": "Classy Proposal",
-              "proposalClass": {
-                "__typename": "LargeProgram",
-                "minPercentTime": 77,
-                "minPercentTotalTime": 96,
-                "totalTime": {
-                  "seconds": 660.000000
-                }
-              },
-              "category": null,
-              "toOActivation": "STANDARD",
-              "abstract": null,
-              "partnerSplits": [
-                {
-                  "partner": "CL",
-                  "percent": 60
+        "updateProgram": {
+          "programs": [
+            {
+              "id": "p-3",
+              "name": "Jack",
+              "existence": "PRESENT",
+              "proposal": {
+                "title": "Classy Proposal",
+                "proposalClass": {
+                  "__typename": "LargeProgram",
+                  "minPercentTime": 77,
+                  "minPercentTotalTime": 96,
+                  "totalTime": {
+                    "seconds": 660.000000
+                  }
                 },
-                {
-                  "partner": "UH",
-                  "percent": 40
-                }
-              ]
+                "category": null,
+                "toOActivation": "STANDARD",
+                "abstract": null,
+                "partnerSplits": [
+                  {
+                    "partner": "CL",
+                    "percent": 60
+                  },
+                  {
+                    "partner": "UH",
+                    "percent": 40
+                  }
+                ]
+              }
             }
-          }
+          ]
         }
       }
     """,
     variables = json"""
       {
-        "programEdit": {
-          "select": { "programId": "p-3" },
-          "patch": {
+        "updateProgram": {
+          "WHERE": { "id": { "EQ": "p-3" } },
+          "SET": {
             "proposal": {
               "proposalClass": {
                 "largeProgram": {
@@ -187,9 +191,9 @@ class ProgramMutationSuite extends OdbSuite {
     """.some
   )
 
-  private lazy val programQuery = """
+  private def programQuery(name: String) = s"""
   {
-    program {
+    $name {
       id
       name
       existence

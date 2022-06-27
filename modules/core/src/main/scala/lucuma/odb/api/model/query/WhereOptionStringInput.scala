@@ -3,6 +3,8 @@
 
 package lucuma.odb.api.model.query
 
+import cats.Eq
+import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.refined._
@@ -43,4 +45,15 @@ object WhereOptionStringInput {
   implicit val DecoderWhereOptionStringInput: Decoder[WhereOptionStringInput] =
     deriveDecoder[WhereOptionStringInput]
 
+  implicit val EqWhereOptionStringInput: Eq[WhereOptionStringInput] =
+    Eq.by { a => (
+      a.IS_NULL,
+      a.EQ,
+      a.NEQ,
+      a.IN,
+      a.NIN,
+      a.LIKE,
+      a.NLIKE,
+      a.MATCH_CASE
+    )}
 }

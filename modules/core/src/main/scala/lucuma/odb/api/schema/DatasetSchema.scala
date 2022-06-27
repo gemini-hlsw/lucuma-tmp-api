@@ -10,7 +10,7 @@ import eu.timepit.refined.types.all.PosInt
 import lucuma.core.enums.DatasetQaState
 import lucuma.odb.api.model.{DatasetFilename, DatasetModel, WhereDatasetInput}
 import lucuma.odb.api.model.format.ScalarFormat
-import lucuma.odb.api.model.query.{SelectResult, WhereOptionEqInput, WhereOrderInput}
+import lucuma.odb.api.model.query.{SizeLimitedResult, WhereOptionEqInput, WhereOrderInput}
 import lucuma.odb.api.repo.OdbCtx
 import lucuma.odb.api.schema.ObservationSchema.InputObjectWhereOrderObservationId
 import org.typelevel.log4cats.Logger
@@ -158,7 +158,7 @@ object DatasetSchema {
       )
     )
 
-  implicit def DatasetSelectResult[F[_]: Dispatcher: Async: Logger]: ObjectType[Any, SelectResult[DatasetModel]] =
+  implicit def DatasetSelectResult[F[_]: Dispatcher: Async: Logger]: ObjectType[Any, SizeLimitedResult[DatasetModel]] =
     SelectResultType[DatasetModel]("dataset", DatasetType[F])
 
 }

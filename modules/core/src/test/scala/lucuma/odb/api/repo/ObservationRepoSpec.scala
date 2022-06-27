@@ -44,7 +44,7 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
           None,
           None
         )
-      }.matches.map(_.id)
+      }.limitedValues.map(_.id)
 
       assertEquals(obtained, expected)
     }
@@ -63,7 +63,7 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
           None,
           None
         )
-      }.matches.map(_.id)
+      }.limitedValues.map(_.id)
 
       assertEquals(obtained, expected)
     }
@@ -83,7 +83,7 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
           None,
           NonNegInt.unsafeFrom(limitedFirst).some
         )
-      }.matches.map(_.id)
+      }.limitedValues.map(_.id)
 
       assertEquals(obtained, expected.take(limitedFirst))
     }

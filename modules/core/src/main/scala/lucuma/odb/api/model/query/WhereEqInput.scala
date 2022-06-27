@@ -54,4 +54,12 @@ object WhereEqInput {
         a.NIN.map(vs => "NIN" -> vs.asJson).toList
     )
 
+  implicit def EqWhereEqInput[A: Eq]: Eq[WhereEqInput[A]] =
+    Eq.by { a => (
+      a.EQ,
+      a.NEQ,
+      a.IN,
+      a.NIN
+    )}
+
 }

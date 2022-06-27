@@ -16,7 +16,7 @@ import eu.timepit.refined.types.all.NonNegInt
 import monocle.Lens
 import monocle.function.At
 import lucuma.core.optics.state.all._
-import lucuma.odb.api.model.query.{SelectResult, WherePredicate}
+import lucuma.odb.api.model.query.{SizeLimitedResult, WherePredicate}
 
 import scala.collection.immutable.SortedMap
 
@@ -37,7 +37,7 @@ trait TopLevelRepo[F[_], I, T] {
     where:  WherePredicate[T],
     offset: Option[I],
     limit:  Option[NonNegInt]
-  ): F[SelectResult[T]]
+  ): F[SizeLimitedResult[T]]
 
   /**
    * Edits the top-level item identified by the given id and editor
@@ -100,7 +100,7 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, *]: Eq](
     where:  WherePredicate[T],
     offset: Option[I],
     limit:  Option[NonNegInt]
-  ): F[SelectResult[T]] =
+  ): F[SizeLimitedResult[T]] =
     databaseRef.get.map { tables =>
       val all     = mapLens.get(tables)
       val off     = offset.fold(all.iterator)(all.iteratorFrom).to(LazyList).map(_._2)
@@ -109,7 +109,7 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, *]: Eq](
 
       val (result, rest) = matches.splitAt(lim)
 
-      SelectResult.Standard(
+      SizeLimitedResult.Select(
         result.toList,
         rest.nonEmpty
       )

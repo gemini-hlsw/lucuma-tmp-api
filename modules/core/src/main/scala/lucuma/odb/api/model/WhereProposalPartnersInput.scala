@@ -3,6 +3,7 @@
 
 package lucuma.odb.api.model
 
+import cats.Eq
 import cats.syntax.eq._
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
@@ -29,4 +30,6 @@ object WhereProposalPartnersInput {
   implicit val DecoderWhereProposalPartnersInput: Decoder[WhereProposalPartnersInput] =
     deriveDecoder[WhereProposalPartnersInput]
 
+  implicit val EqWhereProposalPartnersInput: Eq[WhereProposalPartnersInput] =
+    Eq.fromUniversalEquals
 }

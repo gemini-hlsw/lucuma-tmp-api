@@ -8,6 +8,7 @@ import lucuma.odb.api.repo.{DatasetRepo, ExecutionEventRepo, ObservationRepo, Od
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import eu.timepit.refined.types.all.NonNegInt
+import lucuma.odb.api.model.query.SizeLimitedResult
 import lucuma.odb.api.model.{Atom, Step, Visit}
 import sangria.schema.Context
 
@@ -55,10 +56,7 @@ final class OdbContextOps[F[_]](val self: Context[OdbCtx[F], _]) {
     self.arg(GeneralSchema.ArgumentIncludeDeleted)
 
   def resultSetLimit: Option[NonNegInt] =
-    self
-      .arg(QuerySchema.ArgumentOptionLimit)
-      .orElse(QuerySchema.DefaultLimit.some)
-      .map { lim => if (lim.value > QuerySchema.DefaultLimit.value) QuerySchema.DefaultLimit else lim }
+    SizeLimitedResult.size(self.arg(QuerySchema.ArgumentOptionLimit)).some
 
   def unsafeToFuture[B](fb: F[B])(implicit ev: Dispatcher[F]): Future[B] =
     implicitly[Dispatcher[F]].unsafeToFuture(fb)

@@ -10,6 +10,7 @@ import cats.effect.Ref
 import lucuma.core.model.Program
 import lucuma.odb.api.model.{Database, Event, InputError, ProgramModel, Table}
 import lucuma.odb.api.model.ProgramModel.ProgramEvent
+import lucuma.odb.api.model.query.SizeLimitedResult
 import lucuma.odb.api.model.syntax.databasestate._
 import lucuma.odb.api.model.syntax.eitherinput._
 
@@ -17,7 +18,7 @@ trait ProgramRepo[F[_]] extends TopLevelRepo[F, Program.Id, ProgramModel] {
 
   def insert(input: ProgramModel.CreateInput): F[ProgramModel.CreateResult]
 
-  def edit(input: ProgramModel.EditInput): F[ProgramModel.EditResult]
+  def update(input: ProgramModel.UpdateInput): F[SizeLimitedResult[ProgramModel]]
 }
 
 object ProgramRepo {
@@ -57,14 +58,14 @@ object ProgramRepo {
         } yield ProgramModel.CreateResult(p)
       }
 
-      override def edit(
-        input: ProgramModel.EditInput
-      ): F[ProgramModel.EditResult] =
+      override def update(
+        input: ProgramModel.UpdateInput
+      ): F[SizeLimitedResult[ProgramModel]] =
 
         for {
-          p <- databaseRef.modifyState(input.editor.flipF).flatMap(_.liftTo[F])
-          _ <- p.traverse(p => eventService.publish(ProgramModel.ProgramEvent.updated(p)))
-        } yield ProgramModel.EditResult(p)
+          ps <- databaseRef.modifyState(input.editor.flipF).flatMap(_.liftTo[F])
+          _ <- ps.allValues.traverse(p => eventService.publish(ProgramModel.ProgramEvent.updated(p)))
+        } yield ps
 
     }
 
