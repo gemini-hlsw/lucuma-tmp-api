@@ -188,17 +188,17 @@ object ObservationModel extends ObservationOptics {
   }
 
   final case class CreateInput(
-    programId:     Program.Id,
-    properties:    Option[PropertiesInput]
+    programId: Program.Id,
+    SET:       Option[PropertiesInput]
   ) {
 
     def create[F[_]: Sync]: F[StateT[EitherInput, Database, ObservationModel]] =
-      properties.flatMap(_.manualConfig.toOption).traverse(_.create[F]).map { c =>
+      SET.flatMap(_.manualConfig.toOption).traverse(_.create[F]).map { c =>
         for {
           i <- Database.observation.cycleNextUnused
           _ <- Database.program.lookup(programId)
 
-          o  = properties.getOrElse(PropertiesInput.Empty).create(i, programId, c.sequence)
+          o  = SET.getOrElse(PropertiesInput.Empty).create(i, programId, c.sequence)
           oʹ <- o.traverse(_.validate)
           _  <- Database.observation.saveNewIfValid(oʹ)(_.id)
           v  <- Database.observation.lookup(i)
@@ -212,7 +212,7 @@ object ObservationModel extends ObservationOptics {
     def empty(programId: Program.Id): CreateInput =
       CreateInput(
         programId   = programId,
-        properties  = None
+        SET  = None
       )
 
     import io.circe.generic.extras.semiauto._
@@ -225,11 +225,11 @@ object ObservationModel extends ObservationOptics {
     implicit val EqCreateInput: Eq[CreateInput] =
       Eq.by { a => (
         a.programId,
-        a.properties
+        a.SET
       )}
 
     val properties: Lens[CreateInput, Option[PropertiesInput]] =
-      Focus[CreateInput](_.properties)
+      Focus[CreateInput](_.SET)
 
     val scienceMode: Optional[CreateInput, Input[ScienceModeInput]] =
       properties.some.andThen(PropertiesInput.scienceMode)

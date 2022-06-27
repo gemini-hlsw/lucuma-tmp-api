@@ -91,13 +91,13 @@ object ProgramModel extends ProgramOptics {
    * Program creation input class.
    */
   final case class CreateInput(
-    properties: Option[PropertiesInput]
+    SET: Option[PropertiesInput]
   ) {
 
     val create: StateT[EitherInput, Database, ProgramModel] =
       for {
         i <- Database.program.cycleNextUnused
-        r <- properties.getOrElse(PropertiesInput.Empty).create(i).liftState
+        r <- SET.getOrElse(PropertiesInput.Empty).create(i).liftState
         _ <- Database.program.saveNew(i, ProgramModel(i, r.existence, r.name, r.proposal))
         p <- Database.program.lookup(i)
       } yield p
@@ -110,7 +110,7 @@ object ProgramModel extends ProgramOptics {
       deriveDecoder[CreateInput]
 
     implicit val EqCreateInput: Eq[CreateInput] =
-      Eq.by(_.properties)
+      Eq.by(_.SET)
 
   }
 

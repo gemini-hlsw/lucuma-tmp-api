@@ -146,8 +146,8 @@ object TargetModel extends TargetModelOptics {
   }
 
   final case class CreateInput(
-    programId:  Program.Id,
-    properties: PropertiesInput
+    programId: Program.Id,
+    SET:       Option[PropertiesInput]
   ) {
 
     val createTarget: StateT[EitherInput, Database, TargetModel] =
@@ -155,7 +155,7 @@ object TargetModel extends TargetModelOptics {
       for {
         i <- Database.target.cycleNextUnused
         _ <- Database.program.lookup(programId)
-        t  = properties.create(i, programId)
+        t  = SET.getOrElse(PropertiesInput.Empty).create(i, programId)
         _ <- Database.target.saveNewIfValid(t)(_.id)
         r <- Database.target.lookup(i)
       } yield r
@@ -170,7 +170,7 @@ object TargetModel extends TargetModelOptics {
       input:         SiderealInput,
       sourceProfile: SourceProfileInput
     ): CreateInput =
-      CreateInput(programId, PropertiesInput(name.assign, input.some, None, sourceProfile.assign))
+      CreateInput(programId, PropertiesInput(name.assign, input.some, None, sourceProfile.assign).some)
 
     def nonsidereal(
       programId:     Program.Id,
@@ -178,7 +178,7 @@ object TargetModel extends TargetModelOptics {
       input:         NonsiderealInput,
       sourceProfile: SourceProfileInput
     ): CreateInput =
-      CreateInput(programId, PropertiesInput(name.assign, None, input.some, sourceProfile.assign))
+      CreateInput(programId, PropertiesInput(name.assign, None, input.some, sourceProfile.assign).some)
 
     implicit val DecoderCreate: Decoder[CreateInput] =
       deriveDecoder[CreateInput]
@@ -186,7 +186,7 @@ object TargetModel extends TargetModelOptics {
     implicit val EqCreate: Eq[CreateInput] =
       Eq.by { a => (
         a.programId,
-        a.properties
+        a.SET
       )}
   }
 

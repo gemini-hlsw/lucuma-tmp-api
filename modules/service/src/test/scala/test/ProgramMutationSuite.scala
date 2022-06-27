@@ -27,7 +27,7 @@ class ProgramMutationSuite extends OdbSuite {
     variables = json"""
       {
         "programCreate": {
-          "properties": {}
+          "SET": {}
         }
       }
     """.some

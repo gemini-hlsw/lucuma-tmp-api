@@ -75,7 +75,7 @@ trait ArbProgramModel {
   implicit val cogProgramModelCreate: Cogen[ProgramModel.CreateInput] =
     Cogen[(
       Option[ProgramModel.PropertiesInput]
-    )].contramap(_.properties)
+    )].contramap(_.SET)
 }
 
 object ArbProgramModel extends ArbProgramModel
