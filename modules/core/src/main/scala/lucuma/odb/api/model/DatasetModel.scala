@@ -10,7 +10,7 @@ import cats.syntax.functor._
 import cats.syntax.traverse._
 import clue.data.Input
 import eu.timepit.refined.cats._
-import eu.timepit.refined.types.all.PosInt
+import eu.timepit.refined.types.numeric.{PosInt, NonNegInt}
 import io.circe._
 import io.circe.generic.semiauto._
 import io.circe.refined._
@@ -18,6 +18,7 @@ import lucuma.core.enums.DatasetQaState
 import lucuma.core.model.Observation
 import lucuma.core.optics.Format
 import lucuma.core.util.Gid
+import lucuma.odb.api.model.query.SizeLimitedResult
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.input._
 import monocle.{Focus, Lens}
@@ -96,31 +97,6 @@ object DatasetModel extends DatasetModelOptics {
       a.dataset
     )}
 
-  final case class SelectInput(
-    observationId: Observation.Id,
-    stepId:        Option[Step.Id],
-    index:         Option[PosInt]
-  ) {
-
-    val go: StateT[EitherInput, Database, List[DatasetModel]] =
-      Database.datasets.st.map(_.selectAll(observationId, stepId, index))
-
-  }
-
-  object SelectInput {
-
-    implicit val DecoderSelect: Decoder[SelectInput] =
-      deriveDecoder[SelectInput]
-
-    implicit val EqSelect: Eq[SelectInput] =
-      Eq.by { a => (
-        a.observationId,
-        a.stepId,
-        a.index
-      )}
-
-  }
-
   final case class PropertiesInput(
     qaState:  Input[DatasetQaState] = Input.ignore
   ) {
@@ -147,43 +123,39 @@ object DatasetModel extends DatasetModelOptics {
 
   }
 
-  final case class EditInput(
-    select: SelectInput,
-    patch:  PropertiesInput
+  final case class UpdateInput(
+    SET:   PropertiesInput,
+    WHERE: Option[WhereDatasetInput],
+    LIMIT: Option[NonNegInt]
   ) {
 
-    val editor: StateT[EitherInput, Database, List[DatasetModel]] =
+    def filteredDatasets(db: Database): List[DatasetModel] = {
+      val ds = db.datasets.datasets.iterator.to(LazyList).map((DatasetModel.apply _).tupled)
+      WHERE.fold(ds)(where => ds.filter(where.matches)).toList
+    }
+
+    val editor: StateT[EitherInput, Database, SizeLimitedResult.Update[DatasetModel]] =
       for {
-        ds  <- select.go
-        dsʹ <- StateT.liftF[EitherInput, Database, List[DatasetModel]](ds.traverse(patch.edit.runS))
+        ds  <- StateT.inspect[EitherInput, Database, List[DatasetModel]](filteredDatasets)
+        dsʹ <- StateT.liftF[EitherInput, Database, List[DatasetModel]](ds.traverse(SET.edit.runS))
         _   <- Database.datasets.mod_ { t =>
           dsʹ.foldLeft(t)((tʹ, d) => tʹ.updated(d))
         }
-      } yield dsʹ
+      } yield SizeLimitedResult.Update.fromAll(dsʹ, LIMIT)
 
   }
 
-  object EditInput {
+  object UpdateInput {
 
-    implicit val DecoderEditInput: Decoder[EditInput] =
-      deriveDecoder[EditInput]
+    implicit val DecoderUpdateInput: Decoder[UpdateInput] =
+      deriveDecoder[UpdateInput]
 
-    implicit val EqEditInput: Eq[EditInput] =
+    implicit val EqUpdateInput: Eq[UpdateInput] =
       Eq.by { a => (
-        a.select,
-        a.patch
+        a.SET,
+        a.WHERE,
+        a.LIMIT
       )}
-
-  }
-
-  final case class EditResult(
-    datasets: List[DatasetModel]
-  )
-
-  object EditResult {
-
-    implicit val EqEditResult: Eq[EditResult] =
-      Eq.by(_.datasets)
 
   }
 

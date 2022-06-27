@@ -273,8 +273,8 @@ class VisitSuite extends OdbSuite {
   // Set the QA State
   queryTest(
     query = """
-      mutation EditDataset($editDatasetInput: EditDatasetInput!) {
-        editDatasets(input: $editDatasetInput) {
+      mutation EditDataset($editDatasetsInput: UpdateDatasetsInput!) {
+        updateDatasets(input: $editDatasetsInput) {
           datasets {
             id {
               observationId
@@ -289,7 +289,7 @@ class VisitSuite extends OdbSuite {
     """,
     expected =json"""
       {
-        "editDatasets": {
+        "updateDatasets": {
           "datasets": [
             {
               "id": {
@@ -306,13 +306,13 @@ class VisitSuite extends OdbSuite {
     """,
     variables =json"""
       {
-        "editDatasetInput": {
-          "select": {
-            "observationId": "o-2",
-            "stepId": ${sid.toString}
-          },
-          "patch": {
+        "editDatasetsInput": {
+          "SET": {
             "qaState": "PASS"
+          },
+          "WHERE": {
+            "observationId": { "EQ": "o-2" },
+            "stepId": { "EQ": ${sid.toString} }
           }
         }
       }

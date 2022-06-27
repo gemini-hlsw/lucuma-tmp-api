@@ -160,7 +160,7 @@ object ExecutionSchema {
             ArgumentOptionLimit
           ),
           resolve     = c => {
-            val where = WhereDatasetInput.matchObservation(c.value)
+            val where = WhereDatasetInput.MatchAll.withObservation(c.value)
             val off   = c.arg(ArgumentOptionOffsetDataset)
             val limit = c.resultSetLimit
             c.dataset(_.selectWhere(where, off, limit))

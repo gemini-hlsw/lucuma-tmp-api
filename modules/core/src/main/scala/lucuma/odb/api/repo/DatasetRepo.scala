@@ -7,11 +7,9 @@ import cats.MonadError
 import cats.effect.Ref
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-//import cats.syntax.all._
 import eu.timepit.refined.types.all.NonNegInt
-import lucuma.core.model.Observation
 import lucuma.odb.api.model.query.{SizeLimitedResult, WherePredicate}
-import lucuma.odb.api.model.{Database, DatasetModel, Step}
+import lucuma.odb.api.model.{Database, DatasetModel}
 import lucuma.odb.api.model.syntax.databasestate._
 import lucuma.odb.api.model.syntax.eitherinput._
 
@@ -27,14 +25,9 @@ sealed trait DatasetRepo[F[_]] {
     limit:  Option[NonNegInt]
   ): F[SizeLimitedResult[DatasetModel]]
 
-  def selectDatasets(
-    oid: Observation.Id,
-    sid: Option[Step.Id],
-  ): F[List[DatasetModel]]
-
-  def edit(
-    editInput: DatasetModel.EditInput
-  ): F[DatasetModel.EditResult]
+  def update(
+    input: DatasetModel.UpdateInput
+  ): F[SizeLimitedResult.Update[DatasetModel]]
 
 }
 
@@ -72,20 +65,12 @@ object DatasetRepo {
         }
       }
 
-
-      override def selectDatasets(
-        oid: Observation.Id,
-        sid: Option[Step.Id]
-      ): F[List[DatasetModel]] =
-        databaseRef.get.map { db => db.datasets.selectAll(oid, sid, None) }
-
-      override def edit(
-        editInput: DatasetModel.EditInput
-      ): F[DatasetModel.EditResult] =
+      override def update(
+        input: DatasetModel.UpdateInput
+      ): F[SizeLimitedResult.Update[DatasetModel]] =
         databaseRef
-          .modifyState(editInput.editor.flipF)
+          .modifyState(input.editor.flipF)
           .flatMap(_.liftTo[F])
-          .map(ds => DatasetModel.EditResult(ds))
 
     }
 

@@ -3,6 +3,7 @@
 
 package lucuma.odb.api.model
 
+import cats.Eq
 import cats.syntax.option._
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.all.PosInt
@@ -30,6 +31,11 @@ final case class WhereDatasetInput(
       filename.forall(_.matches(a.dataset.filename.format)) &&
       qaState.forall(_.matches(a.dataset.qaState))
 
+  def withObservation(id: Observation.Id): WhereDatasetInput =
+    copy(observationId = WhereOrderInput.EQ(id).some)
+
+  def withStep(id: Step.Id): WhereDatasetInput =
+    copy(stepId = WhereEqInput.EQ(id).some)
 }
 
 object WhereDatasetInput {
@@ -37,19 +43,13 @@ object WhereDatasetInput {
   val MatchAll: WhereDatasetInput =
     WhereDatasetInput()
 
-  def matchObservation(observationId: Observation.Id): WhereDatasetInput =
-    MatchAll.copy(observationId = WhereOrderInput.EQ(observationId).some)
-
-  def matchStep(observationId: Observation.Id, stepId: Step.Id): WhereDatasetInput =
-    MatchAll.copy(
-      observationId = WhereOrderInput.EQ(observationId).some,
-      stepId        = WhereEqInput.EQ(stepId).some
-    )
-
   implicit val customConfig: Configuration =
     Configuration.default.withDefaults
 
   implicit val DecoderWhereDatasetInput: Decoder[WhereDatasetInput] =
     deriveConfiguredDecoder[WhereDatasetInput]
+
+  implicit val EqWhereDatasetInput: Eq[WhereDatasetInput] =
+    Eq.fromUniversalEquals
 
 }
