@@ -21,7 +21,7 @@ object MutationType {
       name   = "Mutation",
       fields = (
         ProgramMutation.allFields[F]                    ++
-        ObservationMutation.allFields[F]                ++
+        ObservationSchema.mutationFields[F]             ++
         TargetMutation.allFields[F]                     ++
         ExecutionEventSchema.mutationFields[F](testing) ++
         DatasetSchema.mutationFields[F]

@@ -18,9 +18,7 @@ object ObservationGroupSchema {
 
   import context._
   import GeneralSchema.ArgumentIncludeDeleted
-  import ObservationQuery.{ArgumentOptionOffsetObservation, ObservationSelectResult}
-  import ObservationSchema.ObservationIdType
-  import ObservationQuery.ArgumentOptionWhereObservation
+  import ObservationSchema.{ArgumentOptionOffsetObservation, ArgumentOptionWhereObservation, ObservationIdType, ObservationSelectResult}
   import ProgramSchema.ProgramIdArgument
   import QuerySchema.{ArgumentOptionLimit, SelectResultType}
 

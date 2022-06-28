@@ -21,7 +21,7 @@ import scala.collection.immutable.Seq
 object ProgramSchema {
 
   import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, InputObjectTypeWhereEqExistence, PlannedTimeSummaryType}
-  import ObservationQuery.{ArgumentOptionOffsetObservation, ObservationSelectResult}
+  import ObservationSchema.{ArgumentOptionOffsetObservation, ObservationSelectResult}
   import ProposalSchema.{ProposalType, InputObjectWhereProposal}
   import RefinedSchema.NonEmptyStringType
   import QuerySchema._
