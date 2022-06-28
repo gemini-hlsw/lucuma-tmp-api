@@ -19,7 +19,7 @@ object ObservationGroupSchema {
   import context._
   import GeneralSchema.ArgumentIncludeDeleted
   import ObservationSchema.{ArgumentOptionOffsetObservation, ArgumentOptionWhereObservation, ObservationIdType, ObservationSelectResult}
-  import ProgramSchema.ProgramIdArgument
+  import ProgramSchema.ArgumentProgramId
   import QuerySchema.{ArgumentOptionLimit, SelectResultType}
 
   def ObservationGroupType[F[_]: Dispatcher: Async: Logger, A](
@@ -88,7 +88,7 @@ object ObservationGroupSchema {
       fieldType   = selectResultType,
       description = description.some,
       arguments   = List(
-        ProgramIdArgument,
+        ArgumentProgramId,
         ArgumentOptionWhereObservation,
         ArgumentOptionLimit
       ),

@@ -19,8 +19,6 @@ import sangria.macros.derive._
 import sangria.marshalling.circe._
 import sangria.schema._
 
-import scala.collection.immutable.Seq
-
 object ProgramSchema {
 
   import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, InputObjectTypeWhereEqExistence, PlannedTimeSummaryType}
@@ -37,14 +35,14 @@ object ProgramSchema {
   implicit val ProgramIdType: ScalarType[Program.Id] =
     ObjectIdSchema.gidType[Program.Id]("ProgramId")
 
-  val ProgramIdArgument: Argument[Program.Id] =
+  val ArgumentProgramId: Argument[Program.Id] =
     Argument(
       name         = "programId",
       argumentType = ProgramIdType,
       description  = "Program ID"
     )
 
-  val OptionalProgramIdArgument: Argument[Option[Program.Id]] =
+  val ArgumentOptionProgramId: Argument[Option[Program.Id]] =
     Argument(
       name         = "programId",
       argumentType = OptionInputType(ProgramIdType),
@@ -53,13 +51,6 @@ object ProgramSchema {
 
   implicit val InputObjectWhereOrderProgramId: InputObjectType[WhereOrderInput[Program.Id]] =
     inputObjectWhereOrder[Program.Id]("ProgramId", ProgramIdType)
-
-  val OptionalListProgramIdArgument: Argument[Option[Seq[Program.Id]]] =
-    Argument(
-      name         = "programIds",
-      argumentType = OptionInputType(ListInputType(ProgramIdType)),
-      description  = "Program Ids"
-    )
 
   implicit val InputObjectWhereProgram: InputObjectType[WhereProgramInput] =
     InputObjectType[WhereProgramInput](
@@ -171,7 +162,7 @@ object ProgramSchema {
       name        = "program",
       fieldType   = OptionType(ProgramType[F]),
       description = "Returns the program with the given id, if any.".some,
-      arguments   = List(ProgramIdArgument, ArgumentIncludeDeleted),
+      arguments   = List(ArgumentProgramId, ArgumentIncludeDeleted),
       resolve     = c => c.program(_.select(c.programId, c.includeDeleted))
     )
 

@@ -30,7 +30,7 @@ import scala.reflect.ClassTag
 object SubscriptionType {
 
   import ObservationSchema.ArgumentOptionObservationId
-  import ProgramSchema.OptionalProgramIdArgument
+  import ProgramSchema.ArgumentOptionProgramId
   import TargetSchema.ArgumentOptionalTargetId
   import syntax.`enum`._
   import context._
@@ -146,7 +146,7 @@ object SubscriptionType {
          |that program.
          |""".stripMargin,
       EditEventType[F, T, E](s"${name.capitalize}Edit"),
-      List(idArg, OptionalProgramIdArgument)
+      List(idArg, ArgumentOptionProgramId)
     ) { (c, e) =>
       (c.arg(idArg).forall(_ === id(e)).pure[F], pidMatcher(pids).apply(c, e))
         .mapN(_ && _)
@@ -174,7 +174,7 @@ object SubscriptionType {
             |that program.
             |""".stripMargin,
           EditEventType[F, ProgramModel, ProgramEvent]("ProgramEdit"),
-          List(OptionalProgramIdArgument)
+          List(ArgumentOptionProgramId)
         ) { (c, e) => c.optionalProgramId.fold(true)(_ === e.value.id).pure[F] },
 
         editedField[F, Target.Id, TargetModel, TargetEvent](

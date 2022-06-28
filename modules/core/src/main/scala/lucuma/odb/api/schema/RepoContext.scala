@@ -32,10 +32,10 @@ final class OdbContextOps[F[_]](val self: Context[OdbCtx[F], _]) {
     self.arg(ObservationSchema.ArgumentOptionObservationId)
 
   def programId: Program.Id =
-    self.arg(ProgramSchema.ProgramIdArgument)
+    self.arg(ProgramSchema.ArgumentProgramId)
 
   def optionalProgramId: Option[Program.Id] =
-    self.arg(ProgramSchema.OptionalProgramIdArgument)
+    self.arg(ProgramSchema.ArgumentOptionProgramId)
 
   def stepId: Step.Id =
     self.arg(StepSchema.ArgumentStepId)
