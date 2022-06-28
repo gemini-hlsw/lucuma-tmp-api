@@ -5,6 +5,7 @@ package lucuma.odb.api.model.query
 
 import cats.Eq
 import cats.syntax.eq._
+import cats.syntax.option._
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
@@ -92,9 +93,33 @@ final case class WhereStringInput(
   def matchesNonEmptyString(s: NonEmptyString): Boolean =
     matches(s.value)
 
+  def ignoreCase: WhereStringInput =
+    copy(MATCH_CASE = false)
+
 }
 
 object WhereStringInput {
+
+  val MatchAll: WhereStringInput =
+    WhereStringInput()
+
+  def EQ(s: NonEmptyString): WhereStringInput =
+    MatchAll.copy(EQ = s.some)
+
+  def NEQ(s: NonEmptyString): WhereStringInput =
+    MatchAll.copy(NEQ = s.some)
+
+  def IN(ss: NonEmptyString*): WhereStringInput =
+    MatchAll.copy(IN = ss.toList.some)
+
+  def NIN(ss: NonEmptyString*): WhereStringInput =
+    MatchAll.copy(NIN = ss.toList.some)
+
+  def LIKE(s: NonEmptyString): WhereStringInput =
+    MatchAll.copy(LIKE = s.some)
+
+  def NLIKE(s: NonEmptyString): WhereStringInput =
+    MatchAll.copy(NLIKE = s.some)
 
   implicit val DecoderWhereStringInput: Decoder[WhereStringInput] =
     deriveDecoder[WhereStringInput]
