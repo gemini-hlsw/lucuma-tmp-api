@@ -30,10 +30,8 @@ object ProgramRepo {
 
     new TopLevelRepoBase[F, Program.Id, ProgramModel](
       databaseRef,
-      eventService,
       Database.lastProgramId,
-      Database.programs.andThen(Table.rows),
-      (editType, model) => ProgramEvent(_, editType, model)
+      Database.programs.andThen(Table.rows)
     ) with ProgramRepo[F] {
 
       override def insert(

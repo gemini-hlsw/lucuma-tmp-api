@@ -93,10 +93,8 @@ object ObservationRepo {
 
     new TopLevelRepoBase[F, Observation.Id, ObservationModel](
       databaseRef,
-      eventService,
       Database.lastObservationId,
-      Database.observations.andThen(Table.rows),
-      (editType, model) => ObservationEvent(_, editType, model)
+      Database.observations.andThen(Table.rows)
     ) with ObservationRepo[F] {
 
       override def selectForProgram(

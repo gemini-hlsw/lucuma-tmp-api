@@ -100,10 +100,8 @@ object TargetRepo {
 
     new TopLevelRepoBase[F, Target.Id, TargetModel](
       databaseRef,
-      eventService,
       Database.lastTargetId,
-      Database.targets.andThen(Table.rows),
-      (editType, model) => TargetEvent(_, editType, model)
+      Database.targets.andThen(Table.rows)
     ) with TargetRepo[F] {
 
       override def selectTarget(
