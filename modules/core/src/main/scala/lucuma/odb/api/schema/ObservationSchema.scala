@@ -35,7 +35,7 @@ object ObservationSchema {
   import ProgramSchema.{ProgramIdType, ProgramType, InputObjectWhereOrderProgramId}
   import RefinedSchema.{NonEmptyStringType, NonNegIntType}
   import QuerySchema._
-  import ScienceModeMutation.InputObjectTypeScienceMode
+  import ScienceModeSchema.InputObjectTypeScienceMode
   import ScienceRequirementsMutation.InputObjectTypeScienceRequirements
   import ScienceRequirementsSchema.ScienceRequirementsType
   import TargetMutation.{InputObjectTypeEditAsterisms, InputObjectTypeTargetEnvironment}
