@@ -24,7 +24,7 @@ object MutationType {
         ObservationMutation.allFields[F]             ++
         TargetMutation.allFields[F]                  ++
         ExecutionEventMutation.allFields[F](testing) ++
-        DatasetMutation.allFields[F]
+        DatasetSchema.mutationFields[F]
       ).sortBy(_.name)
     )
 

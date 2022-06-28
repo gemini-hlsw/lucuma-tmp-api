@@ -20,7 +20,6 @@ object ExecutionSchema {
   import AtomSchema.AtomConcreteType
   import context._
   import DatasetSchema._
-  import DatasetQuery.ArgumentOptionOffsetDataset
   import ExecutionEventQuery.{ArgumentOptionOffsetExecutionEvent, ExecutionEventSelectResult}
   import InstrumentSchema.EnumTypeInstrument
   import GmosSchema.{GmosNorthDynamicType, GmosNorthStaticConfigType, GmosSouthDynamicType, GmosSouthStaticConfigType}
