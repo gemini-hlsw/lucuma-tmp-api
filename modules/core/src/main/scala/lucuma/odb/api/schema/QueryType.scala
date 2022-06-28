@@ -22,7 +22,7 @@ object QueryType {
         ProgramQuery.allFields[F]       ++
         TargetQuery.allFields[F]        ++
         DatasetSchema.queryFields[F]    ++
-        ExecutionEventQuery.allFields[F]
+        ExecutionEventSchema.queryFields[F]
       ).sortBy(_.name)
     )
 
