@@ -20,7 +20,7 @@ object QueryType {
       fields = (
         ObservationSchema.queryFields[F]   ++
         ProgramSchema.queryFields[F]       ++
-        TargetQuery.allFields[F]           ++
+        TargetSchema.queryFields[F]        ++
         DatasetSchema.queryFields[F]       ++
         ExecutionEventSchema.queryFields[F]
       ).sortBy(_.name)
