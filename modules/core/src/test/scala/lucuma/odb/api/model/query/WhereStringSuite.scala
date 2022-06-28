@@ -13,11 +13,7 @@ final class WhereStringSuite extends CatsSuite  {
   val s: String =
     raw"Call no council of war. _ %([^+?*])% It is proverbial that councils of war never fight."
 
-  private def LIKE(s: NonEmptyString): WhereStringInput =
-    WhereStringInput.LIKE(s)
-
-  private def NLIKE(s: NonEmptyString): WhereStringInput =
-    WhereStringInput.NLIKE(s)
+  import WhereStringInput.{EQ, NEQ, IN, NIN, LIKE, NLIKE}
 
   private def matches(where: WhereStringInput): Assertion =
     assert(where.matches(s))
@@ -71,38 +67,38 @@ final class WhereStringSuite extends CatsSuite  {
   }
 
   test("IN") {
-    assert(WhereStringInput.IN("ox", "dogs", "gore", "kick").matches("gore"))
+    assert(IN("ox", "dogs", "gore", "kick").matches("gore"))
   }
 
   test("IN - empty") {
-    assert(!WhereStringInput.IN().matches("gore"))
+    assert(!IN().matches("gore"))
   }
 
   test("IN - case insensitive") {
-    assert(WhereStringInput.IN("ox", "dogs", "gore", "kick").ignoreCase.matches("GORE"))
+    assert(IN("ox", "dogs", "gore", "kick").ignoreCase.matches("GORE"))
   }
 
   test("NIN") {
-    assert(WhereStringInput.NIN("ox", "dogs", "gore", "kick").matches("fence"))
+    assert(NIN("ox", "dogs", "gore", "kick").matches("fence"))
   }
 
   test("NIN - empty") {
-    assert(WhereStringInput.NIN().matches("gore"))
+    assert(NIN().matches("gore"))
   }
 
   test("EQ") {
-    assert(WhereStringInput.EQ("ox").matches("ox"))
+    assert(EQ("ox").matches("ox"))
   }
 
   test("EQ - case insensitive") {
-    assert(WhereStringInput.EQ("ox").ignoreCase.matches("oX"))
+    assert(EQ("ox").ignoreCase.matches("oX"))
   }
 
   test("NEQ") {
-    assert(WhereStringInput.NEQ("ox").matches("dogs"))
+    assert(NEQ("ox").matches("dogs"))
   }
 
   test("NEQ - case insensitive") {
-    assert(!WhereStringInput.NEQ("ox").ignoreCase.matches("oX"))
+    assert(!NEQ("ox").ignoreCase.matches("oX"))
   }
 }
