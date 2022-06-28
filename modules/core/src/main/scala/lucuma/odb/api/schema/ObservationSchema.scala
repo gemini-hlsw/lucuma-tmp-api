@@ -16,8 +16,6 @@ import org.typelevel.log4cats.Logger
 import sangria.marshalling.circe._
 import sangria.schema._
 
-import scala.collection.immutable.Seq
-
 
 object ObservationSchema {
 
@@ -77,28 +75,21 @@ object ObservationSchema {
           )
     )
 
-  val ObservationIdArgument: Argument[Observation.Id] =
+  val ArgumentObservationId: Argument[Observation.Id] =
     Argument(
       name         = "observationId",
       argumentType = ObservationIdType,
       description  = "Observation ID"
     )
 
-  val OptionalObservationIdArgument: Argument[Option[Observation.Id]] =
+  val ArgumentOptionObservationId: Argument[Option[Observation.Id]] =
     Argument(
       name         = "observationId",
       argumentType = OptionInputType(ObservationIdType),
       description  = "Observation ID"
     )
 
-  val OptionalListObservationIdArgument: Argument[Option[Seq[Observation.Id]]] =
-    Argument(
-      name         = "observationIds",
-      argumentType = OptionInputType(ListInputType(ObservationIdType)),
-      description  = "Observation IDs"
-    )
-
-  val UseItcCacheArgument: Argument[Boolean] =
+  val ArgumentUseItcCache: Argument[Boolean] =
     Argument(
       name         = "useCache",
       argumentType = BooleanType,
@@ -221,11 +212,11 @@ object ObservationSchema {
           name        = "itc",
           fieldType   = OptionType(ItcSuccessType),
           description = "ITC execution results".some,
-          arguments   = List(UseItcCacheArgument),
+          arguments   = List(ArgumentUseItcCache),
           resolve     = c => c.unsafeToFuture {
             c.ctx
              .itcClient
-             .query(c.value.id, c.ctx.odbRepo, useCache = c.args.arg(UseItcCacheArgument))
+             .query(c.value.id, c.ctx.odbRepo, useCache = c.args.arg(ArgumentUseItcCache))
              .map(_.toOption.map(_._2))
           }
         ),

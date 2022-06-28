@@ -29,7 +29,7 @@ import scala.reflect.ClassTag
 
 object SubscriptionType {
 
-  import ObservationSchema.OptionalObservationIdArgument
+  import ObservationSchema.ArgumentOptionObservationId
   import ProgramSchema.OptionalProgramIdArgument
   import TargetSchema.ArgumentOptionalTargetId
   import syntax.`enum`._
@@ -160,7 +160,7 @@ object SubscriptionType {
 
         editedField[F, Observation.Id, ObservationModel, ObservationEvent](
           "observation",
-          OptionalObservationIdArgument,
+          ArgumentOptionObservationId,
           _.value.id
         ) { (_, e) => Set(e.value.programId).pure[F] },
 

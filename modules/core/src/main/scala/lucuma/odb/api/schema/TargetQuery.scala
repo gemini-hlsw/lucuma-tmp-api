@@ -18,7 +18,7 @@ trait TargetQuery {
   import context._
 
   import GeneralSchema.ArgumentIncludeDeleted
-  import ObservationSchema.ObservationIdArgument
+  import ObservationSchema.ArgumentObservationId
   import TargetSchema.{ArgumentTargetId, InputObjectWhereTarget, TargetEnvironmentType, TargetIdType, TargetType}
   import QuerySchema.{ArgumentOptionLimit, SelectResultType}
 
@@ -70,7 +70,7 @@ trait TargetQuery {
       name        = "asterism",
       fieldType   = ListType(TargetType[F]),
       description = "All science targets (if any) for the given observation (or environment)".some,
-      arguments   = List(ObservationIdArgument, ArgumentIncludeDeleted),
+      arguments   = List(ArgumentObservationId, ArgumentIncludeDeleted),
       resolve     = c => c.target(_.selectObservationAsterism(c.observationId, c.includeDeleted).map(_.toList))
     )
 
@@ -79,7 +79,7 @@ trait TargetQuery {
       name        = "targetEnvironment",
       fieldType   = OptionType(TargetEnvironmentType[F]),
       description = "Target environment for the given observation (or environment id)".some,
-      arguments   = List(ObservationIdArgument),
+      arguments   = List(ArgumentObservationId),
       resolve     = c => c.target(_.selectObservationTargetEnvironment(c.observationId))
     )
 

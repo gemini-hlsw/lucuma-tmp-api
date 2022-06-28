@@ -26,10 +26,10 @@ final class OdbContextOps[F[_]](val self: Context[OdbCtx[F], _]) {
     self.arg(ExecutionEventSchema.OptionalExecutionEventIdArgument)
 
   def observationId: Observation.Id =
-    self.arg(ObservationSchema.ObservationIdArgument)
+    self.arg(ObservationSchema.ArgumentObservationId)
 
   def optionalObservationId: Option[Observation.Id] =
-    self.arg(ObservationSchema.OptionalObservationIdArgument)
+    self.arg(ObservationSchema.ArgumentOptionObservationId)
 
   def programId: Program.Id =
     self.arg(ProgramSchema.ProgramIdArgument)

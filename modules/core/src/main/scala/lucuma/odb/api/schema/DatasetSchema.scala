@@ -21,7 +21,7 @@ import sangria.schema._
 object DatasetSchema {
 
   import context._
-  import ObservationSchema.{ObservationIdArgument, ObservationIdType}
+  import ObservationSchema.{ArgumentObservationId, ObservationIdType}
   import RefinedSchema.{NonNegIntType, PosIntType}
   import QuerySchema._
   import StepSchema.{ArgumentStepId, StepIdType, InputObjectWhereEqStepId}
@@ -185,7 +185,7 @@ object DatasetSchema {
       fieldType   = OptionType(DatasetType[F]),
       description = "Select the dataset associated with the given observation, step, and index".some,
       arguments   = List(
-        ObservationIdArgument,
+        ArgumentObservationId,
         ArgumentStepId,
         ArgumentDatasetIndex
       ),

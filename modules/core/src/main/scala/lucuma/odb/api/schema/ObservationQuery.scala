@@ -21,7 +21,7 @@ trait ObservationQuery {
   import ConstraintSetSchema.ConstraintSetType
   import context._
   import GeneralSchema.ArgumentIncludeDeleted
-  import ObservationSchema.{InputObjectWhereObservation, ObservationIdArgument, ObservationIdType, ObservationType}
+  import ObservationSchema.{InputObjectWhereObservation, ArgumentObservationId, ObservationIdType, ObservationType}
   import QuerySchema.{ArgumentOptionLimit, SelectResultType}
   import ScienceModeSchema.ScienceModeType
   import ScienceRequirementsSchema.ScienceRequirementsType
@@ -67,7 +67,7 @@ trait ObservationQuery {
       name        = "observation",
       fieldType   = OptionType(ObservationType[F]),
       description = "Returns the observation with the given id, if any.".some,
-      arguments   = List(ObservationIdArgument, ArgumentIncludeDeleted),
+      arguments   = List(ArgumentObservationId, ArgumentIncludeDeleted),
       resolve     = c => c.observation(_.select(c.observationId, c.includeDeleted))
     )
 
