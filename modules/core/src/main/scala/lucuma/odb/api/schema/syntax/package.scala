@@ -11,6 +11,7 @@ package object syntax {
        with ToFromInputOps
        with ToInputTypeOps
        with ToToInputCompanionOps
+       with ToInputObjectTypeOps
        with ToToInputOps
        with ToScalarTypeCompanionOps
 

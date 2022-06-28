@@ -22,7 +22,7 @@ import sangria.schema._
 
 trait ObservationMutation {
 
-  import ConstraintSetMutation.InputObjectTypeConstraintSet
+  import ConstraintSetSchema.InputObjectTypeConstraintSet
   import context._
   import ScienceModeMutation.InputObjectTypeScienceMode
   import ScienceRequirementsMutation.InputObjectTypeScienceRequirements
