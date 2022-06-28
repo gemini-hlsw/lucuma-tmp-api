@@ -19,24 +19,6 @@ class TargetQuerySuite extends OdbSuite {
   // o-7: <none>
   //
 
-  // Pick the first (or only in this case) science target for o-2.
-  queryTest(
-    query ="""
-      query ScienceTargetForObservation {
-        firstScienceTarget(observationId: "o-2") {
-          name
-        }
-      }
-    """,
-    expected =json"""
-      {
-        "firstScienceTarget": {
-          "name": "NGC 5949"
-        }
-      }
-    """
-  )
-
   // Fetch all science targets for o-6.
   queryTest(
     query ="""
@@ -108,7 +90,7 @@ class TargetQuerySuite extends OdbSuite {
     query ="""
       query GroupByScienceTarget {
         targetGroup(programId: "p-2") {
-          nodes {
+          matches {
             observationIds
             target {
               name
@@ -120,7 +102,7 @@ class TargetQuerySuite extends OdbSuite {
     expected = json"""
       {
         "targetGroup": {
-          "nodes": [
+          "matches": [
             {
               "observationIds": [
                 "o-2",
@@ -173,7 +155,7 @@ class TargetQuerySuite extends OdbSuite {
     query ="""
       query GroupByAsterism {
         asterismGroup(programId: "p-2") {
-          nodes {
+          matches {
             observationIds
             asterism {
               name
@@ -185,7 +167,7 @@ class TargetQuerySuite extends OdbSuite {
     expected = json"""
       {
         "asterismGroup": {
-          "nodes": [
+          "matches": [
             {
               "observationIds": [
                 "o-2"
@@ -245,7 +227,7 @@ class TargetQuerySuite extends OdbSuite {
     query ="""
       query GroupByTargetEnvironment {
         targetEnvironmentGroup(programId: "p-2") {
-          nodes {
+          matches {
             observationIds
             targetEnvironment {
               explicitBase {
@@ -263,7 +245,7 @@ class TargetQuerySuite extends OdbSuite {
     expected = json"""
       {
         "targetEnvironmentGroup": {
-          "nodes": [
+          "matches": [
             {
               "observationIds" : [
                 "o-2"

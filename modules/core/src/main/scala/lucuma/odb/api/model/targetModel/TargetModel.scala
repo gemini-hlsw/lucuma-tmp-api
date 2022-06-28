@@ -5,20 +5,20 @@ package lucuma.odb.api.model.targetModel
 
 import cats.{Eq, Order}
 import cats.data.{StateT, Validated}
-import cats.kernel.Order.catsKernelOrderingForOrder
 import cats.syntax.apply._
-import cats.syntax.eq._
 import cats.syntax.option._
 import cats.syntax.traverse._
 import clue.data.Input
 import clue.data.syntax._
 import eu.timepit.refined.cats._
 import eu.timepit.refined.types.string.NonEmptyString
+import eu.timepit.refined.types.numeric.NonNegInt
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
 import lucuma.core.model.{Observation, Program, SourceProfile, Target}
-import lucuma.odb.api.model.{Database, EitherInput, Event, Existence, InputError, TopLevelModel, ValidatedInput}
+import lucuma.odb.api.model.{Database, EitherInput, Event, Existence, InputError, TopLevelModel, ValidatedInput, WhereObservationInput}
+import lucuma.odb.api.model.query.SizeLimitedResult
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.validatedinput._
@@ -146,8 +146,8 @@ object TargetModel extends TargetModelOptics {
   }
 
   final case class CreateInput(
-    programId:  Program.Id,
-    properties: PropertiesInput
+    programId: Program.Id,
+    SET:       Option[PropertiesInput]
   ) {
 
     val createTarget: StateT[EitherInput, Database, TargetModel] =
@@ -155,7 +155,7 @@ object TargetModel extends TargetModelOptics {
       for {
         i <- Database.target.cycleNextUnused
         _ <- Database.program.lookup(programId)
-        t  = properties.create(i, programId)
+        t  = SET.getOrElse(PropertiesInput.Empty).create(i, programId)
         _ <- Database.target.saveNewIfValid(t)(_.id)
         r <- Database.target.lookup(i)
       } yield r
@@ -170,7 +170,7 @@ object TargetModel extends TargetModelOptics {
       input:         SiderealInput,
       sourceProfile: SourceProfileInput
     ): CreateInput =
-      CreateInput(programId, PropertiesInput(name.assign, input.some, None, sourceProfile.assign))
+      CreateInput(programId, PropertiesInput(name.assign, input.some, None, sourceProfile.assign).some)
 
     def nonsidereal(
       programId:     Program.Id,
@@ -178,7 +178,7 @@ object TargetModel extends TargetModelOptics {
       input:         NonsiderealInput,
       sourceProfile: SourceProfileInput
     ): CreateInput =
-      CreateInput(programId, PropertiesInput(name.assign, None, input.some, sourceProfile.assign))
+      CreateInput(programId, PropertiesInput(name.assign, None, input.some, sourceProfile.assign).some)
 
     implicit val DecoderCreate: Decoder[CreateInput] =
       deriveDecoder[CreateInput]
@@ -186,7 +186,7 @@ object TargetModel extends TargetModelOptics {
     implicit val EqCreate: Eq[CreateInput] =
       Eq.by { a => (
         a.programId,
-        a.properties
+        a.SET
       )}
   }
 
@@ -201,82 +201,38 @@ object TargetModel extends TargetModelOptics {
 
   }
 
-  final case class SelectInput(
-    programId:      Option[Program.Id],
-    observationIds: Option[List[Observation.Id]],
-    targetIds:      Option[List[Target.Id]]
+  final case class UpdateInput(
+    SET:   PropertiesInput,
+    WHERE: Option[WhereTargetInput],
+    LIMIT: Option[NonNegInt]
   ) {
 
-    val go: StateT[EitherInput, Database, List[TargetModel]] =
+    private def filteredTargets(db: Database): List[TargetModel] = {
+      val ts = db.targets.rows.values
+      WHERE.fold(ts)(where => ts.filter(where.matches)).toList
+    }
+
+
+    val editor: StateT[EitherInput, Database, SizeLimitedResult.Update[TargetModel]] =
       for {
-        p   <- programId.traverse(Database.program.lookup)
-        ts0 <- p.traverse(pm => StateT.inspect[EitherInput, Database, List[TargetModel]](_.targets.rows.values.filter(_.programId === pm.id).toList))
-        os  <- observationIds.traverse(Database.observation.lookupAll)
-        ts1 <- os.map(_.flatMap(_.targetEnvironment.asterism.toList)).traverse(Database.target.lookupAll)
-        ts2 <- targetIds.traverse(Database.target.lookupAll)
-      } yield
-        (ts0.toList ::: ts1.toList ::: ts2.toList)
-          .flatten
-          .distinctBy(_.id)
-          .sortBy(_.id)
-
-  }
-
-  object SelectInput {
-
-    val Empty: SelectInput =
-      SelectInput(None, None, None)
-
-    def targetId(tid: Target.Id): SelectInput =
-      Empty.copy(targetIds = List(tid).some)
-
-    implicit val DecoderSelect: Decoder[SelectInput] =
-      deriveDecoder[SelectInput]
-
-    implicit val EqSelect: Eq[SelectInput] =
-      Eq.by { a => (
-        a.programId,
-        a.observationIds,
-        a.targetIds
-      )}
-
-  }
-
-  final case class EditInput(
-    select: SelectInput,
-    patch:  PropertiesInput
-  ) {
-
-    val editor: StateT[EitherInput, Database, List[TargetModel]] =
-      for {
-        ts  <- select.go
-        tsʹ <- StateT.liftF[EitherInput, Database, List[TargetModel]](ts.traverse(patch.edit.runS))
+        ts  <- StateT.inspect[EitherInput, Database, List[TargetModel]](filteredTargets)
+        tsʹ <- StateT.liftF[EitherInput, Database, List[TargetModel]](ts.traverse(SET.edit.runS))
         _   <- tsʹ.traverse(t => Database.target.update(t.id, t))
-      } yield tsʹ
+      } yield SizeLimitedResult.Update.fromAll(tsʹ, LIMIT)
 
   }
 
-  object EditInput {
+  object UpdateInput {
 
-    implicit val DecoderEditInput: Decoder[EditInput] =
-      deriveDecoder[EditInput]
+    implicit val DecoderUpdateInput: Decoder[UpdateInput] =
+      deriveDecoder[UpdateInput]
 
-    implicit val EqEditInput: Eq[EditInput] =
+    implicit val EqUpdateInput: Eq[UpdateInput] =
       Eq.by { a => (
-        a.select,
-        a.patch
+        a.SET,
+        a.WHERE,
+        a.LIMIT
       )}
-
-  }
-
-  final case class EditResult(
-    targets: List[TargetModel]
-  )
-
-  object EditResult {
-
-    implicit val EqEditResult: Eq[EditResult] =
-      Eq.by(_.targets)
 
   }
 
@@ -296,9 +252,9 @@ object TargetModel extends TargetModelOptics {
   }
 
   final case class CloneInput(
-    targetId:  Target.Id,
-    patch:     Option[PropertiesInput],
-    replaceIn: Option[List[Observation.Id]]
+    targetId:   Target.Id,
+    SET:        Option[PropertiesInput],
+    REPLACE_IN: Option[List[Observation.Id]]
   ) {
 
     val go: StateT[EitherInput, Database, CloneResult] =
@@ -307,13 +263,17 @@ object TargetModel extends TargetModelOptics {
         i  <- Database.target.cycleNextUnused
         c   = t.clone(i)
         _  <- Database.target.saveNew(i, c)
-        cʹ <- patch.fold(StateT.pure[EitherInput, Database, TargetModel](c)) { p =>
-          TargetModel.EditInput(
-            TargetModel.SelectInput.targetId(i),
-            p
-          ).editor.map(_.head)
+        cʹ <- SET.fold(StateT.pure[EitherInput, Database, TargetModel](c)) { p =>
+          TargetModel.UpdateInput(
+            p,
+            WhereTargetInput.MatchAll.withId(i).some,
+            None
+          ).editor.map(_.limitedValues.head)
         }
       } yield CloneResult(originalTarget = t, newTarget = cʹ)
+
+    def replaceWhereObservation: Option[WhereObservationInput] =
+      REPLACE_IN.map(WhereObservationInput.MatchAll.withIds)
 
   }
 
@@ -325,8 +285,8 @@ object TargetModel extends TargetModelOptics {
     implicit val EqCloneInput: Eq[CloneInput] =
       Eq.by { a => (
         a.targetId,
-        a.patch,
-        a.replaceIn
+        a.SET,
+        a.REPLACE_IN
       )}
 
   }

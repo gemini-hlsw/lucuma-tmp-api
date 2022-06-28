@@ -6,9 +6,11 @@ package lucuma.odb.api.repo
 import cats.syntax.all._
 import cats.kernel.instances.order._
 import clue.data.Input
+import eu.timepit.refined.types.numeric.NonNegInt
 import eu.timepit.refined.types.string.NonEmptyString
-import lucuma.odb.api.model.{Database, ObservationModel, ProgramModel}
+import lucuma.odb.api.model.{Database, Existence, ObservationModel, ProgramModel, WhereObservationInput}
 import lucuma.odb.api.model.arb.ArbDatabase
+import lucuma.odb.api.model.query.{WhereEqInput, WhereOrderInput}
 import org.scalacheck.Prop.forAll
 import munit.ScalaCheckSuite
 
@@ -32,56 +34,79 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
 
   }
 
-  property("selectPageForObservations") {
+  property("selectWhere") {
     forAll { (db: Database, indices: List[Int]) =>
 
       val expected = randomSelect(db, indices).filter(_.existence.isPresent).map(_.id)
-      val obtained = runTest(db) { _.observation.selectPageForObservations(expected.toSet) }.nodes.map(_.id)
+      val obtained = runTest(db) {
+        _.observation.selectWhere(
+          WhereObservationInput(id = WhereOrderInput.IN(expected).some),
+          None,
+          None
+        )
+      }.limitedValues.map(_.id)
 
       assertEquals(obtained, expected)
     }
   }
 
-  property("selectPageForObservations with deleted") {
+  property("selectWhere with deleted") {
     forAll { (t: Database, indices: List[Int]) =>
 
       val expected = randomSelect(t, indices).map(_.id)
-      val obtained = runTest(t) { _.observation.selectPageForObservations(expected.toSet, includeDeleted = true) }.nodes.map(_.id)
+      val obtained = runTest(t) {
+        _.observation.selectWhere(
+          WhereObservationInput(
+            id        = WhereOrderInput.IN(expected).some,
+            existence = WhereEqInput.ANY[Existence].some
+          ),
+          None,
+          None
+        )
+      }.limitedValues.map(_.id)
 
       assertEquals(obtained, expected)
     }
   }
 
-  property("selectPageForObservations with first") {
+  property("selectWhere with limit") {
     forAll { (t: Database, indices: List[Int], first: Int) =>
 
       val limitedFirst = if (t.observations.rows.size === 0) 0 else (first % t.observations.rows.size).abs
 
       val expected = randomSelect(t, indices).filter(_.existence.isPresent).map(_.id)
-      val obtained = runTest(t) { _.observation.selectPageForObservations(expected.toSet, count = limitedFirst.some ) }.nodes.map(_.id)
+      val obtained = runTest(t) {
+        _.observation.selectWhere(
+          WhereObservationInput(
+            id = WhereOrderInput.IN(expected).some
+          ),
+          None,
+          NonNegInt.unsafeFrom(limitedFirst).some
+        )
+      }.limitedValues.map(_.id)
 
       assertEquals(obtained, expected.take(limitedFirst))
     }
   }
 
   private def runEditTest(
-    t: Database
+    d: Database
   )(
-    f: ObservationModel => ObservationModel.EditInput
+    f: ObservationModel => ObservationModel.UpdateInput
   ): (ObservationModel, ObservationModel) =
 
-    runTest(t) { odb =>
+    runTest(d) { odb =>
       for {
         // Insert a program and observation to insure that at least one exists
         p  <- odb.program.insert(ProgramModel.CreateInput(ProgramModel.PropertiesInput.Empty.some))
         _  <- odb.observation.insert(ObservationModel.CreateInput.empty(p.program.id))
 
         // Pick whatever the first observation may be
-        tʹ    <- odb.database.get
-        before = tʹ.observations.rows.values.head
+        dʹ    <- odb.database.get
+        before = dʹ.observations.rows.values.head
 
         // Do the prescribed edit.
-        after <- odb.observation.edit(f(before)).map(_.observations.head)
+        after <- odb.observation.update(f(before)).map(_.allValues.head)
       } yield (before, after)
     }
 
@@ -89,11 +114,12 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
 
     forAll { (t: Database) =>
       val (_, obs) = runEditTest(t) { o =>
-        ObservationModel.EditInput(
-          ObservationModel.SelectInput.observationId(o.id),
+        ObservationModel.UpdateInput(
           ObservationModel.PropertiesInput(
             subtitle = Input(NonEmptyString.unsafeFrom("Biff"))
-          )
+          ),
+          WhereObservationInput.MatchAll.withId(o.id).some,
+          None
         )
       }
       assert(obs.subtitle.contains(NonEmptyString.unsafeFrom("Biff")))
@@ -104,11 +130,12 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
   property("simple non-edit") {
     forAll { (t: Database) =>
       val (before, after) = runEditTest(t) { o =>
-        ObservationModel.EditInput(
-          ObservationModel.SelectInput.observationId(o.id),
+        ObservationModel.UpdateInput(
           ObservationModel.PropertiesInput(
             subtitle = o.subtitle.fold(Input.ignore[NonEmptyString])(n => Input(n))
-          )
+          ),
+          WhereObservationInput.MatchAll.withId(o.id).some,
+          None
         )
       }
       assertEquals(after, before)

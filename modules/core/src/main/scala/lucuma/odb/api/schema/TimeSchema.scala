@@ -10,6 +10,7 @@ import lucuma.core.optics.Format
 import lucuma.core.syntax.time._
 import lucuma.odb.api.model.DurationModel
 import lucuma.odb.api.model.format.ScalarFormat
+import lucuma.odb.api.model.query.WhereOrderInput
 import lucuma.odb.api.schema.syntax.scalar._
 import sangria.schema._
 
@@ -33,6 +34,9 @@ object TimeSchema {
       description  = "Instant of time in ISO-8601 representation",
       scalarFormat =  ScalarFormat(InstantFormat, "2011-12-03T10:15:30Z")
     )
+
+  implicit val InputObjectWhereOrderInstant: InputObjectType[WhereOrderInput[Instant]] =
+    QuerySchema.inputObjectWhereOrder("Instant", InstantScalar)
 
   val NonNegativeDurationType: ObjectType[Any, NonNegDuration] = {
     def toNonNegBigDecimal(nnd: NonNegDuration, scale: Int, f: BigDecimal => BigDecimal = identity): NonNegBigDecimal =

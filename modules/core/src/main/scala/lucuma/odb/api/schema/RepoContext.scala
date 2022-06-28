@@ -7,8 +7,9 @@ import lucuma.core.model.{ExecutionEvent, Observation, Program, Target}
 import lucuma.odb.api.repo.{DatasetRepo, ExecutionEventRepo, ObservationRepo, OdbCtx, ProgramRepo, TargetRepo}
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
-import lucuma.core.util.Gid
-import lucuma.odb.api.model.{Atom, InputError, Step, Uid, Visit}
+import eu.timepit.refined.types.all.NonNegInt
+import lucuma.odb.api.model.query.SizeLimitedResult
+import lucuma.odb.api.model.{Atom, Step, Visit}
 import sangria.schema.Context
 
 import scala.concurrent.Future
@@ -25,16 +26,16 @@ final class OdbContextOps[F[_]](val self: Context[OdbCtx[F], _]) {
     self.arg(ExecutionEventSchema.OptionalExecutionEventIdArgument)
 
   def observationId: Observation.Id =
-    self.arg(ObservationSchema.ObservationIdArgument)
+    self.arg(ObservationSchema.ArgumentObservationId)
 
   def optionalObservationId: Option[Observation.Id] =
-    self.arg(ObservationSchema.OptionalObservationIdArgument)
+    self.arg(ObservationSchema.ArgumentOptionObservationId)
 
   def programId: Program.Id =
-    self.arg(ProgramSchema.ProgramIdArgument)
+    self.arg(ProgramSchema.ArgumentProgramId)
 
   def optionalProgramId: Option[Program.Id] =
-    self.arg(ProgramSchema.OptionalProgramIdArgument)
+    self.arg(ProgramSchema.ArgumentOptionProgramId)
 
   def stepId: Step.Id =
     self.arg(StepSchema.ArgumentStepId)
@@ -54,49 +55,8 @@ final class OdbContextOps[F[_]](val self: Context[OdbCtx[F], _]) {
   def includeDeleted: Boolean =
     self.arg(GeneralSchema.ArgumentIncludeDeleted)
 
-  def pagingFirst: Option[Int] =
-    self.arg(Paging.ArgumentPagingFirst)
-
-  def pagingCursor[A](msg: String)(f: Paging.Cursor => Option[A]): Either[InputError, Option[A]] = {
-
-    type E[X] = Either[InputError, X]
-
-    self.arg(Paging.ArgumentPagingCursor).traverse { cursor =>
-      f(cursor).toRight(
-        InputError.fromMessage(s"Unexpected cursor format ${cursor.toString} (${cursor.toBase64}): $msg")
-      ): E[A]
-    }
-  }
-
-
-  /** Treats the cursor as a Gid, decoding through Cursor to its Gid representation. */
-  def pagingGid[A: Gid](name: String): Either[InputError, Option[A]] =
-    pagingCursor(s"Cannot read as $name")(Paging.Cursor.gid[A].getOption)
-
-  /** Treats the cursor as a UUID, decoding through Cursor to its UUID representation. */
-  def pagingUid[A: Uid](name: String): Either[InputError, Option[A]] =
-    pagingCursor(s"Cannot read as $name")(Paging.Cursor.uid[A].getOption)
-
-  def pagingAtomId: Either[InputError, Option[Atom.Id]] =
-    pagingUid[Atom.Id]("AtomId")
-
-  def pagingExecutionEventId: Either[InputError, Option[ExecutionEvent.Id]] =
-    pagingGid[ExecutionEvent.Id]("ExecutionEventId")
-
-  def pagingObservationId: Either[InputError, Option[Observation.Id]] =
-    pagingGid[Observation.Id]("ObservationId")
-
-  def pagingProgramId: Either[InputError, Option[Program.Id]] =
-    pagingGid[Program.Id]("ProgramId")
-
-  def pagingStepId: Either[InputError, Option[Step.Id]] =
-    pagingUid[Step.Id]("StepId")
-
-  def pagingTargetId: Either[InputError, Option[Target.Id]] =
-    pagingGid[Target.Id]("TargetId")
-
-  def pagingVisitId: Either[InputError, Option[Visit.Id]] =
-    pagingUid[Visit.Id]("VisitId")
+  def resultSetLimit: Option[NonNegInt] =
+    SizeLimitedResult.size(self.arg(QuerySchema.ArgumentOptionLimit)).some
 
   def unsafeToFuture[B](fb: F[B])(implicit ev: Dispatcher[F]): Future[B] =
     implicitly[Dispatcher[F]].unsafeToFuture(fb)

@@ -20,11 +20,11 @@ object MutationType {
     ObjectType(
       name   = "Mutation",
       fields = (
-        ProgramMutation.allFields[F]                 ++
-        ObservationMutation.allFields[F]             ++
-        TargetMutation.allFields[F]                  ++
-        ExecutionEventMutation.allFields[F](testing) ++
-        DatasetMutation.allFields[F]
+        ProgramSchema.mutationFields[F]                 ++
+        ObservationSchema.mutationFields[F]             ++
+        TargetSchema.mutationFields[F]                  ++
+        ExecutionEventSchema.mutationFields[F](testing) ++
+        DatasetSchema.mutationFields[F]
       ).sortBy(_.name)
     )
 

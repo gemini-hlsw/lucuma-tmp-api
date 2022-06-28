@@ -278,7 +278,7 @@ object TestInit {
 
   def targets(pid: Program.Id): Either[Exception, List[TargetModel.CreateInput]] =
     targetsJson.traverse(decode[TargetModel.PropertiesInput]).map { in =>
-      in.map(TargetModel.CreateInput(pid, _))
+      in.map(props => TargetModel.CreateInput(pid, props.some))
     }
 
   import GmosModel.{CreateCcdReadout, CreateSouthDynamic}
@@ -408,7 +408,7 @@ object TestInit {
   ): ObservationModel.CreateInput =
     ObservationModel.CreateInput(
       programId            = pid,
-      properties           = ObservationModel.PropertiesInput(
+      SET           = ObservationModel.PropertiesInput(
         subtitle             = Input.ignore,
         status               = ObsStatus.New.assign,
         activeStatus         = ObsActiveStatus.Active.assign,
@@ -479,9 +479,8 @@ object TestInit {
       o  <- repo.observation.insert(obs(p.id, ts.lastOption.toList)).map(_.observation) // 5
 
       // Add an explicit base to the last observation's target environment
-      _  <- repo.observation.edit(
-              ObservationModel.EditInput(
-                ObservationModel.SelectInput.observationIds(List(o.id)),
+      _  <- repo.observation.update(
+              ObservationModel.UpdateInput(
                 ObservationModel.PropertiesInput(
                   targetEnvironment = TargetEnvironmentInput.explicitBase(
                     CoordinatesModel.Input(
@@ -489,7 +488,9 @@ object TestInit {
                         DeclinationModel.Input.fromDegrees(-27.5650)
                     )
                   ).assign
-                )
+                ),
+                WhereObservationInput.MatchPresent.withIds(List(o.id)).some,
+                None
               )
             )
 

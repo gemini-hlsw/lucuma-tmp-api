@@ -3,14 +3,13 @@
 
 package lucuma.odb.api.schema
 
-import lucuma.odb.api.model.{InputError, ObservationModel}
-import lucuma.odb.api.repo.{ObservationRepo, OdbCtx, ResultPage}
-import cats.Order.catsKernelOrderingForOrder
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import lucuma.core.model.Program
-import lucuma.core.util.Gid
+import lucuma.odb.api.model.{ObservationModel, WhereObservationInput}
+import lucuma.odb.api.model.query.SizeLimitedResult
+import lucuma.odb.api.repo.{ObservationRepo, OdbCtx}
 import org.typelevel.log4cats.Logger
 import sangria.schema._
 
@@ -19,9 +18,9 @@ object ObservationGroupSchema {
 
   import context._
   import GeneralSchema.ArgumentIncludeDeleted
-  import ObservationSchema.{ObservationConnectionType, ObservationIdType}
-  import Paging._
-  import ProgramSchema.ProgramIdArgument
+  import ObservationSchema.{ArgumentOptionOffsetObservation, ArgumentOptionWhereObservation, ObservationIdType, ObservationSelectResult}
+  import ProgramSchema.ArgumentProgramId
+  import QuerySchema.{ArgumentOptionLimit, SelectResultType}
 
   def ObservationGroupType[F[_]: Dispatcher: Async: Logger, A](
     prefix:      String,
@@ -36,25 +35,25 @@ object ObservationGroupSchema {
         Field(
           name        = "observationIds",
           fieldType   = ListType(ObservationIdType),
-          description = Some("IDs of observations that use the same constraints"),
+          description = "IDs of observations that use the same constraints".some,
           resolve     = _.value.observationIds.toList
         ),
 
         Field(
           name        = "observations",
-          fieldType   = ObservationConnectionType[F],
-          description = Some("Observations that use this constraint set"),
+          fieldType   = ObservationSelectResult[F],
+          description = "Observations associated with the common value".some,
           arguments   = List(
-            ArgumentPagingFirst,
-            ArgumentPagingCursor,
-            ArgumentIncludeDeleted
+            ArgumentIncludeDeleted,
+            ArgumentOptionOffsetObservation,
+            ArgumentOptionLimit
           ),
           resolve     = c =>
-            unsafeSelectTopLevelPageFuture(c.pagingObservationId) { gid =>
-              c.ctx.odbRepo.observation.selectPageFromIds(c.pagingFirst, gid, c.includeDeleted) { _ =>
-                c.value.observationIds
-              }
-            }
+            c.observation(_.selectWhere(
+              (o: ObservationModel) => c.value.observationIds(o.id) && (c.includeDeleted || o.existence.isPresent),
+              c.arg(ArgumentOptionOffsetObservation),
+              c.resultSetLimit
+            ))
         ),
 
         Field(
@@ -67,35 +66,11 @@ object ObservationGroupSchema {
       )
     )
 
-  def ObservationGroupEdgeType[F[_], A](
-    groupType: ObjectType[OdbCtx[F], ObservationModel.Group[A]]
-  ): ObjectType[OdbCtx[F], Paging.Edge[ObservationModel.Group[A]]] =
-
-    Paging.EdgeType[F, ObservationModel.Group[A]](
-      s"${groupType.name}Edge",
-      "An observation group and its cursor",
-      groupType
-    )
-
-  def ObservationGroupConnectionType[F[_], A](
-    groupType: ObjectType[OdbCtx[F], ObservationModel.Group[A]],
-    edgeType:  ObjectType[OdbCtx[F], Paging.Edge[ObservationModel.Group[A]]]
-  ): ObjectType[OdbCtx[F], Paging.Connection[ObservationModel.Group[A]]] =
-
-    Paging.ConnectionType[F, ObservationModel.Group[A]](
-      s"${groupType.name}Connection",
-      "Observations grouped by common properties",
-      groupType,
-      edgeType
-    )
-
-  def groupingField[F[_]: Dispatcher: Async: Logger, A, G: Gid](
+  def groupingField[F[_]: Dispatcher: Async: Logger, A](
     name:        String,
     description: String,
     outType:     OutputType[A],
-    lookupAll:   (ObservationRepo[F], Program.Id, Boolean) => F[List[ObservationModel.Group[A]]],
-    cursor:      Context[OdbCtx[F], Unit] => Either[InputError, Option[G]],
-    gid:         ObservationModel.Group[A] => G
+    lookupAll:   (ObservationRepo[F], Program.Id, Option[WhereObservationInput]) => F[List[ObservationModel.Group[A]]]
   ): Field[OdbCtx[F], Unit] = {
 
     val groupType =
@@ -105,35 +80,23 @@ object ObservationGroupSchema {
         outType
       )
 
-    val edgeType =
-      ObservationGroupSchema.ObservationGroupEdgeType[F, A](
-        groupType
-      )
-
-    val connectionType =
-      ObservationGroupSchema.ObservationGroupConnectionType[F, A](
-        groupType,
-        edgeType
-      )
+    val selectResultType =
+      SelectResultType[ObservationModel.Group[A]](name, groupType)
 
     Field(
       name        = s"${name}Group",
-      fieldType   = connectionType,
+      fieldType   = selectResultType,
       description = description.some,
       arguments   = List(
-        ProgramIdArgument,
-        ArgumentPagingFirst,
-        ArgumentPagingCursor,
-        ArgumentIncludeDeleted
+        ArgumentProgramId,
+        ArgumentOptionWhereObservation,
+        ArgumentOptionLimit
       ),
-      resolve    = c =>
-        Paging.unsafeSelectPageFuture[F, G, ObservationModel.Group[A]](
-          cursor(c),
-          grp   => Cursor.gid[G].reverseGet(gid(grp)),
-          after => lookupAll(c.ctx.odbRepo.observation, c.programId, c.includeDeleted).map { gs =>
-            ResultPage.fromSeq(gs.sortBy(gid), c.arg(ArgumentPagingFirst), after, gid)
-          }
-        )
+      resolve    = c => c.unsafeToFuture {
+        lookupAll(c.ctx.odbRepo.observation, c.programId, c.arg(ArgumentOptionWhereObservation)).map { gs =>
+          SizeLimitedResult.Select.fromAll(gs, c.arg(ArgumentOptionLimit))
+        }
+      }
     )
   }
 

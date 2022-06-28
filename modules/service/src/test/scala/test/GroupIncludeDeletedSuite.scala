@@ -32,8 +32,8 @@ class GroupIncludeDeletedSuite extends OdbSuite {
     variables =json"""
       {
         "deleteObservationInput": {
-          "select": {
-            "observationIds": [ "o-5" ]
+          "WHERE": {
+            "id": { "EQ": "o-5" }
           }
         }
       }
@@ -44,8 +44,8 @@ class GroupIncludeDeletedSuite extends OdbSuite {
   queryTest(
     query = """
       query ObservationsByConstraintSet {
-        constraintSetGroup(programId:"p-2", includeDeleted: false) {
-          nodes {
+        constraintSetGroup(programId:"p-2") {
+          matches {
             observationIds
           }
         }
@@ -54,7 +54,7 @@ class GroupIncludeDeletedSuite extends OdbSuite {
     expected = json"""
       {
         "constraintSetGroup" : {
-          "nodes" : [
+          "matches" : [
             {
               "observationIds" : [
                 "o-2",
@@ -74,8 +74,8 @@ class GroupIncludeDeletedSuite extends OdbSuite {
   queryTest(
     query = """
       query ObservationsByConstraintSet {
-        constraintSetGroup(programId:"p-2", includeDeleted: true) {
-          nodes {
+        constraintSetGroup(programId:"p-2", WHERE: { existence: { IN: [ PRESENT, DELETED ] } } ) {
+          matches {
             observationIds
           }
         }
@@ -84,7 +84,7 @@ class GroupIncludeDeletedSuite extends OdbSuite {
     expected = json"""
       {
         "constraintSetGroup" : {
-          "nodes" : [
+          "matches" : [
             {
               "observationIds" : [
                 "o-2",

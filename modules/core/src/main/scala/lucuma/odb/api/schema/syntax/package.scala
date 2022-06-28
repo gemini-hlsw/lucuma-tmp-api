@@ -6,11 +6,13 @@ package lucuma.odb.api.schema
 package object syntax {
 
   object all
-    extends ToEnumTypeCompanionOps
+    extends ToEnumTypeOps
+       with ToEnumTypeCompanionOps
        with ToFromInputCompanionOps
        with ToFromInputOps
        with ToInputTypeOps
        with ToToInputCompanionOps
+       with ToInputObjectTypeOps
        with ToToInputOps
        with ToScalarTypeCompanionOps
 

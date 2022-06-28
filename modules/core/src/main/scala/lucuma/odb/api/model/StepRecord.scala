@@ -86,7 +86,7 @@ object StepRecord {
       ).getOrElse(NonNegDuration.zero)
 
     def isExecuted: Boolean =
-      stepEvents.exists(_.payload.stage === ExecutionEventModel.StepStageType.EndStep)
+      stepEvents.exists(_.payload.stepStage === ExecutionEventModel.StepStageType.EndStep)
 
     def qaState: Option[StepQaState] =
       StepQaState.rollup(datasets.map(_.dataset.qaState))

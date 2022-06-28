@@ -14,8 +14,8 @@ class SourceProfileSuite extends OdbSuite {
   // Add new U entry
   queryTest(
     query     = """
-      mutation EditMagnitude($targetEdit: EditTargetsInput!) {
-        editTargets(input: $targetEdit) {
+      mutation EditMagnitude($targetsUpdate: UpdateTargetsInput!) {
+        updateTargets(input: $targetsUpdate) {
           targets {
             id
             name
@@ -37,7 +37,7 @@ class SourceProfileSuite extends OdbSuite {
     """,
     expected  = json"""
       {
-        "editTargets": {
+        "updateTargets": {
           "targets": [
             {
               "id": "t-3",
@@ -99,11 +99,8 @@ class SourceProfileSuite extends OdbSuite {
     """,
     variables = json"""
       {
-        "targetEdit": {
-          "select": {
-            "targetIds": [ "t-3" ]
-          },
-          "patch": {
+        "targetsUpdate": {
+          "SET": {
             "sourceProfile": {
               "point": {
                 "bandNormalized": {
@@ -125,6 +122,9 @@ class SourceProfileSuite extends OdbSuite {
                 }
               }
             }
+          },
+          "WHERE": {
+            "id": { "EQ": "t-3" }
           }
         }
       }
@@ -135,8 +135,8 @@ class SourceProfileSuite extends OdbSuite {
   // Replace all magnitudes with one U entry
   queryTest(
     query     = """
-      mutation EditMagnitude($targetEdit: EditTargetsInput!) {
-        editTargets(input: $targetEdit) {
+      mutation EditMagnitude($targetsUpdate: UpdateTargetsInput!) {
+        updateTargets(input: $targetsUpdate) {
           targets {
             id
             name
@@ -158,7 +158,7 @@ class SourceProfileSuite extends OdbSuite {
     """,
     expected  = json"""
       {
-        "editTargets": {
+        "updateTargets": {
           "targets": [
             {
               "id": "t-2",
@@ -184,11 +184,8 @@ class SourceProfileSuite extends OdbSuite {
     """,
     variables = json"""
       {
-        "targetEdit": {
-          "select": {
-            "targetIds": [ "t-2" ]
-          },
-          "patch": {
+        "targetsUpdate": {
+          "SET": {
             "sourceProfile": {
               "point": {
                 "bandNormalized": {
@@ -202,6 +199,9 @@ class SourceProfileSuite extends OdbSuite {
                 }
               }
             }
+          },
+          "WHERE": {
+            "id": { "EQ": "t-2" }
           }
         }
       }
@@ -212,8 +212,8 @@ class SourceProfileSuite extends OdbSuite {
   // Delete all but V, set its error to 10
   queryTest(
     query     = """
-      mutation EditMagnitude($targetEdit: EditTargetsInput!) {
-        editTargets(input: $targetEdit) {
+      mutation EditMagnitude($targetsUpdate: UpdateTargetsInput!) {
+        updateTargets(input: $targetsUpdate) {
           targets {
             id
             name
@@ -235,7 +235,7 @@ class SourceProfileSuite extends OdbSuite {
     """,
     expected  = json"""
       {
-        "editTargets": {
+        "updateTargets": {
           "targets": [
             {
               "id": "t-4",
@@ -261,11 +261,8 @@ class SourceProfileSuite extends OdbSuite {
     """,
     variables = json"""
       {
-        "targetEdit": {
-          "select": {
-            "targetIds": [ "t-4" ]
-          },
-          "patch": {
+        "targetsUpdate": {
+          "SET": {
             "sourceProfile": {
               "point": {
                 "bandNormalized": {
@@ -279,6 +276,9 @@ class SourceProfileSuite extends OdbSuite {
                 }
               }
             }
+          },
+          "WHERE": {
+            "id": { "EQ": "t-4" }
           }
         }
       }

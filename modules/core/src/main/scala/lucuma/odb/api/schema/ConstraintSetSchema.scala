@@ -6,12 +6,15 @@ package lucuma.odb.api.schema
 import eu.timepit.refined.types.all.PosBigDecimal
 import lucuma.core.enums.{CloudExtinction, ImageQuality, SkyBackground, WaterVapor}
 import lucuma.core.model.{ConstraintSet, ElevationRange}
-import lucuma.odb.api.schema.syntax.all._
+import lucuma.odb.api.model.{AirMassRangeInput, ConstraintSetInput, ElevationRangeInput, HourAngleRangeInput}
+import sangria.macros.derive._
+import sangria.marshalling.circe._
 import sangria.schema._
 
 object ConstraintSetSchema {
 
   import RefinedSchema.PosBigDecimalType
+  import syntax.all._
 
   implicit val EnumTypeCloudExtinction: EnumType[CloudExtinction] =
     EnumType.fromEnumerated("CloudExtinction", "Cloud extinction")
@@ -45,6 +48,12 @@ object ConstraintSetSchema {
         )
     )
 
+  implicit val InputObjectTypeAirmassRange: InputObjectType[AirMassRangeInput] =
+    deriveInputObjectType[AirMassRangeInput](
+      InputObjectTypeName("AirMassRangeInput"),
+      InputObjectTypeDescription("Air mass range creation and edit parameters")
+    )
+
   val HourAngleRangeType: ObjectType[Any, ElevationRange.HourAngle] =
     ObjectType(
       name     = "HourAngleRange",
@@ -63,6 +72,12 @@ object ConstraintSetSchema {
             resolve     = _.value.maxHours.value
           )
         )
+    )
+
+  implicit val InputObjectTypeHourAngleRange: InputObjectType[HourAngleRangeInput] =
+    deriveInputObjectType[HourAngleRangeInput](
+      InputObjectTypeName("HourAngleRangeInput"),
+      InputObjectTypeDescription("Hour angle range creation parameters")
     )
 
   val ElevationRangeModelType: ObjectType[Any, ElevationRange] =
@@ -84,6 +99,16 @@ object ConstraintSetSchema {
             resolve     = c => ElevationRange.hourAngle.getOption(c.value)
           )
         )
+    )
+
+  implicit val InputObjectTypeElevationRange: InputObjectType[ElevationRangeInput] =
+    InputObjectType[ElevationRangeInput](
+      "ElevationRangeInput",
+      "Elevation range creation and edit parameters.  Choose one of airMass or hourAngle constraints.",
+      List(
+        InputObjectTypeAirmassRange.optionField("airMass"),
+        InputObjectTypeHourAngleRange.optionField("hourAngle")
+      )
     )
 
   val ConstraintSetType: ObjectType[Any, ConstraintSet] =
@@ -122,6 +147,25 @@ object ConstraintSetSchema {
             resolve     = _.value.elevationRange
           )
         )
+    )
+
+  implicit val InputObjectTypeConstraintSet: InputObjectType[ConstraintSetInput] =
+    InputObjectType[ConstraintSetInput](
+      "ConstraintSetInput",
+      "Constraint set creation and editing parameters",
+      List(
+        EnumTypeImageQuality.createRequiredEditOptional("imageQuality", "ConstraintSet"),
+        EnumTypeCloudExtinction.createRequiredEditOptional("cloudExtinction", "ConstraintSet"),
+        EnumTypeSkyBackground.createRequiredEditOptional("skyBackground", "ConstraintSet"),
+        EnumTypeWaterVapor.createRequiredEditOptional("waterVapor", "ConstraintSet"),
+        InputObjectTypeElevationRange.createRequiredEditOptional("elevationRange", "ConstraintSet")
+      )
+    )
+
+  val ArgumentConstraintSetInput: Argument[ConstraintSetInput] =
+    InputObjectTypeConstraintSet.argument(
+      "input",
+      "Constraint set description"
     )
 
 }

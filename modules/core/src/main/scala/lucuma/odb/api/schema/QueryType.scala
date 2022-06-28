@@ -18,10 +18,11 @@ object QueryType {
     ObjectType(
       name   = "Query",
       fields = (
-        ObservationQuery.allFields[F]   ++
-        ProgramQuery.allFields[F]       ++
-        TargetQuery.allFields[F]        ++
-        DatasetQuery.allFields[F]
+        ObservationSchema.queryFields[F]   ++
+        ProgramSchema.queryFields[F]       ++
+        TargetSchema.queryFields[F]        ++
+        DatasetSchema.queryFields[F]       ++
+        ExecutionEventSchema.queryFields[F]
       ).sortBy(_.name)
     )
 

@@ -8,12 +8,12 @@ import cats.data.StateT
 import cats.effect.Sync
 import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.apply._
-import cats.syntax.eq._
 import cats.syntax.functor._
 import cats.syntax.option._
 import cats.syntax.traverse._
 import clue.data.Input
 import eu.timepit.refined.cats._
+import eu.timepit.refined.types.numeric.NonNegInt
 import eu.timepit.refined.types.string._
 import io.circe.Decoder
 import io.circe.generic.semiauto._
@@ -26,6 +26,7 @@ import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.odb.api.model.targetModel.{TargetEnvironmentInput, TargetEnvironmentModel}
 import lucuma.core.enums.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.{ConstraintSet, Observation, Program}
+import lucuma.odb.api.model.query.SizeLimitedResult
 import monocle.{Focus, Lens, Optional}
 
 import java.time.Instant
@@ -187,17 +188,17 @@ object ObservationModel extends ObservationOptics {
   }
 
   final case class CreateInput(
-    programId:     Program.Id,
-    properties:    Option[PropertiesInput]
+    programId: Program.Id,
+    SET:       Option[PropertiesInput]
   ) {
 
     def create[F[_]: Sync]: F[StateT[EitherInput, Database, ObservationModel]] =
-      properties.flatMap(_.manualConfig.toOption).traverse(_.create[F]).map { c =>
+      SET.flatMap(_.manualConfig.toOption).traverse(_.create[F]).map { c =>
         for {
           i <- Database.observation.cycleNextUnused
           _ <- Database.program.lookup(programId)
 
-          o  = properties.getOrElse(PropertiesInput.Empty).create(i, programId, c.sequence)
+          o  = SET.getOrElse(PropertiesInput.Empty).create(i, programId, c.sequence)
           oʹ <- o.traverse(_.validate)
           _  <- Database.observation.saveNewIfValid(oʹ)(_.id)
           v  <- Database.observation.lookup(i)
@@ -210,8 +211,8 @@ object ObservationModel extends ObservationOptics {
 
     def empty(programId: Program.Id): CreateInput =
       CreateInput(
-        programId   = programId,
-        properties  = None
+        programId = programId,
+        SET       = None
       )
 
     import io.circe.generic.extras.semiauto._
@@ -224,11 +225,11 @@ object ObservationModel extends ObservationOptics {
     implicit val EqCreateInput: Eq[CreateInput] =
       Eq.by { a => (
         a.programId,
-        a.properties
+        a.SET
       )}
 
     val properties: Lens[CreateInput, Option[PropertiesInput]] =
-      Focus[CreateInput](_.properties)
+      Focus[CreateInput](_.SET)
 
     val scienceMode: Optional[CreateInput, Input[ScienceModeInput]] =
       properties.some.andThen(PropertiesInput.scienceMode)
@@ -247,86 +248,40 @@ object ObservationModel extends ObservationOptics {
       Eq.by(_.observation)
   }
 
-  final case class SelectInput(
-    programId:      Option[Program.Id],
-    observationIds: Option[List[Observation.Id]]
+  final case class UpdateInput(
+    SET:   PropertiesInput,
+    WHERE: Option[WhereObservationInput],
+    LIMIT: Option[NonNegInt]
   ) {
 
-    val go: StateT[EitherInput, Database, List[ObservationModel]] =
+    private def filteredObservations(db: Database): List[ObservationModel] = {
+      val os = db.observations.rows.values
+      WHERE.fold(os)(where => os.filter(where.matches)).toList
+    }
+
+    // At the moment, manual config (if present in SET) is ignored
+    val editor: StateT[EitherInput, Database, SizeLimitedResult.Update[ObservationModel]] =
       for {
-        p   <- programId.traverse(Database.program.lookup)
-        os0 <- p.traverse { pm =>
-          StateT.inspect[EitherInput, Database, List[ObservationModel]](_.observations.rows.values.filter(_.programId === pm.id).toList)
-        }.map(_.toList.flatten)
-        os1 <- observationIds.traverse(Database.observation.lookupAll).map(_.toList.flatten)
-      } yield (os0 ::: os1).distinctBy(_.id).sortBy(_.id)
-
-  }
-
-  object SelectInput {
-
-    val Empty: SelectInput =
-      SelectInput(None, None)
-
-    def programId(pid: Program.Id): SelectInput =
-      Empty.copy(programId = pid.some)
-
-    def observationId(oid: Observation.Id): SelectInput =
-      Empty.copy(observationIds = List(oid).some)
-
-    def observationIds(oids: List[Observation.Id]): SelectInput =
-      Empty.copy(observationIds = oids.some)
-
-    implicit val DecoderSelect: Decoder[SelectInput] =
-      deriveDecoder[SelectInput]
-
-    implicit val EqSelect: Eq[SelectInput] =
-      Eq.by { a => (
-        a.programId,
-        a.observationIds
-      )}
-
-  }
-
-  final case class EditInput(
-    select: SelectInput,
-    patch:  PropertiesInput
-  ) {
-
-    // At the moment, manual config (if present in patch) is ignored
-    val editor: StateT[EitherInput, Database, List[ObservationModel]] =
-      for {
-        os  <- select.go
-        osʹ <- StateT.liftF[EitherInput, Database, List[ObservationModel]](os.traverse(patch.edit.runS))
+        os  <- StateT.inspect[EitherInput, Database, List[ObservationModel]](filteredObservations)
+        osʹ <- StateT.liftF[EitherInput, Database, List[ObservationModel]](os.traverse(SET.edit.runS))
         _   <- osʹ.traverse(o => Database.observation.update(o.id, o))
-      } yield osʹ
+      } yield SizeLimitedResult.Update.fromAll(osʹ, LIMIT)
 
   }
 
-  object EditInput {
+  object UpdateInput {
 
-    implicit val DecoderEditInput: Decoder[EditInput] =
-      deriveDecoder[EditInput]
+    implicit val DecoderUpdateInput: Decoder[UpdateInput] =
+      deriveDecoder[UpdateInput]
 
-    implicit val EqEditInput: Eq[EditInput] =
+    implicit val EqUpdateInput: Eq[UpdateInput] =
       Eq.by { a => (
-        a.select,
-        a.patch
+        a.SET,
+        a.WHERE,
+        a.LIMIT
       )}
 
   }
-
-  final case class EditResult(
-    observations: List[ObservationModel]
-  )
-
-  object EditResult {
-
-    implicit val EqEditResult: Eq[EditResult] =
-      Eq.by(_.observations)
-
-  }
-
 
   final case class CloneResult(
     originalObservation: ObservationModel,
@@ -345,7 +300,7 @@ object ObservationModel extends ObservationOptics {
 
   final case class CloneInput(
     observationId: Observation.Id,
-    patch:         Option[PropertiesInput]
+    SET:           Option[PropertiesInput]
   ) {
 
     // At the moment, manual config (if present in patch) is ignored
@@ -355,11 +310,12 @@ object ObservationModel extends ObservationOptics {
         i  <- Database.observation.cycleNextUnused
         c   = o.clone(i)
         _  <- Database.observation.saveNew(i, c)
-        cʹ <- patch.fold(StateT.pure[EitherInput, Database, ObservationModel](c)) { p =>
-          ObservationModel.EditInput(
-            ObservationModel.SelectInput.observationId(i),
-            p
-          ).editor.map(_.head)
+        cʹ <- SET.fold(StateT.pure[EitherInput, Database, ObservationModel](c)) { p =>
+          ObservationModel.UpdateInput(
+            p,
+            WhereObservationInput.MatchAll.withId(i).some,
+            None
+          ).editor.map(_.limitedValues.head)
         }
       } yield CloneResult(originalObservation = o, newObservation = cʹ)
 
@@ -373,7 +329,7 @@ object ObservationModel extends ObservationOptics {
     implicit val EqCloneInput: Eq[CloneInput] =
       Eq.by { a => (
         a.observationId,
-        a.patch
+        a.SET
       )}
 
   }
@@ -426,25 +382,26 @@ object ObservationModel extends ObservationOptics {
   }
 
   final case class BulkEdit[A](
-    select: SelectInput,
-    patch:  A
+    SET:   A,
+    WHERE: Option[WhereObservationInput],
+    LIMIT: Option[NonNegInt]
   )
 
   object BulkEdit {
 
-    def observations[A](oids: List[Observation.Id], edit: A): BulkEdit[A] =
-      BulkEdit(SelectInput.observationIds(oids), edit)
+    def observations[A](set: A, oids: List[Observation.Id]): BulkEdit[A] =
+      BulkEdit(set, WhereObservationInput.MatchAll.withIds(oids).some, None)
 
-    def program[A](pid: Program.Id, edit: A): BulkEdit[A] =
-      BulkEdit(SelectInput.programId(pid), edit)
+    def program[A](set: A, pid: Program.Id): BulkEdit[A] =
+      BulkEdit(set, WhereObservationInput.MatchAll.withProgramId(pid).some, None)
 
     implicit def DecoderBulkEdit[A: Decoder]: Decoder[BulkEdit[A]] =
       deriveDecoder[BulkEdit[A]]
 
     implicit def EqBulkEdit[A: Eq]: Eq[BulkEdit[A]] =
       Eq.by { a => (
-        a.select,
-        a.patch
+        a.SET,
+        a.WHERE
       )}
 
   }

@@ -12,8 +12,8 @@ class TargetMutationSuite extends OdbSuite {
   // Edit NGC 3312 to remove parallax altogether.
   queryTest(
     query = """
-      mutation UpdateScienceTarget($targetEdit: EditTargetsInput!) {
-        editTargets(input: $targetEdit) {
+      mutation UpdateScienceTarget($updateTargets: UpdateTargetsInput!) {
+        updateTargets(input: $updateTargets) {
           targets {
             id
             name
@@ -26,7 +26,7 @@ class TargetMutationSuite extends OdbSuite {
     """,
     expected = json"""
       {
-        "editTargets": {
+        "updateTargets": {
           "targets": [
             {
               "id": "t-4",
@@ -41,14 +41,14 @@ class TargetMutationSuite extends OdbSuite {
     """,
     variables = json"""
       {
-        "targetEdit": {
-          "select": {
-            "targetIds": [ "t-4" ]
-          },
-          "patch": {
+        "updateTargets": {
+          "SET": {
             "sidereal": {
               "parallax": null
             }
+          },
+          "WHERE": {
+            "id": { "EQ": "t-4" }
           }
         }
       }
@@ -84,8 +84,8 @@ class TargetMutationSuite extends OdbSuite {
     variables = json"""
       {
         "deleteTargetInput": {
-          "select": {
-            "targetIds": [ "t-4" ]
+          "WHERE": {
+            "id": { "EQ": "t-4" }
           }
         }
       }

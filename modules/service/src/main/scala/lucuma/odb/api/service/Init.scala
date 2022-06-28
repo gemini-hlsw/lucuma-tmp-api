@@ -233,7 +233,7 @@ object Init {
 
   def targets(pid: Program.Id): Either[Exception, List[TargetModel.CreateInput]] =
     targetsJson.traverse(decode[TargetModel.PropertiesInput]).map { in =>
-      in.map(TargetModel.CreateInput(pid, _))
+      in.map(props => TargetModel.CreateInput(pid, props.some))
     }
 
   import GmosModel.{CreateCcdReadout, CreateSouthDynamic}
@@ -364,7 +364,7 @@ object Init {
   ): ObservationModel.CreateInput =
     ObservationModel.CreateInput(
       programId            = pid,
-      properties           = ObservationModel.PropertiesInput(
+      SET                  = ObservationModel.PropertiesInput(
         subtitle             = Input.ignore,
         status               = ObsStatus.New.assign,
         activeStatus         = ObsActiveStatus.Active.assign,

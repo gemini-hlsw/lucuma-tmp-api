@@ -9,11 +9,9 @@ import cats.syntax.eq._
 import cats.syntax.either._
 import org.typelevel.cats.time.instances.instant._
 import io.circe.Decoder
-import io.circe.refined._
 import io.circe.generic.semiauto.deriveDecoder
 import eu.timepit.refined.auto._
 import eu.timepit.refined.cats._
-import eu.timepit.refined.types.all.PosInt
 import lucuma.core.model.{ExecutionEvent, Observation}
 import lucuma.core.util.Enumerated
 import lucuma.odb.api.model.syntax.lens._
@@ -267,8 +265,8 @@ object ExecutionEventModel {
     }
 
     final case class Payload(
-      sequenceType:  SequenceModel.SequenceType,
-      stage:         StepStageType
+      sequenceType: SequenceModel.SequenceType,
+      stepStage:    StepStageType
     )
 
     object Payload {
@@ -278,7 +276,7 @@ object ExecutionEventModel {
       implicit val OrderPayload: Order[Payload] =
         Order.by { a => (
           a.sequenceType,
-          a.stage
+          a.stepStage
         )}
     }
 
@@ -378,22 +376,19 @@ object ExecutionEventModel {
   }
 
   final case class DatasetEvent(
-    id:            ExecutionEvent.Id,
-    visitId:       Visit.Id,
-    received:      Instant,
-    location:      DatasetEvent.Location,
-    payload:       DatasetEvent.Payload
+    id:       ExecutionEvent.Id,
+    visitId:  Visit.Id,
+    received: Instant,
+    location: DatasetModel.Id,
+    payload:  DatasetEvent.Payload
   ) extends ExecutionEventModel {
 
     override def observationId: Observation.Id =
       location.observationId
 
-    def datasetId: DatasetModel.Id =
-      location.toDatasetId
-
     def toDataset: Option[DatasetModel] =
       payload.filename.map { fn =>
-        DatasetModel(datasetId, DatasetModel.Dataset(fn, None))
+        DatasetModel(location, DatasetModel.Dataset(fn, None))
       }
 
   }
@@ -409,32 +404,9 @@ object ExecutionEventModel {
         a.received
       )}
 
-    final case class Location(
-      observationId: Observation.Id,
-      stepId:        Step.Id,
-      index:         PosInt
-    ) {
-
-      def toDatasetId: DatasetModel.Id =
-        DatasetModel.Id(observationId, stepId, index)
-
-    }
-
-    object Location {
-      implicit val DecoderLocation: Decoder[Location] =
-        deriveDecoder[Location]
-
-      implicit val OrderLocation: Order[Location] =
-        Order.by { a => (
-          a.observationId,
-          a.stepId,
-          a.index
-        )}
-    }
-
     final case class Payload(
-      stage:         DatasetStageType,
-      filename:      Option[DatasetFilename]
+      datasetStage: DatasetStageType,
+      filename:     Option[DatasetFilename]
     )
 
     object Payload {
@@ -443,15 +415,15 @@ object ExecutionEventModel {
 
       implicit val OrderPayload: Order[Payload] =
         Order.by { a => (
-          a.stage,
+          a.datasetStage,
           a.filename
         )}
     }
 
     final case class Add(
-      visitId:       Visit.Id,
-      location:      Location,
-      payload:       Payload
+      visitId:  Visit.Id,
+      location: DatasetModel.Id,
+      payload:  Payload
     ) {
 
       private def recordDataset(

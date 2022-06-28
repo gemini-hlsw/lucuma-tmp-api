@@ -5,6 +5,7 @@ package lucuma.odb.api.model
 package arb
 
 import cats.Order.catsKernelOrderingForOrder
+import cats.syntax.option._
 import clue.data.Input
 import clue.data.syntax._
 import eu.timepit.refined.scalacheck.string._
@@ -155,7 +156,7 @@ trait ArbTargetModel {
         s <- arbitrary[Option[SiderealInput]]
         n <- arbitrary[Option[NonsiderealInput]]
         r <- arbitrary[SourceProfileInput]
-      } yield TargetModel.CreateInput(p, TargetModel.PropertiesInput(m.assign, s, n, r.assign))
+      } yield TargetModel.CreateInput(p, TargetModel.PropertiesInput(m.assign, s, n, r.assign).some)
     }
 
   implicit val cogCreateTarget: Cogen[TargetModel.CreateInput] =
@@ -167,10 +168,10 @@ trait ArbTargetModel {
       Option[SourceProfileInput]
     )].contramap { a => (
       a.programId,
-      a.properties.name.toOption.map(_.value),
-      a.properties.sidereal,
-      a.properties.nonsidereal,
-      a.properties.sourceProfile.toOption
+      a.SET.flatMap(_.name.toOption.map(_.value)), //.toOption.map(_.value),
+      a.SET.flatMap(_.sidereal),
+      a.SET.flatMap(_.nonsidereal),
+      a.SET.flatMap(_.sourceProfile.toOption)
     )}
 
   implicit val arbEditAsterismInput: Arbitrary[EditAsterismPatchInput] =
@@ -186,8 +187,8 @@ trait ArbTargetModel {
       Option[Target.Id],
       Option[Target.Id]
     )].contramap { in => (
-      in.add,
-      in.delete
+      in.ADD,
+      in.DELETE
     )}
 
   implicit val arbTargetEnvironmentInput: Arbitrary[TargetEnvironmentInput] =

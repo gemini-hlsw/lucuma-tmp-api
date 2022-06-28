@@ -45,8 +45,8 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
     variables = json"""
       {
         "deleteTargetInput": {
-          "select": {
-            "targetIds": [ "t-3" ]
+          "WHERE": {
+            "id": { "EQ": "t-3" }
           }
         }
       }
@@ -64,7 +64,7 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
     query ="""
       query GroupByScienceTarget {
         targetGroup(programId: "p-2") {
-          nodes {
+          matches {
             observationIds
             target {
               name
@@ -76,7 +76,7 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
     expected = json"""
       {
         "targetGroup": {
-          "nodes": [
+          "matches": [
             {
               "observationIds": [
                 "o-2",
@@ -84,71 +84,6 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
               ],
               "target": {
                 "name": "NGC 5949"
-              }
-            },
-            {
-              "observationIds": [
-                "o-3",
-                "o-4",
-                "o-5",
-                "o-6"
-              ],
-              "target": {
-                "name": "NGC 3312"
-              }
-            },
-            {
-              "observationIds": [
-              ],
-              "target": {
-                "name": "NGC 4749"
-              }
-            }
-          ]
-        }
-      }
-    """,
-    clients = List(ClientOption.Http)
-  )
-
-  // Group by individual science target, includeDeleted = true
-  //
-  // NGC 5949 => o-2, o-6
-  // NGC 3312 => o-3, o-4, o-5, o-6
-  // NGC 4749 => <none>
-  // XXX NGC 3269 => o-6
-  queryTest(
-    query ="""
-      query GroupByScienceTargetIncludeDeleted {
-        targetGroup(programId: "p-2", includeDeleted: true) {
-          nodes {
-            observationIds
-            target {
-              name
-            }
-          }
-        }
-      }
-    """,
-    expected = json"""
-      {
-        "targetGroup": {
-          "nodes": [
-            {
-              "observationIds": [
-                "o-2",
-                "o-6"
-              ],
-              "target": {
-                "name": "NGC 5949"
-              }
-            },
-            {
-              "observationIds": [
-                "o-6"
-              ],
-              "target": {
-                "name": "NGC 3269"
               }
             },
             {
@@ -187,7 +122,7 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
     query ="""
       query GroupByAsterism {
         asterismGroup(programId: "p-2") {
-          nodes {
+          matches {
             observationIds
             asterism {
               name
@@ -199,7 +134,7 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
     expected = json"""
       {
         "asterismGroup": {
-          "nodes": [
+          "matches": [
             {
               "observationIds": [
                 "o-2"
@@ -258,7 +193,7 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
     query ="""
       query GroupByTargetEnvironment {
         targetEnvironmentGroup(programId: "p-2") {
-          nodes {
+          matches {
             observationIds
             targetEnvironment {
               explicitBase {
@@ -276,7 +211,7 @@ class TargetGroupIncludeDeletedSuite extends OdbSuite {
     expected = json"""
       {
         "targetEnvironmentGroup": {
-          "nodes": [
+          "matches": [
             {
               "observationIds" : [
                 "o-2"

@@ -17,16 +17,16 @@ import lucuma.odb.api.model.syntax.lens._
 
 
 final case class EditAsterismPatchInput(
-  add:    Option[Target.Id],
-  delete: Option[Target.Id]
+  ADD:    Option[Target.Id],
+  DELETE: Option[Target.Id]
 ) {
 
   val editor: StateT[EitherInput, TargetEnvironmentModel, Unit] =
-    (add, delete) match {
+    (ADD, DELETE) match {
       case (Some(a), None) => TargetEnvironmentModel.asterism.mod_(_ + a)
       case (None, Some(d)) => TargetEnvironmentModel.asterism.mod_(_ - d)
-      case (None, None)    => StateT.setF(InputError.fromMessage(s"One of `add` or `delete` must be specified for each operation").leftNec)
-      case _               => StateT.setF(InputError.fromMessage(s"Select only one of `add` or `delete` for each operation").leftNec)
+      case (None, None)    => StateT.setF(InputError.fromMessage(s"One of `ADD` or `DELETE` must be specified for each operation").leftNec)
+      case _               => StateT.setF(InputError.fromMessage(s"Select only one of `ADD` or `DELETE` for each operation").leftNec)
     }
 
 }
@@ -38,18 +38,18 @@ object EditAsterismPatchInput {
 
   implicit val EqEditTargetInput: Eq[EditAsterismPatchInput] =
     Eq.by { a => (
-      a.add,
-      a.delete
+      a.ADD,
+      a.DELETE
     )}
 
   val Empty: EditAsterismPatchInput =
     EditAsterismPatchInput(None, None)
 
   def add(tid: Target.Id): EditAsterismPatchInput =
-    Empty.copy(add = tid.some)
+    Empty.copy(ADD = tid.some)
 
   def delete(tid: Target.Id): EditAsterismPatchInput =
-    Empty.copy(delete = tid.some)
+    Empty.copy(DELETE = tid.some)
 
   def multiEditor(inputs: List[EditAsterismPatchInput]): StateT[EitherInput, TargetEnvironmentModel, Unit] =
     inputs.traverse(_.editor).void

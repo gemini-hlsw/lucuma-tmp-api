@@ -14,6 +14,7 @@ import cats.syntax.functor._
 import cats.syntax.traverse._
 import lucuma.core.model.{Observation, Program, Target}
 import lucuma.core.util.Gid
+import lucuma.odb.api.model.query.SizeLimitedResult
 import lucuma.odb.api.model.{Database, Event, InputError, Table}
 import lucuma.odb.api.model.targetModel._
 import lucuma.odb.api.model.targetModel.TargetModel.TargetEvent
@@ -51,48 +52,12 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
   ): F[SortedSet[TargetModel]]
 
   /**
-   * Selects the first (or next) page of targets associated with the program.
-   * Like `selectProgramTargets` but with paging.
-   */
-  def selectPageForProgram(
-    pid:            Program.Id,
-    count:          Option[Int]       = None,
-    afterGid:       Option[Target.Id] = None,
-    includeDeleted: Boolean           = false
-  ): F[ResultPage[TargetModel]]
-
-  /**
-   * Selects the first (or next) page of targets that are associated with the
-   * program and which are actually referenced by one or more observations.
-   * Like `selectPageForProgram` but only including targets that are used by
-   * an observation.
-   */
-  def selectReferencedPageForProgram(
-    pid:            Program.Id,
-    count:          Option[Int]       = None,
-    afterGid:       Option[Target.Id] = None,
-    includeDeleted: Boolean           = false
-  ): F[ResultPage[TargetModel]]
-
-  /**
    * Selects the asterism associated with the given observation.
    */
   def selectObservationAsterism(
     oid:            Observation.Id,
     includeDeleted: Boolean = false
   ): F[SortedSet[TargetModel]]
-
-  /**
-   * Selects the first (or next) page of targets that are associated with the
-   * given observation(s).  Like `selectObservationAsterism` but for multiple
-   * observations and with paging.
-   */
-  def selectPageForObservations(
-    oids:           Set[Observation.Id],
-    count:          Option[Int]       = None,
-    afterGid:       Option[Target.Id] = None,
-    includeDeleted: Boolean           = false
-  ): F[ResultPage[TargetModel]]
 
   def selectProgramAsterisms(
     pid:            Program.Id,
@@ -114,7 +79,7 @@ sealed trait TargetRepo[F[_]] extends TopLevelRepo[F, Target.Id, TargetModel] {
 
   def insert(newTarget: TargetModel.CreateInput): F[TargetModel.CreateResult]
 
-  def edit(edit: TargetModel.EditInput): F[TargetModel.EditResult]
+  def update(input: TargetModel.UpdateInput): F[SizeLimitedResult.Update[TargetModel]]
 
   /**
    * Clones the target referenced by `existingTid`.  Uses the `suggestedTid` for
@@ -135,10 +100,8 @@ object TargetRepo {
 
     new TopLevelRepoBase[F, Target.Id, TargetModel](
       databaseRef,
-      eventService,
       Database.lastTargetId,
-      Database.targets.andThen(Table.rows),
-      (editType, model) => TargetEvent(_, editType, model)
+      Database.targets.andThen(Table.rows)
     ) with TargetRepo[F] {
 
       override def selectTarget(
@@ -161,49 +124,6 @@ object TargetRepo {
           SortedSet.from {
             db.targets.rows.values.filter(t => t.programId === pid && (includeDeleted || t.isPresent))
           }
-        }
-
-     override def selectPageForProgram(
-       pid:            Program.Id,
-       count:          Option[Int]       = None,
-       afterGid:       Option[Target.Id] = None,
-       includeDeleted: Boolean           = false
-     ): F[ResultPage[TargetModel]] =
-       selectPageFiltered(count, afterGid, includeDeleted)(_.programId === pid)
-
-     def selectReferencedPageForProgram(
-       pid:            Program.Id,
-       count:          Option[Int]       = None,
-       afterGid:       Option[Target.Id] = None,
-       includeDeleted: Boolean           = false
-      ): F[ResultPage[TargetModel]] =
-        selectPageFromIds(count, afterGid, includeDeleted) { tab =>
-          tab
-            .observations
-            .rows
-            .values
-            .filter(o => o.programId === pid && (includeDeleted || o.isPresent))
-            .map(_.targetEnvironment.asterism)
-            .reduceOption(_.union(_))
-            .getOrElse(SortedSet.empty[Target.Id])
-        }
-
-      override def selectPageForObservations(
-        oids:           Set[Observation.Id],
-        count:          Option[Int]       = None,
-        afterGid:       Option[Target.Id] = None,
-        includeDeleted: Boolean           = false
-      ): F[ResultPage[TargetModel]] =
-        selectPageFromIds(count, afterGid, includeDeleted) { tab =>
-          oids.map { oid =>
-            tab
-              .observations
-              .rows
-              .get(oid)
-              .map(_.targetEnvironment.asterism)
-              .getOrElse(SortedSet.empty[Target.Id])
-          }.reduceOption(_.union(_))
-           .getOrElse(SortedSet.empty[Target.Id])
         }
 
       private def unsafeSelect[I: Gid, A](
@@ -283,11 +203,11 @@ object TargetRepo {
         } yield TargetModel.CreateResult(t)
       }
 
-      override def edit(editInput: TargetModel.EditInput): F[TargetModel.EditResult] =
+      override def update(input: TargetModel.UpdateInput): F[SizeLimitedResult.Update[TargetModel]] =
         for {
-          ts <- databaseRef.modifyState(editInput.editor.flipF).flatMap(_.liftTo[F])
-          _  <- ts.traverse(t => eventService.publish(TargetEvent.updated(t)))
-        } yield TargetModel.EditResult(ts)
+          ts <- databaseRef.modifyState(input.editor.flipF).flatMap(_.liftTo[F])
+          _  <- ts.allValues.traverse(t => eventService.publish(TargetEvent.updated(t)))
+        } yield ts
 
       override def clone(
         cloneInput: TargetModel.CloneInput

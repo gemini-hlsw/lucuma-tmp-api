@@ -136,7 +136,7 @@ trait ArbObservationModel {
       Option[ObservationModel.PropertiesInput]
     )].contramap { in => (
       in.programId,
-      in.properties
+      in.SET
     )}
 
   implicit val arbObservationModelCloneInput: Arbitrary[ObservationModel.CloneInput] =
@@ -153,7 +153,7 @@ trait ArbObservationModel {
       Option[ObservationModel.PropertiesInput]
     )].contramap { in => (
       in.observationId,
-      in.patch
+      in.SET
     )}
 }
 

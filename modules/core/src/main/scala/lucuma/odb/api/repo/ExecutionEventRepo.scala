@@ -7,14 +7,16 @@ import cats.data.StateT
 import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.all._
 import cats.effect.{Clock, Ref, Sync}
+import eu.timepit.refined.types.all.NonNegInt
 import lucuma.core.enums.Instrument
-import lucuma.odb.api.model.{Database, DatasetTable, EitherInput, ExecutionEventModel, InputValidator, Step, StepRecord, ValidatedInput, Visit, VisitRecord, VisitRecords}
+import lucuma.odb.api.model.{Database, DatasetModel, DatasetTable, EitherInput, ExecutionEventModel, InputValidator, Step, StepRecord, ValidatedInput, Visit, VisitRecord, VisitRecords, WhereExecutionEventInput}
 import lucuma.odb.api.model.ExecutionEventModel.{DatasetEvent, SequenceEvent, StepEvent}
 import lucuma.odb.api.model.syntax.databasestate._
 import lucuma.odb.api.model.syntax.eitherinput._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.optional._
 import lucuma.core.model.{ExecutionEvent, Observation}
+import lucuma.odb.api.model.query.SizeLimitedResult
 import monocle.Prism
 
 import java.time.Instant
@@ -27,24 +29,11 @@ sealed trait ExecutionEventRepo[F[_]] {
     eid: ExecutionEvent.Id
   ): F[Option[ExecutionEventModel]]
 
-  /** Page events associated with an observation */
-  def selectEventsPageForObservation(
-    oid:      Observation.Id,
-    count:    Option[Int],
-    afterGid: Option[ExecutionEvent.Id] = None
-  ): F[ResultPage[ExecutionEventModel]]
-
-  def selectStepEventsPageForObservation(
-    oid:      Observation.Id,
-    count:    Option[Int],
-    afterGid: Option[ExecutionEvent.Id] = None
-  ): F[ResultPage[StepEvent]]
-
-  def selectDatasetEventsPageForObservation(
-    oid:      Observation.Id,
-    count:    Option[Int],
-    afterGid: Option[ExecutionEvent.Id] = None
-  ): F[ResultPage[DatasetEvent]]
+  def selectWhere(
+    where:  WhereExecutionEventInput,
+    offset: Option[ExecutionEvent.Id],
+    limit:  Option[NonNegInt]
+  ): F[SizeLimitedResult[ExecutionEventModel]]
 
   def selectStepForId[S, D](
     oid:    Observation.Id,
@@ -52,21 +41,10 @@ sealed trait ExecutionEventRepo[F[_]] {
     visits: VisitRecords => List[(Visit.Id, VisitRecord[S, D])]
   ): F[Option[StepRecord.Output[D]]]
 
-  /** Page executed visits associated with an observation. */
-  def selectVisitsPageForObservation[S, D](
-    oid:    Observation.Id,
-    visits: VisitRecords => List[(Visit.Id, VisitRecord[S, D])],
-    count:  Option[Int],
-    after:  Option[Visit.Id] = None
-  ): F[ResultPage[VisitRecord.Output[S, D]]]
-
-  /** Page executed steps associated with an observation. */
-  def selectStepsPageForObservation[S, D](
-    oid:    Observation.Id,
-    visits: VisitRecords => List[(Visit.Id, VisitRecord[S, D])],
-    count:  Option[Int],
-    after:  Option[Step.Id] = None
-  ): F[ResultPage[StepRecord.Output[D]]]
+  def selectVisitsForObservation[S, D](
+    oid:   Observation.Id,
+    recs:  VisitRecords => List[(Visit.Id, VisitRecord[S, D])]
+  ): F[List[VisitRecord.Output[S, D]]]
 
   /** Select all recorded steps for an observation at once. */
   def selectStepsForObservation[S, D](
@@ -115,6 +93,20 @@ object ExecutionEventRepo {
         eid: ExecutionEvent.Id
       ): F[Option[ExecutionEventModel]] =
         databaseRef.get.map(_.executionEvents.rows.get(eid))
+
+      override def selectWhere(
+        where:  WhereExecutionEventInput,
+        offset: Option[ExecutionEvent.Id],
+        limit:  Option[NonNegInt]
+      ): F[SizeLimitedResult[ExecutionEventModel]] =
+
+        databaseRef.get.map { tables =>
+
+          val all     = tables.executionEvents.rows
+          val off     = offset.fold(all.iterator)(all.iteratorFrom).to(LazyList).map(_._2)
+          val matches = off.filter(where.matches)
+          SizeLimitedResult.Select.fromAll(matches.toList, limit)
+        }
 
       // Sort events by timestamp + event id
 
@@ -166,9 +158,9 @@ object ExecutionEventRepo {
       ): Option[StepRecord.Output[D]] = {
 
         val events  = sortedEvents(db) {
-          case SequenceEvent(_, _, _, SequenceEvent.Location(o), _)     => o === oid
-          case StepEvent(_, _, _, StepEvent.Location(o, s), _)          => o === oid && s === stepId
-          case DatasetEvent(_, _, _, DatasetEvent.Location(o, s, _), _) => o === oid && s === stepId
+          case SequenceEvent(_, _, _, SequenceEvent.Location(o), _) => o === oid
+          case StepEvent(_, _, _, StepEvent.Location(o, s), _)      => o === oid && s === stepId
+          case DatasetEvent(_, _, _, DatasetModel.Id(o, s, _), _)   => o === oid && s === stepId
         }
 
         val stepRec = Database.visitRecordsAt(oid).get(db).toList.flatMap { vrs =>
@@ -224,12 +216,10 @@ object ExecutionEventRepo {
           }).toList.flatten
         }
 
-      def selectVisitsPageForObservation[S, D](
+      override def selectVisitsForObservation[S, D](
         oid:   Observation.Id,
-        recs:  VisitRecords => List[(Visit.Id, VisitRecord[S, D])],
-        count: Option[Int],
-        after: Option[Visit.Id] = None
-      ): F[ResultPage[VisitRecord.Output[S, D]]] =
+        recs:  VisitRecords => List[(Visit.Id, VisitRecord[S, D])]
+      ): F[List[VisitRecord.Output[S, D]]] =
 
         databaseRef.get.map { db =>
 
@@ -242,7 +232,7 @@ object ExecutionEventRepo {
             case e@SequenceEvent(_,_,_,_,_) => e
           }
 
-          val allVisits = visits.map { case (vid, vr) =>
+          visits.map { case (vid, vr) =>
             VisitRecord.Output[S,D](
               oid,
               vid,
@@ -254,65 +244,6 @@ object ExecutionEventRepo {
               seqEvents
             )
           }
-
-          ResultPage.fromSeq(
-            allVisits,
-            count,
-            after,
-            _.visitId
-          )
-        }
-
-
-      override def selectStepsPageForObservation[S, D](
-        oid:    Observation.Id,
-        visits: VisitRecords => List[(Visit.Id, VisitRecord[S, D])],
-        count:  Option[Int],
-        after:  Option[Step.Id] = None
-      ): F[ResultPage[StepRecord.Output[D]]] =
-
-        selectStepsForObservation(oid, visits).map { steps =>
-          ResultPage.fromSeq(
-            steps,
-            count,
-            after,
-            _.stepId
-          )
-        }
-
-
-      override def selectEventsPageForObservation(
-        oid:      Observation.Id,
-        count:    Option[Int],
-        afterGid: Option[ExecutionEvent.Id]
-      ): F[ResultPage[ExecutionEventModel]] =
-        databaseRef.get.map { db =>
-          ResultPage.fromSeq(sortedEvents(db)(_.observationId === oid), count, afterGid, _.id)
-        }
-
-      override def selectStepEventsPageForObservation(
-        oid:      Observation.Id,
-        count:    Option[Int],
-        afterGid: Option[ExecutionEvent.Id] = None
-      ): F[ResultPage[StepEvent]] =
-        databaseRef.get.map { db =>
-          val events = sortedEvents(db)(_.observationId === oid).collect {
-            case s @ StepEvent(_, _, _, _, _) => s
-          }
-          ResultPage.fromSeq(events, count, afterGid, _.id)
-        }
-
-
-      override def selectDatasetEventsPageForObservation(
-        oid:      Observation.Id,
-        count:    Option[Int],
-        afterGid: Option[ExecutionEvent.Id] = None
-      ): F[ResultPage[DatasetEvent]] =
-        databaseRef.get.map { db =>
-          val events = sortedEvents(db)(_.observationId === oid).collect {
-            case d @ DatasetEvent(_, _, _, _, _) => d
-          }
-          ResultPage.fromSeq(events, count, afterGid, _.id)
         }
 
       private def received: F[Instant] =

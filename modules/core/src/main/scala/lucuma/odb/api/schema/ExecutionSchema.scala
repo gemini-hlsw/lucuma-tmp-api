@@ -7,7 +7,7 @@ import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all._
 import lucuma.core.enums.Instrument
-import lucuma.core.model.{ExecutionEvent, Observation}
+import lucuma.core.model.Observation
 import lucuma.gen.SequenceComputation
 import lucuma.odb.api.model._
 import lucuma.odb.api.repo.OdbCtx
@@ -20,10 +20,11 @@ object ExecutionSchema {
   import AtomSchema.AtomConcreteType
   import context._
   import DatasetSchema._
-  import ExecutionEventSchema._
+  import ExecutionEventSchema.{ArgumentOptionOffsetExecutionEvent, ExecutionEventSelectResult}
   import InstrumentSchema.EnumTypeInstrument
   import GmosSchema.{GmosNorthDynamicType, GmosNorthStaticConfigType, GmosSouthDynamicType, GmosSouthStaticConfigType}
-  import Paging._
+  import QuerySchema.ArgumentOptionLimit
+  import VisitRecordSchema.VisitRecordType
 
 
   def ExecutionConfigType[F[_]]: InterfaceType[OdbCtx[F], ExecutionContext] =
@@ -103,22 +104,8 @@ object ExecutionSchema {
 
       Field(
         name        = "visits",
-        fieldType   = VisitRecordSchema.visitRecordConnectionType[F, S, D](instrument.tag, staticType, dynamicType),
-        arguments   = List(
-          ArgumentPagingFirst,
-          ArgumentPagingCursor
-        ),
-        resolve     = c =>
-          unsafeSelectPageFuture[F, Visit.Id, VisitRecord.Output[S, D]](
-            c.pagingVisitId,
-            (r: VisitRecord.Output[S, D]) => Cursor.uid[Visit.Id].reverseGet(r.visitId),
-            vid => c.ctx.odbRepo.executionEvent.selectVisitsPageForObservation[S, D](
-              c.value.oid,
-              visits,
-              c.pagingFirst,
-              vid
-            )
-          )
+        fieldType   = ListType(VisitRecordType[F, S, D](instrument.tag, staticType, dynamicType)),
+        resolve     = c => c.executionEvent(_.selectVisitsForObservation(c.value.oid, visits))
       )
 
     )
@@ -165,34 +152,34 @@ object ExecutionSchema {
 
         Field(
           name        = "datasets",
-          fieldType   = DatasetConnectionType[F],
+          fieldType   = DatasetSelectResult[F],
           description = "Datasets associated with the observation".some,
           arguments   = List(
-            ArgumentPagingFirst,
-            ArgumentPagingCursor
+            ArgumentOptionOffsetDataset,
+            ArgumentOptionLimit
           ),
-          resolve     = c =>
-            unsafeSelectPageFuture[F, DatasetModel.Id, DatasetModel](
-              c.pagingCursor("(observation-id,step-id,index)")(s => DatasetIdCursor.getOption(s)),
-              dm => DatasetIdCursor.reverseGet(dm.id),
-              o  => c.ctx.odbRepo.dataset.selectDatasetsPage(c.value, None, c.pagingFirst, o)
-            )
+          resolve     = c => {
+            val where = WhereDatasetInput.MatchAll.withObservation(c.value)
+            val off   = c.arg(ArgumentOptionOffsetDataset)
+            val limit = c.resultSetLimit
+            c.dataset(_.selectWhere(where, off, limit))
+          }
         ),
 
         Field(
           name        = "events",
-          fieldType   = ExecutionEventConnectionType[F],
+          fieldType   = ExecutionEventSelectResult[F],
           description = "Events associated with the observation".some,
           arguments   = List(
-            ArgumentPagingFirst,
-            ArgumentPagingCursor
+            ArgumentOptionOffsetExecutionEvent,
+            ArgumentOptionLimit
           ),
-          resolve     = c =>
-            unsafeSelectPageFuture[F, ExecutionEvent.Id, ExecutionEventModel](
-              c.pagingExecutionEventId,
-              (e: ExecutionEventModel) => Cursor.gid[ExecutionEvent.Id].reverseGet(e.id),
-              eid => c.ctx.odbRepo.executionEvent.selectEventsPageForObservation(c.value, c.pagingFirst, eid)
-            )
+          resolve     = c => {
+            val where = WhereExecutionEventInput.matchObservation(c.value)
+            val off   = c.arg(ArgumentOptionOffsetExecutionEvent)
+            val limit = c.resultSetLimit
+            c.executionEvent(_.selectWhere(where, off, limit))
+          }
         ),
 
         Field(

@@ -7,7 +7,7 @@ import lucuma.core.math.Angle
 import lucuma.core.enums.FocalPlane
 import lucuma.core.enums.SpectroscopyCapabilities
 import lucuma.core.enums.ScienceMode
-import lucuma.odb.api.model.{FocalPlaneAngleInput, ScienceRequirements, SpectroscopyScienceRequirements}
+import lucuma.odb.api.model.{FocalPlaneAngleInput, ScienceRequirements, ScienceRequirementsInput, SpectroscopyScienceRequirements, SpectroscopyScienceRequirementsInput}
 import lucuma.odb.api.schema.syntax.all._
 import sangria.schema._
 import sangria.macros.derive._
@@ -15,6 +15,7 @@ import sangria.macros.derive._
 object ScienceRequirementsSchema {
   import WavelengthSchema._
   import RefinedSchema._
+  import syntax.inputtype._
 
   implicit val EnumTypeScienceRequirementMode: EnumType[ScienceMode] =
     EnumType.fromEnumerated("ScienceRequirementMode", "Mode Spectroscopy/Imaging")
@@ -149,6 +150,32 @@ object ScienceRequirementsSchema {
             resolve     = _.value.spectroscopy
           ),
         )
+    )
+
+  implicit val InputObjectTypeSpectroscopyScienceRequirements: InputObjectType[SpectroscopyScienceRequirementsInput] =
+    InputObjectType[SpectroscopyScienceRequirementsInput](
+      "SpectroscopyScienceRequirementsInput",
+      "Edit or create spectroscopy science requirements",
+      List(
+        InputWavelength.nullableField("wavelength"),
+        PosIntType.nullableField("resolution"),
+        PosBigDecimalType.nullableField("signalToNoise"),
+        InputWavelength.nullableField("signalToNoiseAt"),
+        InputWavelength.nullableField("wavelengthCoverage"),
+        EnumTypeFocalPlane.nullableField("focalPlane"),
+        InputFocalPlaneAngleInput.nullableField("focalPlaneAngle"),
+        EnumTypeSpectroscopyCapabilities.nullableField("capabilities")
+      )
+    )
+
+  implicit val InputObjectTypeScienceRequirements: InputObjectType[ScienceRequirementsInput] =
+    InputObjectType[ScienceRequirementsInput](
+      "ScienceRequirementsInput",
+      "Edit science requirements",
+      List(
+        EnumTypeScienceRequirementMode.notNullableField("mode"),
+        InputObjectTypeSpectroscopyScienceRequirements.notNullableField("spectroscopy")
+      )
     )
 
 }

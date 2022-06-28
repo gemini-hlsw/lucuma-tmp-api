@@ -7,8 +7,9 @@ import cats.MonadError
 import cats.effect.Ref
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import lucuma.core.model.Observation
-import lucuma.odb.api.model.{Database, DatasetModel, Step}
+import eu.timepit.refined.types.all.NonNegInt
+import lucuma.odb.api.model.query.{SizeLimitedResult, WherePredicate}
+import lucuma.odb.api.model.{Database, DatasetModel}
 import lucuma.odb.api.model.syntax.databasestate._
 import lucuma.odb.api.model.syntax.eitherinput._
 
@@ -18,21 +19,15 @@ sealed trait DatasetRepo[F[_]] {
     id: DatasetModel.Id
   ): F[Option[DatasetModel]]
 
-  def selectDatasets(
-    oid: Observation.Id,
-    sid: Option[Step.Id],
-  ): F[List[DatasetModel]]
+  def selectWhere(
+    where:  WherePredicate[DatasetModel],
+    offset: Option[DatasetModel.Id],
+    limit:  Option[NonNegInt]
+  ): F[SizeLimitedResult[DatasetModel]]
 
-  def selectDatasetsPage(
-    oid:   Observation.Id,
-    sid:   Option[Step.Id],
-    count: Option[Int],
-    after: Option[DatasetModel.Id]
-  ): F[ResultPage[DatasetModel]]
-
-  def edit(
-    editInput: DatasetModel.EditInput
-  ): F[DatasetModel.EditResult]
+  def update(
+    input: DatasetModel.UpdateInput
+  ): F[SizeLimitedResult.Update[DatasetModel]]
 
 }
 
@@ -49,34 +44,26 @@ object DatasetRepo {
       ): F[Option[DatasetModel]] =
         databaseRef.get.map { db => db.datasets.select(id) }
 
-      override def selectDatasets(
-        oid: Observation.Id,
-        sid: Option[Step.Id]
-      ): F[List[DatasetModel]] =
-        databaseRef.get.map { db => db.datasets.selectAll(oid, sid, None) }
+      override def selectWhere(
+        where:  WherePredicate[DatasetModel],
+        offset: Option[DatasetModel.Id],
+        limit:  Option[NonNegInt]
+      ): F[SizeLimitedResult[DatasetModel]] = {
 
-      override def selectDatasetsPage(
-        oid:   Observation.Id,
-        sid:   Option[Step.Id],
-        count: Option[Int],
-        after: Option[DatasetModel.Id]
-      ): F[ResultPage[DatasetModel]] =
-        selectDatasets(oid, sid).map { all =>
-          ResultPage.fromSeq(
-            all,
-            count,
-            after,
-            _.id
-          )
+        databaseRef.get.map { tables =>
+          val all     = tables.datasets.datasets
+          val off     = offset.fold(all.iterator)(all.iteratorFrom).to(LazyList).map((DatasetModel.apply _).tupled)
+          val matches = off.filter(where.matches)
+          SizeLimitedResult.Select.fromAll(matches.toList, limit)
         }
+      }
 
-      override def edit(
-        editInput: DatasetModel.EditInput
-      ): F[DatasetModel.EditResult] =
+      override def update(
+        input: DatasetModel.UpdateInput
+      ): F[SizeLimitedResult.Update[DatasetModel]] =
         databaseRef
-          .modifyState(editInput.editor.flipF)
+          .modifyState(input.editor.flipF)
           .flatMap(_.liftTo[F])
-          .map(ds => DatasetModel.EditResult(ds))
 
     }
 

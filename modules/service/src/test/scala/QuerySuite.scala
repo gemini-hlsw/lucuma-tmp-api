@@ -10,8 +10,8 @@ class QuerySuite extends OdbSuite {
   queryTest(
     query = """
       query Programs {
-        programs(programIds: ["p-2", "p-3", "p-4"]) {
-          nodes {
+        programs(WHERE: { id: { IN: ["p-2", "p-3", "p-4"] } } ) {
+          matches {
             id
             name
             proposal {
@@ -24,7 +24,7 @@ class QuerySuite extends OdbSuite {
                   totalTime {
                     seconds
                   }
-                } 
+                }
                 ... on Intensive {
                   minPercentTotalTime
                   totalTime {
@@ -43,11 +43,12 @@ class QuerySuite extends OdbSuite {
           }
         }
       }
+
     """,
     expected = json"""
       {
         "programs" : {
-          "nodes" : [
+          "matches": [
             {
               "id" : "p-2",
               "name" : "The real dark matter was the friends we made along the way",
@@ -86,8 +87,8 @@ class QuerySuite extends OdbSuite {
   queryTest(
     query = """
       query Observations {
-        observations(programId: "p-2") {
-          nodes {
+        observations(WHERE: { programId: { EQ: "p-2" } }) {
+          matches {
             id
             constraintSet {
               cloudExtinction
@@ -102,7 +103,7 @@ class QuerySuite extends OdbSuite {
     expected = json"""
       {
         "observations" : {
-          "nodes" : [
+          "matches" : [
             {
               "id" : "o-2",
               "constraintSet" : {
@@ -167,7 +168,7 @@ class QuerySuite extends OdbSuite {
     query = """
       query ObservationsByConstraintSet {
         constraintSetGroup(programId:"p-2") {
-          nodes {
+          matches {
             constraintSet {
               cloudExtinction
               imageQuality
@@ -175,8 +176,8 @@ class QuerySuite extends OdbSuite {
               waterVapor
             }
             observationIds
-            observations(first: 10) {
-              nodes {
+            observations(LIMIT: 10) {
+              matches {
                 id
                 title
               }
@@ -188,7 +189,7 @@ class QuerySuite extends OdbSuite {
     expected = json"""
       {
         "constraintSetGroup" : {
-          "nodes" : [
+          "matches" : [
             {
               "constraintSet" : {
                 "cloudExtinction" : "POINT_THREE",
@@ -205,7 +206,7 @@ class QuerySuite extends OdbSuite {
                 "o-7"
               ],
               "observations" : {
-                "nodes" : [
+                "matches" : [
                   {
                     "id" : "o-2",
                     "title" : "NGC 5949"
@@ -243,7 +244,7 @@ class QuerySuite extends OdbSuite {
     query = """
       query ObservationsByScienceRequirements {
         scienceRequirementsGroup(programId:"p-2") {
-          nodes {
+          matches {
             scienceRequirements {
               mode
               spectroscopy {
@@ -251,8 +252,8 @@ class QuerySuite extends OdbSuite {
               }
             }
             observationIds
-            observations(first: 10) {
-              nodes {
+            observations(LIMIT: 10) {
+              matches {
                 id
                 title
               }
@@ -264,7 +265,7 @@ class QuerySuite extends OdbSuite {
     expected = json"""
       {
         "scienceRequirementsGroup" : {
-          "nodes" : [
+          "matches" : [
             {
               "scienceRequirements" : {
                 "mode" : "SPECTROSCOPY",
@@ -281,7 +282,7 @@ class QuerySuite extends OdbSuite {
                 "o-7"
               ],
               "observations" : {
-                "nodes" : [
+                "matches" : [
                   {
                     "id" : "o-2",
                     "title" : "NGC 5949"

@@ -6,9 +6,11 @@ package lucuma.odb.api.repo
 import cats.data.{EitherT, StateT}
 import cats.effect.{Async, Ref}
 import cats.implicits._
+import eu.timepit.refined.types.all.NonNegInt
 import lucuma.core.model.{ConstraintSet, Observation, Program, Target}
-import lucuma.odb.api.model.ObservationModel.{BulkEdit, CloneInput, CreateInput, EditInput, Group, ObservationEvent}
-import lucuma.odb.api.model.{Database, EitherInput, Event, ExecutionModel, InputError, ObservationModel, ScienceMode, ScienceRequirements, Table}
+import lucuma.odb.api.model.ObservationModel.{BulkEdit, CloneInput, CreateInput, UpdateInput, Group, ObservationEvent}
+import lucuma.odb.api.model.query.SizeLimitedResult
+import lucuma.odb.api.model.{Database, EitherInput, Event, ExecutionModel, InputError, ObservationModel, ScienceMode, ScienceRequirements, Table, WhereObservationInput}
 import lucuma.odb.api.model.syntax.toplevel._
 import lucuma.odb.api.model.syntax.databasestate._
 import lucuma.odb.api.model.syntax.eitherinput._
@@ -18,19 +20,12 @@ import scala.collection.immutable.SortedSet
 
 sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, ObservationModel] {
 
-  def selectPageForObservations(
-    oids:           Set[Observation.Id],
-    count:          Option[Int]            = None,
-    afterGid:       Option[Observation.Id] = None,
-    includeDeleted: Boolean                = false
-  ): F[ResultPage[ObservationModel]]
-
-  def selectPageForProgram(
+  def selectForProgram(
     pid:            Program.Id,
-    count:          Option[Int]            = None,
-    afterGid:       Option[Observation.Id] = None,
-    includeDeleted: Boolean                = false
-  ): F[ResultPage[ObservationModel]]
+    includeDeleted: Boolean                = false,
+    offset:         Option[Observation.Id] = None,
+    limit:          Option[NonNegInt]      = None
+  ): F[SizeLimitedResult[ObservationModel]]
 
   def selectManualConfig(
     oid:            Observation.Id,
@@ -39,53 +34,53 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
 
   def insert(input: CreateInput): F[ObservationModel.CreateResult]
 
-  def edit(edit: EditInput): F[ObservationModel.EditResult]
+  def update(input: UpdateInput): F[SizeLimitedResult.Update[ObservationModel]]
 
   def clone(input: CloneInput): F[ObservationModel.CloneResult]
 
   def groupByTarget(
-    pid:            Program.Id,
-    includeDeleted: Boolean
+    pid:   Program.Id,
+    WHERE: Option[WhereObservationInput]
   ): F[List[Group[Target.Id]]]
 
   def groupByTargetInstantiated(
-    pid:            Program.Id,
-    includeDeleted: Boolean
+    pid:   Program.Id,
+    WHERE: Option[WhereObservationInput]
   ): F[List[Group[TargetModel]]]
 
   def groupByAsterism(
-    pid:            Program.Id,
-    includeDeleted: Boolean
+    pid:   Program.Id,
+    WHERE: Option[WhereObservationInput]
   ): F[List[Group[SortedSet[Target.Id]]]]
 
   def groupByAsterismInstantiated(
-    pid:            Program.Id,
-    includeDeleted: Boolean
+    pid:   Program.Id,
+    WHERE: Option[WhereObservationInput]
   ): F[List[Group[Seq[TargetModel]]]]
 
   def groupByTargetEnvironment(
-    pid:            Program.Id,
-    includeDeleted: Boolean
+    pid:   Program.Id,
+    WHERE: Option[WhereObservationInput]
   ): F[List[Group[TargetEnvironmentModel]]]
 
   def groupByConstraintSet(
-    pid:            Program.Id,
-    includeDeleted: Boolean
+    pid:   Program.Id,
+    WHERE: Option[WhereObservationInput]
   ): F[List[Group[ConstraintSet]]]
 
   def groupByScienceMode(
-    pid:            Program.Id,
-    includeDeleted: Boolean
+    pid:   Program.Id,
+    WHERE: Option[WhereObservationInput]
   ): F[List[Group[Option[ScienceMode]]]]
 
   def groupByScienceRequirements(
-    pid:            Program.Id,
-    includeDeleted: Boolean
+    pid:   Program.Id,
+    WHERE: Option[WhereObservationInput]
   ): F[List[Group[ScienceRequirements]]]
 
-  def editAsterism(
+  def updateAsterism(
     be: BulkEdit[Seq[EditAsterismPatchInput]]
-  ): F[ObservationModel.EditResult]
+  ): F[SizeLimitedResult.Update[ObservationModel]]
 
 }
 
@@ -98,29 +93,21 @@ object ObservationRepo {
 
     new TopLevelRepoBase[F, Observation.Id, ObservationModel](
       databaseRef,
-      eventService,
       Database.lastObservationId,
-      Database.observations.andThen(Table.rows),
-      (editType, model) => ObservationEvent(_, editType, model)
+      Database.observations.andThen(Table.rows)
     ) with ObservationRepo[F] {
 
-      override def selectPageForObservations(
-        oids:           Set[Observation.Id],
-        count:          Option[Int],
-        afterGid:       Option[Observation.Id],
-        includeDeleted: Boolean
-      ): F[ResultPage[ObservationModel]] =
-
-        selectPageFiltered(count, afterGid, includeDeleted) { o => oids(o.id) }
-
-      override def selectPageForProgram(
+      override def selectForProgram(
         pid:            Program.Id,
-        count:          Option[Int],
-        afterGid:       Option[Observation.Id],
-        includeDeleted: Boolean
-      ): F[ResultPage[ObservationModel]] =
-
-        selectPageFiltered(count, afterGid, includeDeleted) { _.programId === pid }
+        includeDeleted: Boolean,
+        offset:         Option[Observation.Id],
+        limit:          Option[NonNegInt]
+      ): F[SizeLimitedResult[ObservationModel]] =
+        selectWhere(
+          (a: ObservationModel) => a.programId === pid && (includeDeleted || a.existence.isPresent),
+          offset,
+          limit
+        )
 
       override def selectManualConfig(
         oid:            Observation.Id,
@@ -152,17 +139,18 @@ object ObservationRepo {
 
       }
 
-      override def edit(editInput: ObservationModel.EditInput): F[ObservationModel.EditResult] = {
+      override def update(input: ObservationModel.UpdateInput): F[SizeLimitedResult.Update[ObservationModel]] = {
         val editAndValidate =
           for {
-            os  <- editInput.editor
-            osʹ <- os.traverse(_.validate)
-          } yield osʹ
+            r  <- input.editor
+            os  = r.allValues
+            _  <- os.traverse(_.validate)
+          } yield r
 
         for {
           os <- databaseRef.modifyState(editAndValidate.flipF).flatMap(_.liftTo[F])
-          _  <- os.traverse(o => eventService.publish(ObservationEvent.updated(o)))
-        } yield ObservationModel.EditResult(os)
+          _  <- os.allValues.traverse(o => eventService.publish(ObservationEvent.updated(o)))
+        } yield os
       }
 
       override def clone(
@@ -177,8 +165,8 @@ object ObservationRepo {
       // In other words, there are targets which no observations reference.
 
       override def groupByTarget(
-        pid:            Program.Id,
-        includeDeleted: Boolean
+        pid:   Program.Id,
+        WHERE: Option[WhereObservationInput]
       ): F[List[Group[Target.Id]]] =
         databaseRef.get.map { db =>
 
@@ -186,11 +174,11 @@ object ObservationRepo {
             db.observations
               .rows
               .values
-              .filter(o => (o.programId === pid) && (includeDeleted || o.isPresent))
+              .filter(o => (o.programId === pid) && WHERE.getOrElse(WhereObservationInput.MatchPresent).matches(o))
               .flatMap(o => o.targetEnvironment.asterism.toList.tupleRight(o.id))
               .groupMap(_._1)(_._2)
               .view
-              .filterKeys(tid => includeDeleted || db.targets.rows(tid).isPresent)
+              .filterKeys(tid => db.targets.rows(tid).isPresent)
               .map { case (a, oids) => Group.from(a, oids) }
               .toList
 
@@ -198,7 +186,7 @@ object ObservationRepo {
             db.targets
               .rows
               .values
-              .filter(t => (t.programId === pid) && (includeDeleted || t.isPresent))
+              .filter(t => (t.programId === pid) && t.isPresent)
               .map(_.id)
               .toSet
 
@@ -212,27 +200,27 @@ object ObservationRepo {
         }
 
       override def groupByTargetInstantiated(
-        pid:            Program.Id,
-        includeDeleted: Boolean
+        pid:   Program.Id,
+        WHERE: Option[WhereObservationInput]
       ): F[List[Group[TargetModel]]] =
 
         for {
-          g <- groupByTarget(pid, includeDeleted)
+          g <- groupByTarget(pid, WHERE)
           d <- databaseRef.get
         } yield g.map(_.map(d.targets.rows.apply))
 
 
       private def groupBy[A](
-        pid:            Program.Id,
-        includeDeleted: Boolean
+        pid:   Program.Id,
+        WHERE: Option[WhereObservationInput]
       )(
         f: ObservationModel => A
       ): F[List[Group[A]]] =
-        groupByWithTables[A](pid, includeDeleted)((_, o) => f(o))
+        groupByWithTables[A](pid, WHERE)((_, o) => f(o))
 
       private def groupByWithTables[A](
-        pid:            Program.Id,
-        includeDeleted: Boolean
+        pid:   Program.Id,
+        WHERE: Option[WhereObservationInput]
       )(
         f: (Database, ObservationModel) => A
       ): F[List[Group[A]]] =
@@ -240,7 +228,7 @@ object ObservationRepo {
           db.observations
             .rows
             .values
-            .filter(o => (o.programId === pid) && (includeDeleted || o.isPresent))
+            .filter(o => (o.programId === pid) && WHERE.getOrElse(WhereObservationInput.MatchPresent).matches(o))
             .map(o => (f(db, o), o.id))
             .groupMap(_._1)(_._2)
             .map { case (a, oids) => Group.from(a, oids) }
@@ -249,60 +237,65 @@ object ObservationRepo {
         }
 
       override def groupByAsterism(
-        pid:            Program.Id,
-        includeDeleted: Boolean
+        pid:   Program.Id,
+        WHERE: Option[WhereObservationInput]
       ): F[List[Group[SortedSet[Target.Id]]]] =
-        groupByWithTables(pid, includeDeleted) { (t, o) =>
-          o.targetEnvironment.asterism.filter(tid => includeDeleted || t.targets.rows(tid).isPresent)
+        groupByWithTables(pid, WHERE) { (t, o) =>
+          o.targetEnvironment.asterism.filter(tid => t.targets.rows(tid).isPresent)
         }
 
       override def groupByAsterismInstantiated(
-        pid:            Program.Id,
-        includeDeleted: Boolean
+        pid:   Program.Id,
+        WHERE: Option[WhereObservationInput]
       ): F[List[Group[Seq[TargetModel]]]] =
 
         for {
-          g <- groupByAsterism(pid, includeDeleted)
+          g <- groupByAsterism(pid, WHERE)
           t <- databaseRef.get
         } yield g.map(_.map(_.toList.map(t.targets.rows.apply)))
 
       override def groupByTargetEnvironment(
-       pid:            Program.Id,
-       includeDeleted: Boolean
-     ): F[List[Group[TargetEnvironmentModel]]] =
-       groupByWithTables(pid, includeDeleted) { (t, o) =>
+        pid:   Program.Id,
+        WHERE: Option[WhereObservationInput]
+      ): F[List[Group[TargetEnvironmentModel]]] =
+       groupByWithTables(pid, WHERE) { (t, o) =>
          TargetEnvironmentModel.asterism.modify {
-           _.filter(tid => includeDeleted || t.targets.rows(tid).isPresent)
+           _.filter(tid => t.targets.rows(tid).isPresent)
          }(o.targetEnvironment)
        }
 
       override def groupByConstraintSet(
-        pid:            Program.Id,
-        includeDeleted: Boolean
+        pid:   Program.Id,
+        WHERE: Option[WhereObservationInput]
       ): F[List[Group[ConstraintSet]]] =
-        groupBy(pid, includeDeleted)(_.constraintSet)
+        groupBy(pid, WHERE)(_.constraintSet)
 
       override def groupByScienceMode(
-        pid:            Program.Id,
-        includeDeleted: Boolean
+        pid:   Program.Id,
+        WHERE: Option[WhereObservationInput]
       ): F[List[Group[Option[ScienceMode]]]] =
-        groupBy(pid, includeDeleted)(_.scienceMode)
+        groupBy(pid, WHERE)(_.scienceMode)
 
       override def groupByScienceRequirements(
-        pid:            Program.Id,
-        includeDeleted: Boolean
+        pid:   Program.Id,
+        WHERE: Option[WhereObservationInput]
       ): F[List[Group[ScienceRequirements]]] =
-        groupBy(pid, includeDeleted)(_.scienceRequirements)
+        groupBy(pid, WHERE)(_.scienceRequirements)
 
       // A bulk edit for target environment with a post-observation validation
       private def doBulkEditTargets(
         be: BulkEdit[_],
         ed: StateT[EitherInput, TargetEnvironmentModel, Unit]
-      ): F[ObservationModel.EditResult] = {
+      ): F[SizeLimitedResult.Update[ObservationModel]] = {
+
+        def filteredObservations(db: Database): List[ObservationModel] = {
+          val all = db.observations.rows.values
+          be.WHERE.fold(all)(where => all.filter(where.matches)).toList
+        }
 
         val update =
           for {
-            ini  <- be.select.go
+            ini  <- StateT.inspect[EitherInput, Database, List[ObservationModel]](filteredObservations)
             osʹ  <- StateT.liftF(ini.traverse(ObservationModel.targetEnvironment.modifyA(ed.runS)))
             vos  <- osʹ.traverse(_.validate)
             _    <- vos.traverse(o => Database.observation.update(o.id, o))
@@ -311,14 +304,14 @@ object ObservationRepo {
         for {
           os <- databaseRef.modifyState(update.flipF).flatMap(_.liftTo[F])
           _  <- os.traverse_(o => eventService.publish(ObservationModel.ObservationEvent.updated(o)))
-        } yield ObservationModel.EditResult(os)
+        } yield SizeLimitedResult.Update.fromAll(os, be.LIMIT)
 
       }
 
-      override def editAsterism(
+      override def updateAsterism(
         be: BulkEdit[Seq[EditAsterismPatchInput]]
-      ): F[ObservationModel.EditResult] =
-        doBulkEditTargets(be, EditAsterismPatchInput.multiEditor(be.patch.toList))
+      ): F[SizeLimitedResult.Update[ObservationModel]] =
+        doBulkEditTargets(be, EditAsterismPatchInput.multiEditor(be.SET.toList))
 
     }
 }
