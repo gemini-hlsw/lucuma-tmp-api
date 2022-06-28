@@ -20,7 +20,7 @@ object MutationType {
     ObjectType(
       name   = "Mutation",
       fields = (
-        ProgramMutation.allFields[F]                    ++
+        ProgramSchema.mutationFields[F]                 ++
         ObservationSchema.mutationFields[F]             ++
         TargetMutation.allFields[F]                     ++
         ExecutionEventSchema.mutationFields[F](testing) ++

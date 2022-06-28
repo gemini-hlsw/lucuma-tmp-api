@@ -19,7 +19,7 @@ object QueryType {
       name   = "Query",
       fields = (
         ObservationSchema.queryFields[F]   ++
-        ProgramQuery.allFields[F]          ++
+        ProgramSchema.queryFields[F]       ++
         TargetQuery.allFields[F]           ++
         DatasetSchema.queryFields[F]       ++
         ExecutionEventSchema.queryFields[F]
