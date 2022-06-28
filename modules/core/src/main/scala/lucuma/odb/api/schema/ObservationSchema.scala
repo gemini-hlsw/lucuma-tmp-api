@@ -36,8 +36,7 @@ object ObservationSchema {
   import RefinedSchema.{NonEmptyStringType, NonNegIntType}
   import QuerySchema._
   import ScienceModeSchema.InputObjectTypeScienceMode
-  import ScienceRequirementsMutation.InputObjectTypeScienceRequirements
-  import ScienceRequirementsSchema.ScienceRequirementsType
+  import ScienceRequirementsSchema.{InputObjectTypeScienceRequirements, ScienceRequirementsType}
   import TargetMutation.{InputObjectTypeEditAsterisms, InputObjectTypeTargetEnvironment}
   import TargetSchema.TargetType
   import TimeSchema.InstantScalar
