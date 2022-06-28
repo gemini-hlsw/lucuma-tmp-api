@@ -9,7 +9,8 @@ val circeExtrasVersion          = "0.14.2"
 val circeVersion                = "0.14.2"
 val cirisVersion                = "2.3.2"
 val clueVersion                 = "0.23.0"
-val http4sVersion               = "0.23.12"
+val http4sVersion               = "0.23.13"
+val http4sBlazeVersion          = "0.23.12"
 val http4sJdkHttpClientVersion  = "0.7.0"
 val fs2Version                  = "3.2.8"
 val jawnVersion                 = "1.3.2"
@@ -21,7 +22,7 @@ val lucumaGraphQLRoutesVersion  = "0.3.4"
 val log4catsVersion             = "2.3.2"
 val monocleVersion              = "3.1.0"
 val munitCatsEffectVersion      = "1.0.7"
-val refinedVersion              = "0.9.29"
+val refinedVersion              = "0.10.0"
 val sangriaVersion              = "3.0.0"
 val sangriaCirceVersion         = "1.3.2"
 val singletonOpsVersion         = "0.5.2"
@@ -139,8 +140,8 @@ lazy val service = project
       "org.typelevel"              %% "log4cats-slf4j"                % log4catsVersion,
       "ch.qos.logback"             %  "logback-classic"               % logbackVersion,
       "org.http4s"                 %% "http4s-core"                   % http4sVersion,
-      "org.http4s"                 %% "http4s-blaze-server"           % http4sVersion,
-      "org.http4s"                 %% "http4s-blaze-client"           % http4sVersion,
+      "org.http4s"                 %% "http4s-blaze-server"           % http4sBlazeVersion,
+      "org.http4s"                 %% "http4s-blaze-client"           % http4sBlazeVersion,
       "org.http4s"                 %% "http4s-circe"                  % http4sVersion,
       "org.http4s"                 %% "http4s-dsl"                    % http4sVersion,
       "edu.gemini"                 %% "clue-http4s"                   % clueVersion            % Test,
