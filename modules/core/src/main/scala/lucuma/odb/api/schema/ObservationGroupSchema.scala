@@ -81,7 +81,7 @@ object ObservationGroupSchema {
       )
 
     val selectResultType =
-      SelectResultType[ObservationModel.Group[A]](name, groupType)
+      SelectResultType[ObservationModel.Group[A]](s"${name}Group", groupType)
 
     Field(
       name        = s"${name}Group",

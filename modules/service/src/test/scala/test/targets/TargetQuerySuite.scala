@@ -19,6 +19,44 @@ class TargetQuerySuite extends OdbSuite {
   // o-7: <none>
   //
 
+  // Fetch all science targets.  There is a t-6 but for p-3 so we skip it.
+  queryTest(
+    query ="""
+      query AllTargets {
+        targets(WHERE: { programId: { EQ: "p-2" } }) {
+          matches {
+            id
+            name
+          }
+        }
+      }
+    """,
+    expected = json"""
+      {
+        "targets": {
+          "matches": [
+            {
+              "id": "t-2",
+              "name": "NGC 5949"
+            },
+            {
+              "id": "t-3",
+              "name": "NGC 3269"
+            },
+            {
+              "id": "t-4",
+              "name": "NGC 3312"
+            },
+            {
+              "id": "t-5",
+              "name": "NGC 4749"
+            }
+          ]
+        }
+      }
+    """
+  )
+
   // Fetch all science targets for o-6.
   queryTest(
     query ="""
