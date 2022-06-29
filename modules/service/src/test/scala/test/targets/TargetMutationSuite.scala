@@ -99,6 +99,7 @@ class TargetMutationSuite extends OdbSuite {
       mutation CloneTarget($cloneInput: CloneTargetInput!) {
         cloneTarget(input: $cloneInput) {
           newTarget {
+            id
             name
             existence
           }
@@ -109,6 +110,7 @@ class TargetMutationSuite extends OdbSuite {
       {
         "cloneTarget": {
           "newTarget": {
+            "id": "t-7",
             "name": "NGC 3312",
             "existence": "PRESENT"
           }
@@ -124,4 +126,112 @@ class TargetMutationSuite extends OdbSuite {
     """.some,
     clients = List(ClientOption.Http)
   )
+
+  // Create a new non-sidereal target.
+  queryTest(
+    query = """
+      mutation CreateTarget($createTargetInput: CreateTargetInput!) {
+        createTarget(input: $createTargetInput) {
+          target {
+            id
+          }
+        }
+      }
+    """,
+    expected = json"""
+      {
+        "createTarget": {
+          "target": {
+            "id": "t-8"
+          }
+        }
+      }
+    """,
+    variables = json"""
+      {
+        "createTargetInput": {
+          "programId": "p-2",
+          "SET": {
+            "name": "Mars",
+            "nonsidereal": {
+              "keyType": "MAJOR_BODY",
+              "des": "499"
+            },
+            "sourceProfile": {
+              "point": {
+                "bandNormalized": {
+                  "sed": {
+                    "planet": "MARS"
+                  },
+                  "brightnesses": [
+                    {
+                      "band": "V",
+                      "value": 10,
+                      "units": "VEGA_MAGNITUDE"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    """.some
+  )
+
+  // Now do an multi-target edit which should fail for the nonsidereal target
+  queryTestFailure(
+    query = """
+      mutation MultiTargetEdit($updateTargetsInput: UpdateTargetsInput!) {
+        updateTargets(input: $updateTargetsInput) {
+          hasMore
+        }
+      }
+    """,
+    errors = List(
+      "No sidereal 'ra' definition provided",
+      "No sidereal 'dec' definition provided"
+    ),
+    variables = json"""
+      {
+        "updateTargetsInput": {
+          "SET": {
+            "sidereal": {
+              "parallax": {
+                "microarcseconds": 1
+              }
+            }
+          },
+          "WHERE": {
+            "id": { "IN": [ "t-7", "t-8" ] }
+          }
+        }
+      }
+    """.some
+  )
+
+  // Target t-7 wasn't modified.
+  queryTest(
+    query = """
+      query ParallaxNotChanged {
+        target(targetId: "t-7") {
+          sidereal {
+            parallax {
+              microarcseconds
+            }
+          }
+        }
+      }
+    """,
+    expected = json"""
+      {
+        "target": {
+          "sidereal": {
+            "parallax": null
+          }
+        }
+      }
+    """
+  )
+
 }
