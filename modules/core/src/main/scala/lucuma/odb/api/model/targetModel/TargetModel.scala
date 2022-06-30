@@ -7,7 +7,6 @@ import cats.{Eq, Order}
 import cats.data.{StateT, Validated}
 import cats.syntax.apply._
 import cats.syntax.option._
-import cats.syntax.traverse._
 import clue.data.Input
 import clue.data.syntax._
 import eu.timepit.refined.cats._
@@ -17,8 +16,7 @@ import io.circe.Decoder
 import io.circe.generic.semiauto._
 import io.circe.refined._
 import lucuma.core.model.{Observation, Program, SourceProfile, Target}
-import lucuma.odb.api.model.{Database, EitherInput, Event, Existence, InputError, TopLevelModel, ValidatedInput, WhereObservationInput}
-import lucuma.odb.api.model.query.SizeLimitedResult
+import lucuma.odb.api.model.{Database, DatabaseState, EitherInput, Event, Existence, InputError, TopLevelModel, TopLevelUpdateInput, ValidatedInput, WhereObservationInput}
 import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.validatedinput._
@@ -205,20 +203,16 @@ object TargetModel extends TargetModelOptics {
     SET:   PropertiesInput,
     WHERE: Option[WhereTargetInput],
     LIMIT: Option[NonNegInt]
-  ) {
+  ) extends TopLevelUpdateInput[Target.Id, TargetModel] {
 
-    private def filteredTargets(db: Database): List[TargetModel] = {
-      val ts = db.targets.rows.values
-      WHERE.fold(ts)(where => ts.filter(where.matches)).toList
-    }
+    override def typeName: String =
+      "target"
 
+    override def editOne: StateT[EitherInput, TargetModel, Unit] =
+      SET.edit
 
-    val editor: StateT[EitherInput, Database, SizeLimitedResult.Update[TargetModel]] =
-      for {
-        ts  <- StateT.inspect[EitherInput, Database, List[TargetModel]](filteredTargets)
-        tsʹ <- StateT.liftF[EitherInput, Database, List[TargetModel]](ts.traverse(SET.edit.runS))
-        _   <- tsʹ.traverse(t => Database.target.update(t.id, t))
-      } yield SizeLimitedResult.Update.fromAll(tsʹ, LIMIT)
+    override def state: DatabaseState[Target.Id, TargetModel] =
+      Database.target
 
   }
 

@@ -189,8 +189,8 @@ class TargetMutationSuite extends OdbSuite {
       }
     """,
     errors = List(
-      "No sidereal 'ra' definition provided",
-      "No sidereal 'dec' definition provided"
+      "target t-8: No sidereal 'ra' definition provided",
+      "target t-8: No sidereal 'dec' definition provided"
     ),
     variables = json"""
       {
