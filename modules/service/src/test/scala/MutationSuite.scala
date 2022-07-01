@@ -247,7 +247,7 @@ class MutationSuite extends OdbSuite {
         }
       """,
     errors = List(
-      "'min' out of range: must be 1.0 <= min <= 3.0"
+      "observations o-3, o-4: 'min' out of range: must be 1.0 <= min <= 3.0"
     ),
     variables = Some(json"""
       {
@@ -431,7 +431,7 @@ class MutationSuite extends OdbSuite {
         }
       """,
     errors = List(
-      "FIXED constraints require an associated `angle` value"
+      "observation o-3: FIXED constraints require an associated `angle` value"
     ),
     variables = Some(json"""
       {

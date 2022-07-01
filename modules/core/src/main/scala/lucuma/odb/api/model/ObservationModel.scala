@@ -26,7 +26,6 @@ import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.odb.api.model.targetModel.{TargetEnvironmentInput, TargetEnvironmentModel}
 import lucuma.core.enums.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.{ConstraintSet, Observation, Program}
-import lucuma.odb.api.model.query.SizeLimitedResult
 import monocle.{Focus, Lens, Optional}
 
 import java.time.Instant
@@ -252,21 +251,16 @@ object ObservationModel extends ObservationOptics {
     SET:   PropertiesInput,
     WHERE: Option[WhereObservationInput],
     LIMIT: Option[NonNegInt]
-  ) {
+  ) extends TopLevelUpdateInput[Observation.Id, ObservationModel] {
 
-    private def filteredObservations(db: Database): List[ObservationModel] = {
-      val os = db.observations.rows.values
-      WHERE.fold(os)(where => os.filter(where.matches)).toList
-    }
+    override def typeName: String =
+      "observation"
 
-    // At the moment, manual config (if present in SET) is ignored
-    val editor: StateT[EitherInput, Database, SizeLimitedResult.Update[ObservationModel]] =
-      for {
-        os  <- StateT.inspect[EitherInput, Database, List[ObservationModel]](filteredObservations)
-        osʹ <- StateT.liftF[EitherInput, Database, List[ObservationModel]](os.traverse(SET.edit.runS))
-        _   <- osʹ.traverse(o => Database.observation.update(o.id, o))
-      } yield SizeLimitedResult.Update.fromAll(osʹ, LIMIT)
+    override def editOne: StateT[EitherInput, ObservationModel, Unit] =
+      SET.edit
 
+    override def state: DatabaseState[Observation.Id, ObservationModel] =
+      Database.observation
   }
 
   object UpdateInput {

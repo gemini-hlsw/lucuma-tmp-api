@@ -17,7 +17,6 @@ import lucuma.odb.api.model.syntax.input._
 import lucuma.odb.api.model.syntax.lens._
 import lucuma.odb.api.model.syntax.validatedinput._
 import lucuma.core.model.{Program, Proposal}
-import lucuma.odb.api.model.query.SizeLimitedResult
 import monocle.{Focus, Lens}
 
 /**
@@ -129,19 +128,16 @@ object ProgramModel extends ProgramOptics {
     SET:   PropertiesInput,
     WHERE: Option[WhereProgramInput],
     LIMIT: Option[NonNegInt]
-  ) {
+  ) extends TopLevelUpdateInput[Program.Id, ProgramModel] {
 
-    private def filteredPrograms(db: Database): List[ProgramModel] = {
-      val ps = db.programs.rows.values
-      WHERE.fold(ps)(where => ps.filter(where.matches)).toList
-    }
+    override def typeName: String =
+      "program"
 
-    val editor: StateT[EitherInput, Database, SizeLimitedResult.Update[ProgramModel]] =
-      for {
-        ps  <- StateT.inspect[EitherInput, Database, List[ProgramModel]](filteredPrograms)
-        psʹ <- StateT.liftF[EitherInput, Database, List[ProgramModel]](ps.traverse(SET.edit.runS))
-        _   <- psʹ.traverse(p => Database.program.update(p.id, p))
-      } yield SizeLimitedResult.Update.fromAll(psʹ, LIMIT)
+    override def editOne: StateT[EitherInput, ProgramModel, Unit] =
+      SET.edit
+
+    override def state: DatabaseState[Program.Id, ProgramModel] =
+      Database.program
 
   }
 

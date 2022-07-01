@@ -39,10 +39,10 @@ class ProgramMutationSuite extends OdbSuite {
         updatePrograms(input: $updatePrograms)
     """ + programQuery("programs") + "}",
     errors = List(
-      "No minPercentTime definition provided",
-      "No totalTime definition provided",
-      "No toOActivation definition provided",
-      "No partnerSplits definition provided"
+      "program p-3: No minPercentTime definition provided",
+      "program p-3: No totalTime definition provided",
+      "program p-3: No toOActivation definition provided",
+      "program p-3: No partnerSplits definition provided"
     ),
     variables = json"""
       {
