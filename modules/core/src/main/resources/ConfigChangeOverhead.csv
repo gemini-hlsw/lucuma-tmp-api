@@ -1,0 +1,12 @@
+GcalDiffuser,             ,            5.0
+GcalFilter,               ,            5.0
+GcalShutter,              ,            5.0
+GmosNorthDisperser,       GmosNorth,  90.0
+GmosNorthFilter,          GmosNorth,  20.0
+GmosNorthFocalPlaneUnit,  GmosNorth,  60.0
+GmosSouthDisperser,       GmosSouth,  90.0
+GmosSouthFilter,          GmosSouth,  20.0
+GmosSouthFocalPlaneUnit,  GmosSouth,  60.0
+ScienceFold,              ,           15.0
+TelescopeOffsetBase,      ,            7.0
+TelescopeOffsetPerArcsec, ,            0.00625

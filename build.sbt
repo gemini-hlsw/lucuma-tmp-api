@@ -9,6 +9,7 @@ val circeExtrasVersion          = "0.14.2"
 val circeVersion                = "0.14.2"
 val cirisVersion                = "2.3.2"
 val clueVersion                 = "0.23.0"
+val doobieVersion               = "1.0.0-RC2"
 val http4sVersion               = "0.23.13"
 val http4sBlazeVersion          = "0.23.12"
 val http4sJdkHttpClientVersion  = "0.7.0"
@@ -74,6 +75,8 @@ lazy val core = project
       "-Ywarn-macros:after"
     ),
     libraryDependencies ++= Seq(
+      "org.tpolecat"               %% "doobie-core"               % doobieVersion,
+      "org.tpolecat"               %% "doobie-h2"                 % doobieVersion,
       "co.fs2"                     %% "fs2-core"                  % fs2Version,
       "dev.optics"                 %% "monocle-core"              % monocleVersion,
       "dev.optics"                 %% "monocle-state"             % monocleVersion,

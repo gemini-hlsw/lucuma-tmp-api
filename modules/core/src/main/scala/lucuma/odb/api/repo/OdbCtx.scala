@@ -3,6 +3,7 @@
 
 package lucuma.odb.api.repo
 
+import doobie.Transactor
 import lucuma.itc.client.ItcClient
 
 /**
@@ -16,13 +17,16 @@ trait OdbCtx[F[_]] {
 
   def odbRepo:   OdbRepo[F]
 
+  def transactor: Transactor[F]
+
 }
 
 object OdbCtx {
 
   def create[F[_]](
     itc:  ItcClient[F],
-    repo: OdbRepo[F]
+    repo: OdbRepo[F],
+    xa:   Transactor[F]
   ): OdbCtx[F] =
 
     new OdbCtx[F] {
@@ -32,6 +36,9 @@ object OdbCtx {
 
       override def odbRepo: OdbRepo[F] =
         repo
+
+      override def transactor: Transactor[F] =
+        xa
 
     }
 

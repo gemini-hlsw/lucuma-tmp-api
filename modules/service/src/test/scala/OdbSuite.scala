@@ -12,6 +12,10 @@ import clue.PersistentStreamingClient
 import clue.TransactionalClient
 import io.circe.Json
 import clue.http4s.{Http4sBackend, Http4sWSBackend}
+import doobie.Transactor
+import doobie.h2.H2Transactor
+import doobie.implicits._
+import doobie.util.ExecutionContexts
 import io.circe.literal._
 import lucuma.itc.client.ItcClient
 import lucuma.odb.api.repo.OdbCtx
@@ -54,16 +58,31 @@ trait OdbSuite extends CatsEffectSuite {
 //      def collect[B](f: PartialFunction[User,B]): SsoClient[IO,B] = ???
 //    }
 
+  private def transactor[F[_]: Async]: Resource[F, H2Transactor[F]] =
+    for {
+      ce <- ExecutionContexts.fixedThreadPool[F](32)
+      xa <- H2Transactor.newH2Transactor[F](
+        "jdbc:h2:mem:;DB_CLOSE_DELAY=-1",
+        "sa",
+        "",
+        ce
+      )
+    } yield xa
+
   private val httpApp: Resource[IO, WebSocketBuilder2[IO] => HttpApp[IO]] = {
-    val setupContext: IO[OdbCtx[IO]] =
+    def setupContext(xa: Transactor[IO]): IO[OdbCtx[IO]] =
       for {
         itc <- ItcClient.create[IO](uri"https://itc-staging.herokuapp.com/itc")
         rpo <- OdbRepo.create[IO].flatTap(TestInit.initialize(_))
-      } yield OdbCtx.create(itc, rpo)
+      } yield OdbCtx.create(itc, rpo, xa)
 
-    Resource.eval(setupContext).flatMap { ctx =>
-        Main.httpApp(ctx, testing = true) //, ssoClient))  // TODO: SSO
-    }
+    for {
+      xa  <- transactor[IO]
+      _   <- Resource.eval(lucuma.odb.api.h2.PlannedTimeDao.init.transact(xa))
+      ctx <- Resource.eval(setupContext(xa))
+      app <- Main.httpApp(ctx, testing = true)
+    } yield app
+
   }
 
   private val server: Resource[IO, Server] =

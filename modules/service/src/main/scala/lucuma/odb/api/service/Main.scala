@@ -5,7 +5,11 @@ package lucuma.odb.api.service
 
 import lucuma.odb.api.repo.{OdbCtx, OdbRepo}
 import cats.effect.{Async, ExitCode, IO, IOApp, Resource}
+import cats.effect.std.Dispatcher
 import cats.implicits._
+import doobie.h2._
+import doobie.implicits._
+import doobie.util.ExecutionContexts
 import fs2.Stream
 import org.http4s.implicits._
 import org.http4s.HttpApp
@@ -16,7 +20,6 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import lucuma.graphql.routes.SangriaGraphQLService
 import lucuma.graphql.routes.GraphQLService
 import lucuma.odb.api.schema.OdbSchema
-import cats.effect.std.Dispatcher
 import lucuma.graphql.routes.Routes
 import lucuma.itc.client.ItcClient
 import org.http4s.HttpRoutes
@@ -71,23 +74,44 @@ object Main extends IOApp {
 
     }
 
+//  def setupDatabase: ConnectionIO[Unit] = {
+//    sql"""
+//      CREATE TABLE foo (
+//        VALUE INTEGER NOT NULL
+//      )
+//    """.update.run.void
+//  }
+
+  def transactor[F[_]: Async]: Resource[F, H2Transactor[F]] =
+    for {
+      ce <- ExecutionContexts.fixedThreadPool[F](32)
+      xa <- H2Transactor.newH2Transactor[F](
+        "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1",
+        "sa",
+        "",
+        ce
+      )
+    } yield xa
 
   def stream[F[_]: Log4CatsLogger: Async](
-    ctx: OdbCtx[F],
-    cfg: Config
-  ): Stream[F, Nothing] = {
+    itc:  ItcClient[F],
+    repo: OdbRepo[F],
+    cfg:  Config
+  ): Stream[F, ExitCode] =
     // Spin up the server ...
     for {
       // TODO: SSO
 //      sso       <- Stream.resource(cfg.ssoClient[F])
 //      userClient = sso.map(_.user)
+      xa        <- Stream.resource(transactor[F])
+      _         <- Stream.eval(lucuma.odb.api.h2.PlannedTimeDao.init.transact(xa))
+      ctx        = OdbCtx.create[F](itc, repo, xa)
       httpApp   <- Stream.resource(httpApp(ctx, testing = false)) //, userClient)) // TODO: SSO
       exitCode  <- BlazeServerBuilder[F]
         .bindHttp(cfg.port, "0.0.0.0")
         .withHttpWebSocketApp(httpApp)
         .serve
     } yield exitCode
-  }.drain
 
   def run(args: List[String]): IO[ExitCode] =
     for {
@@ -96,8 +120,8 @@ object Main extends IOApp {
       itc  <- ItcClient.create(cfg.itc)(Async[IO], log)
       rpo  <- OdbRepo.create[IO]
       _    <- Init.initialize(rpo)
-      ctx   = OdbCtx.create[IO](itc, rpo)
-      _    <- stream(ctx, cfg)(log, Async[IO]).compile.drain
-    } yield ExitCode.Success
+//      ctx   = OdbCtx.create[IO](itc, rpo)
+      ext  <- stream(itc, rpo, cfg)(log, Async[IO]).compile.lastOrError
+    } yield ext
 }
 

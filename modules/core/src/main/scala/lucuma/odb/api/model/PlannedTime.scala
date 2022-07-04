@@ -9,7 +9,10 @@ import lucuma.core.model.implicits._
 import lucuma.core.syntax.time._
 import cats.{Eq, Semigroup}
 import cats.data.NonEmptyList
+import cats.kernel.Order
+import cats.kernel.Order.catsKernelOrderingForOrder
 import cats.syntax.all._
+import lucuma.core.enums.Instrument
 import org.typelevel.cats.time.instances.duration._
 
 
@@ -56,6 +59,64 @@ object PlannedTime {
     implicit val EnumeratedCategory: Enumerated[Category] = {
       Enumerated.of(ConfigChange, Exposure, Readout, Write)
     }
+
+  }
+
+  sealed abstract class ConfigChangeType(
+    val key:        String,
+    val name:       String,
+    val instrument: Option[Instrument] = None
+  ) extends Product with Serializable
+
+  object ConfigChangeType {
+
+    case object GcalDiffuser             extends ConfigChangeType("GcalDiffuser",             "GCAL Diffuser"              )
+    case object GcalFilter               extends ConfigChangeType("GcalFilter",               "GCAL Filter"                )
+    case object GcalShutter              extends ConfigChangeType("GcalShutter",              "GCAL Shutter"               )
+    case object GmosNorthDisperser       extends ConfigChangeType("GmosNorthDisperser",       "GMOS-N Disperser", Instrument.GmosNorth.some)
+    case object GmosNorthFilter          extends ConfigChangeType("GmosNorthFilter",          "GMOS-N Filter",    Instrument.GmosNorth.some)
+    case object GmosNorthFocalPlaneUnit  extends ConfigChangeType("GmosNorthFocalPlaneUnit",  "GMOS-N FPU",       Instrument.GmosNorth.some)
+    case object GmosSouthDisperser       extends ConfigChangeType("GmosSouthDisperser",       "GMOS-S Disperser", Instrument.GmosSouth.some)
+    case object GmosSouthFilter          extends ConfigChangeType("GmosSouthFilter",          "GMOS-S Filter",    Instrument.GmosSouth.some)
+    case object GmosSouthFocalPlaneUnit  extends ConfigChangeType("GmosSouthFocalPlaneUnit",  "GMOS-S FPU",       Instrument.GmosSouth.some)
+    case object ScienceFold              extends ConfigChangeType("ScienceFold",              "Science Fold"               )
+    case object TelescopeOffsetBase      extends ConfigChangeType("TelescopeOffsetBase",      "Telescope Offset Base"      )
+    case object TelescopeOffsetPerArcsec extends ConfigChangeType("TelescopeOffsetPerArcsec", "Telescope Offset Per Arcsec")
+
+    implicit val EnumeratedConfigChangeType: Enumerated[ConfigChangeType] =
+      Enumerated.of(
+        GcalDiffuser,
+        GcalFilter,
+        GcalShutter,
+        GmosNorthDisperser,
+        GmosNorthFilter,
+        GmosNorthFocalPlaneUnit,
+        GmosSouthDisperser,
+        GmosSouthFilter,
+        GmosSouthFocalPlaneUnit,
+        ScienceFold,
+        TelescopeOffsetBase,
+        TelescopeOffsetPerArcsec
+      )
+  }
+
+  final case class ConfigChangeEntry(
+    changeType: ConfigChangeType,
+    time:       NonNegDuration
+  )
+
+  object ConfigChangeEntry {
+
+    implicit val OrderConfigChangeEntry: Order[ConfigChangeEntry] =
+      Order.from { (a, b) =>
+        a.time.value.compare(b.time.value) match {
+          case 0 => a.changeType.compare(b.changeType)
+          case i => i
+        }
+      }
+
+    def overallCost(entries: Iterable[ConfigChangeEntry]): NonNegDuration =
+      entries.maxOption.map(_.time).getOrElse(NonNegDuration.zero)
 
   }
 
