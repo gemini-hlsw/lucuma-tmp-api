@@ -16,7 +16,6 @@ import lucuma.core.syntax.enumerated._
 import lucuma.core.syntax.string._
 import lucuma.core.util.Enumerated
 import lucuma.odb.api.model.{ObservationModel, ScienceMode}
-import lucuma.odb.api.model.gmos.longslit.{LongSlit => GmosLongSlit}
 
 import scala.collection.immutable.SortedMap
 
@@ -59,31 +58,21 @@ object ItcSpectroscopyInput {
         case Target.Nonsidereal(_, _, _)     => Option.empty
       }
 
-    def overrideWavelength(m: ScienceMode): Option[Wavelength] =
-      m match {
-        case ls: GmosLongSlit[_, _, _] => ls.overrideWavelength
-        case _                         => none
-      }
-
     def wavelengthRequest(o: ObservationModel): Option[Wavelength] =
       o.scienceMode
-       .flatMap(overrideWavelength)
+       .flatMap(_.overrideWavelength)
        .orElse(o.scienceRequirements.spectroscopy.wavelength)
 
-    def overrideSignalToNoise(m: ScienceMode): Option[PosBigDecimal] =
-      m match {
-        case ls: GmosLongSlit[_, _, _] =>
-          ls.overrideExposureTimeMode.flatMap {
-            case ExposureTimeMode.SignalToNoise(value) => value.some
-            case ExposureTimeMode.FixedExposure(_, _)  => none
-          }
-        case _                     => none
-      }
+    def exposureTimeMode(o: ObservationModel): Option[ExposureTimeMode] =
+      o.scienceMode
+       .flatMap(_.overrideExposureTimeMode)
+       .orElse(o.scienceRequirements.spectroscopy.exposureTimeMode)
 
     def s2nRequest(o: ObservationModel): Option[PosBigDecimal] =
-      o.scienceMode
-       .flatMap(overrideSignalToNoise)
-       .orElse(o.scienceRequirements.spectroscopy.signalToNoise)
+      exposureTimeMode(o).flatMap {
+        case ExposureTimeMode.SignalToNoise(value) => value.some
+        case ExposureTimeMode.FixedExposure(_, _)  => none       // ITC cannot handle this yet
+      }
 
     for {
       w   <- wavelengthRequest(o)

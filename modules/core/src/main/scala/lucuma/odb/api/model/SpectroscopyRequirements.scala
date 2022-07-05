@@ -19,6 +19,7 @@ import lucuma.core.enums.FocalPlane
 import lucuma.core.enums.SpectroscopyCapabilities
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
+import lucuma.core.model.ExposureTimeMode
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.odb.api.model.WavelengthModel.WavelengthInput
@@ -37,7 +38,12 @@ final case class SpectroscopyScienceRequirements(
   focalPlane:         Option[FocalPlane],
   focalPlaneAngle:    Option[Angle],
   capabilities:       Option[SpectroscopyCapabilities]
-)
+) {
+
+  def exposureTimeMode: Option[ExposureTimeMode] =
+    signalToNoise.map(ExposureTimeMode.SignalToNoise(_))
+
+}
 
 object SpectroscopyScienceRequirements extends SpectroscopyScienceRequirementsOptics {
   val Default: SpectroscopyScienceRequirements =
