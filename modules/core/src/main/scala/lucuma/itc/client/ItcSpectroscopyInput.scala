@@ -11,11 +11,12 @@ import lucuma.core.enums.Band
 import lucuma.core.math.BrightnessUnits.{BrightnessMeasure, Integrated, Surface}
 import lucuma.core.math.{RadialVelocity, Wavelength}
 import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
-import lucuma.core.model.{ConstraintSet, ElevationRange, SourceProfile, SpectralDefinition, Target, UnnormalizedSED}
+import lucuma.core.model.{ConstraintSet, ElevationRange, ExposureTimeMode, SourceProfile, SpectralDefinition, Target, UnnormalizedSED}
 import lucuma.core.syntax.enumerated._
 import lucuma.core.syntax.string._
 import lucuma.core.util.Enumerated
 import lucuma.odb.api.model.{ObservationModel, ScienceMode}
+import lucuma.odb.api.model.gmos.longslit.{LongSlit => GmosLongSlit}
 
 import scala.collection.immutable.SortedMap
 
@@ -58,9 +59,35 @@ object ItcSpectroscopyInput {
         case Target.Nonsidereal(_, _, _)     => Option.empty
       }
 
+    def overrideWavelength(m: ScienceMode): Option[Wavelength] =
+      m match {
+        case ls: GmosLongSlit[_, _, _] => ls.overrideWavelength
+        case _                         => none
+      }
+
+    def wavelengthRequest(o: ObservationModel): Option[Wavelength] =
+      o.scienceMode
+       .flatMap(overrideWavelength)
+       .orElse(o.scienceRequirements.spectroscopy.wavelength)
+
+    def overrideSignalToNoise(m: ScienceMode): Option[PosBigDecimal] =
+      m match {
+        case ls: GmosLongSlit[_, _, _] =>
+          ls.overrideExposureTimeMode.flatMap {
+            case ExposureTimeMode.SignalToNoise(value) => value.some
+            case ExposureTimeMode.FixedExposure(_, _)  => none
+          }
+        case _                     => none
+      }
+
+    def s2nRequest(o: ObservationModel): Option[PosBigDecimal] =
+      o.scienceMode
+       .flatMap(overrideSignalToNoise)
+       .orElse(o.scienceRequirements.spectroscopy.signalToNoise)
+
     for {
-      w   <- o.scienceRequirements.spectroscopy.wavelength
-      s2n <- o.scienceRequirements.spectroscopy.signalToNoise
+      w   <- wavelengthRequest(o)
+      s2n <- s2nRequest(o)
       b   <- band
       r   <- radialVelocity
       c   <- o.scienceMode
