@@ -12,6 +12,8 @@ import cats.syntax.traverse._
 import clue.data.Input
 import io.circe.Decoder
 import lucuma.core.enums.{GmosNorthFilter, GmosNorthFpu, GmosNorthGrating, GmosSouthFilter, GmosSouthFpu, GmosSouthGrating, Instrument}
+import lucuma.core.math.Wavelength
+import lucuma.core.model.ExposureTimeMode
 import lucuma.odb.api.model.ScienceMode.{GmosNorthLongSlit, GmosNorthLongSlitInput, GmosSouthLongSlit, GmosSouthLongSlitInput}
 import lucuma.odb.api.model.gmos.longslit.{AdvancedConfig, AdvancedConfigInput, BasicConfig, BasicConfigInput}
 import lucuma.odb.api.model.syntax.input._
@@ -23,6 +25,9 @@ sealed trait ScienceMode extends Product with Serializable {
 
   def mode:       ConfigurationMode
   def instrument: Instrument
+
+  def overrideWavelength:       Option[Wavelength]
+  def overrideExposureTimeMode: Option[ExposureTimeMode]
 
   def fold[A](
     gnls: ScienceMode.GmosNorthLongSlit => A,

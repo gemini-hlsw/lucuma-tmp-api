@@ -11,7 +11,7 @@ import lucuma.core.enums.Band
 import lucuma.core.math.BrightnessUnits.{BrightnessMeasure, Integrated, Surface}
 import lucuma.core.math.{RadialVelocity, Wavelength}
 import lucuma.core.model.SpectralDefinition.{BandNormalized, EmissionLines}
-import lucuma.core.model.{ConstraintSet, ElevationRange, SourceProfile, SpectralDefinition, Target, UnnormalizedSED}
+import lucuma.core.model.{ConstraintSet, ElevationRange, ExposureTimeMode, SourceProfile, SpectralDefinition, Target, UnnormalizedSED}
 import lucuma.core.syntax.enumerated._
 import lucuma.core.syntax.string._
 import lucuma.core.util.Enumerated
@@ -58,9 +58,25 @@ object ItcSpectroscopyInput {
         case Target.Nonsidereal(_, _, _)     => Option.empty
       }
 
+    def wavelengthRequest(o: ObservationModel): Option[Wavelength] =
+      o.scienceMode
+       .flatMap(_.overrideWavelength)
+       .orElse(o.scienceRequirements.spectroscopy.wavelength)
+
+    def exposureTimeMode(o: ObservationModel): Option[ExposureTimeMode] =
+      o.scienceMode
+       .flatMap(_.overrideExposureTimeMode)
+       .orElse(o.scienceRequirements.spectroscopy.exposureTimeMode)
+
+    def s2nRequest(o: ObservationModel): Option[PosBigDecimal] =
+      exposureTimeMode(o).flatMap {
+        case ExposureTimeMode.SignalToNoise(value) => value.some
+        case ExposureTimeMode.FixedExposure(_, _)  => none       // ITC cannot handle this yet
+      }
+
     for {
-      w   <- o.scienceRequirements.spectroscopy.wavelength
-      s2n <- o.scienceRequirements.spectroscopy.signalToNoise
+      w   <- wavelengthRequest(o)
+      s2n <- s2nRequest(o)
       b   <- band
       r   <- radialVelocity
       c   <- o.scienceMode

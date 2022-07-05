@@ -7,9 +7,9 @@ import cats.data.NonEmptyList
 import coulomb.Quantity
 import eu.timepit.refined.types.all.PosDouble
 import lucuma.core.enums.{GmosAmpGain, GmosAmpReadMode, GmosRoi, GmosXBinning, GmosYBinning, ImageQuality}
-import lucuma.core.math.Offset
+import lucuma.core.math.{Offset, Wavelength}
 import lucuma.core.math.units.Nanometer
-import lucuma.core.model.SourceProfile
+import lucuma.core.model.{ExposureTimeMode, SourceProfile}
 
 trait LongSlit[G, F, U] {
 
@@ -55,5 +55,11 @@ trait LongSlit[G, F, U] {
 
   def spatialOffsets: NonEmptyList[Offset.Q] =
     explicitOr(_.explicitSpatialOffsets, AdvancedConfig.DefaultSpatialOffsets)
+
+  def overrideWavelength: Option[Wavelength] =
+    advanced.flatMap(_.overrideWavelength)
+
+  def overrideExposureTimeMode: Option[ExposureTimeMode] =
+    advanced.flatMap(_.overrideExposureTimeMode)
 
 }
