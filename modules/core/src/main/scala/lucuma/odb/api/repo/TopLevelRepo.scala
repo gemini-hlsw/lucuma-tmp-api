@@ -34,7 +34,8 @@ trait TopLevelRepo[F[_], I, T] {
   def selectWhere(
     where:  WherePredicate[T],
     offset: Option[I],
-    limit:  Option[NonNegInt]
+    limit:  Option[NonNegInt],
+    includeDeleted: Boolean = false
   ): F[SizeLimitedResult[T]]
 
 }
@@ -75,14 +76,15 @@ abstract class TopLevelRepoBase[F[_], I: Gid, T: TopLevelModel[I, *]](
     }
 
   override def selectWhere(
-    where:  WherePredicate[T],
-    offset: Option[I],
-    limit:  Option[NonNegInt]
+    where:          WherePredicate[T],
+    offset:         Option[I],
+    limit:          Option[NonNegInt],
+    includeDeleted: Boolean = false
   ): F[SizeLimitedResult[T]] =
     databaseRef.get.map { tables =>
       val all     = mapLens.get(tables)
       val off     = offset.fold(all.iterator)(all.iteratorFrom).to(LazyList).map(_._2)
-      val matches = off.filter(where.matches)
+      val matches = off.filter(t => (includeDeleted || t.isPresent) && where.matches(t))
       SizeLimitedResult.Select.fromAll(matches.toList, limit)
     }
 

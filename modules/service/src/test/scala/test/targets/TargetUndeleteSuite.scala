@@ -89,6 +89,45 @@ class TargetUndeleteSuite extends OdbSuite {
     """
   )
 
+  // Fetch all science targets again, but make a point of including deleted
+  // targets.
+  queryTest(
+    query ="""
+      query AllTargets {
+        targets(WHERE: { programId: { EQ: "p-2" } }, includeDeleted: true) {
+          matches {
+            id
+            name
+          }
+        }
+      }
+    """,
+    expected = json"""
+      {
+        "targets": {
+          "matches": [
+            {
+              "id": "t-2",
+              "name": "NGC 5949"
+            },
+            {
+              "id": "t-3",
+              "name": "NGC 3269"
+            },
+            {
+              "id": "t-4",
+              "name": "NGC 3312"
+            },
+            {
+              "id": "t-5",
+              "name": "NGC 4749"
+            }
+          ]
+        }
+      }
+    """
+  )
+
   // Undelete NGC 3269 (t-3)
   queryTest(
     query ="""
@@ -115,8 +154,7 @@ class TargetUndeleteSuite extends OdbSuite {
       {
         "undeleteTargetsInput": {
           "WHERE": {
-            "id": { "EQ": "t-3" },
-            "existence": { "EQ": "DELETED" }
+            "id": { "EQ": "t-3" }
           }
         }
       }

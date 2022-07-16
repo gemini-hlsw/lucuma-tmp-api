@@ -524,12 +524,12 @@ object TargetSchema extends TargetScalars {
       name        = "targets",
       fieldType   = TargetSelectResult[F],
       description = "Selects the first `LIMIT` matching targets based on the provided `WHERE` parameter, if any.".some,
-      arguments   = List(ArgumentOptionWhereTarget, ArgumentOptionOffsetTarget, ArgumentOptionLimit),
+      arguments   = List(ArgumentOptionWhereTarget, ArgumentOptionOffsetTarget, ArgumentOptionLimit, ArgumentIncludeDeleted),
       resolve     = c => {
-        val where = c.arg(ArgumentOptionWhereTarget).getOrElse(WhereTargetInput.MatchPresent)
+        val where = c.arg(ArgumentOptionWhereTarget).getOrElse(WhereTargetInput.MatchAll)
         val off   = c.arg(ArgumentOptionOffsetTarget)
         val limit = c.resultSetLimit
-        c.target(_.selectWhere(where, off, limit))
+        c.target(_.selectWhere(where, off, limit, c.includeDeleted))
       }
     )
 
@@ -696,7 +696,8 @@ object TargetSchema extends TargetScalars {
       List(
         InputField("SET",  InputObjectTypeTargetProperties, "Describes the target values to modify."),
         InputObjectWhereTarget.optionField("WHERE", "Filters the targets to be updated according to those that match the given constraints."),
-        NonNegIntType.optionField("LIMIT", "Caps the number of results returned to the given value (if additional targets match the WHERE clause they will be updated but not returned).")
+        NonNegIntType.optionField("LIMIT", "Caps the number of results returned to the given value (if additional targets match the WHERE clause they will be updated but not returned)."),
+        InputField("includeDeleted", BooleanType, "Set to `true` to include deleted targets", false)
       )
     )
 
@@ -848,7 +849,7 @@ object TargetSchema extends TargetScalars {
       (c: HCursor) => for {
         where <- c.downField("WHERE").as[Option[WhereTargetInput]]
         limit <- c.downField("LIMIT").as[Option[NonNegInt]]
-      } yield TargetModel.UpdateInput(set, where, limit)
+      } yield TargetModel.UpdateInput(set, where, limit, includeDeleted = to.isPresent)
 
     val arg   =
       to.fold(InputObjectTypeTargetDelete, InputObjectTypeTargetUndelete)

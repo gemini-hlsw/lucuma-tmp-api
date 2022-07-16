@@ -127,7 +127,8 @@ object ProgramModel extends ProgramOptics {
   final case class UpdateInput(
     SET:   PropertiesInput,
     WHERE: Option[WhereProgramInput],
-    LIMIT: Option[NonNegInt]
+    LIMIT: Option[NonNegInt],
+    includeDeleted: Boolean = false
   ) extends TopLevelUpdateInput[Program.Id, ProgramModel] {
 
     override def typeName: String =
@@ -150,7 +151,8 @@ object ProgramModel extends ProgramOptics {
       Eq.by { a => (
         a.SET,
         a.WHERE,
-        a.LIMIT
+        a.LIMIT,
+        a.includeDeleted
       )}
 
   }
