@@ -489,7 +489,7 @@ object TestInit {
                     )
                   ).assign
                 ),
-                WhereObservationInput.MatchPresent.withIds(List(o.id)).some,
+                WhereObservationInput.MatchAll.withIds(List(o.id)).some,
                 None
               )
             )

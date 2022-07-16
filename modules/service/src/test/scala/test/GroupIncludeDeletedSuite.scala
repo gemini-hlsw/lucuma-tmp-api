@@ -74,7 +74,7 @@ class GroupIncludeDeletedSuite extends OdbSuite {
   queryTest(
     query = """
       query ObservationsByConstraintSet {
-        constraintSetGroup(programId:"p-2", WHERE: { existence: { IN: [ PRESENT, DELETED ] } } ) {
+        constraintSetGroup(programId:"p-2", includeDeleted: true) {
           matches {
             observationIds
           }

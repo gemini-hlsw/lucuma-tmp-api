@@ -16,7 +16,7 @@ import lucuma.core.model.{CatalogInfo, EphemerisKey, Target}
 import lucuma.core.model.Target.{Nonsidereal, Sidereal}
 import lucuma.odb.api.model.{CoordinatesModel, DeclinationModel, Existence, ObservationModel, ParallaxModel, ProperMotionModel, RadialVelocityModel, RightAscensionModel}
 import lucuma.odb.api.model.targetModel.{CatalogInfoInput, EditAsterismPatchInput, NonsiderealInput, SiderealInput, TargetEnvironmentInput, TargetEnvironmentModel, TargetModel, WhereTargetInput}
-import lucuma.odb.api.model.query.{SizeLimitedResult, WhereEqInput, WhereOrderInput}
+import lucuma.odb.api.model.query.{SizeLimitedResult, WhereOrderInput}
 import lucuma.odb.api.repo.OdbCtx
 import lucuma.odb.api.schema.GeneralSchema.EnumTypeExistence
 import org.typelevel.log4cats.Logger
@@ -26,7 +26,7 @@ import sangria.schema.{Field, _}
 
 object TargetSchema extends TargetScalars {
 
-  import GeneralSchema.{ArgumentIncludeDeleted, InputObjectTypeWhereEqExistence}
+  import GeneralSchema.ArgumentIncludeDeleted
   import ObservationSchema.{ArgumentObservationId, ObservationIdType}
   import ProgramSchema.{ProgramIdType, ProgramType, InputObjectWhereOrderProgramId}
   import RefinedSchema.{NonEmptyStringType, NonNegIntType}
@@ -65,8 +65,7 @@ object TargetSchema extends TargetScalars {
           List(
             InputObjectWhereOrderTargetId.optionField("id", "Matches the target id."),
             InputObjectWhereOrderProgramId.optionField("programId", "Matches the id of the associated program."),
-            InputObjectWhereString.optionField("name", "Matches the target name."),
-            InputField("existence", OptionInputType(InputObjectTypeWhereEqExistence), "By default matching is limited to PRESENT targets.  Use this filter to include DELETED targets as well, for example.", WhereEqInput.EQ(Existence.Present: Existence).some)
+            InputObjectWhereString.optionField("name", "Matches the target name.")
           )
     )
 
@@ -509,11 +508,8 @@ object TargetSchema extends TargetScalars {
       name        = "target",
       fieldType   = OptionType(TargetType[F]),
       description = "Retrieves the target with the given id, if it exists".some,
-      arguments   = List(
-        ArgumentTargetId,
-        ArgumentIncludeDeleted
-      ),
-      resolve     = c => c.target(_.select(c.targetId, c.includeDeleted))
+      arguments   = List(ArgumentTargetId),
+      resolve     = c => c.target(_.select(c.targetId, includeDeleted = true))
     )
 
   implicit def TargetSelectResult[F[_]: Dispatcher: Async: Logger]: ObjectType[Any, SizeLimitedResult[TargetModel]] =
@@ -537,7 +533,7 @@ object TargetSchema extends TargetScalars {
     Field(
       name        = "asterism",
       fieldType   = ListType(TargetType[F]),
-      description = "All science targets (if any) for the given observation (or environment)".some,
+      description = "All science targets (if any) for the given observation (or environment). Set `includeDeleted` to true to include any deleted targets in the asterism.".some,
       arguments   = List(ArgumentObservationId, ArgumentIncludeDeleted),
       resolve     = c => c.target(_.selectObservationAsterism(c.observationId, c.includeDeleted).map(_.toList))
     )
@@ -697,7 +693,7 @@ object TargetSchema extends TargetScalars {
         InputField("SET",  InputObjectTypeTargetProperties, "Describes the target values to modify."),
         InputObjectWhereTarget.optionField("WHERE", "Filters the targets to be updated according to those that match the given constraints."),
         NonNegIntType.optionField("LIMIT", "Caps the number of results returned to the given value (if additional targets match the WHERE clause they will be updated but not returned)."),
-        InputField("includeDeleted", BooleanType, "Set to `true` to include deleted targets", false)
+        InputField("includeDeleted", OptionInputType(BooleanType), "Set to `true` to include deleted targets", false.some)
       )
     )
 

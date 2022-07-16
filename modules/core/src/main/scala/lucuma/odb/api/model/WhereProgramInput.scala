@@ -9,7 +9,7 @@ import io.circe.generic.extras.Configuration
 import io.circe.generic.extras.semiauto.deriveConfiguredDecoder
 import io.circe.Decoder
 import lucuma.core.model.Program
-import lucuma.odb.api.model.query.{WhereCombinator, WhereEqInput, WhereOptionStringInput, WhereOrderInput}
+import lucuma.odb.api.model.query.{WhereCombinator, WhereOptionStringInput, WhereOrderInput}
 
 final case class WhereProgramInput(
   AND:       Option[List[WhereProgramInput]]     = None,
@@ -18,16 +18,14 @@ final case class WhereProgramInput(
 
   id:        Option[WhereOrderInput[Program.Id]] = None,
   name:      Option[WhereOptionStringInput]      = None,
-  proposal:  Option[WhereProposalInput]          = None,
-  existence: Option[WhereEqInput[Existence]]     = WhereEqInput.EQ(Existence.Present: Existence).some
+  proposal:  Option[WhereProposalInput]          = None
 ) extends WhereCombinator[ProgramModel] {
 
   override def matches(a: ProgramModel): Boolean =
     combinatorMatches(a)                          &&
       id.forall(_.matches(a.id))                  &&
       name.forall(_.matches(a.name.map(_.value))) &&
-      proposal.forall(_.matches(a.proposal))      &&
-      existence.forall(_.matches(a.existence))
+      proposal.forall(_.matches(a.proposal))
 
   def withId(id: Program.Id): WhereProgramInput =
     copy(id = WhereOrderInput.EQ(id).some)
@@ -35,17 +33,12 @@ final case class WhereProgramInput(
   def withIds(ids: List[Program.Id]): WhereProgramInput =
     copy(id = WhereOrderInput.IN(ids).some)
 
-  def includeDeleted: WhereProgramInput =
-    copy(existence = None)
 }
 
 object WhereProgramInput {
 
-  val MatchPresent: WhereProgramInput =
-    WhereProgramInput()
-
   val MatchAll: WhereProgramInput =
-    MatchPresent.includeDeleted
+    WhereProgramInput()
 
   implicit val customConfig: Configuration =
     Configuration.default.withDefaults

@@ -10,9 +10,9 @@ import cats.syntax.option._
 import cats.syntax.functor._
 import lucuma.core.enums.{TacCategory, ToOActivation}
 import lucuma.core.model.{Partner, Program}
-import lucuma.odb.api.model.{Existence, PlannedTimeSummaryModel, ProgramModel, ProposalClassInput, ProposalInput, WhereProgramInput}
+import lucuma.odb.api.model.{PlannedTimeSummaryModel, ProgramModel, ProposalClassInput, ProposalInput, WhereProgramInput}
 import lucuma.odb.api.model.ProposalClassInput._
-import lucuma.odb.api.model.query.{SizeLimitedResult, WhereEqInput, WhereOrderInput}
+import lucuma.odb.api.model.query.{SizeLimitedResult, WhereOrderInput}
 import lucuma.odb.api.repo.OdbCtx
 import org.typelevel.log4cats.Logger
 import sangria.macros.derive._
@@ -21,7 +21,7 @@ import sangria.schema._
 
 object ProgramSchema {
 
-  import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, InputObjectTypeWhereEqExistence, PlannedTimeSummaryType}
+  import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, PlannedTimeSummaryType}
   import ObservationSchema.{ArgumentOptionOffsetObservation, ObservationSelectResult}
   import ProposalSchema.{ProposalType, InputObjectWhereProposal}
   import RefinedSchema.{IntPercentType, NonEmptyStringType, NonNegIntType}
@@ -61,8 +61,7 @@ object ProgramSchema {
           List(
             InputObjectWhereOrderProgramId.optionField("id", "Matches the program ID."),
             InputObjectWhereOptionString.optionField("name", "Matches the program name."),
-            InputObjectWhereProposal.optionField("proposal", "Matches the proposal."),
-            InputField("existence", OptionInputType(InputObjectTypeWhereEqExistence), "By default matching is limited to PRESENT programs.  Use this filter to included DELETED programs for example.", WhereEqInput.EQ(Existence.Present: Existence).some)
+            InputObjectWhereProposal.optionField("proposal", "Matches the proposal.")
           )
     )
 
@@ -148,12 +147,12 @@ object ProgramSchema {
       name        = "programs",
       fieldType   = ProgramSelectResult[F],
       description = "Selects the first `LIMIT` matching programs based on the provided `WHERE` parameter, if any.".some,
-      arguments   = List(ArgumentOptionWhereProgram, ArgumentOptionOffsetProgram, ArgumentOptionLimit),
+      arguments   = List(ArgumentOptionWhereProgram, ArgumentOptionOffsetProgram, ArgumentOptionLimit, ArgumentIncludeDeleted),
       resolve     = c => {
-        val where = c.arg(ArgumentOptionWhereProgram).getOrElse(WhereProgramInput.MatchPresent)
+        val where = c.arg(ArgumentOptionWhereProgram).getOrElse(WhereProgramInput.MatchAll)
         val off   = c.arg(ArgumentOptionOffsetProgram)
         val limit = c.resultSetLimit
-        c.program(_.selectWhere(where, off, limit))
+        c.program(_.selectWhere(where, off, limit, c.includeDeleted))
       }
     )
 
@@ -162,8 +161,8 @@ object ProgramSchema {
       name        = "program",
       fieldType   = OptionType(ProgramType[F]),
       description = "Returns the program with the given id, if any.".some,
-      arguments   = List(ArgumentProgramId, ArgumentIncludeDeleted),
-      resolve     = c => c.program(_.select(c.programId, c.includeDeleted))
+      arguments   = List(ArgumentProgramId),
+      resolve     = c => c.program(_.select(c.programId, includeDeleted = true))
     )
 
   def queryFields[F[_]: Dispatcher: Async: Logger]: List[Field[OdbCtx[F], Unit]] =
@@ -332,7 +331,8 @@ object ProgramSchema {
       List(
         InputField("SET", InputObjectTypeProgramProperties, "Describes the program values to modify."),
         InputObjectWhereProgram.optionField("WHERE", "Filters the programs to be updated according to those that match the given constraints."),
-        NonNegIntType.optionField("LIMIT", "Caps the number of results returned to the given value (if additional programs match the WHERE clause they will be updated but not returned).")
+        NonNegIntType.optionField("LIMIT", "Caps the number of results returned to the given value (if additional programs match the WHERE clause they will be updated but not returned)."),
+        InputField("includeDeleted", OptionInputType(BooleanType), "Set to `true` to include deleted programs.", false.some)
       )
     )
 
