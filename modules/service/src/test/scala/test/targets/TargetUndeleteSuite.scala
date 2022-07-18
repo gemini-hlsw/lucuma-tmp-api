@@ -93,7 +93,7 @@ class TargetUndeleteSuite extends OdbSuite {
   // targets.
   queryTest(
     query ="""
-      query AllTargets {
+      query AllTargetsIncludeDeleted {
         targets(WHERE: { programId: { EQ: "p-2" } }, includeDeleted: true) {
           matches {
             id

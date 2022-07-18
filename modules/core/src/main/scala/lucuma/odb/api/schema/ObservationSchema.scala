@@ -554,7 +554,7 @@ object ObservationSchema {
       (c: HCursor) => for {
         where <- c.downField("WHERE").as[Option[WhereObservationInput]]
         limit <- c.downField("LIMIT").as[Option[NonNegInt]]
-      } yield ObservationModel.UpdateInput(set, where, limit)
+      } yield ObservationModel.UpdateInput(set, where, limit, includeDeleted = to.isPresent)
 
     val arg   =
       to.fold(InputObjectTypeObservationDelete, InputObjectTypeObservationUndelete)
