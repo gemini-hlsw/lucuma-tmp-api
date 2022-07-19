@@ -10,7 +10,7 @@ import io.circe.generic.extras.Configuration
 import io.circe.generic.extras.semiauto.deriveConfiguredDecoder
 import lucuma.core.enums.{ObsActiveStatus, ObsStatus}
 import lucuma.core.model.{Observation, Program}
-import lucuma.odb.api.model.query.{WhereCombinator, WhereEqInput, WhereOptionStringInput, WhereOrderInput}
+import lucuma.odb.api.model.query.{WhereCombinator, WhereOptionStringInput, WhereOrderInput}
 
 final case class WhereObservationInput(
   AND:          Option[List[WhereObservationInput]]      = None,
@@ -21,8 +21,7 @@ final case class WhereObservationInput(
   programId:    Option[WhereOrderInput[Program.Id]]      = None,
   subtitle:     Option[WhereOptionStringInput]           = None,
   status:       Option[WhereOrderInput[ObsStatus]]       = None,
-  activeStatus: Option[WhereOrderInput[ObsActiveStatus]] = None,
-  existence:    Option[WhereEqInput[Existence]]          = WhereEqInput.EQ(Existence.Present: Existence).some
+  activeStatus: Option[WhereOrderInput[ObsActiveStatus]] = None
 ) extends WhereCombinator[ObservationModel] {
 
   override def matches(a: ObservationModel): Boolean =
@@ -31,8 +30,7 @@ final case class WhereObservationInput(
       programId.forall(_.matches(a.programId))             &&
       subtitle.forall(_.matchesNonEmptyString(a.subtitle)) &&
       status.forall(_.matches(a.status))                   &&
-      activeStatus.forall(_.matches(a.activeStatus))       &&
-      existence.forall(_.matches(a.existence))
+      activeStatus.forall(_.matches(a.activeStatus))
 
   def withId(id: Observation.Id): WhereObservationInput =
     copy(id = WhereOrderInput.EQ(id).some)
@@ -43,18 +41,12 @@ final case class WhereObservationInput(
   def withProgramId(pid: Program.Id): WhereObservationInput =
     copy(programId = WhereOrderInput.EQ(pid).some)
 
-  def includeDeleted: WhereObservationInput =
-    copy(existence = None)
-
 }
 
 object WhereObservationInput {
 
-  val MatchPresent: WhereObservationInput =
-    WhereObservationInput()
-
   val MatchAll: WhereObservationInput =
-    MatchPresent.includeDeleted
+    WhereObservationInput()
 
   implicit val customConfig: Configuration =
     Configuration.default.withDefaults

@@ -8,9 +8,9 @@ import cats.kernel.instances.order._
 import clue.data.Input
 import eu.timepit.refined.types.numeric.NonNegInt
 import eu.timepit.refined.types.string.NonEmptyString
-import lucuma.odb.api.model.{Database, Existence, ObservationModel, ProgramModel, WhereObservationInput}
+import lucuma.odb.api.model.{Database, ObservationModel, ProgramModel, WhereObservationInput}
 import lucuma.odb.api.model.arb.ArbDatabase
-import lucuma.odb.api.model.query.{WhereEqInput, WhereOrderInput}
+import lucuma.odb.api.model.query.WhereOrderInput
 import org.scalacheck.Prop.forAll
 import munit.ScalaCheckSuite
 
@@ -57,11 +57,11 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
       val obtained = runTest(t) {
         _.observation.selectWhere(
           WhereObservationInput(
-            id        = WhereOrderInput.IN(expected).some,
-            existence = WhereEqInput.ANY[Existence].some
+            id        = WhereOrderInput.IN(expected).some
           ),
           None,
-          None
+          None,
+          includeDeleted = true
         )
       }.limitedValues.map(_.id)
 
@@ -119,7 +119,8 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
             subtitle = Input(NonEmptyString.unsafeFrom("Biff"))
           ),
           WhereObservationInput.MatchAll.withId(o.id).some,
-          None
+          None,
+          includeDeleted = true
         )
       }
       assert(obs.subtitle.contains(NonEmptyString.unsafeFrom("Biff")))
@@ -135,7 +136,8 @@ final class ObservationRepoSpec extends ScalaCheckSuite with OdbRepoTest {
             subtitle = o.subtitle.fold(Input.ignore[NonEmptyString])(n => Input(n))
           ),
           WhereObservationInput.MatchAll.withId(o.id).some,
-          None
+          None,
+          includeDeleted = true
         )
       }
       assertEquals(after, before)

@@ -250,7 +250,8 @@ object ObservationModel extends ObservationOptics {
   final case class UpdateInput(
     SET:   PropertiesInput,
     WHERE: Option[WhereObservationInput],
-    LIMIT: Option[NonNegInt]
+    LIMIT: Option[NonNegInt],
+    includeDeleted: Boolean = false
   ) extends TopLevelUpdateInput[Observation.Id, ObservationModel] {
 
     override def typeName: String =
@@ -272,7 +273,8 @@ object ObservationModel extends ObservationOptics {
       Eq.by { a => (
         a.SET,
         a.WHERE,
-        a.LIMIT
+        a.LIMIT,
+        a.includeDeleted
       )}
 
   }

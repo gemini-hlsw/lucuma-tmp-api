@@ -70,7 +70,7 @@ object ObservationGroupSchema {
     name:        String,
     description: String,
     outType:     OutputType[A],
-    lookupAll:   (ObservationRepo[F], Program.Id, Option[WhereObservationInput]) => F[List[ObservationModel.Group[A]]]
+    lookupAll:   (ObservationRepo[F], Program.Id, Option[WhereObservationInput], Boolean) => F[List[ObservationModel.Group[A]]]
   ): Field[OdbCtx[F], Unit] = {
 
     val groupType =
@@ -90,10 +90,11 @@ object ObservationGroupSchema {
       arguments   = List(
         ArgumentProgramId,
         ArgumentOptionWhereObservation,
-        ArgumentOptionLimit
+        ArgumentOptionLimit,
+        ArgumentIncludeDeleted
       ),
       resolve    = c => c.unsafeToFuture {
-        lookupAll(c.ctx.odbRepo.observation, c.programId, c.arg(ArgumentOptionWhereObservation)).map { gs =>
+        lookupAll(c.ctx.odbRepo.observation, c.programId, c.arg(ArgumentOptionWhereObservation), c.includeDeleted).map { gs =>
           SizeLimitedResult.Select.fromAll(gs, c.arg(ArgumentOptionLimit))
         }
       }

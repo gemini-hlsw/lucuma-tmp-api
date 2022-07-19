@@ -202,7 +202,8 @@ object TargetModel extends TargetModelOptics {
   final case class UpdateInput(
     SET:   PropertiesInput,
     WHERE: Option[WhereTargetInput],
-    LIMIT: Option[NonNegInt]
+    LIMIT: Option[NonNegInt],
+    includeDeleted: Boolean = false
   ) extends TopLevelUpdateInput[Target.Id, TargetModel] {
 
     override def typeName: String =
@@ -225,7 +226,8 @@ object TargetModel extends TargetModelOptics {
       Eq.by { a => (
         a.SET,
         a.WHERE,
-        a.LIMIT
+        a.LIMIT,
+        a.includeDeleted
       )}
 
   }

@@ -40,42 +40,50 @@ sealed trait ObservationRepo[F[_]] extends TopLevelRepo[F, Observation.Id, Obser
 
   def groupByTarget(
     pid:   Program.Id,
-    WHERE: Option[WhereObservationInput]
+    WHERE: Option[WhereObservationInput],
+    includeDeleted: Boolean = false
   ): F[List[Group[Target.Id]]]
 
   def groupByTargetInstantiated(
     pid:   Program.Id,
-    WHERE: Option[WhereObservationInput]
+    WHERE: Option[WhereObservationInput],
+    includeDeleted: Boolean = false
   ): F[List[Group[TargetModel]]]
 
   def groupByAsterism(
     pid:   Program.Id,
-    WHERE: Option[WhereObservationInput]
+    WHERE: Option[WhereObservationInput],
+    includeDeleted: Boolean = false
   ): F[List[Group[SortedSet[Target.Id]]]]
 
   def groupByAsterismInstantiated(
     pid:   Program.Id,
-    WHERE: Option[WhereObservationInput]
+    WHERE: Option[WhereObservationInput],
+    includeDeleted: Boolean = false
   ): F[List[Group[Seq[TargetModel]]]]
 
   def groupByTargetEnvironment(
     pid:   Program.Id,
-    WHERE: Option[WhereObservationInput]
+    WHERE: Option[WhereObservationInput],
+    includeDeleted: Boolean = false
   ): F[List[Group[TargetEnvironmentModel]]]
 
   def groupByConstraintSet(
     pid:   Program.Id,
-    WHERE: Option[WhereObservationInput]
+    WHERE: Option[WhereObservationInput],
+    includeDeleted: Boolean = false
   ): F[List[Group[ConstraintSet]]]
 
   def groupByScienceMode(
     pid:   Program.Id,
-    WHERE: Option[WhereObservationInput]
+    WHERE: Option[WhereObservationInput],
+    includeDeleted: Boolean = false
   ): F[List[Group[Option[ScienceMode]]]]
 
   def groupByScienceRequirements(
     pid:   Program.Id,
-    WHERE: Option[WhereObservationInput]
+    WHERE: Option[WhereObservationInput],
+    includeDeleted: Boolean = false
   ): F[List[Group[ScienceRequirements]]]
 
   def updateAsterism(
@@ -166,7 +174,8 @@ object ObservationRepo {
 
       override def groupByTarget(
         pid:   Program.Id,
-        WHERE: Option[WhereObservationInput]
+        WHERE: Option[WhereObservationInput],
+        includeDeleted: Boolean
       ): F[List[Group[Target.Id]]] =
         databaseRef.get.map { db =>
 
@@ -174,11 +183,11 @@ object ObservationRepo {
             db.observations
               .rows
               .values
-              .filter(o => (o.programId === pid) && WHERE.getOrElse(WhereObservationInput.MatchPresent).matches(o))
+              .filter(o => (o.programId === pid) && (includeDeleted || o.isPresent) && WHERE.getOrElse(WhereObservationInput.MatchAll).matches(o))
               .flatMap(o => o.targetEnvironment.asterism.toList.tupleRight(o.id))
               .groupMap(_._1)(_._2)
               .view
-              .filterKeys(tid => db.targets.rows(tid).isPresent)
+              .filterKeys(tid => includeDeleted || db.targets.rows(tid).isPresent)
               .map { case (a, oids) => Group.from(a, oids) }
               .toList
 
@@ -186,7 +195,7 @@ object ObservationRepo {
             db.targets
               .rows
               .values
-              .filter(t => (t.programId === pid) && t.isPresent)
+              .filter(t => (t.programId === pid) && (includeDeleted || t.isPresent))
               .map(_.id)
               .toSet
 
@@ -201,26 +210,29 @@ object ObservationRepo {
 
       override def groupByTargetInstantiated(
         pid:   Program.Id,
-        WHERE: Option[WhereObservationInput]
+        WHERE: Option[WhereObservationInput],
+        includeDeleted: Boolean
       ): F[List[Group[TargetModel]]] =
 
         for {
-          g <- groupByTarget(pid, WHERE)
+          g <- groupByTarget(pid, WHERE, includeDeleted)
           d <- databaseRef.get
         } yield g.map(_.map(d.targets.rows.apply))
 
 
       private def groupBy[A](
         pid:   Program.Id,
-        WHERE: Option[WhereObservationInput]
+        WHERE: Option[WhereObservationInput],
+        includeDeleted: Boolean
       )(
         f: ObservationModel => A
       ): F[List[Group[A]]] =
-        groupByWithTables[A](pid, WHERE)((_, o) => f(o))
+        groupByWithTables[A](pid, WHERE, includeDeleted)((_, o) => f(o))
 
       private def groupByWithTables[A](
         pid:   Program.Id,
-        WHERE: Option[WhereObservationInput]
+        WHERE: Option[WhereObservationInput],
+        includeDeleted: Boolean
       )(
         f: (Database, ObservationModel) => A
       ): F[List[Group[A]]] =
@@ -228,7 +240,7 @@ object ObservationRepo {
           db.observations
             .rows
             .values
-            .filter(o => (o.programId === pid) && WHERE.getOrElse(WhereObservationInput.MatchPresent).matches(o))
+            .filter(o => (o.programId === pid) && (includeDeleted || o.isPresent) && WHERE.getOrElse(WhereObservationInput.MatchAll).matches(o))
             .map(o => (f(db, o), o.id))
             .groupMap(_._1)(_._2)
             .map { case (a, oids) => Group.from(a, oids) }
@@ -238,27 +250,30 @@ object ObservationRepo {
 
       override def groupByAsterism(
         pid:   Program.Id,
-        WHERE: Option[WhereObservationInput]
+        WHERE: Option[WhereObservationInput],
+        includeDeleted: Boolean
       ): F[List[Group[SortedSet[Target.Id]]]] =
-        groupByWithTables(pid, WHERE) { (t, o) =>
+        groupByWithTables(pid, WHERE, includeDeleted) { (t, o) =>
           o.targetEnvironment.asterism.filter(tid => t.targets.rows(tid).isPresent)
         }
 
       override def groupByAsterismInstantiated(
         pid:   Program.Id,
-        WHERE: Option[WhereObservationInput]
+        WHERE: Option[WhereObservationInput],
+        includeDeleted: Boolean
       ): F[List[Group[Seq[TargetModel]]]] =
 
         for {
-          g <- groupByAsterism(pid, WHERE)
+          g <- groupByAsterism(pid, WHERE, includeDeleted)
           t <- databaseRef.get
         } yield g.map(_.map(_.toList.map(t.targets.rows.apply)))
 
       override def groupByTargetEnvironment(
         pid:   Program.Id,
-        WHERE: Option[WhereObservationInput]
+        WHERE: Option[WhereObservationInput],
+        includeDeleted: Boolean
       ): F[List[Group[TargetEnvironmentModel]]] =
-       groupByWithTables(pid, WHERE) { (t, o) =>
+       groupByWithTables(pid, WHERE, includeDeleted) { (t, o) =>
          TargetEnvironmentModel.asterism.modify {
            _.filter(tid => t.targets.rows(tid).isPresent)
          }(o.targetEnvironment)
@@ -266,21 +281,24 @@ object ObservationRepo {
 
       override def groupByConstraintSet(
         pid:   Program.Id,
-        WHERE: Option[WhereObservationInput]
+        WHERE: Option[WhereObservationInput],
+        includeDeleted: Boolean
       ): F[List[Group[ConstraintSet]]] =
-        groupBy(pid, WHERE)(_.constraintSet)
+        groupBy(pid, WHERE, includeDeleted)(_.constraintSet)
 
       override def groupByScienceMode(
         pid:   Program.Id,
-        WHERE: Option[WhereObservationInput]
+        WHERE: Option[WhereObservationInput],
+        includeDeleted: Boolean
       ): F[List[Group[Option[ScienceMode]]]] =
-        groupBy(pid, WHERE)(_.scienceMode)
+        groupBy(pid, WHERE, includeDeleted)(_.scienceMode)
 
       override def groupByScienceRequirements(
         pid:   Program.Id,
-        WHERE: Option[WhereObservationInput]
+        WHERE: Option[WhereObservationInput],
+        includeDeleted: Boolean
       ): F[List[Group[ScienceRequirements]]] =
-        groupBy(pid, WHERE)(_.scienceRequirements)
+        groupBy(pid, WHERE, includeDeleted)(_.scienceRequirements)
 
       // A bulk edit for target environment with a post-observation validation
       private def doBulkEditTargets(

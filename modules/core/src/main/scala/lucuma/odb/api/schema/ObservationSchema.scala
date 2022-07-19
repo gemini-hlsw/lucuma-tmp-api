@@ -15,7 +15,7 @@ import lucuma.core.model.{ConstraintSet, Observation}
 import lucuma.odb.api.model.{Existence, ObservationModel, PlannedTimeSummaryModel, ScienceMode, ScienceRequirements, WhereObservationInput}
 import lucuma.odb.api.model.ObservationModel.BulkEdit
 import lucuma.odb.api.model.targetModel.{EditAsterismPatchInput, TargetEnvironmentModel, TargetModel}
-import lucuma.odb.api.model.query.{SizeLimitedResult, WhereEqInput, WhereOrderInput}
+import lucuma.odb.api.model.query.{SizeLimitedResult, WhereOrderInput}
 import lucuma.odb.api.repo.OdbCtx
 import lucuma.odb.api.schema.TargetSchema.TargetEnvironmentType
 import org.typelevel.log4cats.Logger
@@ -30,7 +30,7 @@ object ObservationSchema {
   import ScienceModeSchema._
   import ExecutionSchema.ExecutionType
   import ItcSchema.ItcSuccessType
-  import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, InputObjectTypeWhereEqExistence, PlannedTimeSummaryType}
+  import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, PlannedTimeSummaryType}
   import PosAngleConstraintSchema._
   import ProgramSchema.{ProgramIdType, ProgramType, InputObjectWhereOrderProgramId}
   import RefinedSchema.{NonEmptyStringType, NonNegIntType}
@@ -80,8 +80,7 @@ object ObservationSchema {
             InputObjectWhereOrderProgramId.optionField("programId", "Matches the id of the program associated with this observation."),
             InputObjectWhereOptionString.optionField("subtitle", "Matches the subtitle of the observation."),
             InputObjectWhereOrderObsStatus.optionField("status", "Matches the observation status."),
-            InputObjectWhereOrderObsActiveStatus.optionField("activeStatus", "Matches the observation active status."),
-            InputField("existence", OptionInputType(InputObjectTypeWhereEqExistence), "By default matching is limited to PRESENT observations.  Use this filter to include DELETED observations as well, for example.", WhereEqInput.EQ(Existence.Present: Existence).some)
+            InputObjectWhereOrderObsActiveStatus.optionField("activeStatus", "Matches the observation active status.")
           )
     )
 
@@ -273,13 +272,14 @@ object ObservationSchema {
       arguments   = List(
         ArgumentOptionWhereObservation,
         ArgumentOptionOffsetObservation,
-        ArgumentOptionLimit
+        ArgumentOptionLimit,
+        ArgumentIncludeDeleted
       ),
       resolve     = c => {
-        val where = c.arg(ArgumentOptionWhereObservation).getOrElse(WhereObservationInput.MatchPresent)
+        val where = c.arg(ArgumentOptionWhereObservation).getOrElse(WhereObservationInput.MatchAll)
         val off   = c.arg(ArgumentOptionOffsetObservation)
         val limit = c.resultSetLimit
-        c.observation(_.selectWhere(where, off, limit))
+        c.observation(_.selectWhere(where, off, limit, c.includeDeleted))
       }
     )
 
@@ -288,8 +288,8 @@ object ObservationSchema {
       name        = "observation",
       fieldType   = OptionType(ObservationType[F]),
       description = "Returns the observation with the given id, if any.".some,
-      arguments   = List(ArgumentObservationId, ArgumentIncludeDeleted),
-      resolve     = c => c.observation(_.select(c.observationId, c.includeDeleted))
+      arguments   = List(ArgumentObservationId),
+      resolve     = c => c.observation(_.select(c.observationId, includeDeleted = true))
     )
 
   def groupByTarget[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
@@ -298,7 +298,7 @@ object ObservationSchema {
       "target",
       "Observations grouped by commonly held targets",
       TargetType[F],
-      (repo, pid, where) => repo.groupByTargetInstantiated(pid, where)
+      (repo, pid, where, inc) => repo.groupByTargetInstantiated(pid, where, inc)
     )
 
   def groupByAsterism[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
@@ -307,7 +307,7 @@ object ObservationSchema {
       "asterism",
       "Observations grouped by commonly held science asterisms",
       ListType(TargetType[F]),
-      (repo, pid, where) => repo.groupByAsterismInstantiated(pid, where)
+      (repo, pid, where, inc) => repo.groupByAsterismInstantiated(pid, where, inc)
     )
 
   def groupByTargetEnvironment[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
@@ -316,7 +316,7 @@ object ObservationSchema {
       "targetEnvironment",
       "Observations grouped by common target environment",
       TargetEnvironmentType[F],
-      (repo, pid, where) => repo.groupByTargetEnvironment(pid, where)
+      (repo, pid, where, inc) => repo.groupByTargetEnvironment(pid, where, inc)
     )
 
   def groupByConstraintSet[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
@@ -325,7 +325,7 @@ object ObservationSchema {
       "constraintSet",
       "Observations grouped by commonly held constraints",
       ConstraintSetType,
-      (repo, pid, where) => repo.groupByConstraintSet(pid, where)
+      (repo, pid, where, inc) => repo.groupByConstraintSet(pid, where, inc)
     )
 
   def groupByScienceMode[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
@@ -334,7 +334,7 @@ object ObservationSchema {
       "scienceMode",
       "Observations grouped by commonly held science mode",
       OptionType(ScienceModeType),
-      (repo, pid, where) => repo.groupByScienceMode(pid, where)
+      (repo, pid, where, inc) => repo.groupByScienceMode(pid, where, inc)
     )
 
   def groupByScienceRequirements[F[_]: Dispatcher: Async: Logger]: Field[OdbCtx[F], Unit] =
@@ -343,7 +343,7 @@ object ObservationSchema {
       "scienceRequirements",
       "Observations grouped by commonly held science requirements",
       ScienceRequirementsType[F],
-      (repo, pid, where) => repo.groupByScienceRequirements(pid, where)
+      (repo, pid, where, inc) => repo.groupByScienceRequirements(pid, where, inc)
     )
 
   def queryFields[F[_]: Dispatcher: Async: Logger]: List[Field[OdbCtx[F], Unit]] =
@@ -395,7 +395,8 @@ object ObservationSchema {
       List(
         InputField("SET",  InputObjectTypeObservationProperties, "Describes the observation values to modify."),
         InputObjectWhereObservation.optionField("WHERE", "Filters the observations to be updated according to those that match the given constraints."),
-        NonNegIntType.optionField("LIMIT", "Caps the number of results returned to the given value (if additional observations match the WHERE clause they will be updated but not returned).")
+        NonNegIntType.optionField("LIMIT", "Caps the number of results returned to the given value (if additional observations match the WHERE clause they will be updated but not returned)."),
+        InputField("includeDeleted", OptionInputType(BooleanType), "Set to `true` to include deleted observations.", false.some)
       )
     )
 
@@ -553,7 +554,7 @@ object ObservationSchema {
       (c: HCursor) => for {
         where <- c.downField("WHERE").as[Option[WhereObservationInput]]
         limit <- c.downField("LIMIT").as[Option[NonNegInt]]
-      } yield ObservationModel.UpdateInput(set, where, limit)
+      } yield ObservationModel.UpdateInput(set, where, limit, includeDeleted = to.isPresent)
 
     val arg   =
       to.fold(InputObjectTypeObservationDelete, InputObjectTypeObservationUndelete)

@@ -10,6 +10,7 @@ import cats.syntax.functor._
 import cats.syntax.traverse._
 import eu.timepit.refined.types.all.NonNegInt
 import lucuma.odb.api.model.query.{SizeLimitedResult, WherePredicate}
+import lucuma.odb.api.model.syntax.toplevel._
 
 /**
  * An input for updating a top-level item (program, observation, target).
@@ -24,12 +25,14 @@ trait TopLevelUpdateInput[I, A] {
 
   def LIMIT: Option[NonNegInt]
 
+  def includeDeleted: Boolean
+
   def state: DatabaseState[I, A]
 
-  def filteredValues: StateT[EitherInput, Database, List[A]] =
+  def filteredValues(implicit ev: TopLevelModel[I, A]): StateT[EitherInput, Database, List[A]] =
     StateT.inspect[EitherInput, Database, List[A]] { db =>
       val all = state.lens.get(db).rows.values
-      WHERE.fold(all)(where => all.filter(where.matches)).toList
+      WHERE.fold(all)(where => all.filter(a => (includeDeleted || a.isPresent) && where.matches(a))).toList
     }
 
   def editAll(as: List[A])(implicit ev: TopLevelModel[I, A]): StateT[EitherInput, Database, List[A]] =
