@@ -477,7 +477,7 @@ object Init {
             )
       cs <- targets(p.id).liftTo[F]
       ts <- cs.traverse(repo.target.insert(_).map(_.target))
-      _  <- repo.observation.insert(gmosSouthAutoObs(p.id, ts.headOption))
+      _  <- repo.observation.insert(gmosNorthAutoObs(p.id, ts.headOption))
       _  <- repo.observation.insert(gmosSouthAutoObs(p.id, ts.lastOption))
       _  <- repo.observation.insert(gmosSouthManualObs(p.id, None))
       _  <- repo.observation.insert(gmosNorthAutoObs(p.id, ts.lastOption))
