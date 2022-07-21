@@ -9,8 +9,8 @@ import cats.syntax.foldable._
 import cats.syntax.option._
 import cats.syntax.functor._
 import lucuma.core.enums.{TacCategory, ToOActivation}
-import lucuma.core.model.{Partner, Program}
-import lucuma.odb.api.model.{PlannedTimeSummaryModel, ProgramModel, ProposalClassInput, ProposalInput, WhereProgramInput}
+import lucuma.core.model.Program
+import lucuma.odb.api.model.{PlannedTimeSummaryModel, ProgramModel, ProposalClassInput, WhereProgramInput}
 import lucuma.odb.api.model.ProposalClassInput._
 import lucuma.odb.api.model.query.{SizeLimitedResult, WhereOrderInput}
 import lucuma.odb.api.repo.OdbCtx
@@ -23,7 +23,7 @@ object ProgramSchema {
 
   import GeneralSchema.{ArgumentIncludeDeleted, EnumTypeExistence, PlannedTimeSummaryType}
   import ObservationSchema.{ArgumentOptionOffsetObservation, ObservationSelectResult}
-  import ProposalSchema.{ProposalType, InputObjectWhereProposal}
+  import ProposalSchema.{InputObjectProposalInput, InputObjectWhereProposal, ProposalType}
   import RefinedSchema.{IntPercentType, NonEmptyStringType, NonNegIntType}
   import QuerySchema._
   import TimeSchema.InputObjectTypeNonNegDuration
@@ -273,32 +273,6 @@ object ProgramSchema {
     EnumType.fromEnumerated(
       "toOActivation",
       "Target of opportunity activation"
-    )
-
-  implicit val EnumTypePartner: EnumType[Partner] =
-    EnumType.fromEnumerated(
-      "partner",
-      "Partner"
-    )
-
-  implicit val InputObjectTypePartnerSplitInput: InputObjectType[ProposalInput.PartnerSplitInput] =
-    deriveInputObjectType[ProposalInput.PartnerSplitInput](
-      InputObjectTypeName("PartnerSplitsInput"),
-      InputObjectTypeDescription("Partner time allocation: must be empty or sum to 100%"),
-      ReplaceInputField("partner", EnumTypePartner.notNullableField("partner")),
-      ReplaceInputField("percent", IntPercentType.notNullableField("percent"))
-    )
-
-  implicit val InputObjectProposalInput: InputObjectType[ProposalInput] =
-    deriveInputObjectType[ProposalInput](
-      InputObjectTypeName("ProposalInput"),
-      InputObjectTypeDescription("Program proposal"),
-      ReplaceInputField("title",         NonEmptyStringType.nullableField("title")),
-      ReplaceInputField("proposalClass", InputObjectTypeProposalClassInput.createRequiredEditOptional("proposalClass", "proposal")),
-      ReplaceInputField("category",      EnumTypeTacCategory.nullableField("category")),
-      ReplaceInputField("toOActivation", EnumTypeToOActivation.createRequiredEditOptional("toOActivation", "proposal")),
-      ReplaceInputField("abstrakt",      NonEmptyStringType.nullableField("abstract")),
-      ReplaceInputField("partnerSplits", ListInputType(InputObjectTypePartnerSplitInput).createRequiredEditOptional("partnerSplits", "proposal"))
     )
 
   implicit val InputObjectTypeProgramProperties: InputObjectType[ProgramModel.PropertiesInput] =

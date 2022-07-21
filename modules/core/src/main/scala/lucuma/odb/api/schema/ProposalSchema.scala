@@ -5,8 +5,10 @@ package lucuma.odb.api.schema
 
 import lucuma.core.enums.{TacCategory, ToOActivation}
 import lucuma.core.model.{Partner, Proposal}
-import lucuma.odb.api.model.{PartnerSplit, ProposalClassEnum, WhereProposalInput, WhereProposalClassInput, WhereProposalPartnerEntryInput, WhereProposalPartnersInput}
+import lucuma.odb.api.model.{PartnerSplit, ProposalClassEnum, ProposalInput, WhereProposalClassInput, WhereProposalInput, WhereProposalPartnerEntryInput, WhereProposalPartnersInput}
 import lucuma.odb.api.model.query.{WhereEqInput, WhereOptionEqInput}
+import lucuma.odb.api.schema.ProgramSchema.InputObjectTypeProposalClassInput
+import sangria.macros.derive.{InputObjectTypeDescription, InputObjectTypeName, ReplaceInputField, deriveInputObjectType}
 import sangria.schema._
 
 object ProposalSchema {
@@ -88,6 +90,26 @@ object ProposalSchema {
             InputObjectWhereOptionString.optionField("abstract", "Matches the proposal abstract."), // abstrakt
             InputObjectWhereProposalPartners.optionField("partners", "Matches proposal partners.")
           )
+    )
+
+  implicit val InputObjectTypePartnerSplitInput: InputObjectType[ProposalInput.PartnerSplitInput] =
+    deriveInputObjectType[ProposalInput.PartnerSplitInput](
+      InputObjectTypeName("PartnerSplitsInput"),
+      InputObjectTypeDescription("Partner time allocation: must be empty or sum to 100%"),
+      ReplaceInputField("partner", EnumTypePartner.notNullableField("partner")),
+      ReplaceInputField("percent", IntPercentType.notNullableField("percent"))
+    )
+
+  implicit val InputObjectProposalInput: InputObjectType[ProposalInput] =
+    deriveInputObjectType[ProposalInput](
+      InputObjectTypeName("ProposalInput"),
+      InputObjectTypeDescription("Program proposal"),
+      ReplaceInputField("title",         NonEmptyStringType.nullableField("title")),
+      ReplaceInputField("proposalClass", InputObjectTypeProposalClassInput.createRequiredEditOptional("proposalClass", "proposal")),
+      ReplaceInputField("category",      EnumTypeTacCategory.nullableField("category")),
+      ReplaceInputField("toOActivation", EnumTypeToOActivation.createRequiredEditOptional("toOActivation", "proposal")),
+      ReplaceInputField("abstrakt",      NonEmptyStringType.nullableField("abstract")),
+      ReplaceInputField("partnerSplits", ListInputType(InputObjectTypePartnerSplitInput).createRequiredEditOptional("partnerSplits", "proposal"))
     )
 
   implicit val PartnerSplitType: ObjectType[Any, PartnerSplit] =
