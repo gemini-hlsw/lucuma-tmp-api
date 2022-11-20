@@ -21,7 +21,7 @@ import scala.concurrent.{Await, Future}
  */
 final class FS2IntegrationSpec extends CatsSuite {
 
-  def impl(d: Dispatcher.parallel[IO]): SubscriptionStream[Stream[IO, *]] =
+  def impl(d: Dispatcher[IO]): SubscriptionStream[Stream[IO, *]] =
     streaming.fs2.fs2SubscriptionStream[IO](d, Async[IO])
 
   test("support itself") {
