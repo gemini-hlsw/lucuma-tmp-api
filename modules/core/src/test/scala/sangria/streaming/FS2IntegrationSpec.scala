@@ -21,17 +21,17 @@ import scala.concurrent.{Await, Future}
  */
 final class FS2IntegrationSpec extends CatsSuite {
 
-  def impl(d: Dispatcher[IO]): SubscriptionStream[Stream[IO, *]] =
+  def impl(d: Dispatcher.parallel[IO]): SubscriptionStream[Stream[IO, *]] =
     streaming.fs2.fs2SubscriptionStream[IO](d, Async[IO])
 
   test("support itself") {
-    Dispatcher[IO].use { d =>
+    Dispatcher.parallel[IO].use { d =>
       IO.pure(impl(d).supported(streaming.fs2.fs2SubscriptionStream[IO](d, Async[IO])))
     }.unsafeRunSync() should be (true)
   }
 
   def execStream[A](testCase: SubscriptionStream[Stream[IO, *]] => Stream[IO, A]): List[A] =
-    Dispatcher[IO].use { d => testCase(impl(d)).compile.toList }.unsafeRunSync()
+    Dispatcher.parallel[IO].use { d => testCase(impl(d)).compile.toList }.unsafeRunSync()
 
   test("map") {
     execStream(_.map(Stream.emits[IO, Int](List(1, 2, 10)))(_ + 1)) should be (List(2, 3, 11))
@@ -50,7 +50,7 @@ final class FS2IntegrationSpec extends CatsSuite {
   }
 
   def execFuture[A](testCase: SubscriptionStream[Stream[IO, *]] => Future[A]): A =
-    Dispatcher[IO].use { d =>
+    Dispatcher.parallel[IO].use { d =>
       IO.fromFuture(
         IO.pure(testCase(impl(d)))
       )
@@ -72,7 +72,7 @@ final class FS2IntegrationSpec extends CatsSuite {
     val count = new AtomicInteger(0)
     def inc(): Unit = { val _ = count.getAndIncrement }
 
-    Dispatcher[IO].use { d =>
+    Dispatcher.parallel[IO].use { d =>
       val future = impl(d).onComplete(s)(inc()).compile.drain.unsafeToFuture()
       Await.result(future, 2.seconds)
       IO.pure(())
