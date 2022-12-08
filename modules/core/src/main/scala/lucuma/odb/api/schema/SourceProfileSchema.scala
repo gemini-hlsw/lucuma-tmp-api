@@ -305,7 +305,7 @@ object SourceProfileSchema {
 
         Field(
           name        = "sed",
-          fieldType   = UnnormalizedSedType,
+          fieldType   = OptionType(UnnormalizedSedType),
           description = "Un-normalized spectral energy distribution".some,
           resolve     = _.value.sed
         )
