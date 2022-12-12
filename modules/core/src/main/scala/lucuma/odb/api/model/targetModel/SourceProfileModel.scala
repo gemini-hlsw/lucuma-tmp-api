@@ -303,10 +303,14 @@ object SourceProfileModel {
 
     import lucuma.odb.api.model.targetModel.SourceProfileModel.BandNormalizedInput._
 
-    override val create: ValidatedInput[BandNormalized[T]] =
-      (sed.notMissingAndThen("sed")(_.toUnnormalizedSed),
-       brightnesses.notMissingAndThen("brightnesses")(brightnessCreator[T])
-      ).mapN { (sed, bright) => BandNormalized(sed, bright) }
+    override val create: ValidatedInput[BandNormalized[T]] = {
+      // we can't update lucuma-core thus we need to default to somthing
+      val modelSed = sed.toOption.map(_.toUnnormalizedSed)
+        .getOrElse(UnnormalizedSED.StellarLibrary(StellarLibrarySpectrum.O5V).validNec)
+      (modelSed, brightnesses.notMissingAndThen("brightnesses")(brightnessCreator[T])).mapN { (sed, bright) =>
+        BandNormalized(sed, bright)
+      }
+    }
 
     override val edit: StateT[EitherInput, BandNormalized[T], Unit] =
       for {

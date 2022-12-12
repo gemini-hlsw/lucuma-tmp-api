@@ -583,7 +583,7 @@ object SourceProfileSchema {
   )(implicit ev: InputType[BandBrightnessInput[T]]): InputObjectType[BandNormalizedInput[T]] =
     InputObjectType[BandNormalizedInput[T]](
       s"BandNormalized${groupName.capitalize}Input",
-      s"""Create or edit a band normalized value with $groupName magnitude units.  Specify both "sed" and "brightnesses" when creating a new BandNormalized${groupName.capitalize}.""",
+      s"""Create or edit a band normalized value with $groupName magnitude units.  Specify "brightnesses" and an optional "sed" parameter when creating a new BandNormalized${groupName.capitalize}.""",
       List(
         InputObjectUnnormalizedSed.createRequiredEditOptional("sed", s"BandNormalized${groupName.capitalize}"),
         ListInputType(ev).createRequiredEditOptional("brightnesses", s"BandNormalized${groupName.capitalize}"),
