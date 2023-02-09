@@ -9,7 +9,7 @@ import cats.syntax.either._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
-import cats.effect.{Async, Ref, Resource}
+import cats.effect.{Async, Ref}
 import clue.TransactionalClient
 import clue.http4s.Http4sBackend
 import io.circe.syntax._
@@ -26,10 +26,10 @@ class ItcClient[F[_]: Async: Logger](
   cache: Ref[F, Map[ItcSpectroscopyInput, ItcResult]]
 ) {
 
-  val resource: Resource[F, TransactionalClient[F, Unit]] =
+  val transactionalClient: F[TransactionalClient[F, Unit]] =
     for {
       b <- JdkHttpClient.simple.map(Http4sBackend[F](_))
-      c <- Resource.eval(TransactionalClient.of[F, Unit](uri)(Async[F], b, Logger[F]))
+      c <- TransactionalClient.of[F, Unit](uri)(Async[F], b, Logger[F])
     } yield c
 
   private def queryOne(
@@ -40,7 +40,7 @@ class ItcClient[F[_]: Async: Logger](
 
     def callItc(in: ItcSpectroscopyInput): F[ItcResult] =
       for {
-        x <- resource.use(_.request(ItcQuery)(in)).attempt
+        x <- transactionalClient.flatMap(_.request(ItcQuery)(in)).attempt
         r  = x.fold(
                x => ItcResult.Error(s"Could not call the ITC: ${x.getMessage}"),
                _.headOption.map(_.itc).getOrElse(ItcResult.error(s"No ITC result was returned for ${o.id}"))

@@ -36,7 +36,7 @@ object Main extends IOApp {
 //    userClient: SsoClient[F, User],
     testing:    Boolean
   ): Resource[F, WebSocketBuilder2[F] => HttpApp[F]] =
-    Dispatcher[F].map { implicit d =>
+    Dispatcher.parallel[F]map { implicit d =>
 
       // Our schema is constant for now
       val schema = OdbSchema[F](testing)
