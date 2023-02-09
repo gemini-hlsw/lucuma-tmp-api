@@ -76,16 +76,16 @@ trait OdbSuite extends CatsEffectSuite {
 //        .flatTap(_ => Resource.eval(IO.println("  • Server started.")))
     }
 
-  private def transactionalClient(svr: Server): Resource[IO, TransactionalClient[IO, Nothing]] =
+  private def transactionalClient(svr: Server): IO[TransactionalClient[IO, Nothing]] =
     for {
       xbe <- JdkHttpClient.simple[IO].map(Http4sBackend[IO](_))
       uri  = svr.baseUri / "odb"
-      xc  <- Resource.eval(TransactionalClient.of[IO, Nothing](uri, headers = Headers(Authorization(Credentials.Token(AuthScheme.Bearer, "123"))))(Async[IO], xbe, Logger[IO]))
+      xc  <- TransactionalClient.of[IO, Nothing](uri, headers = Headers(Authorization(Credentials.Token(AuthScheme.Bearer, "123"))))(Async[IO], xbe, Logger[IO])
     } yield xc
 
   private def streamingClient(svr: Server): Resource[IO, PersistentStreamingClient[IO, Nothing, _, _]] =
     for {
-      sbe <- JdkWSClient.simple[IO].map(Http4sWSBackend[IO](_))
+      sbe <- Resource.eval(JdkWSClient.simple[IO].map(Http4sWSBackend[IO](_)))
       uri  = (svr.baseUri / "ws").copy(scheme = Some(Http4sUri.Scheme.unsafeFromString("ws")))
       sc  <- Resource.eval(ApolloWebSocketClient.of(uri)(Async[IO], Logger[IO], sbe))
       ps   = Map("Authorization" -> Json.fromString("Bearer 123"))
@@ -116,7 +116,7 @@ trait OdbSuite extends CatsEffectSuite {
 
     def connection: Server => Resource[IO, TransactionalClient[IO, Nothing]] =
       this match {
-        case ClientOption.Http => transactionalClient
+        case ClientOption.Http => s => Resource.eval(transactionalClient(s))
         case ClientOption.Ws   => streamingClient
       }
 
