@@ -1,5 +1,7 @@
 # lucuma-tmp-api
 
+_This project has been archived.  See https://github.com/gemini-hlsw/lucuma-odb instead._
+
 ## Overview
 
 This project aims to define an API for working with the Gemini Science Proposal
@@ -11,8 +13,6 @@ features are worked out. Eventually we will throw out this service but be left
 with the Schema SDL that it produces.  In the meantime, client implementations
 can be developed against the API as it evolves and the science staff can
 experiment with the API as well.
-
-* TODO: publish
 
 ## How to experiment with the service in development
 
